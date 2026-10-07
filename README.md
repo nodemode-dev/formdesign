@@ -2,7 +2,7 @@
 <h1 align="center">formdes</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.5.0-f97316" alt="version 0.5.0">
+<img src="https://img.shields.io/badge/version-0.6.0-f97316" alt="version 0.6.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -16,17 +16,19 @@ formdes is the form family's page-layout application: an alternative to InDesign
 
 **Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
 
-## Status at 0.5.0
+## Status at 0.6.0
 
 Working end to end:
 
-- **Intake.** Markdown, Word, RTF, text, HTML, CSV and spreadsheets, PDFs (structure-aware extraction), images and GIFs, and a brief in plain words (key: value lines become fields) become one compact content pack.
+- **Intake.** Markdown, Word, RTF, text, HTML, CSV and spreadsheets, PDFs (structure-aware extraction), images and GIFs, and a brief in plain words become one compact content pack. Key: value lines become fields, and the brief is read for kind, size, page count, tone, colours, brand, event name, date, time, issue and call to action.
 - **71 templates** across magazine, newsletter, book, report, print, stationery, ad, web and presentation, each slotted for automatic filling and re-skinned by a brand kit. `docs/TEMPLATES.md` is the format; you can add your own.
 - **The Make pass.** Ranks templates for your content, fills them (titles, decks, bylines, stats, features, captions, contact fields), threads the article through continuation pages, matches images to frames, fits copy, and reports what is still sample text.
-- **Agents.** An MCP server with 25 tools (`./formdes mcp`, `./formdes agents install` for Claude Code, Codex and Cursor) and a CLI (`./formdes make FILES --brief "..." --out layout.pdf`).
+- **Agents.** An MCP server with 25 tools (`./formdes mcp`, `./formdes agents install` for Claude Code, Codex and Cursor), a CLI (`./formdes make FILES --brief "..." --out layout.pdf`), and three skills in `.claude/skills` (mirrored to `.agents/skills`): `formdes-harness` (eight sub-skills from intake to publishing), `formdes-template-creator` and `formdes-skillset`.
+- **The PDF Reader.** Page thumbnails, selectable text, search, the outline, plain-text view and an Extract that hands the PDF's structure to the Make pass (Alt+Ctrl+O, or Cmd on macOS).
 - **The editor.** Tiled rendering of the layout core with overlays, the 37 InDesign tools, menus built from the core's 432 commands, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
+- **Desktop.** A Tauri 2 app for macOS, Windows and Linux with the engine and the layout core as sidecars; CI builds the bundles on each `v*.*.*` tag.
 
-Still to come: the PDF Reader view, finishing and verifying the panels above, desktop builds, the agent skills and the documentation.
+Still to come: finishing and verifying the panels above, the manual, the wiki and the parity report against InDesign.
 
 ## Try it
 
@@ -69,6 +71,16 @@ The first `install` compiles the layout core (a few minutes on the first build).
 | Preview | http://localhost:5197 | `vite preview` of the production build |
 | Layout core | standard input and output | `formdes-core`, started and supervised by the engine |
 
+### Desktop app
+
+```bash
+./formdes install-desktop          # PyInstaller, and checks Rust and the webview libraries
+./formdes desktop dev              # run the app against the frozen engine
+./formdes desktop build            # bundles in src-tauri/target/release/bundle (.dmg, .msi and .exe, .deb, .rpm, .AppImage)
+```
+
+On Windows use `formdes.bat install-desktop` and `formdes.bat desktop build`. Linux needs the webview packages first: `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf`. The desktop engine prefers port 8196 and takes a free port when 8196 is busy.
+
 ## Configuration
 
 The engine reads `backend/.env`, which is never committed; `backend/.env.example` is the template.
@@ -94,7 +106,10 @@ formdes/
 ├── assets/                        repo art (README logo, desktop icon source)
 ├── native/                        Rust workspace: formdes-core over formdes's own layout crates
 ├── backend/                       FastAPI engine: the core process, intake, templates, the Make pass, MCP
-└── frontend/                      Vite app, vanilla TypeScript: the shell, the canvas, panels and dialogs
+├── frontend/                      Vite app, vanilla TypeScript: the shell, the canvas, panels and dialogs
+├── src-tauri/                     Tauri 2 desktop shell; the engine and the core ride along as sidecars
+├── .claude/skills/                formdes-harness, formdes-template-creator, formdes-skillset (mirrored to .agents/skills)
+└── .github/workflows/             ci (checks and a command-line make) and desktop (bundles and the release)
 ```
 
 ## Development
