@@ -1,5 +1,6 @@
 import math
 
+from app.intake import brief as brief_mod
 from app.templates import registry, spec
 
 LONGFORM = {"magazine", "report", "book", "newsletter", "web-article", "web-blog", "web-press", "web-docs"}
@@ -14,6 +15,12 @@ def image_slots(t: dict) -> int:
 def rank(pack: dict, limit: int = 5, category: str | None = None, medium: str | None = None) -> list[dict]:
     brief = pack.get("brief") or {}
     kinds = brief.get("kinds") or []
+    inferred = False
+    if not kinds:
+        hints = " ".join([str(pack.get("title") or ""), str(pack.get("subtitle") or "")] + [str(f.get("name", "")) for f in pack.get("files") or []]
+                         + [a.get("title", "") for a in (pack.get("articles") or [])[:3]])
+        kinds = brief_mod.parse(hints).get("kinds") or []
+        inferred = bool(kinds)
     tones = set(brief.get("tone") or [])
     facts = pack.get("facts") or {}
     words = facts.get("words", 0)
@@ -29,11 +36,11 @@ def rank(pack: dict, limit: int = 5, category: str | None = None, medium: str | 
         score, why = 0.0, []
         hit = next((i for i, k in enumerate(kinds[:4]) if k in c["kinds"]), None)
         if hit is not None:
-            score += 10 - 2.5 * hit
+            score += (6 if inferred else 10) - 2.5 * hit
             why.append(kinds[hit])
-        elif kinds:
+        elif kinds and not inferred:
             score -= 4
-        else:
+        if not kinds or inferred:
             if words > 900 and set(c["kinds"]) & LONGFORM:
                 score += 4
                 why.append("long text")
