@@ -57,7 +57,7 @@ Every item has a `kind` and, except lines, a `rect`: `[x, y, width, height]` fro
 
 | kind | what it makes | keys |
 | --- | --- | --- |
-| `text` | a text frame | `style` (a paragraph style), `slot` or `flow`, `sample` (a string, or a list for several paragraphs), `text` (literal; `<page>` is the current page number), `columns`, `gutter`, `inset` (number or `[t, l, b, r]`), `valign` (`top`, `center`, `bottom`, `justify`), `fill`, `ignoreWrap` |
+| `text` | a text frame | `style` (a paragraph style), `slot` or `flow`, `sample` (a string, or a list for several paragraphs), `text` (literal; `{page}` or `<page>` is the current page number, `{next}` and `{prev}` the next and previous page numbers), `columns`, `gutter`, `inset` (number or `[t, l, b, r]`), `valign` (`top`, `center`, `bottom`, `justify`), `fill`, `ignoreWrap` |
 | `image` | a graphic frame | `slot`, `fit` (`fill` default, or `fit` for logos), `shape: "ellipse"`, `corner`, `stroke` |
 | `rect`, `ellipse`, `polygon` | a shape | `fill` (a palette role or `#rrggbb`), `tint` (0 to 1), `gradient`, `stroke`, `corner`, `sides` (polygon) |
 | `line` | a rule | `from: [x, y]`, `to: [x, y]`, `stroke` |

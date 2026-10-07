@@ -79,8 +79,13 @@ def spread_rect(rt: dict, item: dict, side: str, offx: float) -> list[float]:
     return [round(x + offx, 3), round(y, 3), round(x + w + offx, 3), round(y + h, 3)]
 
 
+MARKERS = {"page": PAGE, "next": chr(0xE007), "prev": chr(0xE008)}
+
+
 def literal(text: str) -> str:
-    return text.replace("<page>", PAGE).replace("<next>", "").replace("<prev>", "")
+    for name, ch in MARKERS.items():
+        text = text.replace(f"<{name}>", ch).replace(f"{{{name}}}", ch)
+    return text
 
 
 def text_paras(item: dict) -> list[str]:
