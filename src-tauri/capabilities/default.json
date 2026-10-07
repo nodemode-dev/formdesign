@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The window talks HTTP and WebSocket to its engine on the loopback address; it needs only the core permissions.",
+  "windows": ["splash", "main"],
+  "permissions": ["core:default"]
+}
