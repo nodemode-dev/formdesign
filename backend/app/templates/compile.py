@@ -149,6 +149,8 @@ class Builder:
         rt = self.rt
         if item.get("slot"):
             self.add("object.label", {"label": f"slot:{item['slot']}", "ids": ids})
+        elif item.get("flow"):
+            self.add("object.label", {"label": f"flow:{item['flow']}", "ids": ids})
         elif item.get("label"):
             self.add("object.label", {"label": item["label"], "ids": ids})
         if item.get("name"):

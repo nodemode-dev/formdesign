@@ -10,7 +10,7 @@ KIND_WORDS = [
     ("web-email", r"email newsletter|e-?mail|edm\b|mailchimp"),
     ("web-press", r"press release"),
     ("web-docs", r"documentation|docs page|help center"),
-    ("ad-story", r"\bstor(y|ies)\b|reel|tiktok|9:16|1080x1920|1080 x 1920"),
+    ("ad-story", r"\b(?:instagram|ig|facebook|snapchat|whatsapp)\s+stor(?:y|ies)\b|\bstor(?:y|ies) ad\b|\breels?\b|tiktok|9:16|1080x1920|1080 x 1920"),
     ("ad-social", r"instagram|social post|social media|facebook ad|linkedin post|1080x1080|1080x1350|square ad|carousel"),
     ("ad-banner", r"banner|leaderboard|skyscraper|display ad|300x250|728x90|160x600|300x600|970x250|mpu"),
     ("ad-print", r"print ad|magazine ad|full[- ]page ad|half[- ]page ad|newspaper ad"),
@@ -76,12 +76,15 @@ FIELD_ALIASES = {
 
 def fields_from(text: str) -> dict:
     out: dict = {}
-    for line in text.splitlines():
-        m = re.match(r"\s*[-*]?\s*([A-Za-z][A-Za-z0-9 -]{0,20}?)\s*:\s*(.+?)\s*$", line)
+    segments = [s for line in text.splitlines() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z][A-Za-z -]{0,20}:)", line)]
+    for seg in segments:
+        m = re.match(r"\s*[-*]?\s*([A-Za-z][A-Za-z0-9 -]{0,20}?)\s*:\s*(.+?)\s*$", seg)
         if not m:
             continue
         key = FIELD_ALIASES.get(m.group(1).strip().lower())
         val = m.group(2).strip().strip("\"“”")
+        if val.endswith(".") and not val.endswith(".."):
+            val = val[:-1]
         if key and val and key not in out:
             out[key] = val
     m = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text)
@@ -106,10 +109,12 @@ def parse(text: str | None, options: dict | None = None) -> dict:
     t = (text or "").strip()
     low = t.lower()
     options = options or {}
-    kinds: list[str] = []
+    found: dict[str, int] = {}
     for kind, pat in KIND_WORDS:
-        if re.search(pat, low) and kind not in kinds:
-            kinds.append(kind)
+        m = re.search(pat, low)
+        if m and kind not in found:
+            found[kind] = m.start()
+    kinds: list[str] = sorted(found, key=lambda k: found[k])
     if options.get("kind"):
         kinds.insert(0, options["kind"])
     tone = [k for k, pat in TONES.items() if re.search(pat, low)]
@@ -125,6 +130,13 @@ def parse(text: str | None, options: dict | None = None) -> dict:
         for name, (w, h) in PRESETS.items():
             if re.search(rf"\b{name}\b", low):
                 size = {"w": w, "h": h, "unit": "pt", "preset": name.upper() if len(name) == 2 else name.title()}
+                break
+    if size is None:
+        for word, dims in (("square", (1080, 1080)), ("instagram story", (1080, 1920)), ("story ad", (1080, 1920)), ("reel", (1080, 1920)),
+                           ("portrait post", (1080, 1350)), ("4:5", (1080, 1350)), ("16:9", (1920, 1080)), ("leaderboard", (728, 90)),
+                           ("skyscraper", (160, 600)), ("medium rectangle", (300, 250)), ("mpu", (300, 250))):
+            if re.search(rf"\b{re.escape(word)}\b", low):
+                size = {"w": dims[0], "h": dims[1], "unit": "px", "hint": word}
                 break
     pages = None
     m = re.search(r"(\d{1,3})[- ]?(?:page|pp\b|pages)", low)
@@ -152,6 +164,11 @@ def parse(text: str | None, options: dict | None = None) -> dict:
         m = re.search(r"(?:brand|company|client|for)\s*[:\-]\s*([A-Z][\w&.' -]{1,40})", t)
         if m:
             brand = m.group(1).strip()
+        else:
+            m = re.search(r"\b(?:for|from|by|at)\s+([A-Z][\w'.-]*(?:\s+(?:&|and|of|[A-Z][\w'.-]*)){0,4})(?=,|\s+(?:a|an|the|is|which|who)\b|\.|$)", t)
+            words = m.group(1).split() if m else []
+            if words and words[0].lower() not in {"instagram", "facebook", "linkedin", "our", "my", "a"} and not (words[0] == "The" and len(words) == 1):
+                brand = m.group(1).strip()
     fields = {**fields_from(t), **(options.get("fields") or {})}
     return {"text": t, "kinds": kinds, "medium": options.get("medium") or medium, "tone": tone, "colors": colors[:6], "size": options.get("size") or size,
             "pages": options.get("pages") or pages, "cta": options.get("cta") or fields.get("cta") or cta,

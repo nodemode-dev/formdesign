@@ -1,7 +1,9 @@
 import asyncio
+import base64
 import hashlib
 import json
 import time
+from pathlib import Path
 
 from app.autolayout.fill import image_fill, text_fill
 from app.core import config
@@ -23,6 +25,13 @@ def templates(refresh: bool = False) -> dict[str, dict]:
 
 def get(template_id: str) -> dict | None:
     return templates().get(template_id)
+
+
+def user_path(t: dict):
+    cat = "".join(c for c in str(t.get("category", "other")).lower() if c.isalpha()) or "other"
+    if t.get("_file") and t.get("_user"):
+        return Path(t["_file"])
+    return config.TEMPLATES_USER_DIR / cat / f"{t['id']}.json"
 
 
 def cards(category: str | None = None, kind: str | None = None, query: str | None = None, medium: str | None = None) -> list[dict]:
@@ -97,6 +106,11 @@ async def build(core: Core, template_id: str, *, brand: dict | None = None, samp
     t = get(template_id)
     if t is None:
         raise CoreError(f"no template {template_id}: list them with list_templates")
+    return await build_spec(core, t, brand=brand, sample=sample, title=title, source=source)
+
+
+async def build_spec(core: Core, t: dict, *, brand: dict | None = None, sample: bool = True, title: str | None = None, source: str = "engine") -> dict:
+    template_id = t["id"]
     rt = spec.resolve(t, brand)
     b = C.structure(rt, title)
     res = await core.batch(b.cmds, source=source)
@@ -141,3 +155,38 @@ async def thumbnail(template_id: str, brand: dict | None = None, page: int = 0, 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(r.bin or b"")
     return r.bin or b""
+
+
+async def check_spec(t: dict, *, render: bool = True, size: int = 640, pages: int = 4) -> dict:
+    core = await aux_core()
+    rep: dict = {"id": t.get("id"), "ok": True}
+    async with _aux_lock:
+        try:
+            built = await build_spec(core, t, sample=True, source="check")
+            ins = await core.inspect()
+            rep["pages"] = ins.get("pageCount")
+            rep["slots"] = sorted({s["slot"] for s in built["slots"] if s.get("slot")})
+            rep["flows"] = sorted({s["flow"] for s in built["slots"] if s.get("flow")})
+            flow_stories = set()
+            for s in built["slots"]:
+                if s.get("flow"):
+                    info = (await core.call("exec", {"command": "story.get", "params": {"frame": s["id"]}}, source="check")).result or {}
+                    flow_stories.add(info.get("id"))
+            rep["overset"] = [s.get("id") for s in ins.get("stories") or [] if s.get("overset") and s.get("id") not in flow_stories]
+            pf = await core.exec("preflight.run", {}, source="check")
+            issues = pf if isinstance(pf, list) else (pf or {}).get("issues", [])
+            rep["preflight"] = [f"{i.get('severity')}: {i.get('message')}" for i in issues[:10]]
+            if render:
+                rep["renders"] = []
+                for p in range(min(rep["pages"] or 1, pages)):
+                    r = await core.call("page.png", {"page": p, "maxSide": size}, source="check")
+                    rep["renders"].append(base64.b64encode(r.bin or b"").decode())
+        except CoreError as exc:
+            rep["ok"] = False
+            rep["error"] = str(exc)
+        finally:
+            try:
+                await core.call("docs.close", {}, source="check")
+            except CoreError:
+                pass
+    return rep

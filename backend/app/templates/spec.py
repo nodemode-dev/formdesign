@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -286,9 +287,57 @@ def resolve(t: dict, brand: dict | None = None) -> dict:
 def card(t: dict) -> dict:
     page = t.get("page") or {}
     w, h = page_size(page)
+    u = UNIT.get(page.get("unit", "pt"), 1.0)
+    w, h = w / u, h / u
     slots = sorted({it["slot"] for p in (t.get("pages") or []) for it in p.get("items", []) if it.get("slot")})
     return {"id": t["id"], "name": t.get("name", t["id"]), "category": t.get("category", "other"), "kinds": t.get("kinds", []),
             "tags": t.get("tags", []), "tone": t.get("tone", []), "medium": t.get("medium", "print"), "description": t.get("description", ""),
             "size": [round(w, 2), round(h, 2)], "unit": page.get("unit", "pt"), "pages": len(t.get("pages") or []),
             "facing": bool(page.get("facing")), "theme": t.get("theme"), "slots": slots, "user": bool(t.get("_user")),
             "flows": sorted((t.get("flow") or {}).keys())}
+
+
+CATEGORIES = {"magazine", "newsletter", "book", "report", "print", "stationery", "ad", "web", "presentation", "other"}
+KINDS_ITEM = {"text", "image", "rect", "ellipse", "polygon", "line"}
+BANNED = re.compile("[\N{EM DASH}\U0001F000-\U0001FAFF\N{BLACK SUN WITH RAYS}-\N{DOUBLE CURLY LOOP}\N{VARIATION SELECTOR-16}]")
+
+
+def problems(t: dict) -> list[str]:
+    out: list[str] = []
+    if not isinstance(t, dict):
+        return ["a template is a JSON object"]
+    for k in ("id", "name", "category", "page", "pages"):
+        if k not in t:
+            out.append(f"missing `{k}`")
+    if t.get("category") and t["category"] not in CATEGORIES:
+        out.append(f"category must be one of {', '.join(sorted(CATEGORIES))}")
+    th, kt = _base()
+    if t.get("theme") and t["theme"] not in th:
+        out.append(f"unknown theme {t['theme']}")
+    if t.get("kit") and t["kit"] not in kt:
+        out.append(f"unknown kit {t['kit']}")
+    styles = set((kt.get(t.get("kit", "longform")) or {}).get("paragraph", {})) | set(((t.get("styles") or {}).get("paragraph") or {}))
+    parents = set((t.get("parents") or {}).keys())
+    groups = [("parent " + k, v) for k, v in (t.get("parents") or {}).items()] + [(f"page {i + 1}", p.get("items", [])) for i, p in enumerate(t.get("pages") or [])]
+    for name, f in (t.get("flow") or {}).items():
+        groups.append((f"flow {name}", ((f or {}).get("page") or {}).get("items", [])))
+    for i, p in enumerate(t.get("pages") or []):
+        if p.get("parent") not in (None, *parents) and "parent" in p:
+            out.append(f"page {i + 1}: parent {p['parent']} is not defined")
+    for where, items in groups:
+        for j, it in enumerate(items):
+            k = it.get("kind", "text")
+            if k not in KINDS_ITEM:
+                out.append(f"{where} item {j + 1}: unknown kind {k}")
+            if k == "line" and not (it.get("from") and it.get("to")):
+                out.append(f"{where} item {j + 1}: a line needs from and to")
+            if k != "line" and "rect" not in it:
+                out.append(f"{where} item {j + 1}: missing rect")
+            if it.get("style") and it["style"] not in styles:
+                out.append(f"{where} item {j + 1}: unknown paragraph style {it['style']}")
+            for key in ("sample", "text"):
+                v = it.get(key)
+                txt = " ".join(v) if isinstance(v, list) else str(v or "")
+                if BANNED.search(txt):
+                    out.append(f"{where} item {j + 1}: {key} contains an em dash or emoji")
+    return out[:40]

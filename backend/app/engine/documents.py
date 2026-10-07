@@ -78,6 +78,15 @@ class Documents:
             self.meta[uid] = DocMeta(uid)
         return await self.overview()
 
+    async def adopt(self, *, template: dict | None = None, brand: dict | None = None, brief: str = "", pack_id: str | None = None,
+                    slots: dict | None = None) -> DocMeta | None:
+        uid = await self.active_uid()
+        if uid is None:
+            return None
+        m = DocMeta(uid, template=template, brand=brand, brief=brief, pack_id=pack_id, slots=slots or {})
+        self.meta[uid] = m
+        return m
+
     async def open_path(self, path: str, *, source: str = "engine") -> dict:
         p = Path(path).expanduser()
         if not p.is_file():
