@@ -13,7 +13,7 @@ from app.intake import blocks as B
 _lock = threading.Lock()
 _cache: dict[str, tuple[float, pdfium.PdfDocument]] = {}
 
-BULLET = re.compile(r"^\s*([•●▪–—\-*·]|\d{1,3}[.)]|[a-z][.)])\s+")
+BULLET = re.compile(r"^\s*([\N{BULLET}\N{BLACK CIRCLE}\N{BLACK SMALL SQUARE}\N{EN DASH}\N{EM DASH}\-*\N{MIDDLE DOT}]|\d{1,3}[.)]|[a-z][.)])\s+")
 
 
 def _doc(path: str) -> pdfium.PdfDocument:

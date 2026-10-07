@@ -113,7 +113,7 @@ def parse(text: str, source: str, resolve_image) -> tuple[dict, list[dict]]:
             in_quote -= 1
             if not in_quote and quote_parts:
                 txt = " ".join(quote_parts)
-                m = re.match(r"^(.*?)\s*[—–-]{1,2}\s*([^—–-]{2,80})$", txt)
+                m = re.match(r"^(.*?)\s*[\N{EM DASH}\N{EN DASH}-]{1,2}\s*([^\N{EM DASH}\N{EN DASH}-]{2,80})$", txt)
                 out.append(B.quote(m.group(1), m.group(2)) if m and len(m.group(1)) > 20 else B.quote(txt))
         elif t in ("fence", "code_block"):
             out.append(B.code(tok.content, (tok.info or "").strip()))

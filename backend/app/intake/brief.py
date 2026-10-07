@@ -60,6 +60,48 @@ PRESETS = {"a3": (842, 1191), "a4": (595.28, 841.89), "a5": (419.53, 595.28), "a
            "legal": (612, 1008), "tabloid": (792, 1224), "us letter": (612, 792)}
 
 
+FIELD_ALIASES = {
+    "headline": "title", "title": "title", "subhead": "subtitle", "subheadline": "subtitle", "subtitle": "subtitle", "deck": "subtitle",
+    "standfirst": "subtitle", "kicker": "kicker", "eyebrow": "kicker", "section": "kicker", "tagline": "tagline", "slogan": "tagline",
+    "cta": "cta", "call to action": "cta", "button": "cta", "secondary cta": "cta2", "cta2": "cta2", "url": "url", "website": "url",
+    "web": "url", "link": "url", "email": "email", "e-mail": "email", "phone": "phone", "tel": "phone", "telephone": "phone",
+    "address": "address", "location": "location", "venue": "location", "where": "location", "date": "eventdate", "when": "eventdate",
+    "event date": "eventdate", "time": "eventtime", "doors": "eventtime", "price": "price", "offer": "offer", "discount": "offer",
+    "legal": "legal", "disclaimer": "legal", "small print": "legal", "fine print": "legal", "footer": "footer", "note": "note",
+    "name": "name", "role": "role", "job title": "role", "position": "role", "byline": "byline", "author": "byline", "by": "byline",
+    "issue": "issue", "intro": "intro", "summary": "summary", "quote": "pullquote", "pull quote": "pullquote", "brand": "brand",
+    "company": "brand", "client": "brand", "contact": "contact", "details": "details", "credit": "credit", "caption": "caption",
+}
+
+
+def fields_from(text: str) -> dict:
+    out: dict = {}
+    for line in text.splitlines():
+        m = re.match(r"\s*[-*]?\s*([A-Za-z][A-Za-z0-9 -]{0,20}?)\s*:\s*(.+?)\s*$", line)
+        if not m:
+            continue
+        key = FIELD_ALIASES.get(m.group(1).strip().lower())
+        val = m.group(2).strip().strip("\"“”")
+        if key and val and key not in out:
+            out[key] = val
+    m = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text)
+    if m and "email" not in out:
+        out["email"] = m.group(0)
+    m = re.search(r"\b(?:https?://)?(?:www\.)?[a-z0-9-]+\.(?:com|org|net|io|co|studio|shop|store|app|dev|design|art|uk|eu|ai)(?:/[\w/-]*)?\b", text, re.I)
+    if m and "url" not in out and "@" not in text[max(0, m.start() - 1):m.start()]:
+        out["url"] = m.group(0)
+    m = re.search(r"(?:\+\d{1,3}[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b", text)
+    if m and "phone" not in out:
+        out["phone"] = m.group(0)
+    m = re.search(r"(?<![\w.])([$£€]\s?\d[\d,]*(?:\.\d{2})?)", text)
+    if m and "price" not in out:
+        out["price"] = m.group(1)
+    m = re.search(r"\b(\d{1,3}\s?%\s?off|save \d{1,3}\s?%)", text, re.I)
+    if m and "offer" not in out:
+        out["offer"] = m.group(1)
+    return out
+
+
 def parse(text: str | None, options: dict | None = None) -> dict:
     t = (text or "").strip()
     low = t.lower()
@@ -110,6 +152,8 @@ def parse(text: str | None, options: dict | None = None) -> dict:
         m = re.search(r"(?:brand|company|client|for)\s*[:\-]\s*([A-Z][\w&.' -]{1,40})", t)
         if m:
             brand = m.group(1).strip()
+    fields = {**fields_from(t), **(options.get("fields") or {})}
     return {"text": t, "kinds": kinds, "medium": options.get("medium") or medium, "tone": tone, "colors": colors[:6], "size": options.get("size") or size,
-            "pages": options.get("pages") or pages, "cta": options.get("cta") or cta, "headline": options.get("headline") or headline,
-            "audience": audience, "brand": brand}
+            "pages": options.get("pages") or pages, "cta": options.get("cta") or fields.get("cta") or cta,
+            "headline": options.get("headline") or headline or fields.get("title"), "audience": audience, "brand": brand or fields.get("brand"),
+            "fields": fields}
