@@ -170,7 +170,7 @@ async def fit_text(core: Core, rt: dict, rec: dict, paras: list[str], source: st
             return {"trimmed": f"{best}/{len(units)} {'paragraphs' if sep is None else 'sentences'}"}
         await run(core, text_fill(fid, [{"style": style, "text": p} for p in paras], slot), source)
     size, leading = style_metrics(rt, style)
-    for k in (0.92, 0.85, 0.78):
+    for k in (0.92, 0.85, 0.78) if prose else (0.92, 0.85, 0.78, 0.7, 0.62, 0.55):
         info = await story(core, fid, source)
         total = len((info.get("text") or "").encode())
         attrs = {"size": round(size * k, 2)}
