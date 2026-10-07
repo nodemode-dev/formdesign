@@ -59,19 +59,40 @@ def tools_reference() -> str:
     return "\n".join(out)
 
 
+def templates_reference() -> str:
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.templates import spec
+    out = ["# formdes built-in templates", "", "Generated from the template library by `./formdes agents sync`; do not edit by hand. The person's own templates are listed live by `list_templates`.", "",
+           "Columns: id, size in the template's unit, pages, kinds the Make pass ranks it for, flows (running stories that add continuation pages), slots it fills.", ""]
+    cards = [spec.card(t) for t in spec.load_all().values() if not t.get("_user")]
+    present = [c for c in ["magazine", "newsletter", "book", "report", "print", "stationery", "ad", "web", "presentation", "other"] if any(x["category"] == c for x in cards)]
+    out += ["## Contents", ""] + [f"- {c.title()} ({sum(1 for x in cards if x['category'] == c)})" for c in present] + [""]
+    for cat in ["magazine", "newsletter", "book", "report", "print", "stationery", "ad", "web", "presentation", "other"]:
+        rows = sorted((c for c in cards if c["category"] == cat), key=lambda c: c["id"])
+        if not rows:
+            continue
+        out += [f"## {cat.title()}", "", "| id | size | pages | kinds | flows | slots |", "| --- | --- | --- | --- | --- | --- |"]
+        for c in rows:
+            size = f"{c['size'][0]:g} x {c['size'][1]:g} {c['unit']}"
+            slots = ", ".join(c["slots"][:14]) + (f" (+{len(c['slots']) - 14})" if len(c["slots"]) > 14 else "")
+            out.append(f"| `{c['id']}` | {size} | {c['pages']} | {', '.join(c['kinds'])} | {', '.join(c['flows']) or 'none'} | {slots} |")
+        out.append("")
+    return "\n".join(out)
+
+
 def _files(folder: Path) -> dict:
     return {str(p.relative_to(folder)): p.read_bytes() for p in sorted(folder.rglob("*")) if p.is_file()}
 
 
 def sync(check: bool) -> int:
-    ref = SRC / "formdes-harness" / "references" / "tools.md"
-    want = tools_reference()
     drift = []
-    if not ref.exists() or ref.read_text(encoding="utf-8") != want:
-        drift.append(str(ref.relative_to(ROOT)))
-        if not check:
-            ref.parent.mkdir(parents=True, exist_ok=True)
-            ref.write_text(want, encoding="utf-8")
+    for ref, want in ((SRC / "formdes-harness" / "references" / "tools.md", tools_reference()),
+                      (SRC / "formdes-harness" / "references" / "templates.md", templates_reference())):
+        if not ref.exists() or ref.read_text(encoding="utf-8") != want:
+            drift.append(str(ref.relative_to(ROOT)))
+            if not check:
+                ref.parent.mkdir(parents=True, exist_ok=True)
+                ref.write_text(want, encoding="utf-8")
     for name in SKILLS:
         src, dst = SRC / name, MIRROR / name
         if not dst.exists() or _files(dst) != _files(src):
