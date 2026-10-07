@@ -171,9 +171,11 @@ export class MenuBar {
   }
 
   get isOpen(): boolean { return this.openIndex >= 0; }
+  onBeforeOpen: (() => void) | null = null;
 
   open(i: number): void {
     this.close();
+    this.onBeforeOpen?.();
     const m = this.menus[i];
     m.menu.setItems(itemsOf(m.def));
     const b = m.btn.getBoundingClientRect();

@@ -7,7 +7,7 @@ import { icon } from './icons';
  *  it as it moves the other panels. */
 export interface GroupTab { id: string; label: string; body: HTMLElement }
 
-const KEY = 'formvis.groups';
+const KEY = 'formdes.groups';
 function loadState(): Record<string, { tab?: string; min?: boolean }> {
   try { return JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, { tab?: string; min?: boolean }>; } catch { return {}; }
 }
@@ -15,7 +15,7 @@ function saveState(id: string, patch: { tab?: string; min?: boolean }): void {
   try { const s = loadState(); s[id] = { ...s[id], ...patch }; localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* this session only */ }
 }
 
-const HOMES = 'formvis.tabHomes';
+const HOMES = 'formdes.tabHomes';
 
 export class PanelGroup {
   /** Every group by id: a tab dragged onto another group's header moves there (the owner's walkthrough). */

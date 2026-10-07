@@ -1,11 +1,10 @@
 import { engine } from './engine/client';
+import { FEATURES } from './features';
 import { brandMark } from './ui/brand';
-import { mountOnce, q, revealApp, setText } from './ui/dom';
-import { HomeScreen } from './ui/home';
+import { mountOnce, q, revealApp } from './ui/dom';
 import { icon } from './ui/icons';
+import { Shell } from './ui/shell';
 import { applyTheme } from './ui/themes';
-import { toast } from './ui/toast';
-import { VERSION } from './version';
 
 const SHELL = `<div class="cv-app fd-app">
 <header class="cv-titlebar">
@@ -42,7 +41,7 @@ const SHELL = `<div class="cv-app fd-app">
 <div class="cv-resizer" role="separator" aria-orientation="vertical" aria-label="Resize the panels"></div>
 <section class="cv-layers" aria-label="Panels"></section>
 </div>
-<footer class="cv-status fd-status"><span class="cv-st-engine fd-st-engine"></span><span class="cv-st-hint fd-st-hint"></span><span class="fd-st-version"></span></footer>
+<footer class="cv-status fd-status"><span class="cv-st-engine fd-st-engine"></span><span class="fd-st-page"></span><span class="cv-st-hint fd-st-hint"></span><span class="fd-st-version"></span></footer>
 </div>`;
 
 export function startApp(): void {
@@ -51,21 +50,12 @@ export function startApp(): void {
   if (!host) return;
   mountOnce(host, SHELL);
   const root = q(host, '.fd-app');
-  const status = q(root, '.fd-st-engine');
-  setText(q(root, '.fd-st-version'), `formdes ${VERSION}`);
-  const home = new HomeScreen(root, {
-    run: (cmd) => toast(`${cmd} arrives with the editor`),
-    recent: () => [],
-    openRecent: () => undefined,
-  }, [
-    { label: 'Make a layout…', command: 'make', icon: 'sparkle', key: 'M' },
-    { label: 'New document…', command: 'new', icon: 'newFile', key: 'N' },
-    { label: 'Open…', command: 'open', icon: 'folderOpen', key: 'O' },
-  ]);
-  home.sync(0);
-  engine.on('hello', (h: { core: string; running: boolean }) => setText(status, h.running ? `Engine ready · layout core ${h.core}` : 'Engine running · the layout core is not built'));
-  engine.on('close', () => setText(status, 'Engine offline: run ./formdes boot'));
-  setText(status, 'Connecting to the engine');
+  const shell = new Shell(root);
+  for (const f of FEATURES) {
+    try { f.install(shell); } catch (err) { console.error('[formdes] a feature failed to install', err); }
+  }
+  shell.mountPanels();
+  shell.viewport.readBackground();
   void engine.connect();
   revealApp();
 }

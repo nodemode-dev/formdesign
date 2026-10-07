@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
-const FRONTEND_PORT = 5196;
-const BACKEND_PORT = 8196;
+const FRONTEND_PORT = Number(process.env.FORMDES_UI_PORT ?? 5196);
+const BACKEND_PORT = Number(process.env.FORMDES_ENGINE_PORT ?? 8196);
 
 export default defineConfig({
   root: '.',

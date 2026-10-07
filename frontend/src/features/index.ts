@@ -1,0 +1,8 @@
+import type { Feature } from '../ui/workspace';
+import { feature as document } from './document';
+import { feature as make } from './make';
+import { feature as pages } from './pages';
+import { feature as properties } from './properties';
+import { feature as reader } from './reader';
+
+export const FEATURES: Feature[] = [make, properties, pages, document, reader];
