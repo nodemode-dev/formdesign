@@ -13,7 +13,7 @@
 .fp-sec:last-child { border-bottom: 0; }
 .fp-sec.is-shut { padding-bottom: 2px; }
 .fp-sec-top { display: flex; align-items: center; justify-content: space-between; height: 32px; }
-.fp-sec-head { display: inline-flex; align-items: center; gap: 4px; height: 26px; margin-left: -4px; padding: 0 6px 0 2px; border: 0; border-radius: var(--radius); background: transparent; color: var(--text-primary); font: inherit; font-size: var(--fs-12); font-weight: 600; letter-spacing: 0.01em; cursor: pointer; }
+.fp-sec-head { flex: none; justify-content: flex-start; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; height: 26px; margin-left: -4px; padding: 0 6px 0 2px; border: 0; border-radius: var(--radius); background: transparent; color: var(--text-primary); font: inherit; font-size: var(--fs-12); font-weight: 600; letter-spacing: 0.01em; cursor: pointer; }
 .fp-sec-head:hover { background: var(--bg-hover); }
 .fp-sec-head .icon { color: var(--text-muted); transition: transform var(--transition-fast); }
 .fp-sec-head[aria-expanded="false"] .icon { transform: rotate(-90deg); }

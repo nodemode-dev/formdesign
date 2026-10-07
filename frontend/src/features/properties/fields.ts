@@ -416,7 +416,7 @@ export class Section {
     this.head = q<HTMLButtonElement>(this.root, '.fp-sec-head');
     this.body = q(this.root, '.fp-sec-body');
     this.tools = q(this.root, '.fp-sec-tools');
-    setText(q(this.head, 'span'), title);
+    setText(q(this.head, 'span:last-child'), title);
     const shut = secState()[id] === false;
     this.setOpen(!shut);
     this.head.addEventListener('click', () => {
