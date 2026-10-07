@@ -169,7 +169,7 @@ class Content:
         if slot in f:
             return [str(f[slot])]
         if base == "title":
-            v = self.brief.get("headline") or m["title"] or self.pack.get("title")
+            v = self.brief.get("headline") or m["title"] or self.pack.get("title") or self.brief.get("subject")
             return [v] if v else None
         if base == "subtitle":
             v = m["deck"] or self.pack.get("subtitle") or (f.get("tagline") if not self.arts else None)

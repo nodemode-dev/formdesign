@@ -59,6 +59,19 @@ COLOR_NAMES = {
 PRESETS = {"a3": (842, 1191), "a4": (595.28, 841.89), "a5": (419.53, 595.28), "a6": (297.64, 419.53), "letter": (612, 792),
            "legal": (612, 1008), "tabloid": (792, 1224), "us letter": (612, 792)}
 
+NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "eight": 8, "ten": 10, "twelve": 12, "sixteen": 16, "twenty": 20,
+                "twenty-four": 24, "thirty-two": 32}
+WEEKDAY = r"(?:mon|tues|wednes|thurs|fri|satur|sun)day"
+MONTH = r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+DATE_RE = re.compile(rf"\b((?:{WEEKDAY},?\s+)?(?:\d{{1,2}}(?:st|nd|rd|th)?\s+{MONTH}\b\.?|{MONTH}\.?\s+\d{{1,2}}(?:st|nd|rd|th)?\b)(?:,?\s+\d{{4}})?|{WEEKDAY}\b)", re.I)
+CLOCK = r"\d{1,2}(?:[:.]\d{2})?\s?(?:am|pm|a\.m\.|p\.m\.)"
+TIME_RE = re.compile(rf"\b({CLOCK}(?:\s?(?:-|\N{{EN DASH}}|to|until|till)\s?{CLOCK})?|noon|midday)", re.I)
+ORG_NOUNS = r"(?:club|society|association|council|school|church|library|gallery|museum|studio|studios|collective|foundation|trust|group|team|cafe|bakery|restaurant|bar|shop|store|press|company|co|inc|ltd|llc)"
+EVENT_NOUNS = {"sale", "fair", "party", "launch", "festival", "fest", "concert", "gig", "show", "exhibition", "market", "night", "dinner", "lunch",
+               "brunch", "workshop", "class", "meetup", "conference", "summit", "opening", "fundraiser", "tasting", "screening", "race", "run",
+               "tournament", "auction", "reading", "talk", "webinar", "gala", "picnic", "parade", "jam", "showcase", "retreat", "camp",
+               "cleanup", "clean-up", "open day", "tour", "premiere", "ceremony", "celebration", "quiz", "bazaar", "expo", "hackathon"}
+
 
 FIELD_ALIASES = {
     "headline": "title", "title": "title", "subhead": "subtitle", "subheadline": "subtitle", "subtitle": "subtitle", "deck": "subtitle",
@@ -102,6 +115,15 @@ def fields_from(text: str) -> dict:
     m = re.search(r"\b(\d{1,3}\s?%\s?off|save \d{1,3}\s?%)", text, re.I)
     if m and "offer" not in out:
         out["offer"] = m.group(1)
+    m = DATE_RE.search(text)
+    if m and "eventdate" not in out:
+        out["eventdate"] = m.group(1)
+    m = TIME_RE.search(text)
+    if m and "eventtime" not in out:
+        out["eventtime"] = m.group(1)
+    m = re.search(rf"\b((?:spring|summer|autumn|fall|winter|holiday|{MONTH})(?:\s+\d{{4}})?)\s+(?:issue|edition)\b|\bissue\s+(?:no\.?\s*)?(\d{{1,4}})\b", text, re.I)
+    if m and "issue" not in out:
+        out["issue"] = m.group(1).title() if m.group(1) else f"Issue {m.group(2)}"
     return out
 
 
@@ -139,9 +161,9 @@ def parse(text: str | None, options: dict | None = None) -> dict:
                 size = {"w": dims[0], "h": dims[1], "unit": "px", "hint": word}
                 break
     pages = None
-    m = re.search(r"(\d{1,3})[- ]?(?:page|pp\b|pages)", low)
+    m = re.search(r"\b(\d{1,3}|" + "|".join(sorted(NUMBER_WORDS, key=len, reverse=True)) + r")[- ]?(?:page|pp\b|pages)", low)
     if m:
-        pages = int(m.group(1))
+        pages = int(m.group(1)) if m.group(1).isdigit() else NUMBER_WORDS[m.group(1)]
     cta = None
     m = re.search(r"(?:cta|call to action|button)\s*[:\-]?\s*[\"“']([^\"”']{2,40})[\"”']", t, re.I)
     if m:
@@ -165,12 +187,24 @@ def parse(text: str | None, options: dict | None = None) -> dict:
         if m:
             brand = m.group(1).strip()
         else:
-            m = re.search(r"\b(?:for|from|by|at)\s+([A-Z][\w'.-]*(?:\s+(?:&|and|of|[A-Z][\w'.-]*)){0,4})(?=,|\s+(?:a|an|the|is|which|who)\b|\.|$)", t)
+            m = re.search(rf"\b(?:for|from|by|at)\s+(?:the\s+)?([A-Z][\w'.-]*(?:\s+(?:&|and|of|[A-Z][\w'.-]*)){{0,4}}(?:\s+(?:[a-z]+\s+)?{ORG_NOUNS})?)(?=,|\s+(?:a|an|the|is|which|who|on|in|this|next|about|with|to|that|and)\b|\.|$)", t)
             words = m.group(1).split() if m else []
-            if words and words[0].lower() not in {"instagram", "facebook", "linkedin", "our", "my", "a"} and not (words[0] == "The" and len(words) == 1):
+            if words and words[0].lower() not in {"instagram", "facebook", "linkedin", "our", "my", "a"} and not (words[0] == "The" and len(words) == 1) \
+                    and not re.fullmatch(WEEKDAY, words[0].lower()):
                 brand = m.group(1).strip()
+            m = re.search(r"\b([A-Z][\w'-]*(?:\s+[A-Z][\w'-]*){0,3})\s+(?:magazine|newsletter|journal|quarterly|review|gazette|weekly|zine)\b", t)
+            if not brand and m and m.group(1).split()[0] not in {"The", "A", "An", "Our", "My", "This", "New"}:
+                brand = m.group(1)
+    subject = None
+    if brand and brand.split()[-1].lower() in EVENT_NOUNS:
+        subject, brand = brand, options.get("brand")
+    if not subject:
+        m = re.search(r"\b(?:for|about|announcing|promoting|advertising)\s+(?:a|an|our|the)\s+((?:[\w'&-]+\s+){0,3}?(" + "|".join(sorted(EVENT_NOUNS, key=len, reverse=True)) + r"))\b", low)
+        if m:
+            words = m.group(1).split()
+            subject = " ".join([words[0].capitalize()] + words[1:])
     fields = {**fields_from(t), **(options.get("fields") or {})}
     return {"text": t, "kinds": kinds, "medium": options.get("medium") or medium, "tone": tone, "colors": colors[:6], "size": options.get("size") or size,
             "pages": options.get("pages") or pages, "cta": options.get("cta") or fields.get("cta") or cta,
             "headline": options.get("headline") or headline or fields.get("title"), "audience": audience, "brand": brand or fields.get("brand"),
-            "fields": fields}
+            "subject": subject, "fields": fields}
