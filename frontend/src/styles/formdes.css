@@ -1,3 +1,4 @@
+:root { --fd-paper: #ffffff; --fd-hit: rgba(250, 204, 21, 0.38); --fd-hit-current: rgba(249, 115, 22, 0.55); --fd-text-select: rgba(80, 150, 255, 0.35); }
 .fd-app .cv-brand { display: flex; align-items: center; gap: var(--space-2); height: var(--ctl-md); padding: 0 var(--space-2) 0 var(--space-1); border: 0; border-radius: var(--radius); background: transparent; color: var(--text-primary); font: inherit; cursor: pointer; }
 .fd-app .cv-brand:hover { background: var(--surface-raised); }
 .fd-home .cv-home-actions { flex-wrap: wrap; justify-content: center; }
