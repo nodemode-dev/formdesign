@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -e
+cd "$(dirname "$0")"
+usage() {
+  printf 'formdes %s · page layout and publishing\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
+  cat << 'EOF'
+
+usage: ./formdes [command] [options]
+
+  (none) | boot       boot the engine (8196) and the frontend (5196) together
+  install [--lite]    install the engine, the layout core, the font library and the frontend
+  install-core        build (or fetch) formdes-core, the layout core
+  install-fonts       convert the bundled OFL font library into backend/app/fonts
+  install-desktop     install PyInstaller and check the Rust and Tauri toolchain
+  backend             boot the engine only
+  frontend            boot the frontend only
+  build               production build of the frontend into frontend/dist
+  serve               serve the built frontend from the engine on 127.0.0.1:8196
+  freeze              freeze the engine and copy the core into the Tauri sidecars
+  desktop dev|build   run or bundle the desktop app
+  make [args]         lay out from the command line: ./formdes make --template ID --brief TEXT FILES... --out FILE
+  templates [ID]      list the templates, or show one
+  mcp                 formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
+  agents install|sync set up Claude Code, Codex and Cursor (install), or refresh the harness skill's tool reference (sync)
+  doctor              check the toolchain, installs and ports
+  counts [--check]    the README's code sizes and template count
+  clean [--all]       remove build output (--all also venv, node_modules and the core build)
+  help                this text
+EOF
+}
+cmd="${1:-boot}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  boot|dev) exec setup/boot_all "$@" ;;
+  install) exec setup/install_all "$@" ;;
+  install-core) exec setup/install_core "$@" ;;
+  install-fonts) exec setup/install_fonts "$@" ;;
+  install-desktop) exec setup/install_desktop "$@" ;;
+  backend) exec setup/boot_backend "$@" ;;
+  frontend) exec setup/boot_frontend "$@" ;;
+  build) exec setup/build_frontend "$@" ;;
+  serve) exec setup/serve "$@" ;;
+  freeze) exec setup/freeze_backend "$@" ;;
+  desktop)
+    sub="${1:-dev}"
+    [ $# -gt 0 ] && shift
+    case "$sub" in
+      dev) exec setup/desktop_dev "$@" ;;
+      build) exec setup/desktop_build "$@" ;;
+      *) usage; exit 2 ;;
+    esac ;;
+  make) exec setup/cli make "$@" ;;
+  templates) exec setup/cli templates "$@" ;;
+  mcp) exec python3 setup/mcp_stdio.py "$@" ;;
+  agents) exec python3 setup/agents.py "$@" ;;
+  doctor) exec setup/doctor "$@" ;;
+  counts) exec setup/counts "$@" ;;
+  clean) exec setup/clean "$@" ;;
+  help|-h|--help) usage ;;
+  *) printf '[formdes] unknown command: %s\n\n' "$cmd"; usage; exit 2 ;;
+esac

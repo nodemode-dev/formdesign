@@ -1,0 +1,515 @@
+use std::collections::HashMap;
+use std::io::{Cursor, Read};
+
+use formdes_model::attrs::Attrs;
+use formdes_model::story::{Para, Seg};
+use quick_xml::Reader;
+use quick_xml::events::Event;
+use serde_json::json;
+
+pub struct Imported {
+    pub paras: Vec<Para>,
+    pub para_styles: Vec<String>,
+    pub char_styles: Vec<String>,
+}
+
+fn push_style(list: &mut Vec<String>, s: &str) {
+    if !s.is_empty() && !list.iter().any(|x| x == s) {
+        list.push(s.to_string());
+    }
+}
+
+fn seg(text: String, style: Option<String>, over: Attrs) -> Seg {
+    Seg::Text { text, style, over }
+}
+
+pub fn plain(text: &str) -> Imported {
+    let t = text.replace("\r\n", "\n").replace('\r', "\n");
+    let paras = t.split('\n').map(|l| Para::from_text("", l)).collect();
+    Imported { paras, para_styles: Vec::new(), char_styles: Vec::new() }
+}
+
+pub fn is_tagged(text: &str) -> bool {
+    let head = text.trim_start_matches('\u{feff}').trim_start();
+    head.starts_with("<ASCII-") || head.starts_with("<UNICODE-") || head.starts_with("<ANSI-")
+}
+
+pub fn tagged(text: &str) -> Imported {
+    let body = text.trim_start_matches('\u{feff}');
+    let mut out = Imported { paras: Vec::new(), para_styles: Vec::new(), char_styles: Vec::new() };
+    let mut lines: Vec<&str> = body.split(['\r', '\n']).collect();
+    if lines.first().is_some_and(|l| is_tagged(l)) {
+        let first = lines[0];
+        let rest = first.find('>').map(|i| &first[i + 1..]).unwrap_or("");
+        lines[0] = rest;
+        if rest.is_empty() {
+            lines.remove(0);
+        }
+    }
+    while lines.last().is_some_and(|l| l.is_empty()) && lines.len() > 1 {
+        lines.pop();
+    }
+    for line in lines {
+        let mut para_style = String::new();
+        let mut cstyle: Option<String> = None;
+        let mut segs: Vec<Seg> = Vec::new();
+        let mut buf = String::new();
+        let chars: Vec<char> = line.chars().collect();
+        let mut i = 0;
+        let flush = |segs: &mut Vec<Seg>, buf: &mut String, cs: &Option<String>| {
+            if !buf.is_empty() {
+                segs.push(seg(std::mem::take(buf), cs.clone(), Attrs::new()));
+            }
+        };
+        while i < chars.len() {
+            let ch = chars[i];
+            if ch == '\\' && i + 1 < chars.len() {
+                buf.push(chars[i + 1]);
+                i += 2;
+                continue;
+            }
+            if ch == '<' {
+                let end = chars[i..].iter().position(|c| *c == '>').map(|p| i + p);
+                if let Some(e) = end {
+                    let tag: String = chars[i + 1..e].iter().collect();
+                    i = e + 1;
+                    if let Some(hex) = tag.strip_prefix("0x") {
+                        if let Some(c) = u32::from_str_radix(hex, 16).ok().and_then(char::from_u32) {
+                            buf.push(c);
+                        }
+                    } else if let Some(n) = tag.strip_prefix("ParaStyle:") {
+                        para_style = n.to_string();
+                        push_style(&mut out.para_styles, n);
+                    } else if let Some(n) = tag.strip_prefix("CharStyle:") {
+                        flush(&mut segs, &mut buf, &cstyle);
+                        cstyle = if n.is_empty() { None } else { Some(n.to_string()) };
+                        push_style(&mut out.char_styles, n);
+                    }
+                    continue;
+                }
+            }
+            buf.push(ch);
+            i += 1;
+        }
+        flush(&mut segs, &mut buf, &cstyle);
+        if segs.is_empty() {
+            segs.push(Seg::text(""));
+        }
+        let mut p = Para { style: para_style, over: Attrs::new(), segs };
+        p.normalize();
+        out.paras.push(p);
+    }
+    if out.paras.is_empty() {
+        out.paras.push(Para::from_text("", ""));
+    }
+    out
+}
+
+fn entity(s: &str) -> String {
+    s.replace("&nbsp;", "\u{a0}").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'").replace("&amp;", "&")
+}
+
+pub fn html(text: &str) -> Imported {
+    let lower = text.to_ascii_lowercase();
+    let start = lower.find("<body").and_then(|b| lower[b..].find('>').map(|e| b + e + 1)).unwrap_or(0);
+    let end = lower.rfind("</body>").unwrap_or(text.len());
+    let body = &text[start..end.max(start)];
+    let mut out = Imported { paras: Vec::new(), para_styles: Vec::new(), char_styles: Vec::new() };
+    let mut cur = String::new();
+    let mut style = String::new();
+    let mut i = 0;
+    let bytes = body.as_bytes();
+    let mut skip_depth = 0;
+    let close = |out: &mut Imported, cur: &mut String, style: &str| {
+        let t = entity(cur.split_whitespace().collect::<Vec<_>>().join(" ").as_str());
+        if !t.is_empty() {
+            out.paras.push(Para::from_text(style, &t));
+            push_style(&mut out.para_styles, style);
+        }
+        cur.clear();
+    };
+    while i < bytes.len() {
+        if bytes[i] == b'<'
+            && let Some(e) = body[i..].find('>')
+        {
+            let tag = body[i + 1..i + e].trim().to_ascii_lowercase();
+            i += e + 1;
+            let name: String = tag.trim_start_matches('/').chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+            let closing = tag.starts_with('/');
+            if name == "script" || name == "style" {
+                skip_depth = if closing { 0 } else { 1 };
+                continue;
+            }
+            match name.as_str() {
+                "p" | "div" | "li" | "tr" | "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+                    close(&mut out, &mut cur, &style);
+                    style = if closing {
+                        String::new()
+                    } else {
+                        match name.as_str() {
+                            "h1" => "Heading 1".into(),
+                            "h2" => "Heading 2".into(),
+                            "h3" => "Heading 3".into(),
+                            "h4" | "h5" | "h6" => "Heading 4".into(),
+                            "li" => "List".into(),
+                            _ => String::new(),
+                        }
+                    };
+                }
+                "br" => close(&mut out, &mut cur, &style),
+                "td" | "th" if !closing && !cur.is_empty() => cur.push('\t'),
+                _ => {}
+            }
+            continue;
+        }
+        let next = body[i..].find('<').map(|p| i + p).unwrap_or(body.len());
+        if skip_depth == 0 {
+            cur.push_str(&body[i..next]);
+        }
+        i = next;
+    }
+    close(&mut out, &mut cur, &style);
+    if out.paras.is_empty() {
+        out.paras.push(Para::from_text("", ""));
+    }
+    out
+}
+
+pub fn markdown(text: &str) -> Imported {
+    let mut out = Imported { paras: Vec::new(), para_styles: Vec::new(), char_styles: Vec::new() };
+    for line in text.replace("\r\n", "\n").split('\n') {
+        let t = line.trim_end();
+        let hashes = t.chars().take_while(|c| *c == '#').count();
+        let (style, body) = if hashes > 0 && hashes <= 6 && t[hashes..].starts_with(' ') {
+            (format!("Heading {}", hashes.min(4)), t[hashes + 1..].to_string())
+        } else if let Some(b) = t.strip_prefix("- ").or_else(|| t.strip_prefix("* ")) {
+            ("List".to_string(), b.to_string())
+        } else {
+            (String::new(), t.to_string())
+        };
+        let mut segs = Vec::new();
+        let mut bold = false;
+        let mut italic = false;
+        let mut buf = String::new();
+        let mut chars = body.chars().peekable();
+        let emit = |segs: &mut Vec<Seg>, buf: &mut String, bold: bool, italic: bool| {
+            if buf.is_empty() {
+                return;
+            }
+            let mut over = Attrs::new();
+            match (bold, italic) {
+                (true, true) => {
+                    over.insert("fontStyle".into(), json!("Bold Italic"));
+                }
+                (true, false) => {
+                    over.insert("fontStyle".into(), json!("Bold"));
+                }
+                (false, true) => {
+                    over.insert("fontStyle".into(), json!("Italic"));
+                }
+                _ => {}
+            }
+            segs.push(seg(std::mem::take(buf), None, over));
+        };
+        while let Some(c) = chars.next() {
+            if (c == '*' || c == '_') && chars.peek() == Some(&c) {
+                chars.next();
+                emit(&mut segs, &mut buf, bold, italic);
+                bold = !bold;
+            } else if c == '*' || c == '_' {
+                emit(&mut segs, &mut buf, bold, italic);
+                italic = !italic;
+            } else {
+                buf.push(c);
+            }
+        }
+        emit(&mut segs, &mut buf, bold, italic);
+        if segs.is_empty() {
+            segs.push(Seg::text(""));
+        }
+        push_style(&mut out.para_styles, &style);
+        out.paras.push(Para { style, over: Attrs::new(), segs });
+    }
+    out
+}
+
+pub fn rtf(text: &str) -> Imported {
+    let mut out = Imported { paras: Vec::new(), para_styles: Vec::new(), char_styles: Vec::new() };
+    let chars: Vec<char> = text.chars().collect();
+    let mut i = 0;
+    let mut cur = String::new();
+    let mut skip: Vec<bool> = vec![false];
+    let mut uc_skip = 0usize;
+    while i < chars.len() {
+        let c = chars[i];
+        let skipping = *skip.last().unwrap_or(&false);
+        match c {
+            '{' => {
+                skip.push(skipping);
+                i += 1;
+                if chars.get(i) == Some(&'\\')
+                    && chars.get(i + 1) == Some(&'*')
+                    && let Some(l) = skip.last_mut()
+                {
+                    *l = true;
+                }
+            }
+            '}' => {
+                skip.pop();
+                if skip.is_empty() {
+                    skip.push(false);
+                }
+                i += 1;
+            }
+            '\\' => {
+                i += 1;
+                let Some(&n) = chars.get(i) else { break };
+                if !n.is_ascii_alphabetic() {
+                    i += 1;
+                    match n {
+                        '\'' => {
+                            let hex: String = chars.get(i..i + 2).map(|s| s.iter().collect()).unwrap_or_default();
+                            i += 2;
+                            if !skipping
+                                && let Ok(b) = u8::from_str_radix(&hex, 16)
+                            {
+                                cur.push(b as char);
+                            }
+                        }
+                        '~' if !skipping => cur.push('\u{a0}'),
+                        '-' | '*' => {
+                            if n == '*'
+                                && let Some(l) = skip.last_mut()
+                            {
+                                *l = true;
+                            }
+                        }
+                        _ if !skipping => cur.push(n),
+                        _ => {}
+                    }
+                    continue;
+                }
+                let word: String = chars[i..].iter().take_while(|c| c.is_ascii_alphabetic()).collect();
+                i += word.len();
+                let num: String = chars[i..].iter().take_while(|c| c.is_ascii_digit() || **c == '-').collect();
+                i += num.len();
+                if chars.get(i) == Some(&' ') {
+                    i += 1;
+                }
+                if skipping {
+                    continue;
+                }
+                match word.as_str() {
+                    "par" | "line" => out.paras.push(Para::from_text("", &std::mem::take(&mut cur))),
+                    "tab" => cur.push('\t'),
+                    "emdash" => cur.push('\u{2014}'),
+                    "endash" => cur.push('\u{2013}'),
+                    "lquote" => cur.push('\u{2018}'),
+                    "rquote" => cur.push('\u{2019}'),
+                    "ldblquote" => cur.push('\u{201C}'),
+                    "rdblquote" => cur.push('\u{201D}'),
+                    "bullet" => cur.push('\u{2022}'),
+                    "uc" => uc_skip = num.parse().unwrap_or(1),
+                    "u" => {
+                        if let Some(ch) = num.parse::<i32>().ok().map(|v| if v < 0 { v + 65536 } else { v }).and_then(|v| char::from_u32(v as u32)) {
+                            cur.push(ch);
+                        }
+                        i += uc_skip.max(1).min(chars.len().saturating_sub(i));
+                    }
+                    "fonttbl" | "colortbl" | "stylesheet" | "info" | "pict" | "header" | "footer" => {
+                        if let Some(l) = skip.last_mut() {
+                            *l = true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            '\r' | '\n' => i += 1,
+            _ => {
+                if !skipping {
+                    cur.push(c);
+                }
+                i += 1;
+            }
+        }
+    }
+    if !cur.is_empty() || out.paras.is_empty() {
+        out.paras.push(Para::from_text("", &cur));
+    }
+    out
+}
+
+fn attr(e: &quick_xml::events::BytesStart, key: &[u8]) -> Option<String> {
+    e.attributes().flatten().find(|a| a.key.as_ref() == key).and_then(|a| a.unescape_value().ok()).map(|v| v.to_string())
+}
+
+pub fn docx(bytes: &[u8]) -> Result<Imported, String> {
+    let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("not a Word file: {e}"))?;
+    let mut read = |name: &str| -> Option<String> {
+        let mut f = z.by_name(name).ok()?;
+        let mut s = String::new();
+        f.read_to_string(&mut s).ok()?;
+        Some(s)
+    };
+    let doc = read("word/document.xml").ok_or("not a Word file: no word/document.xml")?;
+    let styles_xml = read("word/styles.xml").unwrap_or_default();
+    let mut names: HashMap<String, String> = HashMap::new();
+    {
+        let mut r = Reader::from_str(&styles_xml);
+        let mut cur_id: Option<String> = None;
+        loop {
+            match r.read_event() {
+                Ok(Event::Start(e)) | Ok(Event::Empty(e)) => match e.name().as_ref() {
+                    b"w:style" => cur_id = attr(&e, b"w:styleId"),
+                    b"w:name" => {
+                        if let (Some(id), Some(n)) = (&cur_id, attr(&e, b"w:val")) {
+                            names.insert(id.clone(), n);
+                        }
+                    }
+                    _ => {}
+                },
+                Ok(Event::Eof) | Err(_) => break,
+                _ => {}
+            }
+        }
+    }
+    let mut out = Imported { paras: Vec::new(), para_styles: Vec::new(), char_styles: Vec::new() };
+    let mut r = Reader::from_str(&doc);
+    let mut para: Option<Para> = None;
+    let mut run_over = Attrs::new();
+    let mut in_text = false;
+    let mut bold = false;
+    let mut italic = false;
+    loop {
+        match r.read_event() {
+            Ok(Event::Start(e)) => match e.name().as_ref() {
+                b"w:p" => para = Some(Para { style: String::new(), over: Attrs::new(), segs: Vec::new() }),
+                b"w:r" => {
+                    bold = false;
+                    italic = false;
+                }
+                b"w:t" => in_text = true,
+                _ => {}
+            },
+            Ok(Event::Empty(e)) => match e.name().as_ref() {
+                b"w:pStyle" => {
+                    if let (Some(p), Some(v)) = (para.as_mut(), attr(&e, b"w:val")) {
+                        let n = names.get(&v).cloned().unwrap_or(v);
+                        let n = if n.eq_ignore_ascii_case("normal") { String::new() } else { n };
+                        push_style(&mut out.para_styles, &n);
+                        p.style = n;
+                    }
+                }
+                b"w:b" => bold = attr(&e, b"w:val").is_none_or(|v| v != "0" && v != "false"),
+                b"w:i" => italic = attr(&e, b"w:val").is_none_or(|v| v != "0" && v != "false"),
+                b"w:tab" => {
+                    if let Some(p) = para.as_mut() {
+                        p.segs.push(seg("\t".into(), None, run_over.clone()));
+                    }
+                }
+                b"w:br" | b"w:cr" => {
+                    if let Some(p) = para.as_mut() {
+                        p.segs.push(seg("\u{2028}".into(), None, run_over.clone()));
+                    }
+                }
+                b"w:p" => out.paras.push(Para::from_text("", "")),
+                _ => {}
+            },
+            Ok(Event::Text(t)) if in_text => {
+                if let Some(p) = para.as_mut() {
+                    let s = t.decode().map(|c| c.into_owned()).unwrap_or_default();
+                    let s = quick_xml::escape::unescape(&s).map(|c| c.into_owned()).unwrap_or(s);
+                    run_over.clear();
+                    match (bold, italic) {
+                        (true, true) => {
+                            run_over.insert("fontStyle".into(), json!("Bold Italic"));
+                        }
+                        (true, false) => {
+                            run_over.insert("fontStyle".into(), json!("Bold"));
+                        }
+                        (false, true) => {
+                            run_over.insert("fontStyle".into(), json!("Italic"));
+                        }
+                        _ => {}
+                    }
+                    p.segs.push(seg(s, None, run_over.clone()));
+                }
+            }
+            Ok(Event::GeneralRef(g)) if in_text => {
+                if let Some(p) = para.as_mut() {
+                    let name = g.decode().map(|c| c.into_owned()).unwrap_or_default();
+                    let s = entity(&format!("&{name};"));
+                    p.segs.push(seg(s, None, run_over.clone()));
+                }
+            }
+            Ok(Event::End(e)) => match e.name().as_ref() {
+                b"w:t" => in_text = false,
+                b"w:p" => {
+                    if let Some(mut p) = para.take() {
+                        if p.segs.is_empty() {
+                            p.segs.push(Seg::text(""));
+                        }
+                        p.normalize();
+                        out.paras.push(p);
+                    }
+                }
+                _ => {}
+            },
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(format!("Word file: {e}")),
+            _ => {}
+        }
+    }
+    if out.paras.is_empty() {
+        out.paras.push(Para::from_text("", ""));
+    }
+    Ok(out)
+}
+
+pub fn csv(text: &str) -> Imported {
+    let rows: Vec<String> = text
+        .replace("\r\n", "\n")
+        .split('\n')
+        .map(|line| {
+            let mut cells = Vec::new();
+            let mut cur = String::new();
+            let mut quoted = false;
+            let mut chars = line.chars().peekable();
+            while let Some(c) = chars.next() {
+                match c {
+                    '"' if quoted && chars.peek() == Some(&'"') => {
+                        cur.push('"');
+                        chars.next();
+                    }
+                    '"' => quoted = !quoted,
+                    ',' if !quoted => cells.push(std::mem::take(&mut cur)),
+                    _ => cur.push(c),
+                }
+            }
+            cells.push(cur);
+            cells.join("\t")
+        })
+        .collect();
+    plain(&rows.join("\n"))
+}
+
+pub fn import(name: &str, bytes: &[u8]) -> Result<Imported, String> {
+    let ext = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    let as_text = || String::from_utf8(bytes.to_vec()).unwrap_or_else(|_| bytes.iter().map(|b| *b as char).collect());
+    Ok(match ext.as_str() {
+        "docx" => docx(bytes)?,
+        "rtf" => rtf(&as_text()),
+        "html" | "htm" | "xhtml" => html(&as_text()),
+        "md" | "markdown" => markdown(&as_text()),
+        "csv" => csv(&as_text()),
+        "txt" | "text" | "tag" | "tagged" => {
+            let t = as_text();
+            if is_tagged(&t) { tagged(&t) } else { plain(&t) }
+        }
+        other => return Err(format!("cannot place .{other} files as text")),
+    })
+}
+
+pub fn is_text_name(name: &str) -> bool {
+    matches!(name.rsplit('.').next().unwrap_or("").to_ascii_lowercase().as_str(), "docx" | "rtf" | "html" | "htm" | "xhtml" | "md" | "markdown" | "csv" | "txt" | "text" | "tag" | "tagged")
+}

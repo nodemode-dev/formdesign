@@ -1,0 +1,31 @@
+[workspace]
+resolver = "3"
+members = ["formdes-core", "formdes-model", "formdes-text", "formdes-render", "formdes-engine", "formdes-interchange"]
+
+[workspace.package]
+version = "0.17.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.90"
+repository = "https://github.com/nodemode-ai/formdes"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+log = "0.4"
+fancy-regex = "0.19"
+spellbook = "0.4"
+kurbo = { version = "0.13", features = ["serde"] }
+zip = { version = "3", default-features = false, features = ["deflate"] }
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 16
+debug = 0

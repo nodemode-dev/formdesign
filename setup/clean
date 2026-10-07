@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+cd "$FORMDES_ROOT"
+for p in frontend/dist backend/build backend/dist-engine src-tauri/target src-tauri/gen; do rm -rf "$p"; done
+find backend -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+for f in src-tauri/binaries/formdes-engine-* src-tauri/binaries/formdes-core-*; do [ -e "$f" ] && rm -f "$f"; done
+if [ "${1:-}" = "--all" ]; then for p in frontend/node_modules backend/venv native/target native/bin; do rm -rf "$p"; done; fi
+fd_say "clean"

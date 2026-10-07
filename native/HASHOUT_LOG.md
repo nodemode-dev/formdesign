@@ -1,0 +1,484 @@
+# HASHOUT_LOG · native · formdes
+
+Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
+
+Current build version: v0.17.0
+Last updated: 2026-10-10 · formdes-core moved onto formdes-engine; the previous engine removed
+
+---
+
+## Org-navi-map
+
+```
+native/
+├── Cargo.toml                    workspace of formdes's own crates; no git dependencies
+├── Cargo.lock                    resolved dependency graph (committed: a binary crate)
+├── HASHOUT_LOG.md                this log
+└── formdes-core/
+    ├── Cargo.toml                the binary crate, over formdes-engine
+    ├── fonts/                    Source Serif 4, Source Sans 3, Inter, JetBrains Mono (OFL), embedded at build
+    ├── dict/                     the SCOWL en_US Hunspell dictionary and its notice, embedded at build
+    └── src/
+        ├── main.rs               flags (--version, --selfcheck), font loading, serve
+        ├── proto.rs              JSON-lines framing, length-prefixed binary replies, stderr logger
+        ├── core.rs               method dispatch, revision tracking, batches, documents, fonts, object styles
+        ├── damage.rs             repaint rects from the items and stories a call changed
+        ├── textloc.rs            story, table cell and footnote text addressing; line spans on the canvas
+        ├── slots.rs              frames labelled slot:NAME or flow:NAME
+        ├── find.rs               findChange: text, GREP, glyph and object find and change
+        ├── spell.rs              spelling marks, checks and suggestions in each text's language
+        ├── preflight.rs          preflight with profile checks
+        ├── thumb.rs              snippetThumb: a library item rendered on its own as a PNG
+        └── web.rs                web and web.asset: the document as structured content for website export
+└── formdes-model/                formdes's own document model (engine phase E1)
+    ├── Cargo.toml
+    └── src/
+        ├── lib.rs                module list, re-exports, ModelError
+        ├── ids.rs                typed u64 ids for items, stories, assets, layers, pages, spreads, parents
+        ├── geom.rs               edges, rect helpers, units and page size names
+        ├── attrs.rs              the attribute key registry, validation, the resolve stack, CharProps and ParaProps
+        ├── color.rs              colours, gradients, swatches, paints
+        ├── style.rs              named paragraph, character, object, table and cell styles
+        ├── story.rs              paragraph-major stories of text and inline segments
+        ├── item.rs               shapes, strokes, text frames, graphics, groups, states, wrap; assets
+        ├── page.rs               pages, spreads, parents, sections, layers
+        ├── doc.rs                the document arena, spread arrangement, lookups and checks
+        └── format.rs             the .fdes zip: mimetype, doc.json, assets/<id>
+└── formdes-text/                 formdes's own text engine (phase E2)
+    ├── Cargo.toml
+    └── src/
+        ├── lib.rs                module list and re-exports
+        ├── fonts.rs              FontBook: system and folder fonts, family and style matching, fallback per character
+        ├── shape.rs              OpenType shaping of one run through harfrust
+        ├── lang.rs               language names to BCP 47 tags and hyphenation languages
+        ├── kp.rs                 the Knuth and Plass total-fit line breaker and a first-fit breaker
+        ├── compose.rs            a paragraph: shaping, breaking, justification, tabs, drop caps, bidi, carets
+        ├── para.rs               a story paragraph into composer input: styles, lists, nested and GREP styles, inlines
+        ├── flow.rs               a story through threaded frames: columns, span and split, wrap, keeps, widows, notes, tables, carets
+        ├── region.rs             path geometry for wrap and shaped frames: spans per band, arc length
+        ├── onpath.rs             type on a path: one composed line placed glyph by glyph along a path
+        └── layout.rs             a document's stories laid out: frame specs, wrap exclusions, markers and variables
+└── formdes-render/               formdes's own output (phase E3)
+    ├── Cargo.toml
+    └── src/
+        ├── lib.rs                Renderer: fonts, outline and image caches; page PNG and PDF entry points
+        ├── scene.rs              a page as drawing operations: parents, layers, items, text, decorations, links
+        ├── outline.rs            glyph outlines as paths, cached per face and glyph
+        ├── images.rs             placed images decoded and placed PDFs rasterised, cached per asset and scale
+        ├── raster.rs             the operations drawn with vello_cpu; PNG and JPEG encoding
+        ├── view.rs               canvas tiles: placed spreads drawn into one view at any zoom
+        └── pdf.rs                the operations written with krilla: embedded subset fonts, CMYK, images, placed PDFs, links
+└── formdes-interchange/          file formats in and out (phase E4)
+    ├── Cargo.toml
+    └── src/
+        ├── lib.rs                module list
+        ├── text.rs               text import: InDesign tagged text, plain, Markdown, HTML, RTF, Word, CSV
+        ├── publish.rs            HTML page and EPUB (reflowable or fixed layout) from the document
+        └── idml/
+            ├── mod.rs            IDML constants, base64
+            ├── dom.rs            a small XML tree over quick-xml for the reader
+            ├── read.rs           IDML package to a document: preferences, swatches, styles, parents, spreads, stories
+            └── write.rs          a document to an IDML package
+└── formdes-engine/               the session, commands, tools and canvas views (phase E4)
+    ├── Cargo.toml
+    └── src/
+        ├── lib.rs                module list, EngineError
+        ├── session.rs            open documents, selection, undo history, batches with $N references, state and commands JSON
+        ├── registry.rs           command specs (id, label, menu, shortcut, parameter summary, needs) and the builder
+        ├── args.rs               parameter readers whose errors say "missing `name`"
+        ├── target.rs             ids or the selection; text targets; UTF-8 byte offsets to story positions
+        ├── wire.rs               window attribute keys to model keys and back; swatch and style display names; colours
+        ├── walk.rs               every paragraph of a document, nested in footnotes and table cells
+        ├── assets.rs             placed files: type, pixel size, resolution, modification time
+        ├── ops.rs                item operations shared by commands: add, transform, duplicate, arrange, group, thread
+        ├── canvas.rs             spreads stacked on the canvas, page rects, hit slots
+        ├── view.rs               layout JSON, tiles and page images for the window
+        ├── input.rs              pointer, key, text, cursor, tool and tools entry points; key routing; shortcut parsing
+        ├── overlays.rs           guides, margins, columns, bleed, baseline grid, frame edges, selection, text and tool feedback
+        ├── tools/                the toolbox: one gesture at a time over the session
+        │   ├── mod.rs            tool list and shortcuts, gestures, live preview and commit, dispatch by tool
+        │   ├── geo.rs            hit testing, handles, anchors, snapping, page and column geometry
+        │   ├── select.rs         Selection, Direct Selection, Free Transform, Rotate, Scale, Shear; nudges
+        │   ├── draw.rs           frames and shapes, line, pen, pencil, smooth, erase, anchor tools, scissors
+        │   ├── text.rs           Type, Type on a Path; caret movement and editing keys
+        │   └── misc.rs           eyedropper, colour theme, measure, gradient, note, page, gap, content conveyor, place gun
+        └── cmd/                  the command catalogue, one file per area
+            ├── mod.rs            registry assembly
+            ├── edit.rs           undo, redo, selection, script.run
+            ├── object.rs         frames, objects, transforms, states, media, buttons, form fields, threading
+            ├── text.rs           typing, stories, character and paragraph formatting, paragraph, character and object styles
+            ├── layout.rs         inspect, preferences, document setup, pages, parents, sections, guides, layers, transitions
+            ├── file.rs           new, open, save, place, exports, booklet, package, recovery
+            ├── swatch.rs         swatches, colour conversion and profiles, links, preflight, snippets
+            ├── review.rs         track changes, conditions, notes, user dictionary, hyphenation exceptions
+            ├── table.rs          tables, rows, columns, cells, table and cell styles
+            ├── find.rs           find and change in text and objects
+            ├── xml.rs            tags, structure, DTD, XML export and import
+            └── book.rs           books: chapters, numbering, synchronised styles, one PDF
+```
+
+---
+
+## Table of contents
+
+- [Cargo.toml](#cargo)
+- [formdes-core/src/main.rs](#main)
+- [formdes-core/src/proto.rs](#proto)
+- [formdes-core/src/core.rs](#core)
+- [formdes-core/src/damage.rs](#damage)
+- [formdes-core/src/textloc.rs](#textloc)
+- [formdes-core/src/find.rs](#find)
+- [formdes-core/src/spell.rs](#spell)
+- [formdes-core/src/preflight.rs](#preflight)
+- [formdes-core/src/thumb.rs](#thumb)
+- [formdes-core/src/web.rs](#web)
+- [formdes-model](#model)
+- [formdes-text](#text)
+- [formdes-render](#render)
+- [formdes-interchange](#interchange)
+- [formdes-engine](#engine)
+
+---
+
+## Cargo.toml {#cargo}
+
+### Cargo.toml · workspace.dependencies
+- refers-to: native/Cargo.toml :: [workspace.dependencies]
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+Every crate the core builds on is formdes's own and lives in this workspace; nothing is fetched from git, so a build needs only the crates.io registry (or `cargo vendor` for an offline tree). The release profile uses thin LTO and 16 codegen units; dependencies build at opt-level 2 in dev so a debug core stays usable. Beyond the workspace crates the core takes fancy-regex (MIT, GREP) and spellbook (MPL-2.0, Hunspell spelling, used unmodified so the MPL's file-level terms ask nothing of formdes's own files).
+
+---
+
+## formdes-core/src/main.rs {#main}
+
+### main.rs · main
+- refers-to: native/formdes-core/src/main.rs :: main
+- kind: explainer
+- logged: v0.1.0 · 2026-10-07
+
+`--version` prints the crate version and exits before the logger or the font scan start (the doctor and the installers call it). `--selfcheck` makes a Letter document, a text frame and a page render, and exits 0 when all three work; the desktop freeze step runs it on the copied sidecar. Fonts load before serving: the four embedded families first (the templates' fallback roles name them, so they must exist without an install step), then `FORMDES_FONT_DIRS`, then the system fonts unless `FORMDES_SYSTEM_FONTS=0`. Otherwise the core serves JSON lines on standard input and output until standard input closes.
+
+---
+
+## formdes-core/src/proto.rs {#proto}
+
+### proto.rs · serve
+- refers-to: native/formdes-core/src/proto.rs :: serve
+- kind: explainer
+- logged: v0.1.0 · 2026-10-07
+
+One request per line: `{"id", "method", "params"}`. One reply line per request: `{"id", "ok", "result" | "error", "rev", "selRev", "changed", "damage"?, "requests"?}`. A reply with a binary payload carries `"bin": N` and the N raw bytes follow the newline immediately (tiles as premultiplied RGBA, page images as PNG or JPEG, serialized documents). Standard output carries only protocol; the logger writes warnings and errors to standard error, which the engine service forwards to its own log. A panic in a method becomes an error reply instead of a dead process (`catch_unwind`).
+
+---
+
+## formdes-core/src/core.rs {#core}
+
+### core.rs · settle
+- refers-to: native/formdes-core/src/core.rs :: Core::settle
+- kind: explainer
+- logged: v0.1.0 · 2026-10-07
+
+After every method the core compares (active document uid, document Arc pointer, document revision) with what it saw last. A difference bumps `rev` and asks `damage.rs` for the rectangles to repaint, mapped from spread to canvas coordinates: a list the window repaints, or `null` for everything. `selRev` moves when the document, the tool, the selection or the engine's own selection counter changes, so the window refreshes overlays without re-rendering pixels. UI requests the engine queued (dialogs, file pickers, view changes) ride out in the reply's `requests`. The canvas methods (`layout`, `tiles`, `page.png`, `overlays`, `pointer`, `key`, `text`, `cursor`, `tool`, `tools`) are answered by formdes-engine's `view` and `input` modules; the core adds only the protocol around them.
+
+### core.rs · batch
+- refers-to: native/formdes-core/src/core.rs :: Core::batch
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+Batches run through formdes-engine's `Session::batch`: one undo step, `$N` and `$N.field` references, and a failure restores the document and selection from before the batch, with the core adding the suffix the window strips. `atomic: false` runs the steps one by one with the same references and stops at the first failure without rolling back, for callers that want the earlier steps kept. A `script` parameter is accepted when it is a JSON array of steps.
+
+### core.rs · fonts.styles, fonts.face, fonts.data
+- refers-to: native/formdes-core/src/core.rs :: Core::call
+- kind: explainer
+- logged: v0.7.0 · 2026-10-08
+
+The Glyphs panel draws characters in the document's own fonts, which the window cannot otherwise reach. `fonts.styles` lists a family's styles; `fonts.face` answers the face's character map as JSON (every code point the cmap maps); `fonts.data` answers the font file as binary, served by the engine at `/api/core/font` with a private one-hour cache.
+
+### core.rs · object_styles
+- refers-to: native/formdes-core/src/core.rs :: Core::object_styles
+- kind: explainer
+- logged: v0.17.0 · 2026-10-10
+
+With no target it lists the styles (fill, stroke and paragraph style read from the style's own attributes) and the selection's applied styles. `edit` becomes one `style.object.edit`: fill and stroke are turned into the model's paint and stroke values (a stroke patch merges over the style's current stroke, so a weight alone keeps the swatch), `null` clears an attribute, `redefine` copies fill, stroke and text frame options from the first selected item, `to` renames; the engine re-applies the style to every item using it in the same undo step. `delete` is `style.object.delete`, whose items keep their look.
+
+### core.rs · serialize and documents
+- refers-to: native/formdes-core/src/core.rs :: Core::call
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+`serialize` answers the active document as formdes-model's `.fdoc` bytes with the title `<title>.fdoc`; the engine stores them as `document.fdoc` inside `.fdes`. `docs.saved` marks the document clean by pointing its saved copy at the current one, which is what the dirty flag compares. An unknown method answers an error instead of being passed on.
+
+---
+
+## formdes-core/src/damage.rs {#damage}
+
+### damage.rs · damage
+- refers-to: native/formdes-core/src/damage.rs :: damage
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+Items and stories sit behind `Arc`s that clone on write, so an unchanged one is the same pointer in the old and new document and the diff costs one pointer compare per object. A changed item damages its old and new bounds (inflated by its stroke, or by 48 points when it has effects such as a shadow); a changed story damages every frame of it in both documents, and its anchored objects; a change to an item with text wrap reflows every story, so all text frames are damaged. Changes the canvas cannot localise answer `null`: settings, styles, swatches, layers, sections, conditions, variables, document preferences, assets, parents (they show on many pages) and any change of pages or guides. A spread whose item list reordered damages those items.
+
+---
+
+## formdes-core/src/textloc.rs {#textloc}
+
+### textloc.rs · locations and marker text
+- refers-to: native/formdes-core/src/textloc.rs :: Loc, Sub, marker_text, view, put, locs, spans
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+Find and spelling see text as the window does: one character per model position, paragraphs joined by `\n`, and each inline object as the private-use marker the window's codes expect (page numbers U+E000, U+E007, U+E008, section U+E001, column, frame and page breaks U+E002 to U+E004, indent here U+E005, right tab U+E006, footnote U+E009, table U+E00A, anchored object U+E00E, note U+E00F, variable U+E010). Every marker is three bytes in UTF-8, as the model's own object character is, so byte offsets agree with the story text the window gets from `story.get`. A location is a story, or a table cell (addressed by the table's position in the story, row and column) or the n-th footnote of it; `view` copies that text into a standalone story so the model's editing methods work on cells and footnotes too, and `put` writes the paragraphs back. `spans` turns a character range into per-line segments in canvas space from the composed flow (line carets, baseline, ascent, descent), for match rects and spelling marks.
+
+---
+
+## formdes-core/src/find.rs {#find}
+
+### find.rs · patterns
+- refers-to: native/formdes-core/src/find.rs :: text_pattern, grep_pattern, expand, special
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+Text mode escapes everything except InDesign's `^` codes, which become characters or wildcard classes; GREP mode passes the expression through but translates InDesign's `\r` (return, the story's `\n`), `\n` (forced line break, U+2028), `\h`, `\v`, `\l`, `\u`, `\<`, `\>` and `~` codes, inside or outside a character class. Story markers are the private-use characters of textloc.rs. Nonbreaking spaces swap between the modes as InDesign has them (`^s` and `~S` are both U+00A0). The change string expands `$0` to `$9` in GREP and the same codes in both modes, and never writes a structural marker (U+E009 to U+E010), because inserting one without its footnote, table or anchor would break the story. fancy-regex (MIT) is used because InDesign's GREP has lookbehind, lookahead and backreferences.
+
+### find.rs · targets and hits
+- refers-to: native/formdes-core/src/find.rs :: places, targets, hits, fmt_ok
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+Stories are taken in reading order (spread, then the first frame's top and left), each followed by its table cells (row by row) and footnotes, all addressed through textloc.rs (a cell is sent as `cell: {table, row, col}` with `table` the table's position in the story, a footnote as `note: n`). Parent-page, hidden and locked stories are left out unless included; locked ones are found but never changed. A hit must have the find format at its start, at every segment boundary and at every paragraph start inside it; the format's character keys go through the window-to-model attribute mapping (so an unknown attribute is an error) and compare against the resolved style stack (paragraph style chain, paragraph overrides, character style chain, run overrides); paint values compare as paints, numbers within a thousandth. An empty pattern with a format finds maximal runs within each paragraph. Empty regex matches are skipped, as InDesign does.
+
+### find.rs · ops
+- refers-to: native/formdes-core/src/find.rs :: run, next, change_current, change_all, apply
+- kind: rationale
+- logged: v0.9.0 · 2026-10-08
+
+`next` starts after the selection when it lies in a target, goes to the end, then round once to just before where it started, and selects the hit without bumping the document revision (a selection is not an edit). `change` acts only when the selection is exactly a match, so a stale selection never rewrites the wrong text. Edits are applied back to front within each text location so earlier offsets stay valid, in one undo step (`Session::edit_now`); cell and footnote text is edited as a standalone story and written back into its table or footnote. A selection set by `next` or `select` on a cell or footnote hit covers the anchor character in the story, because the engine's text selection addresses stories only. Replacing text across a structural marker is refused and counted as skipped rather than deleting the footnote or table with it. The match rect for scrolling is the union of the line quads in canvas space, or the anchor character's for cells and footnotes.
+
+---
+
+## formdes-core/src/spell.rs {#spell}
+
+### spell.rs · marks
+- refers-to: native/formdes-core/src/spell.rs :: found, marks
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+Misspellings are computed per story and cached in a static keyed by (document uid, document Arc pointer, revision), so the window's frequent overlay fetches cost nothing until the text changes. Marks are line segments a little below the baseline from textloc.rs's spans, in canvas space, only for stories with a frame overlapping the requested rect.
+
+### spell.rs · suggest
+- refers-to: native/formdes-core/src/spell.rs :: suggest, rank, distance
+- kind: rationale
+- logged: v0.9.0 · 2026-10-08
+
+Hunspell's suggestions come in its own order ("rivr" put "riv" before "river"). They are re-ranked by optimal string alignment distance with accents folded (a swapped pair is one edit, so "teh" ranks "the" first), then by whether the typed letters appear in order in the suggestion (a dropped letter is the commonest typo), then Hunspell's order. For US English, capitals follow the word: all caps stay all caps, a capitalised word gets capitalised suggestions.
+
+### spell.rs · other languages
+- refers-to: native/formdes-core/src/spell.rs :: LANGS, files, dictionary, misses, check, languages, reload
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+Every language is checked with Hunspell dictionaries through spellbook (MPL-2.0, used unmodified, pure Rust). US English is built in: the SCOWL en_US dictionary is embedded in the binary (permissive licence, its full notice beside it in `dict/`) and also serves English text whose own dictionary is not installed. A run's language is its resolved `language` attribute (the model keeps BCP 47 tags such as `en-GB`; InDesign names are accepted too); text with no language, tracked deletions and hidden conditional text are not checked; a dictionary is found as `CODE.aff` and `CODE.dic` in a folder of `FORMDES_DICT_DIRS`, or failing that any dictionary of the same language (Swiss German uses de_DE), read as UTF-8 (the engine converts when it installs; Latin-1 is decoded byte for byte as a last resort). Dictionaries load on first use and are kept until `spellReload`, which the engine calls after adding or removing one; a non-English language with no dictionary is left unchecked. Runs are grouped into spans of one language before words are cut, so a word whose formatting changes halfway is still one word. Words are cut on letters and inner apostrophes, the typographic apostrophe is straightened for the dictionary (French elisions are written with it), one-letter words and short all-capital words are skipped, and the document's own words (`userWords`) count in every language. `spellCheck` is what the window's Check Spelling uses because it carries each word's language (`null` for the built-in US English).
+
+### spell.rs · suggestions in other languages
+- refers-to: native/formdes-core/src/spell.rs :: suggest, fold
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+spellbook's suggestions are good but put an accent fix after unrelated words ("trés" offered "tirés" before "très"), and split forms such as "Tag g". They are re-sorted by: no space unless the word had one, then edit distance with accents folded away (so a wrong accent costs nothing), then spellbook's own order.
+
+---
+
+## formdes-core/src/preflight.rs {#preflight}
+
+### preflight.rs · run
+- refers-to: native/formdes-core/src/preflight.rs :: run, Profile
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+formdes-engine's `preflight.run` gives overset (the message ends with the number of overset characters), missing font and missing or modified link issues, kept as the profile allows; its resolution issue is dropped because the core computes resolution itself. The core adds empty text frames (a first frame whose story is blank, unless it is a labelled slot), resolution both ways regardless of intent, RGB swatches when the profile asks (by default only in print documents, which matches the old behaviour with no profile). Added checks: painted top-level objects (a fill other than [None], or a graphic) that reach a spread's outer trim without the bleed asked for; text frames nearer the trim than the safety distance on a page's outer edges, top and bottom; the smallest resolved type size per story; spot inks in use by item fills, strokes and text against the allowed number; opacity under 100 percent or a blend mode other than Normal; the page count as a multiple. Vector graphics and media are told apart by the asset's MIME type.
+
+### core.rs · pathType
+- refers-to: native/formdes-core/src/core.rs :: Core::call
+- kind: rationale
+- logged: v0.9.0 · 2026-10-08
+
+A read-only look at a type-on-path item's start, flip and align for the options dialog; calling `type.pathOptions` with no changes would have answered the same values but left an undo step.
+
+## formdes-core/src/thumb.rs {#thumb}
+
+### thumb.rs · snippet
+- refers-to: native/formdes-core/src/thumb.rs :: snippet, unbase64
+- kind: rationale
+- logged: v0.10.0 · 2026-10-08
+
+A library item is a snippet (`snippet.export`, base64 of a `.fdoc` holding only the exported items). The thumbnail loads that snippet as its own document, lays it out, and renders the first spread with items, cropped to the union of their bounds, fitted to `size` with a 4 percent margin, on a transparent background with no paper and printing-only content, so the panel decides the ground it sits on. Rendering it inside the open document instead would have needed a place, render and undo, touching the person's undo history and revision. The decoder accepts both base64 alphabets and ignores padding and whitespace, which spares a crate for one call; the engine calls this once per Add, never per frame.
+
+## formdes-core/src/web.rs {#web}
+
+### web.rs · content and asset
+- refers-to: native/formdes-core/src/web.rs :: content, asset, placed, block, story_paras, run_attrs, para_style_json, char_style_json
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+The core hands the engine data, not HTML: the site builder lives in Python where its rules can change without a core build. Placed items are walked through groups and kept when visible and on a page (the pasteboard is not content); a story appears once, where its first frame is, with the pages all its frames touch. Runs carry only what differs from their paragraph's resolved character properties (weight over 600, italic, underline, strike, caps, sup and sub, colour, family, a size ratio, the character style and a link), merged when equal, so a long story stays small. Text hyperlinks split runs at their character offsets; item hyperlinks become the item's `href` and page hotspots. Variables are written out with their values for the block's page, right tabs become tabs and then spaces, other inline objects (anchors, footnote, table and note marks) are dropped, forced line breaks become `\n`, deleted tracked changes and hidden conditional text are skipped. Styles are resolved through `basedOn` here because only the core can, and colours go out as hex from the document's paint resolution (tints applied). Style and swatch names go out in the window's spelling (`[Basic Paragraph]`, `[Black]`). Assets are fetched one at a time by `web.asset` so the `web` reply stays JSON.
+
+## formdes-model {#model}
+
+### formdes-model · shape of the model
+- refers-to: native/formdes-model/src/doc.rs :: Doc; story.rs :: Story, Para, Seg; attrs.rs :: KEYS, Stack
+- kind: rationale
+- logged: v0.13.0 · 2026-10-10
+
+The first piece of formdes's own engine, designed from the IDML and PDF specifications and published typesetting literature rather than from any other engine's source. Items live in one flat arena keyed by id, each behind an `Arc` so an undo snapshot of the whole document is a cheap clone and an edit copies only the item it touches (`item_mut` is `Arc::make_mut`). Spreads, parents and groups hold ordered id lists, which are the z-order. Stories are paragraph-major: a story is a list of paragraphs, each a style, its overrides and a list of segments that are either text runs or inline things (anchored items, footnotes, tables, variables, markers, breaks), so nothing hides in private-use characters and a paragraph's formatting is never inferred from a separator. Formatting is a key-value bag checked against one registry of keys (`KEYS`), resolved through a stack of default, style chain, paragraph and run into typed `CharProps` and `ParaProps`; a new attribute is one registry line and one field. The native file is a zip with an uncompressed `mimetype` first, `doc.json` and one `assets/<id>` per embedded file, and `load` also takes bare JSON so documents can be written by hand or by an agent.
+
+## formdes-text {#text}
+
+### formdes-text · fonts and shaping
+- refers-to: native/formdes-text/src/fonts.rs :: FontBook, Face; shape.rs :: shape
+- kind: rationale
+- logged: v0.13.0 · 2026-10-10
+
+fontdb indexes system fonts and any folder in `FORMDES_FONT_DIRS`; a face's bytes are read on first use and kept behind an `Arc`, with its harfrust `ShaperData` built once. skrifa 0.46 is pinned because it shares read-fonts 0.43 with harfrust 0.13, so one parse of the bytes serves metrics, the cmap and shaping. A style name ("Semibold Italic") is matched first against the face's own typographic subfamily name and then by weight, width and slope; a character the face lacks falls back through a fixed family list and then any installed face, cached per face and character. Shaping returns advances in points in logical order (right-to-left output is reversed), so cluster indices rise through a paragraph and widths of any byte range can be summed.
+
+### formdes-text · the composer
+- refers-to: native/formdes-text/src/kp.rs :: breaks, greedy; compose.rs :: shape_para, prepare, Composer::compose, build_line
+- kind: rationale
+- logged: v0.13.0 · 2026-10-10
+
+A paragraph is shaped once per run and font, then cut into boxes, glue and penalties at the UAX 14 break opportunities (`unicode-linebreak`); hyphenation points from `hypher` inside alphabetic words become flagged penalties carrying the hyphen's width, and soft hyphens and hard hyphens break the same way. The breaker is Knuth and Plass's total-fit algorithm (Breaking Paragraphs into Lines, 1981): badness from the adjustment ratio cubed, demerits with flagged and fitness-class penalties, a limit on consecutive hyphens, and active nodes keyed by line number only while line widths differ, because wrap and drop caps make widths vary per line. Ragged alignments get Knuth's end-of-line stretch of three ems instead of stretchable spaces, so the composer still evens the rag. When no break set fits the tolerance a second pass raises it with emergency stretch, and the first-fit breaker is the last resort and the composer for paragraphs with tabs, whose widths depend on position. Justification spends word-space stretch first, then letter spacing within the paragraph's limits, then spaces again. Bidirectional paragraphs are reordered per line with `unicode-bidi`'s visual runs. Drop caps are shaped at the size whose cap height spans the drop lines, and the first lines narrow by their width.
+
+### formdes-text · flow through frames
+- refers-to: native/formdes-text/src/flow.rs :: Flower::flow, plan, place_para, place_table, finish
+- kind: rationale
+- logged: v0.13.0 · 2026-10-10
+
+Line slots are planned ahead down the chain of columns and frames from an estimated leading: each band's free intervals are the column minus any wrap exclusions, so text runs on both sides of an object as two slots on one baseline, a jump object skips the band and a next-column wrap ends the column. The paragraph is composed against those slots, then placed with each line's real leading; if a line no longer fits, the rest of the paragraph is recomposed from that line in the next column, so a change of width between columns is never stretched over. Keep together and keep first lines move the paragraph's start; keep last lines cuts the paragraph earlier and recomposes the tail in the next column. Space before is dropped at the top of a column, as in InDesign. Footnotes are composed at the column width and stack up from its foot, shortening the column. Tables are laid out row by row with header rows repeated after a break. Vertical justification and balanced columns run last, per frame.
+
+### formdes-text · spanning, splitting, shaped frames and contour wrap
+- refers-to: native/formdes-text/src/flow.rs :: intervals, place_split, balance, span handling in Flower::flow; region.rs
+- kind: rationale
+- logged: v0.14.0 · 2026-10-10
+
+A paragraph that spans columns first balances the text above it in that frame (rows of lines that share a baseline move together, so wrapped bands stay intact), is then placed across the frame's full width, and sets a region top from which the following columns start; this is InDesign's span behaviour. A split paragraph is composed once at the sub-column width and laid out row by row inside its column as one block. Free space in a band is computed on polylines flattened from paths: a shaped frame keeps only the spans inside the shape at every sample height of the band, a contour wrap removes the union of the object's spans widened by its offset, an inverted wrap keeps only what lies inside the object, and "largest" keeps the wider side. Frames with wrap or a shape are not rebalanced, because their line widths depend on position.
+
+### formdes-text · optical margins, glyph scaling, balanced rag, carets, type on a path
+- refers-to: native/formdes-text/src/compose.rs :: optical, hang, Composer::compose (run_breaks), build_line; flow.rs :: Flow::caret, Flow::hit; onpath.rs :: lay
+- kind: rationale
+- logged: v0.14.0 · 2026-10-10
+
+Optical margin alignment hangs quotes, hyphens, dashes and stops outside the measure by a share of their advance, widening the line by what hangs on each side. Justification uses the paragraph's glyph scaling range after word and letter spacing, and records the factor on the run so outlines are scaled to match their advances. Balance ragged lines breaks once, then again at the paragraph's average line length plus six percent, and keeps the second result only when the line count is unchanged. A flow keeps each paragraph's character map and text, so story positions convert to a line and an x for the caret, and a point converts back to the nearest caret on the nearest line band. Type on a path composes the story as one line and places each glyph at the arc-length position of its centre, rotated to the path's direction; flip walks the path backwards.
+
+## formdes-render {#render}
+
+### formdes-render · scenes and two back ends
+- refers-to: native/formdes-render/src/scene.rs :: page_scene, Ctx::emit; raster.rs :: rasterize; pdf.rs :: export
+- kind: rationale
+- logged: v0.14.0 · 2026-10-10
+
+A page becomes a list of drawing operations in page points (fills, strokes, glyph runs, images, clips, opacity and blend groups, links) and two back ends consume the same list, so the screen and the PDF cannot disagree about what is on a page. Layers are listed top first, as in the Layers panel, and drawn bottom first; within a layer the parent page's items go under the page's own, a parent based on another draws its base first, and overridden items are skipped. Colours stay in their document model until a back end needs them: the raster converts to sRGB, the PDF writes CMYK as CMYK and gray as gray, so process colour survives export. Text runs keep their source text and per-glyph text ranges, so the PDF's text is searchable and copies as written. Glyph outlines come from skrifa and are cached per face and glyph; the PDF embeds subset fonts through krilla. Placed PDFs are drawn as vector pages in PDF output and rasterised through hayro on screen; JPEG, PNG, GIF and WebP pass through to the PDF without recompression. Frame fill, then text, then stroke follows InDesign's stacking within a text frame. Anchored objects are drawn where the flow placed them, not at their stored position.
+
+### formdes-render · parent text per page, table cells, stop opacity
+- refers-to: native/formdes-render/src/scene.rs :: Ctx::text, page_scene, spread_ops, table drawing; native/formdes-text/src/layout.rs :: layout_doc, layout_story_at, DocLayout::frame_on
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+A parent text frame holding a page number, a next or previous page number or a text variable is laid out once for every document page that uses its parent (directly or through a based-on parent), and the scene asks for the layout of the page it is drawing, so folios read 1, 3, 5 rather than `#`. Stories with no such marker keep their single layout. Table cells take their fill from the cell, or from the table's alternating rows for body rows, their stroke weight and colour from the table border, and their insets and vertical justification from the cell. Gradient stops carry their own opacity, multiplied into the brush in both back ends.
+
+### formdes-text · hidden text and hyphenation exceptions
+- refers-to: native/formdes-text/src/para.rs :: Context::hidden, Context::exceptions, build; compose.rs :: parse_exceptions, syllables
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+Text marked as a tracked deletion, and text whose conditions are all hidden, is left out of the composed paragraph while its story positions still map to the next visible character, so carets and offsets stay valid. A document's hyphenation exceptions (`ex~am~ple`) are parsed once per story layout; a listed word breaks only at its tildes and a word listed without tildes never breaks. Notes take no space in the line.
+
+## formdes-interchange {#interchange}
+
+### formdes-interchange · reading IDML
+- refers-to: native/formdes-interchange/src/idml/read.rs :: read, build_item, paragraph_range, table_of, styles, graphic; dom.rs :: parse
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+The package is read into a small element tree (`dom.rs`) and walked: Preferences give page size, facing pages, bleed, slug, margins and the baseline grid; Graphic gives named colours, tints and gradients as swatches and unnamed colours as direct paints, keyed by their `Self` so `FillColor` references resolve; Styles gives paragraph, character and object styles with their attributes mapped back to model keys. Spread coordinates in IDML have their origin at the spine and the vertical centre, so each spread's offset is the smallest page origin and every top-level item's `ItemTransform` is composed with it; group children keep their transforms relative to the group. Paths become rectangles, ellipses and lines when they are exactly that and paths otherwise. Stories are parsed after the frames: `Br` ends a paragraph, `<?ACE 18?>` is a page number, notes, footnotes, tables and anchored frames become inlines, and frames are threaded by following `PreviousTextFrame` and `NextTextFrame`. Embedded images come from `Contents`; linked ones are read from their path when it exists and are otherwise kept as missing links with their size from `GraphicBounds`.
+
+### formdes-interchange · text import, HTML and EPUB
+- refers-to: native/formdes-interchange/src/text.rs :: import, tagged, docx, rtf, html, markdown, csv; publish.rs :: html, epub
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+Placed text arrives as paragraphs with style names; a paragraph with no style takes the frame's first paragraph style, and names the document lacks are created empty so the text keeps its structure. Tagged text follows the format the template compiler writes (`<ParaStyle:>`, `<CharStyle:>` runs, `<0xHHHH>` escapes, backslash escapes). Word files read `word/document.xml` with style ids resolved to names through `word/styles.xml`; bold and italic runs become font style overrides. HTML and EPUB take stories and images in reading order: articles when the document has them, otherwise first frames and images by page, then by row, then left to right. Paragraph styles become CSS classes from their resolved attributes and pick a heading element from their export tag or their name. The fixed-layout EPUB draws each page as an image and keeps the page's text, transparent, over it.
+
+## formdes-engine {#engine}
+
+### formdes-engine · the session, undo and batches
+- refers-to: native/formdes-engine/src/session.rs :: Session::execute, Session::group, Session::batch, substitute, state_json, commands_json
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+Documents are immutable behind an `Arc`; a command that changes one calls `Ctx::doc_mut`, which clones on write, so the snapshot taken before the command is the undo step and costs only the parts that changed. A command that fails after changing the document is rolled back to that snapshot. Queries never call `doc_mut`, so they never bump the revision or add history, which the window's caches depend on. A batch runs its steps inside one group: every step's own history entries are replaced by one entry labelled with the steps' common label (or "Script"), and any failure restores the document and selection from before the batch, naming the step that failed. A string parameter that is exactly `$N` or `$N.field` is replaced by step N's result or that field of it, counting from 0, anywhere in the parameters.
+
+### formdes-engine · the command catalogue and the window's wire format
+- refers-to: native/formdes-engine/src/cmd/*.rs :: register; wire.rs :: char_in, char_out, para_in, para_out; target.rs :: items, text_targets, story_char
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+Every command the window, the backend, the template compiler and the agent recipes send is registered with a label, a menu path, a shortcut, a one-line parameter summary and what it needs (a document, objects, text), so menus can be built and enabled from the catalogue. Object commands take `ids` or fall back to the selection; text commands act on the text selection or on whole stories of selected text frames. The window speaks UTF-8 byte offsets and InDesign attribute names (`fontFamily`, `firstLineIndent`, `leftJustified`, leading as `{kind, value}`); the model counts characters and keeps its own keys, so `target.rs` converts offsets at the boundary and `wire.rs` maps attributes both ways, which lets Redefine Style send back exactly what `type.selectionAttrs` returned. Character changes at a bare caret are kept as pending formatting for the next typed text. Missing parameters fail with "missing `name`", which opens the window's parameter box. Page indices are 0-based except `layout.pageSize`, `layout.section` and `button.set`, which take page numbers, as the window sends them.
+
+### formdes-engine · pages, parents, overrides and books
+- refers-to: native/formdes-engine/src/cmd/layout.rs :: insert_pages, delete_pages, pages_move, duplicate_spread, override_all; book.rs
+- kind: rationale
+- logged: v0.15.0 · 2026-10-10
+
+Page changes go through the model's repaginate, which carries each spread item with the page under its centre and re-forms spreads, so inserting, deleting, moving and resizing pages keeps objects on their pages. Deleting a page deletes its objects and removes their frames from threads, leaving the story overset rather than losing text. Override All Parent Page Items copies the parent's items for that page onto the page, records the parent item on the copy and hides the original on that page; removing overrides deletes those copies, and detaching forgets the link. A book holds its chapters as loaded documents; Update Numbering starts each chapter after the previous one's last page and Synchronize copies the style source's paragraph and character styles and swatches; both write the chapter files back in place, as the backend expects.
+
+### formdes-engine · gestures, live preview and one undo step
+- refers-to: native/formdes-engine/src/tools/mod.rs :: Session::begin_edit, preview, edit_now, commit, restore; Gesture, G
+- kind: rationale
+- logged: v0.16.0 · 2026-10-10
+
+A pointer down starts at most one gesture, which remembers the slot it began in (the spread under the pointer, with its canvas transform), the start point in spread space and, for gestures that change the document, the document and selection before them. Every drag rebuilds the change from that saved document rather than adding to the last frame, so a drag never accumulates rounding and the window sees one revision per drag batch. Releasing commits one undo step labelled for the gesture (Move, Resize, Rotate, Edit Path, Gap...); a release without movement, or Escape, restores the saved document and adds nothing. Clicks that change the document at once (eyedropper, convert to text frame, place) go through `edit_now`, one step each. Tool switches finish an open pen path, drop the loaded thread and turn a text selection back into its frame.
+
+### formdes-engine · what each tool does with a click and a drag
+- refers-to: native/formdes-engine/src/tools/select.rs, draw.rs, text.rs, misc.rs
+- kind: rationale
+- logged: v0.16.0 · 2026-10-10
+
+Selection checks, in order: a loaded thread, the out port of a single selected text frame (14 screen pixels above its bottom right corner, so it does not collide with the corner handle the window draws there), the eight handles, the rotate zone just outside a corner, then the topmost selectable item (unfilled closed shapes count only on their edge, as in InDesign); Alt drags a copy, Shift adds or removes, empty space starts a marquee. Clicking the out port loads the text; the next click threads into the frame under it or makes a new frame the size of the source, and a drag makes one that size. Double-click enters text, a group's child, or the image inside a graphic frame. Direct Selection grabs an anchor or handle of a selected path, or of the path under the pointer, so a corner can be dragged in one gesture. Drawing tools snap to page edges, margins, columns, guides and other objects' edges and centres (6 screen pixels) unless the view turns snapping off; Shift squares or constrains to 45 degrees, Alt draws from the centre, and a click with no drag asks the window for the size dialog. The Type tool sets the caret, drags a selection across threaded frames, turns an empty shape into a text frame, or draws a new one. The place gun takes the first loaded file: a click into an empty frame fills it, a click on empty space places at natural size (text fills the column under the click), a drag sets the frame.
+
+### formdes-engine · keys
+- refers-to: native/formdes-engine/src/input.rs :: key, Combo; tools/text.rs :: key; tools/select.rs :: key
+- kind: rationale
+- logged: v0.16.0 · 2026-10-10
+
+Key routing keeps the contract's order: the tool first while typing or mid-gesture, then a command whose shortcut matches the exact modifiers (not while typing unmodified), then a tool shortcut (not while typing, not with Cmd or Ctrl), then the tool, then typing. Command shortcuts are written with `Mod` for the platform command key, which matches `cmd` in the event. In text, arrows move by character or, with Alt or Cmd, by word; Up and Down keep the caret's x across lines; Cmd+Up and Down go by paragraph; Home and End go to the line's ends (the story's with Cmd); Shift extends. Backspace and Delete go through `text.delete`, so tracked changes are respected; typing runs coalesce into one "Typing" undo step until the selection moves. Outside text, arrows nudge by 1 point, 10 with Shift.
+
+### formdes-engine · overlays
+- refers-to: native/formdes-engine/src/overlays.rs :: overlays, furniture, selection_json, text_json
+- kind: rationale
+- logged: v0.16.0 · 2026-10-10
+
+Overlays are the contract's shape, in canvas coordinates rounded to 0.01 and flattened at a quarter of a screen pixel. Furniture is limited to spreads within 400 points of the visible rect. The baseline grid is sent from 75 percent zoom up. Frame edges cover items without a stroke and every text and graphic frame; empty graphic frames add the cross. Parent items appear per page, from the parent's matching side, through its based-on chain, minus items overridden on that page. Text selections become one quad per line, extended to the line end when the selection runs on; a caret in an empty story sits at the frame's top left. Selected table cells become quads too. The pen path in progress is sent as tool feedback and its anchors with the selection's, the last one picked. Guides carry their own colour beside the contract's fields.
+
+### formdes-engine · tiles, ink limit and proof
+- refers-to: native/formdes-engine/src/view.rs :: tiles, view_opts, proof_of, proof_px, layout_json
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+Tiles render every placed spread's cached drawing operations into the requested device rect, pasteboard colour behind, page paper and shadow outside Preview. `plate` renders one separation as greys (ink as darkness). `inkLimit` renders the four plates, sums the coverage per pixel and paints red where the total passes the limit, skipping pasteboard pixels. `proof` is an approximation until a colour engine with ICC profiles is in: CMYK targets round-trip each pixel through CMYK with a 300 percent total ink limit (perceptual intent first pulls saturation in by 6 percent), paper simulation (or the absolute intent) maps white to a warm paper and black to a lifted ink black, `legacyMacRgb` applies the 1.8 to 2.2 gamma difference, and protanopia and deuteranopia use the Vienot matrices in linear light; `srgb` and `monitorRgb` change nothing. Unknown targets and intents are errors, as the contract asks. A plate or the ink limit wins over a proof. Not yet drawn: overprint preview, note and tracked-change markers, and the highlight modes. `layout` sends each slot's spread as `{kind, index}`, the shape `guide.add` takes back.
+
+### formdes-engine · start page and sides
+- refers-to: native/formdes-engine/src/cmd/layout.rs :: document_setup; cmd/file.rs :: new_doc
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+In a facing document an even start page number makes the first page a left page, as in InDesign, so `startPage` sets the document's first side and re-forms the spreads (the template compiler sends `startPage: 2` for templates whose first page is a left page, and their items assume pages 1 and 2 share a spread).
+
+### formdes-engine · line.create
+- refers-to: native/formdes-engine/src/cmd/object.rs :: line_create
+- kind: explainer
+- logged: v0.17.0 · 2026-10-10
+
+`{spread?, a, b, weight?}` draws a graphic line between two spread points with a 1 point black stroke (or `weight`) on the target layer, selects it and answers its id; the template compiler draws rules with it and styles the stroke next.
+

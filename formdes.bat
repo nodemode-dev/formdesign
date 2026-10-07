@@ -1,0 +1,38 @@
+@echo off
+setlocal
+cd /d "%~dp0"
+set "CMD=%~1"
+set "ARG=%~2"
+if "%CMD%"=="" set "CMD=boot"
+if /i "%CMD%"=="boot" ( call setup\boot_all.bat & goto :eof )
+if /i "%CMD%"=="dev" ( call setup\boot_all.bat & goto :eof )
+if /i "%CMD%"=="install" ( call setup\install_all.bat %ARG% & goto :eof )
+if /i "%CMD%"=="install-core" ( call setup\install_core.bat & goto :eof )
+if /i "%CMD%"=="install-fonts" ( call setup\install_fonts.bat & goto :eof )
+if /i "%CMD%"=="install-desktop" ( call setup\install_desktop.bat & goto :eof )
+if /i "%CMD%"=="backend" ( call setup\boot_backend.bat & goto :eof )
+if /i "%CMD%"=="frontend" ( call setup\boot_frontend.bat & goto :eof )
+if /i "%CMD%"=="build" ( call setup\build_frontend.bat & goto :eof )
+if /i "%CMD%"=="serve" ( call setup\serve.bat & goto :eof )
+if /i "%CMD%"=="freeze" ( call setup\freeze_backend.bat & goto :eof )
+if /i "%CMD%"=="desktop" (
+  if /i "%ARG%"=="build" ( call setup\desktop_build.bat ) else ( call setup\desktop_dev.bat )
+  goto :eof
+)
+if /i "%CMD%"=="make" ( call setup\cli.bat %* & goto :eof )
+if /i "%CMD%"=="templates" ( call setup\cli.bat %* & goto :eof )
+if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py & goto :eof )
+if /i "%CMD%"=="agents" ( python setup\agents.py %ARG% & goto :eof )
+if /i "%CMD%"=="doctor" ( call setup\doctor.bat & goto :eof )
+if /i "%CMD%"=="counts" ( call setup\counts.bat %ARG% & goto :eof )
+if /i "%CMD%"=="clean" ( call setup\clean.bat %ARG% & goto :eof )
+if /i "%CMD%"=="help" ( call :usage & exit /b 0 )
+echo [formdes] unknown command: %CMD%
+call :usage
+exit /b 2
+:usage
+echo formdes.bat [command]
+echo   boot ^| install [--lite] ^| install-core ^| install-fonts ^| install-desktop ^| backend ^| frontend
+echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| templates ^| mcp ^| agents
+echo   doctor ^| counts ^| clean [--all] ^| help
+exit /b 0

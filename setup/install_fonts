@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+fd_venv
+[ -d "$FORMDES_ROOT/frontend/node_modules/@fontsource" ] || ( cd "$FORMDES_ROOT/frontend" && npm install )
+python "$FORMDES_ROOT/setup/fonts.py" "$FORMDES_ROOT/frontend/node_modules/@fontsource" "$FORMDES_ROOT/backend/app/fonts"

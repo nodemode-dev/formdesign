@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/lib.sh"
+fail=0
+ok() { printf '  ok     %s\n' "$1"; }
+bad() { printf '  FAIL   %s · %s\n' "$1" "$2"; fail=1; }
+warn() { printf '  warn   %s · %s\n' "$1" "$2"; }
+fd_say "doctor · $(fd_os)"
+if command -v node >/dev/null 2>&1 && node -e 'const [m,n]=process.versions.node.split(".").map(Number);process.exit((m===20&&n>=19)||(m===22&&n>=12)||m>=23?0:1)'; then ok "node $(node -v)"; else bad "node" "Node 20.19+ or 22.12+ is required"; fi
+if command -v npm >/dev/null 2>&1; then ok "npm"; else bad "npm" "install npm"; fi
+if py="$(fd_python)"; then ok "python $("$py" -V 2>&1 | awk '{print $2}')"; else bad "python" "Python 3.12+ is required"; fi
+if [ -f "$FORMDES_ROOT/backend/venv/bin/activate" ]; then ok "engine venv"; else warn "engine venv" "run ./formdes install"; fi
+if [ -d "$FORMDES_ROOT/frontend/node_modules" ]; then ok "frontend node_modules"; else warn "frontend deps" "run ./formdes install"; fi
+if core="$(fd_core)"; then ok "layout core $("$core" --version 2>/dev/null)"; else bad "layout core" "run ./formdes install-core"; fi
+if ls "$FORMDES_ROOT/backend/app/fonts/"*.ttf >/dev/null 2>&1; then ok "font library $(ls "$FORMDES_ROOT/backend/app/fonts/"*.ttf | wc -l | tr -d ' ') faces"; else warn "font library" "run ./formdes install-fonts"; fi
+vpy="$FORMDES_ROOT/backend/venv/bin/python"
+if [ -x "$vpy" ]; then
+  if "$vpy" -c "import pypdfium2" >/dev/null 2>&1; then ok "PDF reader (pypdfium2)"; else warn "PDF reader" "rerun ./formdes install"; fi
+  if "$vpy" -c "import docx, openpyxl" >/dev/null 2>&1; then ok "DOCX and XLSX intake"; else warn "DOCX and XLSX intake" "rerun ./formdes install"; fi
+fi
+if command -v cargo >/dev/null 2>&1; then ok "rust $(rustc --version | awk '{print $2}')"; else warn "rust" "the core and desktop builds need https://rustup.rs"; fi
+for port in 5196 "${FORMDES_PORT:-8196}"; do
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then warn "port $port" "already in use"; else ok "port $port free"; fi
+done
+if [ "$fail" = 0 ]; then fd_say "ready"; else fd_say "fix the FAIL lines above"; fi
+exit "$fail"

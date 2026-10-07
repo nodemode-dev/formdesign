@@ -1,0 +1,25 @@
+[package]
+name = "formdes-text"
+description = "formdes text engine: fonts, shaping, hyphenation, paragraph composition and frame flow"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+formdes-model = { path = "../formdes-model" }
+kurbo = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+fancy-regex = { workspace = true }
+fontdb = "0.23"
+harfrust = "0.13"
+skrifa = "0.46"
+hypher = "0.1"
+unicode-linebreak = "0.1"
+unicode-bidi = "0.3"
+unicode-segmentation = "1"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+lite=0
+for arg in "$@"; do [ "$arg" = "--lite" ] && lite=1; done
+fd_say "installing the engine"
+( cd "$FORMDES_ROOT/backend" && ./oc_install )
+fd_say "installing the font library"
+"$FORMDES_ROOT/setup/install_fonts" || fd_say "the font library did not install; templates fall back to Inter, Source Sans 3 and Source Serif 4. Retry with ./formdes install-fonts"
+if [ "$lite" = 1 ] && fd_core >/dev/null; then
+  fd_say "keeping the layout core already built (--lite)"
+else
+  fd_say "building the layout core"
+  "$FORMDES_ROOT/setup/install_core"
+fi
+fd_say "installing the frontend"
+( cd "$FORMDES_ROOT/frontend" && ./oc_install )
+fd_say "done. Boot with ./formdes"
