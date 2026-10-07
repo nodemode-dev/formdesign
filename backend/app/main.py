@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.core import config
 from app.engine.core import CoreError, core
-from app.routers import core_api, system
+from app.engine.documents import documents
+from app.routers import core_api, documents as documents_api, intake, reader, system
 
 logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("formdes")
@@ -20,6 +21,7 @@ async def lifespan(_: FastAPI):
     config.ensure_dirs()
     try:
         await core.start()
+        documents.start_autosave()
     except CoreError as exc:
         log.error("%s", exc)
     yield
@@ -30,6 +32,9 @@ app = FastAPI(title="formdes engine", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 app.include_router(system.router, prefix="/api")
 app.include_router(core_api.router, prefix="/api")
+app.include_router(documents_api.router, prefix="/api")
+app.include_router(intake.router, prefix="/api")
+app.include_router(reader.router, prefix="/api")
 
 
 if (config.DIST_DIR / "index.html").is_file():
