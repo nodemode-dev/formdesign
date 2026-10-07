@@ -6,6 +6,7 @@ from fastapi import APIRouter, Body, HTTPException, Query, WebSocket, WebSocketD
 from fastapi.responses import Response
 
 from app.engine.core import CoreError, core
+from app.engine.documents import documents
 
 router = APIRouter()
 log = logging.getLogger("formdes.ws")
@@ -13,6 +14,17 @@ log = logging.getLogger("formdes.ws")
 JSON_METHODS = {"exec", "batch", "commands", "inspect", "state", "layout", "overlays", "pointer", "key", "text", "cursor",
                 "tool", "tools", "docs.activate", "docs.close", "fonts.families", "hello", "ping"}
 BINARY_METHODS = {"tiles", "page.png", "serialize"}
+ROUTED = {"file.save", "file.saveAs", "file.new", "file.open"}
+
+
+async def routed_exec(params: dict, source: str):
+    command = params.get("command")
+    p = params.get("params") or {}
+    if command in ("file.save", "file.saveAs"):
+        return await documents.save(p.get("path"), source=source)
+    if command == "file.open":
+        return await documents.open_path(str(p.get("path", "")), source=source)
+    return await documents.new(p, source=source)
 
 
 @router.post("/core/{method}")
@@ -20,6 +32,8 @@ async def call(method: str, params: dict = Body(default={})):
     if method not in JSON_METHODS:
         raise HTTPException(404, f"unknown core method {method}")
     try:
+        if method == "exec" and params.get("command") in ROUTED:
+            return {"result": await routed_exec(params, "rest"), "rev": core.rev, "selRev": core.sel_rev}
         r = await core.call(method, params, source="rest")
     except CoreError as exc:
         raise HTTPException(422, str(exc)) from exc
@@ -70,6 +84,10 @@ async def ws(socket: WebSocket):
             await send_json({"id": rid, "ok": False, "error": f"unknown method {method}"})
             return
         try:
+            if method == "exec" and params.get("command") in ROUTED:
+                result = await routed_exec(params, "window")
+                await send_json({"id": rid, "ok": True, "result": result, "rev": core.rev, "selRev": core.sel_rev})
+                return
             r = await core.call(method, params, source="window")
         except CoreError as exc:
             await send_json({"id": rid, "ok": False, "error": str(exc)})
