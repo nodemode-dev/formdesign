@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+fd_venv
+cd "$FORMDES_ROOT/backend"
+if [ "$(fd_os)" = macos ]; then pip install -r requirements_desktop_macos.txt; else pip install -r requirements_desktop.txt; fi
+if ! command -v cargo >/dev/null 2>&1; then
+  fd_say "Rust is not installed. Install it from https://rustup.rs then rerun ./formdes install-desktop"
+  exit 1
+fi
+if [ "$(fd_os)" = linux ] && ! pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
+  fd_say "Tauri needs system libraries. On Debian or Ubuntu run:"
+  fd_say "sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf"
+  exit 1
+fi
+[ -x "$FORMDES_ROOT/frontend/node_modules/.bin/tauri" ] || ( cd "$FORMDES_ROOT/frontend" && npm install )
+fd_say "desktop toolchain ready: rustc $(rustc --version | awk '{print $2}')"

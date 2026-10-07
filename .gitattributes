@@ -1,0 +1,8 @@
+*.bat text eol=crlf
+*.sh text eol=lf
+formdes text eol=lf
+setup/* text eol=lf
+setup/*.bat text eol=crlf
+*.png binary
+*.icns binary
+*.ico binary

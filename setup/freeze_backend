@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+fd_venv
+python -c "import PyInstaller" 2>/dev/null || fd_die "PyInstaller missing, run ./formdes install-desktop"
+triple="$(fd_target_triple)" || fd_die "rustc not found; install Rust or set FORMDES_TARGET"
+ext="$(fd_exe)"
+core="$(fd_core)" || "$FORMDES_ROOT/setup/install_core"
+core="$(fd_core)" || fd_die "the layout core is not built"
+[ -f "$FORMDES_ROOT/frontend/dist/index.html" ] || "$FORMDES_ROOT/setup/build_frontend"
+[ -f "$FORMDES_ROOT/backend/app/fonts/fonts.json" ] || "$FORMDES_ROOT/setup/install_fonts" || fd_say "the font library is missing; the bundle falls back to the core's fonts"
+cd "$FORMDES_ROOT/backend"
+sep=":"
+[ "$(fd_os)" = windows ] && sep=";"
+data=(--add-data "$FORMDES_ROOT/frontend/dist${sep}frontend_dist" --add-data "$FORMDES_ROOT/backend/app/templates/library${sep}templates/library")
+[ -d "$FORMDES_ROOT/backend/app/fonts" ] && data+=(--add-data "$FORMDES_ROOT/backend/app/fonts${sep}fonts")
+rm -rf build/pyinstaller dist-engine
+pyinstaller --noconfirm --clean --onefile --name formdes-engine \
+  --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
+  "${data[@]}" \
+  --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring \
+  --collect-all pypdfium2 --collect-all pypdfium2_raw --hidden-import docx --hidden-import openpyxl --hidden-import striprtf \
+  "$FORMDES_ROOT/backend/formdes_engine.py"
+mkdir -p "$FORMDES_ROOT/src-tauri/binaries"
+out="$FORMDES_ROOT/src-tauri/binaries/formdes-engine-${triple}${ext}"
+cp "dist-engine/formdes-engine${ext}" "$out"
+cp "$core" "$FORMDES_ROOT/src-tauri/binaries/formdes-core-${triple}${ext}"
+"$out" --selfcheck
+fd_say "sidecars ready: $out and formdes-core-${triple}${ext}"

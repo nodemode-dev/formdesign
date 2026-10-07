@@ -17,7 +17,7 @@ if /i "%CMD%"=="build" ( call setup\build_frontend.bat & goto :eof )
 if /i "%CMD%"=="serve" ( call setup\serve.bat & goto :eof )
 if /i "%CMD%"=="freeze" ( call setup\freeze_backend.bat & goto :eof )
 if /i "%CMD%"=="desktop" (
-  if /i "%ARG%"=="build" ( call setup\desktop_build.bat ) else ( call setup\desktop_dev.bat )
+  if /i "%ARG%"=="build" ( call setup\desktop_build.bat %3 %4 ) else ( call setup\desktop_dev.bat %3 %4 )
   goto :eof
 )
 if /i "%CMD%"=="make" ( call setup\cli.bat %* & goto :eof )
