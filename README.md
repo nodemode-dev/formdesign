@@ -2,7 +2,7 @@
 <h1 align="center">formdes</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.1.0-f97316" alt="version 0.1.0">
+<img src="https://img.shields.io/badge/version-0.5.0-f97316" alt="version 0.5.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -16,9 +16,27 @@ formdes is the form family's page-layout application: an alternative to InDesign
 
 **Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
 
-## Status at 0.1.0
+## Status at 0.5.0
 
-The foundation: the dispatcher and setup scripts, formdes-core answering the engine's 432 commands with viewport tiles, overlays and live change events, the FastAPI engine managing it with a window socket, and the shell booting in Studio Dark. The intake, templates, the Make pass, the agent harness and the editor follow in the next releases; `DEV_PLAN.md` in the planning sidecar lists them.
+Working end to end:
+
+- **Intake.** Markdown, Word, RTF, text, HTML, CSV and spreadsheets, PDFs (structure-aware extraction), images and GIFs, and a brief in plain words (key: value lines become fields) become one compact content pack.
+- **71 templates** across magazine, newsletter, book, report, print, stationery, ad, web and presentation, each slotted for automatic filling and re-skinned by a brand kit. `docs/TEMPLATES.md` is the format; you can add your own.
+- **The Make pass.** Ranks templates for your content, fills them (titles, decks, bylines, stats, features, captions, contact fields), threads the article through continuation pages, matches images to frames, fits copy, and reports what is still sample text.
+- **Agents.** An MCP server with 25 tools (`./formdes mcp`, `./formdes agents install` for Claude Code, Codex and Cursor) and a CLI (`./formdes make FILES --brief "..." --out layout.pdf`).
+- **The editor.** Tiled rendering of the layout core with overlays, the 37 InDesign tools, menus built from the core's 432 commands, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
+
+Still to come: the PDF Reader view, finishing and verifying the panels above, desktop builds, the agent skills and the documentation.
+
+## Try it
+
+```bash
+./formdes boot                     # then open http://localhost:5196
+./formdes templates                # list the 71 templates
+./formdes make article.md photo.jpg logo.png --brief "Square instagram ad for Northlight. CTA: Read the issue" --out ad.png
+```
+
+In the app, drop files on the Make panel (right column), write a brief, press Analyse, pick a template and press Make layout.
 
 ## Quick Start
 
