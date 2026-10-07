@@ -67,8 +67,18 @@ def rank(pack: dict, limit: int = 5, category: str | None = None, medium: str | 
         score -= 0.35 * missing
         score += 0.6 * min(nimg, islots, 3)
         text = (brief.get("text") or "").lower()
-        tagged = [g for g in c["tags"] if len(g) > 3 and g.lower() in text]
+        words_in_name = [w for w in c["name"].lower().replace(",", " ").split() if len(w) > 3]
+        tagged = {g.lower() for g in c["tags"] + words_in_name if len(g) > 3 and g.lower() in text}
         score += min(len(tagged), 3)
+        if nimg >= 2 and "no image" in c["tags"]:
+            score -= 2
+        if c["flows"] and words > 300:
+            score += 1.5
+        cont = any((f or {}).get("page") and int((f or {}).get("max", 24)) > 0 for f in (t.get("flow") or {}).values())
+        if brief.get("pages") and int(brief["pages"]) > c["pages"] and not cont:
+            score -= min(3.0, 0.5 * (int(brief["pages"]) - c["pages"]))
+        if cont and words > 500:
+            score += 0.5
         if any(g in ("sale", "promo", "discount", "offer") for g in c["tags"] + c["kinds"]) and not any(w in text for w in ("sale", "promo", "discount", "offer", "% off", "percent off")):
             score -= 2.5
         if c["flows"] and words < 150:
