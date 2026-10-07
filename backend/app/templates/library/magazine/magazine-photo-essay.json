@@ -1,0 +1,56 @@
+{
+  "id": "magazine-photo-essay",
+  "name": "Photo Essay, Four Pages",
+  "category": "magazine",
+  "kinds": ["magazine", "book"],
+  "tags": ["photo essay", "photography", "portfolio", "full-bleed", "panorama", "spread", "serif"],
+  "tone": ["elegant", "minimal"],
+  "description": "A four-page photo essay in two spreads: an opening plate with title and deck, a full-bleed plate, a panorama across the gutter with a pull quote, and a pair of plates with numbered captions.",
+  "medium": "print",
+  "theme": "luxury",
+  "kit": "longform",
+  "styles": {"paragraph": {
+    "Essay Kicker": {"font": "accent", "size": 0.74, "leading": 1.2, "tracking": 320, "caps": true, "color": "accent", "hyphenate": false},
+    "Essay Title": {"font": "display", "size": 7.6, "leading": 0.9, "tracking": -10, "color": "ink", "hyphenate": false},
+    "Essay Deck": {"font": "text", "fontStyle": "italic", "size": 1.8, "leading": 1.28, "color": "ink", "hyphenate": false},
+    "Essay Byline": {"font": "accent", "size": 0.7, "leading": 1.3, "tracking": 260, "caps": true, "color": "ink", "hyphenate": false},
+    "Plate": {"font": "text", "fontStyle": "italic", "size": 1.2, "leading": 1.3, "color": "ink", "hyphenate": false},
+    "Plate Right": {"basedOn": "Plate", "align": "right"},
+    "Plate On Dark": {"basedOn": "Plate", "color": "light"},
+    "Essay Quote": {"font": "display", "fontStyle": "italic", "size": 3.1, "leading": 1.1, "color": "ink", "hyphenate": false},
+    "Essay Text": {"font": "text", "size": 1.35, "leading": 1.42, "color": "ink", "hyphenate": false}
+  }},
+  "page": {"size": "A4", "unit": "pt", "facing": true, "startLeft": true, "margins": {"top": 48, "bottom": 48, "inside": 48, "outside": 40}, "columns": 2, "gutter": 15, "bleed": 9},
+  "parents": {},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "image1", "rect": [-9, -9, 604.28, 556]},
+      {"kind": "text", "slot": "caption1", "rect": [287.28, 558.59, 260, 16], "style": "Plate Right", "sample": "01 · Raking the first crust, Aveiro"},
+      {"kind": "text", "slot": "kicker", "rect": [40, 598.38, 300, 10], "style": "Essay Kicker", "sample": "Photo essay"},
+      {"kind": "text", "slot": "title", "rect": [40, 600.41, 507, 89], "style": "Essay Title", "sample": "The Salt Year"},
+      {"kind": "text", "slot": "subtitle", "rect": [40, 688.01, 430, 45], "style": "Essay Deck", "sample": "Twelve months on the Atlantic flats with the last families who still harvest salt by hand."},
+      {"kind": "line", "from": [40, 772], "to": [80, 772], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "text", "slot": "byline", "rect": [40, 784.47, 400, 10], "style": "Essay Byline", "sample": "Photographs by Anouk Verlaine"}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "image2", "rect": [0, -9, 604.28, 859.89]},
+      {"kind": "rect", "rect": [0, 700, 604.28, 150.89], "gradient": {"angle": -90, "stops": [["dark", 0, 0.0], ["dark", 100, 0.65]]}},
+      {"kind": "text", "slot": "caption2", "rect": [48, 792.59, 360, 16], "style": "Plate On Dark", "sample": "02 · The pans at low tide, looking north"}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "image3", "rect": [-9, -9, 1208.56, 526]},
+      {"kind": "text", "slot": "caption3", "rect": [40, 534.59, 400, 16], "style": "Plate", "sample": "03 · Evening on the north flats, September"},
+      {"kind": "text", "slot": "quote", "rect": [40, 591.19, 470, 70], "style": "Essay Quote", "sample": "“Salt is the slowest harvest I know. You wait for the sun and keep the water honest.”"},
+      {"kind": "text", "slot": "quotecredit", "rect": [40, 671.27, 300, 10], "style": "Essay Byline", "sample": "Manuel Abreu, salt maker"},
+      {"kind": "line", "from": [40, 712], "to": [547.28, 712], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "summary", "rect": [40, 724.17, 400, 54], "style": "Essay Text", "sample": "Verlaine returned to the same three pans from the first flooding in April to the last raking in September, working only in the hour after sunrise and the hour before dark."}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "image4", "rect": [48, 540, 246.14, 236]},
+      {"kind": "image", "slot": "image5", "rect": [309.14, 540, 246.14, 236]},
+      {"kind": "text", "slot": "caption4", "rect": [48, 784.59, 246.14, 16], "style": "Plate", "sample": "04 · Drying racks above the sluice"},
+      {"kind": "text", "slot": "caption5", "rect": [309.14, 784.59, 246.14, 16], "style": "Plate", "sample": "05 · Maria Abreu, fourth generation"}
+    ]}
+  ],
+  "web": {"layout": "article"}
+}

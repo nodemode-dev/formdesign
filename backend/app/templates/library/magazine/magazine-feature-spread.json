@@ -1,0 +1,41 @@
+{
+  "id": "magazine-feature-spread",
+  "name": "Feature Spread",
+  "category": "magazine",
+  "kinds": ["magazine", "book", "report"],
+  "tags": ["editorial", "serif", "spread", "full-bleed", "two-column"],
+  "tone": ["elegant", "bold"],
+  "description": "A two-page feature opener: a full-bleed photograph on the left, kicker, headline, deck and byline over two justified columns on the right, continuing on three-column pages with folios.",
+  "medium": "print",
+  "theme": "editorial",
+  "kit": "longform",
+  "styles": {"paragraph": {"Caption On Dark": {"basedOn": "Caption", "color": "light"}}},
+  "page": {"size": "Letter", "facing": true, "startLeft": true, "margins": {"top": 54, "bottom": 60, "inside": 54, "outside": 42}, "columns": 3, "gutter": 14, "bleed": 9, "baseline": 13.5},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [42, 748, 260, 14], "text": "<page>    NORTHLIGHT", "style": "Folio", "side": "left"},
+      {"kind": "text", "rect": [310, 748, 260, 14], "text": "THE SPRING ISSUE    <page>", "style": "Folio", "side": "right"}
+    ]
+  },
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": "bleed"},
+      {"kind": "rect", "rect": [-9, 560, 621, 241], "gradient": {"angle": -90, "stops": [["dark", 0, 0.0], ["dark", 100, 0.7]]}},
+      {"kind": "text", "slot": "caption", "rect": [42, 722, 330, 30], "style": "Caption On Dark", "sample": "Evening light over layered hills, photographed at the end of a long day in the studio."}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "text", "slot": "kicker", "rect": [54, 66, 360, 16], "style": "Kicker", "sample": "Feature · Craft"},
+      {"kind": "text", "slot": "title", "rect": [54, 88, 516, 150], "style": "Title", "sample": "The Return of Slow Craft"},
+      {"kind": "text", "slot": "subtitle", "rect": [54, 246, 470, 66], "style": "Subtitle", "sample": "Why a new generation of makers is choosing the long way round, and what the hands remember."},
+      {"kind": "line", "from": [54, 326], "to": [570, 326], "stroke": {"color": "accent", "weight": 1.5}},
+      {"kind": "text", "slot": "byline", "rect": [54, 336, 360, 16], "style": "Byline", "sample": "Words by Mara Ellison"},
+      {"kind": "text", "flow": "body", "rect": [54, 368, 516, 364], "columns": 2, "gutter": 16, "style": "Body"}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": "margins", "columns": 3, "gutter": 14, "style": "Body"}
+    ]}, "max": 24}
+  },
+  "web": {"layout": "article"}
+}

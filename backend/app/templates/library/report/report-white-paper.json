@@ -1,0 +1,87 @@
+{
+  "id": "report-white-paper",
+  "name": "White Paper",
+  "category": "report",
+  "kinds": ["report"],
+  "tags": ["white paper", "letter", "technical", "title page", "executive summary", "two-column", "headers and footers"],
+  "tone": ["tech", "corporate", "dark"],
+  "description": "A Letter-size technical white paper: a dark title page with a network motif, then body pages with running header and footer, an executive summary panel, numbered section heads and two-column text.",
+  "medium": "print",
+  "theme": "tech",
+  "kit": "doc",
+  "styles": {"paragraph": {
+    "Cover Brand": {"font": "accent", "size": 1.0, "leading": 1.2, "tracking": 20, "color": "light", "hyphenate": false},
+    "Cover Kicker": {"font": "accent", "size": 0.86, "leading": 1.2, "tracking": 200, "caps": true, "color": "accent2", "hyphenate": false},
+    "Cover Title": {"font": "display", "size": 4.9, "leading": 1.0, "tracking": -25, "color": "light", "hyphenate": false},
+    "Cover Sub": {"font": "text", "size": 1.4, "leading": 1.4, "color": "light", "hyphenate": false},
+    "Cover Meta": {"font": "accent", "fontStyle": "regular", "size": 0.9, "leading": 1.45, "color": "light", "hyphenate": false},
+    "Cover Meta Right": {"basedOn": "Cover Meta", "align": "right"},
+    "Header": {"font": "accent", "fontStyle": "regular", "size": 0.76, "tracking": 40, "color": "muted"},
+    "Header Right": {"basedOn": "Header", "align": "right"},
+    "Summary Label": {"font": "accent", "size": 0.78, "tracking": 160, "caps": true, "color": "accent"},
+    "Summary": {"font": "text", "size": 1.1, "leading": 1.55, "color": "ink", "hyphenate": false},
+    "Section Head": {"font": "display", "size": 2.0, "leading": 1.15, "tracking": -10, "color": "ink", "hyphenate": false},
+    "Section Number": {"font": "mono", "size": 0.9, "leading": 1.2, "color": "accent", "hyphenate": false},
+    "Body": {"leading": 1.5, "spaceAfter": 0.65, "hyphenate": true}
+  }},
+  "page": {"size": "Letter", "unit": "pt", "facing": false, "margins": {"top": 84, "bottom": 72, "inside": 54, "outside": 54}, "columns": 2, "gutter": 24, "bleed": 9},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [54, 40, 300, 12], "slot": "brand", "sample": "Halcyon Edge Labs", "style": "Header"},
+      {"kind": "text", "rect": [258, 40, 300, 12], "slot": "title", "sample": "Edge Inference at Scale", "style": "Header Right"},
+      {"kind": "line", "from": [54, 58], "to": [558, 58], "stroke": {"color": "tint", "weight": 1}},
+      {"kind": "line", "from": [54, 738], "to": [558, 738], "stroke": {"color": "tint", "weight": 1}},
+      {"kind": "text", "rect": [54, 748, 300, 12], "text": "White paper  ·  March 2026", "style": "Header"},
+      {"kind": "text", "rect": [458, 748, 100, 12], "text": "<page>", "style": "Header Right"}
+    ]
+  },
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "dark"},
+      {"kind": "ellipse", "rect": [476, 186, 120, 120], "stroke": {"color": "accent2", "weight": 0.75}, "opacity": 0.55},
+      {"kind": "ellipse", "rect": [416, 126, 240, 240], "stroke": {"color": "accent2", "weight": 0.75}, "opacity": 0.4},
+      {"kind": "ellipse", "rect": [356, 66, 360, 360], "stroke": {"color": "accent2", "weight": 0.75}, "opacity": 0.3},
+      {"kind": "ellipse", "rect": [296, 6, 480, 480], "stroke": {"color": "accent2", "weight": 0.75}, "opacity": 0.2},
+      {"kind": "ellipse", "rect": [236, -54, 600, 600], "stroke": {"color": "accent2", "weight": 0.75}, "opacity": 0.12},
+      {"kind": "line", "from": [536, 246], "to": [432, 150], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "line", "from": [536, 246], "to": [612, 330], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "line", "from": [536, 246], "to": [380, 312], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "ellipse", "rect": [528, 238, 16, 16], "fill": "accent"},
+      {"kind": "ellipse", "rect": [426, 144, 12, 12], "fill": "accent2"},
+      {"kind": "ellipse", "rect": [374, 306, 12, 12], "fill": "accent2"},
+      {"kind": "ellipse", "rect": [596, 324, 10, 10], "fill": "accent2"},
+      {"kind": "image", "slot": "logo", "rect": [54, 52, 26, 26], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [90, 58, 220, 16], "style": "Cover Brand", "sample": "Halcyon Edge Labs"},
+      {"kind": "rect", "rect": [54, 398, 32, 3], "fill": "accent2"},
+      {"kind": "text", "slot": "kicker", "rect": [54, 412, 300, 14], "style": "Cover Kicker", "sample": "White Paper"},
+      {"kind": "text", "slot": "title", "rect": [54, 436, 470, 116], "style": "Cover Title", "sample": "Edge Inference at Scale"},
+      {"kind": "text", "slot": "subtitle", "rect": [54, 562, 420, 58], "style": "Cover Sub", "sample": "Designing for latency budgets when machine-learning models leave the data centre"},
+      {"kind": "line", "from": [54, 676], "to": [558, 676], "stroke": {"color": "muted", "weight": 0.5}},
+      {"kind": "text", "slot": "byline", "rect": [54, 688, 320, 30], "style": "Cover Meta", "sample": ["Priya Ramaswamy", "Jonas Okonkwo-Hale"]},
+      {"kind": "text", "slot": "date", "rect": [358, 688, 200, 30], "style": "Cover Meta Right", "sample": ["March 2026", "Version 1.2"]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "rect", "rect": [54, 84, 504, 134], "fill": "tint"},
+      {"kind": "rect", "rect": [54, 84, 4, 134], "fill": "accent"},
+      {"kind": "text", "rect": [78, 102, 300, 12], "text": "Executive summary", "style": "Summary Label"},
+      {"kind": "text", "slot": "summary", "rect": [78, 122, 456, 100], "style": "Summary", "sample": "Latency-sensitive applications are moving machine-learning inference out of the data centre and onto devices and gateways. This paper offers a practical framework for that shift: start from the latency budget rather than the model, place each stage of the pipeline where it best fits the budget, and plan from day one for updating and securing models across a fleet that will never be touched by hand."},
+      {"kind": "text", "rect": [54, 250, 40, 14], "text": "01", "style": "Section Number"},
+      {"kind": "text", "slot": "section", "rect": [84, 244, 474, 28], "style": "Section Head", "sample": "Why inference is moving to the edge"},
+      {"kind": "text", "flow": "body", "rect": [54, 290, 504, 430], "columns": 2, "gutter": 24, "style": "Body", "sample": [
+        "Five years ago, almost every production machine-learning model ran in a data centre. A request left the user’s device, crossed the network, waited in a queue, ran on a shared accelerator and travelled back. For most applications the round trip was fast enough, and the economics of centralised hardware were hard to argue with.",
+        "That calculus has changed. The applications growing fastest today, from on-device assistants to factory inspection and live translation, share a common constraint: they must respond within a fixed latency budget, often under fifty milliseconds, and they must keep working when the network does not. A model that answers correctly but late is, for these systems, a model that has failed.",
+        "At the same time, hardware at the edge has improved dramatically. Phones, gateways and embedded boards now ship with dedicated neural accelerators able to run models that would have needed a server rack a decade ago. The question is no longer whether inference can move to the edge, but how to design systems that make the most of it.",
+        "This paper sets out a practical framework for that design. We describe how to decompose an end-to-end latency budget, how to choose between running a model on the device, at a nearby gateway or in the cloud, and how to keep models accurate and secure once they are deployed across thousands of devices.",
+        "Our recommendations draw on eighteen months of field deployments with partners in logistics, healthcare and manufacturing, covering more than forty thousand devices. Where we report measurements, they are medians across those deployments unless stated otherwise.",
+        "The single most useful change a team can make is to start from the latency budget rather than from the model. Teams that begin by choosing an architecture tend to spend the rest of the project trying to make it fast enough; teams that begin with the budget make better choices about where each stage should run, and discover early which parts of the pipeline matter most.",
+        "A latency budget is simply the time an application can afford between an event and a response, divided among the stages in between: capture, pre-processing, transfer, inference, post-processing and display. Writing it down forces a team to account for the stages that are easy to forget. In our deployments, transfer and pre-processing together consumed a median of 41 per cent of the budget, more than inference itself.",
+        "Once the budget is written down, the placement question becomes tractable. Each stage can run on the device, on a gateway in the same building or campus, or in a regional cloud. The right answer depends on the stage’s cost, its sensitivity to network conditions and the data it needs to see, and it is rarely the same for every stage of the pipeline."
+      ]}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": "margins", "columns": 2, "gutter": 24, "style": "Body"}
+    ]}, "max": 40}
+  }
+}

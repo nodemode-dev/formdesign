@@ -1,0 +1,39 @@
+{
+  "id": "ad-story-stacked",
+  "name": "Story, Three Zones",
+  "category": "ad",
+  "kinds": ["ad-story"],
+  "tags": ["instagram story", "reels", "tiktok", "1080x1920", "9:16", "vertical", "stacked", "sticker", "cta"],
+  "tone": ["playful", "bold"],
+  "description": "A 1080 by 1920 px story ad in three stacked zones: brand and headline on a colour band, a full-width photograph with a round sticker, and a dark band with the offer, a button and the web address, all inside the story safe area.",
+  "medium": "screen",
+  "theme": "playful",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Brand": {"font": "display", "size": 2.9, "leading": 1.05, "color": "ink"},
+    "Ad Title": {"basedOn": "Title", "size": 13.2, "leading": 0.9, "tracking": -30, "color": "ink"},
+    "Ad Sticker": {"font": "display", "size": 3.1, "leading": 1.0, "tracking": -10, "color": "light", "align": "center"},
+    "Ad Line": {"basedOn": "Subtitle", "size": 2.9, "leading": 1.3, "color": "light"},
+    "Ad CTA": {"basedOn": "CTA", "size": 2.0, "leading": 1.2, "tracking": 80, "color": "dark"},
+    "Ad URL": {"basedOn": "Label", "size": 1.7, "leading": 1.2, "tracking": 120, "color": "light"}
+  }},
+  "page": {"size": [1080, 1920], "unit": "px", "facing": false, "margins": {"top": 150, "bottom": 250, "inside": 80, "outside": 80}, "columns": 4, "gutter": 24},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": [0, 0, 1080, 700], "fill": "tint"},
+      {"kind": "image", "slot": "logo", "rect": [80, 150, 84, 84], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [184, 150, 600, 84], "style": "Ad Brand", "valign": "center", "sample": "Loop Dance Studio"},
+      {"kind": "text", "slot": "title", "rect": [80, 290, 920, 340], "style": "Ad Title", "valign": "bottom", "sample": "Find your rhythm."},
+      {"kind": "image", "slot": "hero", "rect": [0, 700, 1080, 660]},
+      {"kind": "ellipse", "rect": [748, 570, 260, 260], "fill": "accent"},
+      {"kind": "text", "slot": "note", "rect": [768, 640, 220, 120], "style": "Ad Sticker", "valign": "center", "rotate": 10, "sample": "First class free"},
+      {"kind": "rect", "rect": [0, 1356, 1080, 564], "fill": "dark"},
+      {"kind": "rect", "rect": [80, 1356, 160, 12], "fill": "accent2"},
+      {"kind": "ellipse", "rect": [640, 1772, 560, 560], "fill": "accent2"},
+      {"kind": "text", "slot": "subtitle", "rect": [80, 1420, 920, 150], "style": "Ad Line", "sample": "Beginner classes every weeknight in the old tram depot. Come as you are."},
+      {"kind": "text", "slot": "cta", "rect": [80, 1596, 400, 96], "style": "Ad CTA", "valign": "center", "fill": "accent", "corner": 48, "sample": "Book a class"},
+      {"kind": "text", "slot": "url", "rect": [512, 1596, 488, 96], "style": "Ad URL", "valign": "center", "sample": "loopdance.studio"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

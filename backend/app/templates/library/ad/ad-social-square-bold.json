@@ -1,0 +1,30 @@
+{
+  "id": "ad-social-square-bold",
+  "name": "Social Square, Bold",
+  "category": "ad",
+  "kinds": ["ad-social"],
+  "tags": ["instagram", "facebook", "1080x1080", "square", "photo", "cta"],
+  "tone": ["bold", "playful"],
+  "description": "A 1080 px square social ad: a full-bleed photograph under a dark fade, a heavy headline, one supporting line, a pill call to action and the logo.",
+  "medium": "screen",
+  "theme": "bold-sans",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Title": {"basedOn": "Title", "size": 7.6, "leading": 0.92, "color": "light"},
+    "Ad Line": {"basedOn": "Subtitle", "size": 2.4, "color": "light"},
+    "Ad CTA": {"basedOn": "CTA", "size": 2.2, "color": "dark"}
+  }},
+  "page": {"size": [1080, 1080], "unit": "px", "facing": false, "margins": 72, "columns": 1, "gutter": 0},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": "page"},
+      {"kind": "rect", "rect": [0, 380, 1080, 700], "gradient": {"angle": -90, "stops": [["dark", 0, 0.0], ["dark", 100, 0.85]]}},
+      {"kind": "image", "slot": "logo", "rect": [72, 72, 120, 120], "fit": "fit"},
+      {"kind": "text", "slot": "title", "rect": [72, 560, 936, 260], "style": "Ad Title", "valign": "bottom", "sample": "Slow down. Read deeper."},
+      {"kind": "text", "slot": "subtitle", "rect": [72, 832, 700, 96], "style": "Ad Line", "sample": "The spring issue of Northlight is out now."},
+      {"kind": "rect", "rect": [72, 952, 330, 72], "fill": "light", "corner": 36},
+      {"kind": "text", "slot": "cta", "rect": [72, 952, 330, 72], "style": "Ad CTA", "valign": "center", "sample": "Read the issue"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

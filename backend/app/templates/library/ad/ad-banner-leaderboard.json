@@ -1,0 +1,30 @@
+{
+  "id": "ad-banner-leaderboard",
+  "name": "Leaderboard Banner",
+  "category": "ad",
+  "kinds": ["ad-banner"],
+  "tags": ["display ad", "web banner", "leaderboard", "728x90", "iab", "horizontal", "cta"],
+  "tone": ["bold", "corporate"],
+  "description": "A 728 by 90 px leaderboard display banner: the logo, a short headline over one line of detail, and a button, on a dark field with an accent edge.",
+  "medium": "screen",
+  "theme": "geometric",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Title": {"basedOn": "Title", "size": 1.75, "leading": 1.05, "tracking": -10, "color": "light"},
+    "Ad Line": {"font": "accent", "fontStyle": "regular", "size": 1.05, "leading": 1.2, "color": "light", "hyphenate": false},
+    "Ad CTA": {"basedOn": "CTA", "size": 0.95, "leading": 1.2, "tracking": 80, "color": "dark"}
+  }},
+  "page": {"size": [728, 90], "unit": "px", "facing": false, "margins": {"top": 14, "bottom": 14, "inside": 18, "outside": 18}, "columns": 1, "gutter": 0},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "dark"},
+      {"kind": "ellipse", "rect": [566, -80, 250, 250], "fill": "accent2", "opacity": 0.45},
+      {"kind": "rect", "rect": [0, 0, 6, 90], "fill": "accent"},
+      {"kind": "image", "slot": "logo", "rect": [22, 19, 52, 52], "fit": "fit"},
+      {"kind": "text", "slot": "title", "rect": [90, 18, 470, 30], "style": "Ad Title", "sample": "Spring fares from $49"},
+      {"kind": "text", "slot": "subtitle", "rect": [90, 50, 470, 20], "style": "Ad Line", "sample": "Twelve new routes from Larkspur Air. Book by 30 April."},
+      {"kind": "text", "slot": "cta", "rect": [590, 25, 120, 40], "style": "Ad CTA", "valign": "center", "fill": "accent", "corner": 20, "sample": "Book now"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

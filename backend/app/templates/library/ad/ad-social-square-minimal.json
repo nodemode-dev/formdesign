@@ -1,0 +1,34 @@
+{
+  "id": "ad-social-square-minimal",
+  "name": "Social Square, Minimal",
+  "category": "ad",
+  "kinds": ["ad-social"],
+  "tags": ["instagram", "facebook", "linkedin", "1080x1080", "square", "type-led", "colour field", "no photo"],
+  "tone": ["minimal", "bold"],
+  "description": "A 1080 px square social ad led by type alone: a solid colour field, a very large headline on the grid, one supporting line, an outlined call to action and the logo.",
+  "medium": "screen",
+  "theme": "swiss",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Kicker": {"basedOn": "Kicker", "size": 1.5, "leading": 1.2, "tracking": 200, "color": "light", "align": "right"},
+    "Ad Title": {"basedOn": "Title", "size": 14.2, "leading": 0.88, "tracking": -40, "color": "light"},
+    "Ad Line": {"basedOn": "Subtitle", "size": 2.15, "leading": 1.32, "color": "light", "balance": true},
+    "Ad CTA": {"basedOn": "CTA", "size": 1.5, "leading": 1.2, "tracking": 120, "color": "light"},
+    "Ad Index": {"basedOn": "Label", "size": 1.5, "leading": 1.2, "tracking": 40, "color": "light"}
+  }},
+  "page": {"size": [1080, 1080], "unit": "px", "facing": false, "margins": 72, "columns": 6, "gutter": 24},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "accent2"},
+      {"kind": "image", "slot": "logo", "rect": [72, 72, 88, 88], "fit": "fit"},
+      {"kind": "text", "slot": "kicker", "rect": [520, 72, 488, 88], "style": "Ad Kicker", "valign": "center", "sample": "Stillpoint Notes"},
+      {"kind": "line", "from": [72, 216], "to": [1008, 216], "stroke": {"color": "light", "weight": 2}},
+      {"kind": "text", "rect": [72, 236, 300, 30], "style": "Ad Index", "text": "01"},
+      {"kind": "text", "slot": "title", "rect": [72, 270, 936, 548], "style": "Ad Title", "valign": "bottom", "sample": "Quiet tools for loud ideas."},
+      {"kind": "line", "from": [72, 846], "to": [1008, 846], "stroke": {"color": "light", "weight": 2}},
+      {"kind": "text", "slot": "subtitle", "rect": [72, 880, 560, 128], "style": "Ad Line", "sample": "A writing app with nothing in the way. Free for thirty days."},
+      {"kind": "text", "slot": "cta", "rect": [728, 900, 280, 76], "style": "Ad CTA", "valign": "center", "corner": 38, "stroke": {"color": "light", "weight": 2}, "sample": "Start writing"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

@@ -1,0 +1,82 @@
+{
+  "id": "book-cookbook-spread",
+  "name": "Cookbook Recipe Spread",
+  "category": "book",
+  "kinds": ["book", "menu"],
+  "tags": ["cookbook", "recipe", "8x10", "spread", "ingredients", "method", "food photography"],
+  "tone": ["warm", "elegant"],
+  "description": "An 8 by 10 inch cookbook spread: a full-bleed food photograph facing the recipe, with title, headnote, serves and timing, a ruled ingredients list, a cook's note and numbered method steps.",
+  "medium": "print",
+  "theme": "warm",
+  "kit": "doc",
+  "styles": {"paragraph": {
+    "Recipe Title": {"font": "display", "size": 3.5, "leading": 1.04, "tracking": -6, "color": "ink", "hyphenate": false},
+    "Headnote": {"font": "text", "size": 1.08, "leading": 1.55, "color": "ink", "hyphenate": false},
+    "Recipe Stat": {"font": "display", "size": 1.9, "leading": 1.0, "color": "accent", "hyphenate": false},
+    "Recipe Stat Label": {"font": "accent", "size": 0.72, "tracking": 140, "caps": true, "color": "muted", "hyphenate": false},
+    "Recipe Head": {"font": "display", "size": 1.6, "leading": 1.1, "color": "ink", "hyphenate": false},
+    "Ingredient": {"font": "text", "size": 0.92, "leading": 1.3, "color": "ink", "spaceAfter": 0.72, "hyphenate": false, "ruleBelow": {"weight": 0.4, "color": "muted", "offset": 4.5}},
+    "Method Step": {"basedOn": "Numbered", "size": 1.0, "leading": 1.5, "leftIndent": 3.79, "firstLineIndent": -3.79, "spaceAfter": 0.85, "color": "ink"},
+    "Note Label": {"font": "accent", "size": 0.72, "tracking": 140, "caps": true, "color": "accent2"},
+    "Note": {"font": "text", "fontStyle": "italic", "size": 0.88, "leading": 1.45, "color": "ink", "hyphenate": false},
+    "Folio": {"font": "accent", "fontStyle": "regular", "size": 0.74, "tracking": 120, "caps": true, "color": "muted"},
+    "Folio Right": {"basedOn": "Folio", "align": "right"}
+  }},
+  "page": {"size": [576, 720], "unit": "pt", "facing": true, "startLeft": true, "margins": {"top": 54, "bottom": 60, "inside": 54, "outside": 48}, "columns": 3, "gutter": 24, "bleed": 9},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [48, 682, 260, 12], "text": "<page>   ·   The Long Table", "style": "Folio", "side": "left"},
+      {"kind": "text", "rect": [268, 682, 260, 12], "text": "Soups and Stews   ·   <page>", "style": "Folio Right", "side": "right"}
+    ],
+    "B": []
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "image", "slot": "hero", "rect": "bleed"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "slot": "kicker", "rect": [54, 58, 300, 14], "style": "Kicker", "sample": "Soups and Stews"},
+      {"kind": "text", "slot": "title", "rect": [54, 78, 474, 90], "style": "Recipe Title", "sample": "Roasted Squash Soup with Sage Brown Butter"},
+      {"kind": "text", "slot": "intro", "rect": [54, 176, 430, 64], "style": "Headnote", "sample": "This is the soup we make the week the first frost arrives. Roasting the squash with garlic and a little maple deepens its sweetness, and a spoonful of nutty sage butter on top turns a simple bowl into something worth sitting down for."},
+      {"kind": "line", "from": [54, 254], "to": [528, 254], "stroke": {"color": "ink", "weight": 0.6}},
+      {"kind": "text", "slot": "stat1.label", "rect": [54, 266, 140, 10], "style": "Recipe Stat Label", "sample": "Serves"},
+      {"kind": "text", "slot": "stat1", "rect": [54, 280, 140, 30], "style": "Recipe Stat", "sample": "4"},
+      {"kind": "line", "from": [196, 264], "to": [196, 306], "stroke": {"color": "muted", "weight": 0.4}},
+      {"kind": "text", "slot": "stat2.label", "rect": [212, 266, 140, 10], "style": "Recipe Stat Label", "sample": "Prep"},
+      {"kind": "text", "slot": "stat2", "rect": [212, 280, 140, 30], "style": "Recipe Stat", "sample": "20 min"},
+      {"kind": "line", "from": [354, 264], "to": [354, 306], "stroke": {"color": "muted", "weight": 0.4}},
+      {"kind": "text", "slot": "stat3.label", "rect": [370, 266, 158, 10], "style": "Recipe Stat Label", "sample": "Cook"},
+      {"kind": "text", "slot": "stat3", "rect": [370, 280, 158, 30], "style": "Recipe Stat", "sample": "50 min"},
+      {"kind": "line", "from": [54, 318], "to": [528, 318], "stroke": {"color": "ink", "weight": 0.6}},
+      {"kind": "text", "rect": [54, 336, 164, 26], "text": "Ingredients", "style": "Recipe Head"},
+      {"kind": "text", "slot": "list", "rect": [54, 372, 164, 200], "style": "Ingredient", "sample": [
+        "Butternut squash1.2 kg",
+        "Olive oil2 tbsp",
+        "Garlic cloves, unpeeled4",
+        "Maple syrup1 tbsp",
+        "Yellow onion, diced1",
+        "Vegetable stock1 litre",
+        "Crème fraîche100 ml",
+        "Unsalted butter60 g",
+        "Fresh sage leaves12",
+        "Sea salt and black pepper"
+      ]},
+      {"kind": "rect", "rect": [54, 584, 164, 76], "fill": "tint"},
+      {"kind": "text", "rect": [66, 595, 140, 10], "text": "Cook’s note", "style": "Note Label"},
+      {"kind": "text", "slot": "note", "rect": [66, 609, 140, 46], "style": "Note", "sample": "The soup freezes well for three months. Make the sage butter just before serving."},
+      {"kind": "text", "rect": [246, 336, 282, 26], "text": "Method", "style": "Recipe Head"},
+      {"kind": "text", "flow": "body", "rect": [246, 372, 282, 288], "style": "Method Step", "sample": [
+        "Heat the oven to 200°C. Halve the squash, scoop out the seeds and cut it into large chunks. Toss with the oil, garlic and maple syrup, then roast for 35 minutes until soft and caramelised at the edges.",
+        "Meanwhile, soften the onion in a large pan over a low heat with a pinch of salt, stirring now and then, for about 10 minutes.",
+        "Squeeze the roasted garlic from its skins into the pan and add the squash and stock. Simmer for 10 minutes, then blend until completely smooth. Stir in the crème fraîche and season well.",
+        "Melt the butter in a small pan until it foams and smells nutty. Add the sage leaves and fry for 30 seconds until crisp.",
+        "Ladle the soup into warm bowls and spoon over the brown butter and crisp sage. Serve with thick slices of toasted sourdough."
+      ]}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": "margins", "columns": 2, "gutter": 24, "style": "Method Step"}
+    ]}, "max": 4}
+  }
+}

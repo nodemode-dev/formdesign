@@ -1,0 +1,82 @@
+{
+  "id": "book-novel-interior",
+  "name": "Novel Interior",
+  "category": "book",
+  "kinds": ["book"],
+  "tags": ["novel", "fiction", "trade", "6x9", "chapter opener", "running heads", "serif"],
+  "tone": ["elegant", "minimal"],
+  "description": "A 6 by 9 inch trade fiction interior: a sunk chapter opener with ornament and epigraph, then facing body pages with running heads and centred folios.",
+  "medium": "print",
+  "theme": "literary",
+  "kit": "longform",
+  "scale": 1.22,
+  "styles": {"paragraph": {
+    "Body": {"leading": 1.32, "firstLineIndent": 1.3},
+    "Chapter Number": {"font": "text", "size": 0.8, "leading": 1.2, "tracking": 280, "caps": true, "color": "accent", "align": "center", "hyphenate": false},
+    "Chapter Title": {"font": "display", "fontStyle": "regular", "size": 2.4, "leading": 1.15, "tracking": 0, "color": "ink", "align": "center", "hyphenate": false},
+    "Epigraph": {"font": "text", "fontStyle": "italic", "size": 0.95, "leading": 1.42, "color": "ink", "align": "center", "hyphenate": false, "balance": true},
+    "Epigraph Credit": {"font": "text", "fontStyle": "regular", "size": 0.7, "leading": 1.3, "tracking": 180, "caps": true, "color": "muted", "align": "center", "hyphenate": false},
+    "Running Head": {"font": "text", "fontStyle": "regular", "size": 0.72, "tracking": 220, "caps": true, "color": "muted", "align": "center"},
+    "Folio": {"font": "text", "fontStyle": "regular", "size": 0.86, "tracking": 40, "caps": false, "color": "ink", "align": "center"}
+  }},
+  "page": {"size": "Trade", "unit": "pt", "facing": true, "startLeft": false, "margins": {"top": 60, "bottom": 68, "inside": 62, "outside": 50}, "columns": 1, "gutter": 12, "bleed": 9, "baseline": 15.3},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [50, 36, 320, 12], "text": "A Light Kept Burning", "style": "Running Head", "side": "left"},
+      {"kind": "text", "rect": [62, 36, 320, 12], "slot": "title", "sample": "Wending Point", "style": "Running Head", "side": "right"},
+      {"kind": "text", "rect": [50, 598, 320, 14], "text": "<page>", "style": "Folio", "side": "left"},
+      {"kind": "text", "rect": [62, 598, 320, 14], "text": "<page>", "style": "Folio", "side": "right"}
+    ],
+    "B": [
+      {"kind": "text", "rect": [50, 598, 320, 14], "text": "<page>", "style": "Folio", "side": "left"},
+      {"kind": "text", "rect": [62, 598, 320, 14], "text": "<page>", "style": "Folio", "side": "right"}
+    ]
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "text", "slot": "kicker", "rect": [62, 120, 320, 14], "style": "Chapter Number", "sample": "Chapter Three"},
+      {"kind": "line", "from": [188, 148], "to": [212, 148], "stroke": {"color": "accent", "weight": 0.6}},
+      {"kind": "polygon", "sides": 4, "rect": [218, 144, 8, 8], "fill": "accent"},
+      {"kind": "line", "from": [232, 148], "to": [256, 148], "stroke": {"color": "accent", "weight": 0.6}},
+      {"kind": "text", "slot": "title", "rect": [62, 160, 320, 40], "style": "Chapter Title", "sample": "Wending Point"},
+      {"kind": "text", "slot": "quote", "rect": [90, 212, 264, 36], "style": "Epigraph", "sample": "Every harbour keeps one light burning for the boat that is not coming back."},
+      {"kind": "text", "slot": "quotecredit", "rect": [90, 256, 264, 12], "style": "Epigraph Credit", "sample": "The Pilot’s Book of Hours"},
+      {"kind": "text", "flow": "body", "rect": [62, 289.5, 320, 290.7], "style": "Body", "sample": [
+        "The house at Wending Point had stood empty for eleven winters by the time Nell Avery climbed the hill to it, and the wind had spent every one of them trying to get in. It had found the gaps beneath the doors and the loose pane in the scullery. It had found the chimney, and the long crack that ran down the plaster of the stair like a river drawn on a map.",
+        "She stopped on the step with the key in her hand and did not use it. The key was heavy and cold and older than she was, and her aunt had pressed it into her palm at the station as though it were something alive that might get away.",
+        "“You will want to see the lantern room first,” Aunt Marguerite had said. “Everyone does. Go up before you unpack, or you never will.”",
+        "Below the step the village folded itself into the curve of the bay: slate roofs, a chapel with a leaning bell, the harbour wall where three boats sat on the mud and waited for the tide to remember them. Gulls turned above the water in slow, unhurried loops. Somewhere a dog was barking at nothing, the way dogs do at the end of a long afternoon.",
+        "Nell turned the key. The lock gave with a sound like a held breath let go, and the door swung inward on the dark, and the cold of the house came out to meet her like an old dog that had forgotten whether it was meant to bark."
+      ]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": [50, 60, 320, 520], "style": "Body", "sample": [
+        "Inside, the hall smelled of salt and candle wax and something sweeter underneath, like apples left too long in a drawer. Dust lay along the banister in a soft grey fur. Someone had covered the furniture in sheets, and the shapes beneath them stood about the rooms like guests who had arrived early and been too polite to sit.",
+        "She set her bag down by the door. She had expected to feel something here, some tug of recognition, because her mother had grown up in these rooms and had spoken of them so often that Nell could have drawn the plan of the ground floor from memory. The parlour to the left. The kitchen at the back, two steps down. The narrow door beneath the stair that led to the cellar, which was not to be opened, not ever, for reasons nobody had thought to explain.",
+        "But the house did not know her. It received her the way the sea receives a stone, without remark, and went on with its own slow business of settling and creaking and letting the light through its salt-dimmed windows in long, pale bars.",
+        "She went up. The stair turned twice, and on the second landing the plaster gave way to bare stone, and the steps grew narrower and steeper until she was climbing with one hand flat against the wall. At the top was a door painted the deep green of old bottles. It was not locked. She had somehow known it would not be.",
+        "The lantern room was smaller than she had imagined and brighter than seemed possible. Glass on every side, ribbed with iron, and in the middle of it all the great lens, taller than a man, its rings of prism stacked one above another like the inside of a shell. The afternoon came through it in pieces. Coins of light lay scattered across the floorboards, and when Nell moved they moved with her, sliding over her shoes and up her sleeves as though they had been waiting a long time for someone to land on.",
+        "There was a chair beside the lens, a plain wooden chair with a cushion worn thin, and on the chair a ledger bound in faded blue cloth. Its corners had gone soft with handling. A pencil lay across the cover, sharpened to a stub, exactly where someone had set it down.",
+        "Nell did not touch it at first. She went instead to the glass and looked out, the way she supposed every keeper must have looked out on the first evening, at the long grey shoulder of the headland and the water beyond it going silver and then pewter as the cloud came over. There was a gallery outside, a narrow iron walk with a rail no higher than her hip, and a gull was standing on the rail with its feathers lifting in the wind, looking in at her as though she were the strange one."
+      ]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": [62, 60, 320, 520], "style": "Body", "sample": [
+        "She knew before she opened it whose hand she would find inside. Her grandfather had kept the light for forty-one years, and he had written in this book on every night of them: the hour the lamp was lit, the hour it was put out, the state of the wind and the sea and the sky. Most of the entries were a single line. Some were less. Lit at dusk. Wind south-west, moderate. Nothing to report.",
+        "But here and there, in the long columns of weather, he had written something else. Nell turned the pages slowly, and the words rose up at her between the numbers like small boats coming out of fog.",
+        "Saw the heron again on the north rocks. She is getting old, as am I.",
+        "Marguerite came up with soup. We did not talk about the cellar.",
+        "A boat with no lights passed close to the point at two in the morning, heading west. Did not answer the signal. Did not come back.",
+        "She read that last line three times. Outside, the sun was going down into the sea, and the lens began to fill with a deep and gathering orange, ring after ring of it, until the whole room seemed to hold its breath around her. Somewhere far below, a door closed. Nell looked up from the ledger and listened, and heard nothing but the wind, which had not, after all, given up on getting in.",
+        "She turned to the last page with writing on it. The date was eleven years old, the ink gone brown at the edges like a leaf. The entry was not about the weather, and it was not addressed to the ledger. It began with her name.",
+        "Dear Nell, it said, in the same careful pencil as the weather. If you are reading this, then Marguerite has kept her promise, and you have climbed the stair before you unpacked, as everyone does. I am sorry that I am not here to show you how the lamp is lit. It is not difficult. The difficult part is the rest of it, and that is what I have to tell you, because there is no one else left who knows.",
+        "Nell sat down in the chair. The cushion sighed under her, and the last of the orange drained out of the lens and left it the colour of rain. She read on by the grey light that remained, and then by the small torch from her coat pocket, and she did not hear the door below open again, or the slow steps that began, one at a time, to climb the stair."
+      ]}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": "margins", "style": "Body"}
+    ]}, "max": 400}
+  }
+}

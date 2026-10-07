@@ -1,0 +1,93 @@
+{
+  "id": "report-research-brief",
+  "name": "Research Brief",
+  "category": "report",
+  "kinds": ["report", "newsletter"],
+  "tags": ["research brief", "policy brief", "a4", "academic", "abstract", "two-column", "figure", "recommendations"],
+  "tone": ["elegant", "corporate", "vintage"],
+  "description": "An A4 research or policy brief: an institute masthead with issue line, title, deck and authors, a shaded abstract box over two justified columns, then a full-width figure with caption and a numbered recommendations panel.",
+  "medium": "print",
+  "theme": "classic",
+  "kit": "longform",
+  "scale": 1.1,
+  "styles": {"paragraph": {
+    "Mast": {"font": "text", "size": 0.74, "leading": 1.3, "tracking": 180, "caps": true, "color": "ink", "hyphenate": false},
+    "Mast Right": {"basedOn": "Mast", "align": "right", "color": "muted"},
+    "Brief Title": {"font": "display", "size": 2.3, "leading": 1.18, "tracking": -10, "color": "ink", "hyphenate": false},
+    "Deck": {"font": "text", "fontStyle": "italic", "size": 1.28, "leading": 1.35, "color": "muted", "hyphenate": false},
+    "Authors": {"font": "text", "size": 0.76, "leading": 1.3, "tracking": 150, "caps": true, "color": "accent", "hyphenate": false},
+    "Box Label": {"font": "text", "size": 0.72, "leading": 1.2, "tracking": 220, "caps": true, "color": "accent", "hyphenate": false},
+    "Abstract": {"font": "text", "size": 1.02, "leading": 1.42, "color": "ink", "align": "justify", "hyphenate": true},
+    "Section": {"font": "display", "size": 1.08, "leading": 1.3, "color": "accent2", "hyphenate": false},
+    "Body": {"leading": 1.38, "firstLineIndent": 1.2},
+    "Caption": {"font": "text", "fontStyle": "italic", "size": 0.9, "leading": 1.35, "color": "muted"},
+    "Recommendation": {"basedOn": "Numbered", "align": "left", "size": 1.0, "leading": 1.38, "leftIndent": 3.445, "firstLineIndent": -2.0, "spaceAfter": 0.5, "hyphenate": false},
+    "Running Head": {"font": "text", "fontStyle": "italic", "size": 0.86, "tracking": 0, "caps": false, "color": "muted", "align": "left"},
+    "Folio": {"font": "text", "fontStyle": "regular", "size": 0.86, "tracking": 0, "caps": false, "color": "muted", "align": "right"}
+  }},
+  "page": {"size": "A4", "unit": "pt", "facing": false, "margins": {"top": 66, "bottom": 60, "inside": 54, "outside": 54}, "columns": 2, "gutter": 20, "bleed": 9, "baseline": 14.42},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [54, 34, 380, 13], "slot": "title", "sample": "Managed Retreat and the Price of Staying Put", "style": "Running Head"},
+      {"kind": "text", "rect": [441, 34, 100, 13], "text": "<page>", "style": "Folio"},
+      {"kind": "line", "from": [54, 52], "to": [541, 52], "stroke": {"color": "muted", "weight": 0.4}}
+    ],
+    "B": [
+      {"kind": "line", "from": [54, 798], "to": [541, 798], "stroke": {"color": "muted", "weight": 0.4}},
+      {"kind": "text", "rect": [54, 806, 380, 13], "text": "Corriveau Institute for Coastal Policy  ·  corriveau.org", "style": "Running Head"},
+      {"kind": "text", "rect": [441, 806, 100, 13], "text": "<page>", "style": "Folio"}
+    ]
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "text", "slot": "brand", "rect": [54, 40, 300, 12], "style": "Mast", "sample": "Corriveau Institute for Coastal Policy"},
+      {"kind": "text", "slot": "issue", "rect": [341, 40, 200, 12], "style": "Mast Right", "sample": "Research Brief No. 14  ·  March 2026"},
+      {"kind": "line", "from": [54, 58], "to": [541, 58], "stroke": {"color": "accent", "weight": 2}},
+      {"kind": "line", "from": [54, 62], "to": [541, 62], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "title", "rect": [54, 86, 487, 66], "style": "Brief Title", "sample": "Managed Retreat and the Price of Staying Put"},
+      {"kind": "text", "slot": "subtitle", "rect": [54, 158, 460, 40], "style": "Deck", "sample": "Evidence from forty coastal towns on the long-run costs of defending, adapting and relocating"},
+      {"kind": "text", "slot": "byline", "rect": [54, 208, 487, 14], "style": "Authors", "sample": "Hélène Varga, Tobias Mwangi and Ruth Ellingham"},
+      {"kind": "rect", "rect": [54, 236, 487, 150], "fill": "tint"},
+      {"kind": "text", "rect": [72, 252, 200, 12], "text": "Abstract", "style": "Box Label"},
+      {"kind": "text", "slot": "summary", "rect": [72, 270, 451, 108], "style": "Abstract", "sample": "Coastal towns facing rising seas must choose between defending their shoreline, adapting in place or moving people and infrastructure inland. Drawing on thirty years of spending records from forty towns, we estimate the full cost of each path, including costs that rarely appear in planning documents: repeated repairs, falling property values and lost local tax revenue. Towns that began planned relocation early spent, on average, 38 per cent less per household over two decades than towns that relied on defences alone, and the savings were largest where relocation was paired with support for renters."},
+      {"kind": "text", "slot": "section", "rect": [54, 406, 487, 18], "style": "Section", "sample": "1. Introduction"},
+      {"kind": "text", "flow": "body", "rect": [54, 432, 487, 350], "columns": 2, "gutter": 20, "style": "Body", "sample": [
+        "For most of the twentieth century, the default response to coastal erosion was to hold the line. Sea walls, groynes and rock armour protected harbours and promenades, and the cost was shared between local and national budgets. That approach is now under strain. Higher seas raise the cost of every defence, storms arrive more often, and the assets being defended are frequently worth less than the walls that protect them.",
+        "Managed retreat, the planned movement of people and infrastructure away from hazard, is increasingly discussed as an alternative. It remains politically difficult. Residents are attached to places for reasons that do not appear on a balance sheet, and the costs of moving are visible and immediate while the costs of staying are spread across decades.",
+        "This brief asks a narrower question: when all costs are counted, which path is cheaper for a town and its households? We compiled spending and property records for forty coastal towns between 1994 and 2024, grouping them by the strategy each followed for most of the period. We then estimated the total cost per household of each strategy, including direct spending, insurance claims, changes in property value and changes in local tax revenue.",
+        "Our sample includes towns of between two and forty thousand residents across three regions with comparable rates of erosion. Twelve towns relied mainly on hard defences, eighteen combined defences with adaptation such as raised buildings and flood-resilient services, and ten began planned relocation of at least part of their population before 2010.",
+        "The results are summarised in Figure 1 and discussed in Section 3. In brief, early relocation was the least costly strategy in every region, but its advantage depended heavily on how the move was managed and on who bore its costs.",
+        "We also find that the choice of strategy matters less than its timing. Towns that made an early, deliberate choice, whatever it was, generally spent less than towns that changed course in response to individual storms. The most expensive outcomes came from cycles of defence and abandonment, in which new walls were built, damaged and then left unrepaired as residents drifted away.",
+        "Section 2 describes our data and the assumptions behind our cost estimates. Section 3 presents results by strategy and region, and Section 4 considers what the findings mean for towns now deciding how to respond, including the costs our method cannot capture.",
+        "Throughout, we report costs per household rather than per town, so that small and large places can be compared directly. All figures are in constant 2024 prices."
+      ]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image1", "rect": [54, 70, 487, 214]},
+      {"kind": "text", "slot": "caption", "rect": [54, 292, 487, 30], "style": "Caption", "sample": "Figure 1. Cumulative cost per household by strategy, 1994 to 2024, in constant 2024 prices. Shaded bands show the range across towns in each group."},
+      {"kind": "text", "flow": "body", "rect": [54, 340, 487, 290], "columns": 2, "gutter": 20, "style": "Body", "sample": [
+        "Defence-led towns spent the most per household, largely because the cost of maintaining sea walls rose steeply after major storms in 2007 and 2018. In several towns a single storm season consumed the defence budget for the following decade, leaving little for adaptation.",
+        "Adaptation in place was cheaper in the short run but showed rising costs over time, as raised roads and resilient services needed renewal sooner than expected. Insurance claims in these towns fell, but property values were more volatile than in either of the other groups.",
+        "Relocation towns faced the highest costs in their first five years, chiefly for land, new infrastructure and compensation. After that, costs fell sharply. By 2024 their cumulative cost per household was 38 per cent below that of defence-led towns and 21 per cent below adapting towns.",
+        "Two factors explained most of the variation within the relocation group. Towns that moved public services first, such as schools and clinics, saw households follow more quickly and at lower cost. Towns that supported renters as well as owners avoided the long tail of informal settlement near the old shoreline that raised costs elsewhere.",
+        "These findings have limits. Our estimates do not capture the loss of community ties, cultural sites or the distress that moving can cause, and towns that chose relocation may differ from the others in ways our data cannot see.",
+        "Taken together, the evidence suggests that the question for most coastal towns is not whether to retreat but how and when. Defences will remain essential for harbours, historic centres and critical infrastructure. Elsewhere, an early and well-supported plan to move appears to offer households both lower costs and more control over their future than waiting for the sea to decide.",
+        "For national governments, the implication is that funding rules matter. Grants that pay only for defences, or only after a disaster, steer towns towards the most expensive path. Funding that can be spent on planning, land and household support before a crisis would let towns choose the strategy that suits them, rather than the one their budget happens to cover.",
+        "We set out three recommendations below, each drawn directly from the evidence in this brief."
+      ]},
+      {"kind": "rect", "rect": [54, 652, 487, 120], "stroke": {"color": "accent", "weight": 0.75}},
+      {"kind": "rect", "rect": [54, 652, 487, 4], "fill": "accent"},
+      {"kind": "text", "rect": [72, 670, 300, 12], "text": "Recommendations", "style": "Box Label"},
+      {"kind": "text", "slot": "list", "rect": [72, 690, 451, 76], "style": "Recommendation", "sample": [
+        "Count the full cost of defence, including repeated repairs and lost tax revenue, before committing to new walls.",
+        "Begin planning for relocation early, while it can still be gradual and voluntary.",
+        "Move public services first, and give renters the same support as owners."
+      ]}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": "margins", "columns": 2, "gutter": 20, "style": "Body"}
+    ]}, "max": 30}
+  }
+}

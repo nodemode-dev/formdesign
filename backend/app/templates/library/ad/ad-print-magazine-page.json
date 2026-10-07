@@ -1,0 +1,36 @@
+{
+  "id": "ad-print-magazine-page",
+  "name": "Magazine Ad, Full Page",
+  "category": "ad",
+  "kinds": ["ad-print"],
+  "tags": ["print ad", "magazine ad", "full page", "letter", "bleed", "travel", "hotel", "editorial"],
+  "tone": ["elegant", "warm"],
+  "description": "A full-page Letter magazine ad with bleed: a photograph across the top two thirds, a serif headline beside a short paragraph and call to action, then logo, brand, web address and small print along the foot.",
+  "medium": "print",
+  "theme": "modern-serif",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Kicker": {"basedOn": "Kicker", "size": 0.72, "leading": 1.2, "tracking": 220, "color": "accent"},
+    "Ad Title": {"basedOn": "Title", "size": 3.35, "leading": 0.98, "tracking": -15, "color": "ink"},
+    "Ad Body": {"basedOn": "Body", "size": 0.92, "leading": 1.45, "color": "ink", "spaceAfter": 0, "balance": true},
+    "Ad CTA": {"basedOn": "CTA", "size": 0.72, "leading": 1.2, "tracking": 160, "color": "accent", "align": "left"},
+    "Ad Brand": {"font": "display", "size": 1.4, "leading": 1.1, "color": "ink"},
+    "Ad URL": {"basedOn": "Label", "size": 0.68, "leading": 1.2, "tracking": 160, "color": "ink", "align": "right"},
+    "Ad Legal": {"basedOn": "Small", "size": 0.54, "leading": 1.3, "color": "muted"}
+  }},
+  "page": {"size": "Letter", "unit": "pt", "facing": false, "margins": 42, "columns": 2, "gutter": 18, "bleed": 9},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": [-9, -9, 630, 497]},
+      {"kind": "text", "slot": "title", "rect": [42, 512, 270, 142], "style": "Ad Title", "sample": "Wake up somewhere slower."},
+      {"kind": "text", "slot": "kicker", "rect": [330, 518, 240, 14], "style": "Ad Kicker", "sample": "Casa Albera · Puglia"},
+      {"kind": "text", "slot": "intro", "rect": [330, 538, 240, 80], "style": "Ad Body", "sample": "Eleven whitewashed rooms among the olive groves, a long table under the vines at dusk and nowhere you need to be. Open from April to October."},
+      {"kind": "text", "slot": "cta", "rect": [330, 622, 240, 14], "style": "Ad CTA", "sample": "Book direct and save 15%"},
+      {"kind": "line", "from": [42, 674], "to": [570, 674], "stroke": {"color": "muted", "weight": 0.5}},
+      {"kind": "image", "slot": "logo", "rect": [42, 690, 34, 34], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [86, 690, 220, 34], "style": "Ad Brand", "valign": "center", "sample": "Casa Albera"},
+      {"kind": "text", "slot": "url", "rect": [330, 690, 240, 34], "style": "Ad URL", "valign": "center", "sample": "casaalbera.travel"},
+      {"kind": "text", "slot": "legal", "rect": [42, 740, 528, 14], "style": "Ad Legal", "sample": "Rooms from €240 a night for two, breakfast included. Direct booking offer valid for stays until 31 October 2026."}
+    ]}
+  ]
+}

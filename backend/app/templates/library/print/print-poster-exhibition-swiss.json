@@ -1,0 +1,37 @@
+{
+  "id": "print-poster-exhibition-swiss",
+  "name": "Exhibition Poster, Swiss",
+  "category": "print",
+  "kinds": ["poster"],
+  "tags": ["exhibition", "gallery", "museum", "a2", "swiss", "grid", "minimal", "geometric"],
+  "tone": ["minimal", "bold"],
+  "description": "An A2 exhibition poster in the Swiss manner: a four-column information row, a red square and black circle overprinting on the grid, a heavy rule and a three-line grotesque title set flush left.",
+  "medium": "print",
+  "theme": "swiss",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Swiss Title": {"basedOn": "Title", "size": 16.5, "leading": 0.88, "tracking": -40, "color": "ink"},
+    "Swiss Info": {"font": "text", "size": 1.2, "leading": 1.3, "color": "ink", "hyphenate": false, "spaceAfter": 0},
+    "Swiss Info Strong": {"basedOn": "Swiss Info", "font": "accent"},
+    "Swiss Sub": {"font": "accent", "size": 1.6, "leading": 1.25, "tracking": -5, "color": "ink", "hyphenate": false},
+    "Swiss Vertical": {"font": "accent", "size": 1.2, "tracking": 200, "caps": true, "color": "ink", "hyphenate": false}
+  }},
+  "page": {"size": [420, 594], "unit": "mm", "facing": false, "margins": 20, "columns": 4, "gutter": 6, "bleed": 3},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "line", "from": [20, 18], "to": [400, 18], "stroke": {"color": "ink", "weight": 1}},
+      {"kind": "text", "slot": "brand", "rect": [20, 22, 90.5, 18], "style": "Swiss Info Strong", "sample": ["Arlen", "Kunsthaus"]},
+      {"kind": "text", "slot": "eventdate", "rect": [116.5, 22, 90.5, 18], "style": "Swiss Info", "sample": ["14 March to", "28 June 2026"]},
+      {"kind": "text", "slot": "eventtime", "rect": [213, 22, 90.5, 18], "style": "Swiss Info", "sample": ["Tuesday to Sunday 10 to 18", "Thursday until 21"]},
+      {"kind": "text", "slot": "location", "rect": [309.5, 22, 90.5, 18], "style": "Swiss Info", "sample": ["Quai Nord 12", "Arlen"]},
+      {"kind": "rect", "rect": [20, 72, 228, 228], "fill": "accent"},
+      {"kind": "ellipse", "rect": [158, 170, 222, 222], "fill": "ink", "opacity": 1, "blend": "multiply"},
+      {"kind": "line", "from": [20, 352], "to": [400, 352], "stroke": {"color": "ink", "weight": 5}},
+      {"kind": "text", "slot": "kicker", "rect": [336, 136, 120, 8], "style": "Swiss Vertical", "sample": "Exhibition", "rotate": -90},
+      {"kind": "text", "slot": "title", "rect": [20, 372, 380, 172], "style": "Swiss Title", "valign": "bottom", "sample": "Line, Plane, Volume"},
+      {"kind": "text", "slot": "subtitle", "rect": [20, 551, 187, 25], "style": "Swiss Sub", "sample": "Drawings, prints and objects by eleven artists who reduced form to its first elements, 1958 to 2024"},
+      {"kind": "text", "slot": "note", "rect": [213, 551, 90.5, 25], "style": "Swiss Info", "sample": ["Free entry on the first", "Sunday of every month"]},
+      {"kind": "text", "slot": "url", "rect": [309.5, 551, 90.5, 25], "style": "Swiss Info Strong", "sample": "arlenkunsthaus.org"}
+    ]}
+  ]
+}

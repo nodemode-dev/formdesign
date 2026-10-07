@@ -1,0 +1,65 @@
+{
+  "id": "book-picture-book",
+  "name": "Picture Book",
+  "category": "book",
+  "kinds": ["book"],
+  "tags": ["children", "picture book", "square", "8.5x8.5", "illustration", "full-spread art", "story"],
+  "tone": ["playful", "warm"],
+  "description": "An 8.5 inch square children's picture book: a bright title page with a round spot illustration, a full-spread painting with short story text in soft panels, and a text-led page with spot art.",
+  "medium": "print",
+  "theme": "playful",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Book Title": {"font": "display", "size": 5.0, "leading": 0.98, "tracking": -20, "color": "ink", "hyphenate": false},
+    "Book Byline": {"font": "text", "size": 1.15, "leading": 1.35, "color": "ink", "hyphenate": false, "balance": true},
+    "Imprint": {"font": "accent", "size": 0.95, "leading": 1.2, "tracking": 40, "color": "ink", "hyphenate": false},
+    "Story": {"font": "text", "size": 1.5, "leading": 1.36, "color": "ink", "spaceAfter": 0.55, "hyphenate": false},
+    "Story Center": {"basedOn": "Story", "align": "center", "size": 1.65, "balance": true}
+  }},
+  "page": {"size": [612, 612], "unit": "pt", "facing": true, "startLeft": false, "margins": 48, "columns": 1, "gutter": 0, "bleed": 9},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "tint"},
+      {"kind": "ellipse", "rect": [446, -64, 236, 236], "fill": "accent2"},
+      {"kind": "ellipse", "rect": [438, 198, 22, 22], "fill": "accent"},
+      {"kind": "ellipse", "rect": [272, 262, 310, 310], "stroke": {"color": "ink", "weight": 2.5}},
+      {"kind": "image", "slot": "image1", "shape": "ellipse", "rect": [286, 276, 282, 282]},
+      {"kind": "ellipse", "rect": [256, 480, 64, 64], "fill": "accent"},
+      {"kind": "text", "slot": "title", "rect": [54, 88, 380, 156], "style": "Book Title", "sample": "Pip and the Moon Kite"},
+      {"kind": "line", "from": [56, 262], "to": [110, 262], "stroke": {"color": "accent", "weight": 4}},
+      {"kind": "text", "slot": "byline", "rect": [54, 278, 220, 48], "style": "Book Byline", "sample": "Written and illustrated by Odessa Lark"},
+      {"kind": "image", "slot": "logo", "rect": [54, 528, 30, 30], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [94, 535, 200, 18], "style": "Imprint", "sample": "Little Lantern Books"}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": [-9, -9, 1242, 630]},
+      {"kind": "rect", "rect": [40, 40, 340, 156], "fill": "paper", "corner": 28, "opacity": 0.94},
+      {"kind": "text", "flow": "body", "rect": [66, 62, 288, 120], "style": "Story", "sample": [
+        "Every night, Pip watched the moon rise over Hollow Hill.",
+        "It looked so close that she was sure she could catch it."
+      ]}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": [232, 426, 340, 138], "fill": "paper", "corner": 28, "opacity": 0.94},
+      {"kind": "text", "flow": "body", "rect": [258, 450, 288, 100], "style": "Story", "sample": [
+        "So she built a kite from Grandpa’s old map, with a tail of blue ribbon and the longest string in the village."
+      ]}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "ellipse", "rect": [116, 52, 380, 380], "fill": "tint"},
+      {"kind": "image", "slot": "image2", "shape": "ellipse", "rect": [146, 82, 320, 320]},
+      {"kind": "ellipse", "rect": [446, 92, 30, 30], "fill": "accent"},
+      {"kind": "ellipse", "rect": [120, 360, 18, 18], "fill": "accent2"},
+      {"kind": "ellipse", "rect": [478, 136, 12, 12], "fill": "accent2"},
+      {"kind": "text", "flow": "body", "rect": [84, 456, 444, 108], "style": "Story Center", "sample": [
+        "The wind came up at sunset. The kite leapt, and tugged, and climbed, and Pip held on with both hands."
+      ]}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": null, "items": [
+      {"kind": "image", "slot": "gallery1", "rect": [48, 48, 516, 360], "corner": 28},
+      {"kind": "text", "flow": "body", "rect": [72, 440, 468, 124], "style": "Story Center"}
+    ]}, "max": 30}
+  }
+}

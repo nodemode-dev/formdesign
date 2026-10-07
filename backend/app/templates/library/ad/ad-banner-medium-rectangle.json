@@ -1,0 +1,30 @@
+{
+  "id": "ad-banner-medium-rectangle",
+  "name": "Medium Rectangle Banner",
+  "category": "ad",
+  "kinds": ["ad-banner"],
+  "tags": ["display ad", "web banner", "medium rectangle", "mpu", "300x250", "iab", "photo", "cta"],
+  "tone": ["minimal", "warm"],
+  "description": "A 300 by 250 px medium rectangle display banner: a photograph with the logo over it, then a two-line headline, one line of detail and a button on a light panel.",
+  "medium": "screen",
+  "theme": "fresh",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Title": {"basedOn": "Title", "size": 1.72, "leading": 1.05, "tracking": -10, "color": "ink", "balance": true},
+    "Ad Line": {"basedOn": "Body", "size": 1.02, "leading": 1.25, "color": "muted", "spaceAfter": 0},
+    "Ad CTA": {"basedOn": "CTA", "size": 0.88, "leading": 1.2, "tracking": 80, "color": "light"}
+  }},
+  "page": {"size": [300, 250], "unit": "px", "facing": false, "margins": 16, "columns": 1, "gutter": 0},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": [0, 0, 300, 122]},
+      {"kind": "rect", "rect": [0, 120, 300, 130], "fill": "tint"},
+      {"kind": "rect", "rect": [0, 120, 300, 3], "fill": "accent"},
+      {"kind": "image", "slot": "logo", "rect": [12, 12, 40, 40], "fit": "fit"},
+      {"kind": "text", "slot": "title", "rect": [16, 133, 268, 50], "style": "Ad Title", "sample": "Groceries at your door in 20 minutes"},
+      {"kind": "text", "slot": "subtitle", "rect": [16, 184, 268, 18], "style": "Ad Line", "sample": "Free delivery on your first order."},
+      {"kind": "text", "slot": "cta", "rect": [16, 208, 120, 30], "style": "Ad CTA", "valign": "center", "fill": "accent", "corner": 15, "sample": "Order now"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

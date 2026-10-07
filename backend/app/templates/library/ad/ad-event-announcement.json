@@ -1,0 +1,46 @@
+{
+  "id": "ad-event-announcement",
+  "name": "Event Announcement",
+  "category": "ad",
+  "kinds": ["ad-social"],
+  "tags": ["event", "concert", "gig", "club night", "1080x1350", "portrait", "4:5", "date", "venue", "tickets"],
+  "tone": ["vintage", "playful", "warm"],
+  "description": "A 1080 by 1350 px event ad in a vintage poster style: a presenter line, a large serif title, a one-line description, a round photograph with an offset disc, and a dark band with the date, time, venue and ticket line.",
+  "medium": "screen",
+  "theme": "retro",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Kicker": {"basedOn": "Kicker", "size": 1.6, "leading": 1.2, "tracking": 280, "color": "accent", "align": "center"},
+    "Ad Title": {"basedOn": "Title", "size": 10.2, "leading": 0.92, "tracking": -10, "color": "accent2", "align": "center"},
+    "Ad Line": {"basedOn": "Body", "size": 2.0, "leading": 1.4, "color": "ink", "align": "center", "spaceAfter": 0},
+    "Detail Label": {"basedOn": "Label", "size": 1.15, "leading": 1.2, "tracking": 260, "color": "accent", "align": "center"},
+    "Detail Value": {"font": "display", "size": 2.6, "leading": 1.1, "color": "light", "align": "center", "hyphenate": false, "balance": true},
+    "Ad CTA": {"basedOn": "CTA", "size": 1.55, "leading": 1.2, "tracking": 220, "color": "light"}
+  }},
+  "page": {"size": [1080, 1350], "unit": "px", "facing": false, "margins": 72, "columns": 3, "gutter": 24},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "text", "slot": "kicker", "rect": [72, 84, 936, 32], "style": "Ad Kicker", "sample": "The Velvet Room presents"},
+      {"kind": "text", "slot": "title", "rect": [40, 112, 1000, 300], "style": "Ad Title", "valign": "center", "sample": "Midnight Jazz Social"},
+      {"kind": "text", "slot": "subtitle", "rect": [150, 416, 780, 72], "style": "Ad Line", "sample": "A live quartet, a late bar and a dance floor that stays open."},
+      {"kind": "line", "from": [72, 718], "to": [268, 718], "stroke": {"color": "accent2", "weight": 3}},
+      {"kind": "line", "from": [812, 718], "to": [1008, 718], "stroke": {"color": "accent2", "weight": 3}},
+      {"kind": "polygon", "rect": [268, 704, 28, 28], "sides": 4, "fill": "accent2"},
+      {"kind": "polygon", "rect": [784, 704, 28, 28], "sides": 4, "fill": "accent2"},
+      {"kind": "ellipse", "rect": [346, 520, 412, 412], "fill": "accent"},
+      {"kind": "image", "slot": "hero", "shape": "ellipse", "rect": [322, 496, 412, 412]},
+      {"kind": "rect", "rect": [0, 992, 1080, 358], "fill": "dark"},
+      {"kind": "text", "rect": [72, 1040, 296, 24], "style": "Detail Label", "text": "Date"},
+      {"kind": "text", "rect": [392, 1040, 296, 24], "style": "Detail Label", "text": "Doors"},
+      {"kind": "text", "rect": [712, 1040, 296, 24], "style": "Detail Label", "text": "Venue"},
+      {"kind": "text", "slot": "eventdate", "rect": [72, 1072, 296, 100], "style": "Detail Value", "sample": "Friday 14 November"},
+      {"kind": "text", "slot": "eventtime", "rect": [392, 1072, 296, 100], "style": "Detail Value", "sample": "8 pm till late"},
+      {"kind": "text", "slot": "location", "rect": [712, 1072, 296, 100], "style": "Detail Value", "sample": "The Velvet Room, Leith"},
+      {"kind": "line", "from": [380, 1040], "to": [380, 1160], "stroke": {"color": "muted", "weight": 1}},
+      {"kind": "line", "from": [700, 1040], "to": [700, 1160], "stroke": {"color": "muted", "weight": 1}},
+      {"kind": "line", "from": [72, 1204], "to": [1008, 1204], "stroke": {"color": "muted", "weight": 1}},
+      {"kind": "text", "slot": "cta", "rect": [72, 1228, 936, 56], "style": "Ad CTA", "valign": "center", "sample": "Tickets £18 · On sale now"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

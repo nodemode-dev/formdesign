@@ -1,0 +1,50 @@
+{
+  "id": "print-postcard",
+  "name": "Postcard",
+  "category": "print",
+  "kinds": ["postcard"],
+  "tags": ["postcard", "6x4", "two-sided", "travel", "tourism", "retro", "photo"],
+  "tone": ["vintage", "playful"],
+  "description": "A 6 by 4 inch two-sided postcard in a vintage style: a bordered photograph with a 'greetings from' headline and badge on the front; caption, message, stamp box and ruled address lines on the back.",
+  "medium": "print",
+  "theme": "retro",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Card Kicker": {"font": "accent", "size": 0.9, "leading": 1.2, "tracking": 260, "caps": true, "color": "light", "hyphenate": false},
+    "Card Title": {"font": "display", "size": 4.2, "leading": 1, "tracking": -10, "color": "light", "hyphenate": false},
+    "Card Badge": {"font": "accent", "size": 0.75, "leading": 1.15, "tracking": 100, "caps": true, "color": "light", "align": "center", "hyphenate": false, "spaceAfter": 0},
+    "Card Head": {"font": "display", "size": 1.35, "leading": 1, "tracking": 300, "caps": true, "color": "accent2", "align": "center", "hyphenate": false},
+    "Card Caption": {"font": "accent", "size": 0.66, "leading": 1.35, "tracking": 120, "caps": true, "color": "accent", "hyphenate": false},
+    "Card Message": {"font": "text", "fontStyle": "italic", "size": 1, "leading": 1.55, "color": "ink", "hyphenate": false},
+    "Card Footer": {"font": "text", "size": 0.62, "leading": 1.3, "color": "muted", "hyphenate": false},
+    "Card Stamp": {"font": "accent", "size": 0.55, "leading": 1.3, "tracking": 120, "caps": true, "color": "accent", "align": "center", "hyphenate": false},
+    "Card Address": {"font": "text", "size": 1, "leading": 2.17, "color": "ink", "hyphenate": false, "spaceAfter": 0}
+  }},
+  "page": {"size": [432, 288], "unit": "pt", "facing": false, "margins": 18, "columns": 2, "gutter": 24, "bleed": 9},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": [14, 14, 404, 260]},
+      {"kind": "rect", "rect": [14, 132, 404, 142], "gradient": {"angle": -90, "stops": [["dark", 0, 0], ["dark", 100, 0.7]]}},
+      {"kind": "text", "slot": "kicker", "rect": [30, 178, 300, 16], "style": "Card Kicker", "sample": "Greetings from"},
+      {"kind": "text", "slot": "title", "rect": [28, 192, 376, 70], "style": "Card Title", "shadow": {"distance": 3, "size": 0, "opacity": 60}, "sample": "Saltmarsh Bay"},
+      {"kind": "ellipse", "rect": [336, 30, 58, 58], "fill": "accent", "rotate": 0},
+      {"kind": "text", "slot": "date", "rect": [336, 30, 58, 58], "style": "Card Badge", "valign": "center", "sample": ["Since", "1891"]}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "text", "rect": [18, 11, 396, 25], "style": "Card Head", "text": "Post Card"},
+      {"kind": "line", "from": [18, 38], "to": [414, 38], "stroke": {"color": "accent2", "weight": 1.5}},
+      {"kind": "line", "from": [18, 41], "to": [414, 41], "stroke": {"color": "accent2", "weight": 0.5}},
+      {"kind": "text", "slot": "caption", "rect": [18, 50, 196, 24], "style": "Card Caption", "sample": "The north pier at low tide, Saltmarsh Bay"},
+      {"kind": "text", "slot": "intro", "rect": [18, 84, 196, 150], "style": "Card Message", "sample": "Wish you were here! The water is cold, the chips are hot and the sunsets go on for hours. Back on Sunday with sand in everything. Love, Mae"},
+      {"kind": "text", "slot": "footer", "rect": [18, 252, 196, 18], "style": "Card Footer", "sample": "Saltmarsh Bay Visitor Centre · saltmarshbay.org"},
+      {"kind": "line", "from": [226, 54], "to": [226, 266], "stroke": {"color": "muted", "weight": 0.75}},
+      {"kind": "rect", "rect": [362, 54, 52, 62], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "text", "rect": [362, 54, 52, 62], "style": "Card Stamp", "valign": "center", "inset": 6, "text": "Place stamp here"},
+      {"kind": "text", "slot": "address", "rect": [238, 140, 176, 112], "style": "Card Address", "sample": ["Ada Whitlow", "27 Juniper Road", "Kettering Vale", "KV4 9QT"]},
+      {"kind": "line", "from": [238, 160], "to": [414, 160], "stroke": {"color": "muted", "weight": 0.5}},
+      {"kind": "line", "from": [238, 186], "to": [414, 186], "stroke": {"color": "muted", "weight": 0.5}},
+      {"kind": "line", "from": [238, 212], "to": [414, 212], "stroke": {"color": "muted", "weight": 0.5}},
+      {"kind": "line", "from": [238, 238], "to": [414, 238], "stroke": {"color": "muted", "weight": 0.5}}
+    ]}
+  ]
+}

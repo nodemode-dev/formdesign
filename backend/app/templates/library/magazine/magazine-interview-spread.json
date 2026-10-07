@@ -1,0 +1,61 @@
+{
+  "id": "magazine-interview-spread",
+  "name": "Interview Spread, Q and A",
+  "category": "magazine",
+  "kinds": ["magazine"],
+  "tags": ["interview", "q and a", "profile", "portrait", "spread", "serif"],
+  "tone": ["elegant", "warm"],
+  "description": "A two-page interview: a bleed portrait with the subject's name and deck on the left, a lead-in, six questions and answers and a pull quote in two columns on the right.",
+  "medium": "print",
+  "theme": "modern-serif",
+  "kit": "longform",
+  "styles": {"paragraph": {
+    "Name Title": {"font": "display", "size": 6.4, "leading": 0.92, "tracking": -25, "color": "ink", "hyphenate": false},
+    "Interview Deck": {"basedOn": "Subtitle", "size": 1.6, "leading": 1.3},
+    "Lead In": {"font": "text", "size": 1.38, "leading": 1.4, "color": "ink", "hyphenate": false},
+    "Question": {"font": "accent", "size": 1.05, "leading": 1.3, "color": "accent", "hyphenate": false},
+    "Answer": {"basedOn": "Body", "firstLineIndent": 0, "size": 1.1, "leading": 1.45},
+    "Pull": {"basedOn": "Quote", "size": 2.6, "leading": 1.1},
+    "Folio Right": {"basedOn": "Folio", "align": "right"}
+  }},
+  "page": {"size": "Letter", "unit": "pt", "facing": true, "startLeft": true, "margins": {"top": 54, "bottom": 60, "inside": 50, "outside": 40}, "columns": 2, "gutter": 20, "bleed": 9},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [40, 748, 260, 11], "style": "Folio", "side": "left", "text": "<page>    Common Thread"},
+      {"kind": "text", "rect": [312, 748, 260, 11], "style": "Folio Right", "side": "right", "text": "Autumn 2026    <page>"}
+    ]
+  },
+  "pages": [
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "portrait", "rect": [-9, -9, 621, 548]},
+      {"kind": "text", "slot": "credit", "rect": [40, 546.17, 300, 10], "style": "Credit", "sample": "Photograph by Tomas Reyes"},
+      {"kind": "text", "slot": "kicker", "rect": [40, 583.61, 300, 13], "style": "Kicker", "sample": "The Interview"},
+      {"kind": "text", "slot": "title", "rect": [40, 589.1, 532, 77], "style": "Name Title", "sample": "Ines Okafor"},
+      {"kind": "text", "slot": "subtitle", "rect": [40, 670.28, 480, 43], "style": "Interview Deck", "sample": "The ceramicist on failed kilns, slow commissions and why she still answers every letter by hand."}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "slot": "intro", "rect": [50, 55.07, 522, 57], "style": "Lead In", "sample": "Ines Okafor makes bowls that take a year to finish. Her studio, a former dairy at the edge of a market town, holds three kilns, a wall of glaze tests and a waiting list she refuses to shorten. We met on a wet Tuesday to talk about patience and doing one thing well."},
+      {"kind": "text", "slot": "byline", "rect": [50, 161.61, 300, 13], "style": "Byline", "sample": "Interview by Sol Adebayo"},
+      {"kind": "line", "from": [50, 182], "to": [572, 182], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "text", "slot": "pullquote", "rect": [321, 193.13, 251, 87], "style": "Pull", "sample": "You can't hurry any of it without the work telling on you."},
+      {"kind": "line", "from": [321, 287.63], "to": [361, 287.63], "stroke": {"color": "accent", "weight": 2}},
+      {"kind": "text", "slot": "feature1.title", "rect": [50, 197.09, 251, 28], "style": "Question", "sample": "You trained as a chemist. How did you end up at the wheel?"},
+      {"kind": "text", "slot": "feature1.body", "rect": [50, 225.02, 251, 107], "style": "Answer", "sample": "Slowly, and by accident. I was working on mineral coatings in a lab and kept bringing glaze samples home to fire in a friend's kiln. One winter I realised I thought about the kiln more than the lab, so I gave myself a year to see if bowls could pay the rent. That was eleven years ago, and I still keep the lab coat on a hook by the kiln, mostly as a warning."},
+      {"kind": "text", "slot": "feature2.title", "rect": [50, 356.24, 251, 15], "style": "Question", "sample": "Your pieces take a year to finish. Why so long?"},
+      {"kind": "text", "slot": "feature2.body", "rect": [50, 371.21, 251, 107], "style": "Answer", "sample": "Most of it is waiting. The clay rests for months before I throw it, then the pieces dry slowly in the old cold room so they don't crack. The glazes go on in thin layers over several firings. You can't hurry any of it without the work telling on you. People see the price and forget that a bowl has been in the room since last winter."},
+      {"kind": "text", "slot": "feature3.title", "rect": [50, 502.43, 251, 15], "style": "Question", "sample": "What does failure look like in this studio?"},
+      {"kind": "text", "slot": "feature3.body", "rect": [50, 517.4, 251, 92], "style": "Answer", "sample": "A shelf of cracked bowls and a quiet afternoon. I lose about a third of every firing. I used to throw the failures away; now I keep the best of them on a long table by the door, because visitors learn more from those than from the good ones. Failure is information, if you bother to write it down."},
+      {"kind": "text", "slot": "feature4.title", "rect": [50, 633.46, 251, 15], "style": "Question", "sample": "Do you ever make anything quickly?"},
+      {"kind": "text", "slot": "feature4.body", "rect": [50, 648.43, 251, 62], "style": "Answer", "sample": "Breakfast. And test tiles: dozens a week, each one a small question about colour or heat. They are the only part of the work I allow to be fast, because they exist to be wrong."},
+      {"kind": "text", "slot": "feature5.title", "rect": [321, 304.71, 251, 15], "style": "Question", "sample": "You still answer every letter by hand. Why?"},
+      {"kind": "text", "slot": "feature5.body", "rect": [321, 319.68, 251, 92], "style": "Answer", "sample": "People write about their grandmother's teapot or the bowl they broke moving house. A typed reply feels like a receipt. A letter takes ten minutes, and it is the only marketing I have ever done. Some of those letters turned into commissions; most turned into friendships."},
+      {"kind": "text", "slot": "feature6.title", "rect": [321, 429.44, 251, 15], "style": "Question", "sample": "Who taught you the most?"},
+      {"kind": "text", "slot": "feature6.body", "rect": [321, 444.41, 251, 62], "style": "Answer", "sample": "An old potter two villages over who let me sweep his floor for a summer. He never explained anything. He made the same jug a hundred times while I watched, until I understood that the repetition was the lesson."},
+      {"kind": "text", "slot": "feature7.title", "rect": [321, 523.87, 251, 15], "style": "Question", "sample": "What would you tell someone starting out?"},
+      {"kind": "text", "slot": "feature7.body", "rect": [321, 538.84, 251, 62], "style": "Answer", "sample": "Learn one form properly before you learn ten badly. And keep notes: every firing, every glaze, every mistake. The notebook is worth more than the kiln, and it will still be useful when the kiln has worn out."},
+      {"kind": "text", "slot": "feature8.title", "rect": [321, 618.3, 251, 15], "style": "Question", "sample": "And what is on the wheel right now?"},
+      {"kind": "text", "slot": "feature8.body", "rect": [321, 633.27, 251, 77], "style": "Answer", "sample": "Twelve plates for a restaurant on the coast. They wanted them by spring. They will get them next autumn, and they know it. The chef came out to watch the first firing and understood straight away. Good cooks always do."}
+    ]}
+  ],
+  "web": {"layout": "article"}
+}

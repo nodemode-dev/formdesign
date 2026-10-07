@@ -1,0 +1,28 @@
+{
+  "id": "ad-banner-mobile",
+  "name": "Mobile Banner",
+  "category": "ad",
+  "kinds": ["ad-banner"],
+  "tags": ["display ad", "mobile banner", "large mobile banner", "320x100", "iab", "app", "cta"],
+  "tone": ["bold", "playful"],
+  "description": "A 320 by 100 px large mobile banner: the logo, a two-line headline with one short line under it, and a compact button, on a bright colour field.",
+  "medium": "screen",
+  "theme": "bold-sans",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Title": {"basedOn": "Title", "size": 1.34, "leading": 1.02, "tracking": -10, "color": "light"},
+    "Ad Line": {"basedOn": "Body", "size": 0.9, "leading": 1.2, "color": "light", "spaceAfter": 0},
+    "Ad CTA": {"basedOn": "CTA", "size": 0.82, "leading": 1.2, "tracking": 60, "color": "light"}
+  }},
+  "page": {"size": [320, 100], "unit": "px", "facing": false, "margins": 12, "columns": 1, "gutter": 0},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "accent2"},
+      {"kind": "image", "slot": "logo", "rect": [12, 24, 52, 52], "fit": "fit"},
+      {"kind": "text", "slot": "title", "rect": [76, 20, 150, 38], "style": "Ad Title", "sample": "Thursday night run club"},
+      {"kind": "text", "slot": "subtitle", "rect": [76, 62, 150, 16], "style": "Ad Line", "sample": "All paces, always free"},
+      {"kind": "text", "slot": "cta", "rect": [234, 34, 74, 32], "style": "Ad CTA", "valign": "center", "fill": "accent", "corner": 16, "sample": "Join"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

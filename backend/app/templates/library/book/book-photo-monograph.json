@@ -1,0 +1,55 @@
+{
+  "id": "book-photo-monograph",
+  "name": "Photo Monograph",
+  "category": "book",
+  "kinds": ["book", "catalog"],
+  "tags": ["photo book", "monograph", "landscape", "10x8", "image-led", "plates", "swiss", "gallery"],
+  "tone": ["minimal", "elegant"],
+  "description": "A 10 by 8 inch landscape photo monograph: a typographic opener facing a full-bleed plate, then a three-image grid spread and a single framed plate, with numbered captions.",
+  "medium": "print",
+  "theme": "swiss",
+  "kit": "doc",
+  "styles": {"paragraph": {
+    "Mono Title": {"font": "display", "size": 14.6, "leading": 0.86, "tracking": -50, "color": "ink", "hyphenate": false},
+    "Mono Kicker": {"font": "accent", "size": 0.78, "leading": 1.3, "tracking": 60, "color": "ink", "hyphenate": false},
+    "Mono Intro": {"font": "text", "size": 1.0, "leading": 1.5, "color": "ink", "hyphenate": false},
+    "Mono Meta": {"font": "accent", "size": 0.78, "leading": 1.3, "tracking": 20, "color": "ink", "hyphenate": false},
+    "Mono Meta Right": {"basedOn": "Mono Meta", "align": "right", "color": "muted"},
+    "Plate Caption": {"font": "text", "size": 0.78, "leading": 1.4, "color": "muted", "hyphenate": false},
+    "Folio": {"font": "accent", "fontStyle": "regular", "size": 0.74, "tracking": 40, "color": "muted"},
+    "Folio Right": {"basedOn": "Folio", "align": "right"}
+  }},
+  "page": {"size": [720, 576], "unit": "pt", "facing": true, "startLeft": true, "margins": {"top": 36, "bottom": 48, "inside": 54, "outside": 36}, "columns": 6, "gutter": 16, "bleed": 9},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [36, 546, 300, 12], "text": "<page>     Low Tide Atlas", "style": "Folio", "side": "left"},
+      {"kind": "text", "rect": [384, 546, 300, 12], "text": "Saskia Brandt     <page>", "style": "Folio Right", "side": "right"}
+    ],
+    "B": []
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "rect", "rect": [36, 38, 10, 10], "fill": "accent"},
+      {"kind": "text", "slot": "kicker", "rect": [56, 36, 260, 14], "style": "Mono Kicker", "sample": "Monograph  ·  Volume Two"},
+      {"kind": "text", "slot": "intro", "rect": [380, 36, 286, 150], "style": "Mono Intro", "sample": "For six years Saskia Brandt followed the tide along the northern estuaries, photographing the hour when the water draws back and the land is briefly, strangely uncovered. These are pictures of mud and light and patience: channels cut by the ebb, boats waiting on their keels, birds working the shine. Nothing here stays still for long."},
+      {"kind": "text", "slot": "title", "rect": [28, 196, 640, 306], "style": "Mono Title", "valign": "bottom", "sample": "Low Tide Atlas"},
+      {"kind": "line", "from": [36, 512], "to": [666, 512], "stroke": {"color": "ink", "weight": 0.75}},
+      {"kind": "text", "slot": "byline", "rect": [36, 520, 300, 14], "style": "Mono Meta", "sample": "Photographs by Saskia Brandt"},
+      {"kind": "text", "slot": "date", "rect": [366, 520, 300, 14], "style": "Mono Meta Right", "sample": "Northern Estuaries, 2019 to 2025"}
+    ]},
+    {"parent": "B", "items": [
+      {"kind": "image", "slot": "hero", "rect": "bleed"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image1", "rect": [36, 36, 404, 440]},
+      {"kind": "image", "slot": "image2", "rect": [456, 36, 210, 212]},
+      {"kind": "image", "slot": "image3", "rect": [456, 264, 210, 212]},
+      {"kind": "text", "slot": "caption1", "rect": [36, 486, 300, 30], "style": "Plate Caption", "sample": "Plate 07  ·  Channels at first light, Kesterholm, 2023"},
+      {"kind": "text", "slot": "caption2", "rect": [456, 486, 210, 42], "style": "Plate Caption", "sample": "Plates 08 and 09  ·  Moorings on the ebb, Saltby Reach, 2021"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image4", "rect": [138, 36, 528, 396]},
+      {"kind": "text", "slot": "caption3", "rect": [138, 444, 300, 30], "style": "Plate Caption", "sample": "Plate 10  ·  Oystercatchers working the shine, Marrow Flats, 2024"}
+    ]}
+  ]
+}

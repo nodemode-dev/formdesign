@@ -1,0 +1,41 @@
+{
+  "id": "stationery-invitation",
+  "name": "Invitation",
+  "category": "stationery",
+  "kinds": ["invitation"],
+  "tags": ["invitation", "5x7", "dinner", "gala", "wedding", "celebration", "rsvp", "centred", "print"],
+  "tone": ["elegant", "vintage"],
+  "description": "A 5 by 7 inch invitation with bleed, centred inside a fine double rule: an ornament, an invitation line, a serif title, a short occasion line, then the date, time and place, dress code and reply details.",
+  "medium": "print",
+  "theme": "luxury",
+  "kit": "doc",
+  "styles": {"paragraph": {
+    "Invite Kicker": {"font": "accent", "size": 0.74, "leading": 1.3, "tracking": 280, "caps": true, "color": "accent", "align": "center", "hyphenate": false},
+    "Invite Title": {"font": "display", "size": 4.1, "leading": 1.0, "tracking": -10, "color": "ink", "align": "center", "hyphenate": false, "balance": true},
+    "Invite Occasion": {"font": "text", "fontStyle": "italic", "size": 1.45, "leading": 1.28, "color": "accent2", "align": "center", "hyphenate": false, "balance": true},
+    "Invite Date": {"font": "accent", "size": 0.86, "leading": 1.3, "tracking": 240, "caps": true, "color": "ink", "align": "center", "hyphenate": false},
+    "Invite Detail": {"font": "text", "size": 1.45, "leading": 1.25, "color": "ink", "align": "center", "hyphenate": false, "balance": true},
+    "Invite Note": {"font": "accent", "size": 0.66, "leading": 1.3, "tracking": 240, "caps": true, "color": "accent", "align": "center", "hyphenate": false},
+    "Invite Reply": {"font": "text", "fontStyle": "italic", "size": 1.1, "leading": 1.3, "color": "muted", "align": "center", "hyphenate": false, "balance": true}
+  }},
+  "page": {"size": [5, 7], "unit": "in", "facing": false, "margins": 0.5, "columns": 1, "gutter": 0, "bleed": 0.125},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": [0.22, 0.22, 4.56, 6.56], "stroke": {"color": "accent", "weight": 0.9}},
+      {"kind": "rect", "rect": [0.3, 0.3, 4.4, 6.4], "stroke": {"color": "accent", "weight": 0.35}},
+      {"kind": "line", "from": [1.7, 0.98], "to": [2.36, 0.98], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "polygon", "rect": [2.42, 0.9, 0.16, 0.16], "sides": 4, "fill": "accent"},
+      {"kind": "line", "from": [2.64, 0.98], "to": [3.3, 0.98], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "kicker", "rect": [0.6, 1.3, 3.8, 0.2], "style": "Invite Kicker", "sample": "You are warmly invited to"},
+      {"kind": "text", "slot": "title", "rect": [0.5, 1.58, 4.0, 1.3], "style": "Invite Title", "valign": "center", "sample": "An Evening in the Glasshouse"},
+      {"kind": "text", "slot": "subtitle", "rect": [0.75, 2.96, 3.5, 0.56], "style": "Invite Occasion", "sample": "A dinner to celebrate fifty years of the Marlowe Botanical Society"},
+      {"kind": "line", "from": [2.2, 3.74], "to": [2.8, 3.74], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "eventdate", "rect": [0.6, 3.94, 3.8, 0.2], "style": "Invite Date", "sample": "Saturday 12 December 2026"},
+      {"kind": "text", "slot": "eventtime", "rect": [0.6, 4.18, 3.8, 0.3], "style": "Invite Detail", "sample": "Seven o’clock in the evening"},
+      {"kind": "text", "slot": "location", "rect": [0.6, 4.48, 3.8, 0.56], "style": "Invite Detail", "sample": "The Glasshouse, Marlowe Gardens, Bath"},
+      {"kind": "text", "slot": "note", "rect": [0.6, 5.42, 3.8, 0.18], "style": "Invite Note", "sample": "Black tie · Carriages at midnight"},
+      {"kind": "text", "slot": "contact", "rect": [0.6, 5.68, 3.8, 0.4], "style": "Invite Reply", "sample": "Kindly reply by 1 November to rsvp@marlowesociety.org"},
+      {"kind": "polygon", "rect": [2.44, 6.26, 0.12, 0.12], "sides": 4, "fill": "accent"}
+    ]}
+  ]
+}

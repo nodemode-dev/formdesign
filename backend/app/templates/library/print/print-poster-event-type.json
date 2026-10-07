@@ -1,0 +1,43 @@
+{
+  "id": "print-poster-event-type",
+  "name": "Event Poster, Type-Led",
+  "category": "print",
+  "kinds": ["poster", "flyer"],
+  "tags": ["event", "18x24", "poster", "typographic", "fair", "festival", "condensed"],
+  "tone": ["bold", "vintage"],
+  "description": "An 18 by 24 inch event poster led by type: a three-line condensed headline over a red disc, the date in large figures, times, venue, a short pitch, a programme list and a footer band for the call to action.",
+  "medium": "print",
+  "theme": "poster",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Poster Title": {"basedOn": "Title", "size": 30.5, "leading": 0.78, "tracking": 0, "color": "ink"},
+    "Poster Kicker": {"font": "accent", "size": 2.2, "leading": 1.2, "tracking": 140, "caps": true, "color": "ink", "hyphenate": false},
+    "Poster Kicker Right": {"basedOn": "Poster Kicker", "align": "right"},
+    "Poster Date": {"font": "display", "size": 14, "leading": 0.9, "color": "accent", "hyphenate": false},
+    "Poster Info": {"font": "accent", "size": 2.5, "leading": 1.2, "tracking": 20, "color": "ink", "hyphenate": false},
+    "Poster Body": {"font": "text", "size": 2.1, "leading": 1.38, "color": "ink", "hyphenate": false},
+    "Poster List": {"font": "accent", "size": 2.15, "leading": 1.32, "tracking": 60, "caps": true, "color": "ink", "hyphenate": false},
+    "Poster Footer": {"font": "accent", "size": 2.6, "leading": 1.1, "tracking": 120, "caps": true, "color": "paper", "hyphenate": false},
+    "Poster Footer Right": {"basedOn": "Poster Footer", "align": "right", "color": "accent2"}
+  }},
+  "page": {"size": [1296, 1728], "unit": "pt", "facing": false, "margins": 72, "columns": 6, "gutter": 24, "bleed": 9},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "ellipse", "rect": [600, -230, 930, 930], "fill": "accent"},
+      {"kind": "text", "slot": "kicker", "rect": [72, 66, 700, 34], "style": "Poster Kicker", "sample": "The Eastgate Print Fair"},
+      {"kind": "text", "slot": "issue", "rect": [824, 66, 400, 34], "style": "Poster Kicker Right", "sample": "Fourth Edition"},
+      {"kind": "line", "from": [72, 116], "to": [1224, 116], "stroke": {"color": "ink", "weight": 5}},
+      {"kind": "text", "slot": "title", "rect": [72, 130, 1152, 1024], "style": "Poster Title", "sample": "Ink. Paper. People."},
+      {"kind": "line", "from": [72, 1158], "to": [1224, 1158], "stroke": {"color": "ink", "weight": 5}},
+      {"kind": "text", "slot": "eventdate", "rect": [72, 1172, 780, 206], "style": "Poster Date", "sample": "18 + 19 May"},
+      {"kind": "text", "slot": "eventtime", "rect": [72, 1366, 760, 44], "style": "Poster Info", "sample": "Saturday 10 am to 6 pm · Sunday 11 am to 5 pm"},
+      {"kind": "text", "slot": "location", "rect": [864, 1196, 360, 170], "style": "Poster Info", "sample": ["The Old Tram Depot", "41 Canal Row", "Eastgate"]},
+      {"kind": "line", "from": [72, 1428], "to": [1224, 1428], "stroke": {"color": "ink", "weight": 1.5}},
+      {"kind": "text", "slot": "intro", "rect": [72, 1446, 744, 140], "style": "Poster Body", "sample": "Sixty independent printers, binders and zine makers under one roof for a weekend. Watch the presses run, pull your own print, swap a zine and take home something made by hand."},
+      {"kind": "text", "slot": "list", "rect": [864, 1448, 360, 152], "style": "Poster List", "sample": ["Letterpress demos", "Risograph open studio", "Bookbinding workshop", "Zine swap table"]},
+      {"kind": "rect", "rect": [-9, 1604, 1314, 133], "fill": "ink"},
+      {"kind": "text", "slot": "cta", "rect": [72, 1604, 640, 124], "style": "Poster Footer", "valign": "center", "sample": "Free entry · All ages welcome"},
+      {"kind": "text", "slot": "url", "rect": [724, 1604, 500, 124], "style": "Poster Footer Right", "valign": "center", "sample": "eastgateprintfair.org"}
+    ]}
+  ]
+}

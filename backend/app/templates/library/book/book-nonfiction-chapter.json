@@ -1,0 +1,105 @@
+{
+  "id": "book-nonfiction-chapter",
+  "name": "Nonfiction Chapter",
+  "category": "book",
+  "kinds": ["book", "report"],
+  "tags": ["nonfiction", "chapter", "7x10", "sidebar", "margin notes", "pull quote", "figure"],
+  "tone": ["elegant", "warm"],
+  "description": "A 7 by 10 inch nonfiction chapter: a tinted opener with chapter contents, then a main text column beside a margin column for notes, figures, pull quotes and a boxed sidebar.",
+  "medium": "print",
+  "theme": "modern-serif",
+  "kit": "longform",
+  "scale": 1.05,
+  "styles": {"paragraph": {
+    "Chapter Title": {"basedOn": "Title", "size": 4.6, "leading": 0.98, "tracking": -18, "spaceAfter": 0},
+    "Standfirst": {"basedOn": "Subtitle", "size": 1.45, "leading": 1.32, "color": "ink"},
+    "Opener Section": {"font": "display", "size": 1.6, "leading": 1.1, "color": "ink", "hyphenate": false},
+    "Side Label": {"basedOn": "Label", "color": "accent", "size": 0.74},
+    "Side List": {"font": "accent", "fontStyle": "regular", "size": 0.84, "leading": 1.35, "color": "ink", "spaceAfter": 0.55, "hyphenate": false, "ruleBelow": {"weight": 0.4, "color": "muted", "offset": 5}},
+    "Margin Note": {"font": "text", "fontStyle": "italic", "size": 0.84, "leading": 1.4, "color": "muted", "hyphenate": false},
+    "Sidebar Head": {"font": "display", "size": 1.5, "leading": 1.1, "color": "ink", "hyphenate": false},
+    "Sidebar Body": {"font": "accent", "fontStyle": "regular", "size": 0.86, "leading": 1.45, "color": "ink", "spaceAfter": 0.5, "align": "left", "hyphenate": true},
+    "Side Quote": {"font": "display", "fontStyle": "italic", "size": 1.45, "leading": 1.18, "color": "accent", "hyphenate": false},
+    "Side Credit": {"basedOn": "Caption", "size": 0.74},
+    "Folio Number": {"font": "accent", "fontStyle": "bold", "size": 0.78, "tracking": 40, "color": "accent"},
+    "Running Head": {"font": "accent", "fontStyle": "regular", "size": 0.72, "tracking": 140, "caps": true, "color": "muted"},
+    "Running Head Right": {"basedOn": "Running Head", "align": "right"},
+    "Folio Right": {"basedOn": "Folio Number", "align": "right"}
+  }},
+  "page": {"size": [504, 720], "unit": "pt", "facing": true, "startLeft": false, "margins": {"top": 60, "bottom": 66, "inside": 58, "outside": 40}, "columns": 3, "gutter": 18, "bleed": 9, "baseline": 14.16},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [40, 32, 30, 12], "text": "<page>", "style": "Folio Number", "side": "left"},
+      {"kind": "text", "rect": [72, 32, 300, 12], "text": "The Breathing City", "style": "Running Head", "side": "left"},
+      {"kind": "line", "from": [40, 48], "to": [446, 48], "stroke": {"color": "muted", "weight": 0.4}, "side": "left"},
+      {"kind": "text", "rect": [130, 32, 300, 12], "slot": "title", "sample": "Cities That Breathe", "style": "Running Head Right", "side": "right"},
+      {"kind": "text", "rect": [434, 32, 30, 12], "text": "<page>", "style": "Folio Right", "side": "right"},
+      {"kind": "line", "from": [58, 48], "to": [464, 48], "stroke": {"color": "muted", "weight": 0.4}, "side": "right"}
+    ],
+    "B": [
+      {"kind": "text", "rect": [40, 676, 30, 12], "text": "<page>", "style": "Folio Number", "side": "left"},
+      {"kind": "text", "rect": [434, 676, 30, 12], "text": "<page>", "style": "Folio Right", "side": "right"}
+    ]
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "rect", "rect": [0, -9, 513, 309], "fill": "tint"},
+      {"kind": "text", "slot": "kicker", "rect": [58, 92, 300, 14], "style": "Kicker", "sample": "Chapter Four"},
+      {"kind": "line", "from": [58, 114], "to": [92, 114], "stroke": {"color": "accent", "weight": 2}},
+      {"kind": "text", "slot": "title", "rect": [58, 130, 406, 146], "style": "Chapter Title", "valign": "bottom", "sample": "Cities That Breathe"},
+      {"kind": "text", "slot": "subtitle", "rect": [58, 320, 392, 60], "style": "Standfirst", "sample": "How trees, water and a little patience are quietly rewriting the rules of urban design, one street at a time."},
+      {"kind": "line", "from": [58, 394], "to": [464, 394], "stroke": {"color": "ink", "weight": 0.5}},
+      {"kind": "text", "slot": "section", "rect": [58, 410, 268, 22], "style": "Opener Section", "sample": "The heat problem"},
+      {"kind": "text", "flow": "body", "rect": [58, 440, 268, 214], "style": "Body", "sample": [
+        "On the hottest afternoon of the summer, the pavement outside the Harrowgate central library reached fifty-one degrees. A few hundred metres away, under the plane trees of Mercer Street, the same thermometer read thirty-four. Nothing else about the two places was different: the same sun, the same air, the same hour. The only variable was shade.",
+        "That gap, seventeen degrees across a short walk, is the subject of this chapter. It is also, increasingly, the subject of city budgets, public health reports and the long arguments that happen in council chambers on Tuesday nights. Cities are heating faster than the countryside around them, and the reasons are written into their surfaces.",
+        "Every material in a city has a temperature story. Dark roofs and roads absorb most of the sunlight that reaches them. Glass towers bounce heat down into the streets below. Even the shape of a street matters: narrow canyons between tall buildings trap warm air and slow the breeze that might otherwise carry it away."
+      ]},
+      {"kind": "line", "from": [344, 410], "to": [464, 410], "stroke": {"color": "accent", "weight": 2}},
+      {"kind": "text", "rect": [344, 420, 120, 12], "text": "In this chapter", "style": "Side Label"},
+      {"kind": "text", "slot": "list", "rect": [344, 442, 120, 212], "style": "Side List", "sample": [
+        "Why paved streets run hotter after dark",
+        "The street-tree census of Harrowgate",
+        "Rain gardens and the sponge street",
+        "What a canopy plan costs, and saves"
+      ]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "line", "from": [40, 60], "to": [160, 60], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "text", "slot": "note", "rect": [40, 68, 120, 110], "style": "Margin Note", "sample": "Surface readings were taken at 2 pm on clear July afternoons at 140 sites across the city."},
+      {"kind": "text", "flow": "body", "rect": [178, 60, 268, 354], "style": "Body", "sample": [
+        "Asphalt and concrete are very good at two things: carrying weight and storing heat. Through the day they soak up sunlight, and through the night they give it back, so that a dense neighbourhood can stay several degrees warmer than its surroundings long after dark. Researchers call this the urban heat island, and it is not a new discovery. What is new is its scale, and how unevenly it falls.",
+        "When Dr. Imogen Hartley and her students mapped surface temperatures across Harrowgate, they found that the hottest streets were also, almost without exception, the poorest. Wealthier districts had older trees, wider verges and more parks. Newer estates had car parks and flat roofs. The difference showed up not only on thermal maps but in hospital admissions during heatwaves, which rose fastest where the canopy was thinnest.",
+        "None of this is inevitable. A street is a set of decisions, and decisions can be revisited. The question is where to start, and who gets to choose.",
+        "In the decade since the first maps were published, Harrowgate has tried almost everything. It has painted roofs white and paved car parks in pale stone. It has installed misting fountains, built shade sails over bus stops and opened cooling centres in libraries and church halls. Some of these measures helped. Most were expensive, and few of them lasted longer than a single budget cycle. The one intervention that kept paying back, year after year, was also the oldest: planting trees, and keeping them alive long enough to matter."
+      ]},
+      {"kind": "rect", "rect": [40, 436, 406, 218], "fill": "tint"},
+      {"kind": "rect", "rect": [40, 436, 406, 3], "fill": "accent"},
+      {"kind": "text", "rect": [58, 456, 200, 12], "text": "Field note", "style": "Side Label"},
+      {"kind": "text", "slot": "feature1.title", "rect": [58, 474, 370, 22], "style": "Sidebar Head", "sample": "Counting trees on Mercer Street"},
+      {"kind": "text", "slot": "feature1.body", "rect": [58, 504, 370, 134], "columns": 2, "gutter": 18, "style": "Sidebar Body", "sample": [
+        "Volunteers worked in pairs, one measuring trunk girth at chest height while the other logged species, crown width and visible damage on a shared map. Each tree took about four minutes. A good morning covered two streets.",
+        "The data went straight to a public dashboard, which turned out to matter more than anyone expected. Residents began checking their own streets, reporting fallen branches and asking why their road had fewer trees than the next one over. The census had started as a survey. It ended as a conversation.",
+        "Two years on, the same volunteers returned to remeasure every tree. Growth was slower on the busiest roads, where salt and compacted soil took their toll, but the canopy as a whole had widened for the first time in a generation."
+      ]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image1", "rect": [58, 60, 406, 222]},
+      {"kind": "text", "flow": "body", "rect": [58, 300, 268, 354], "style": "Body", "sample": [
+        "The answer, in Harrowgate at least, began with counting. Before the council could plant anything, it needed to know what it already had: how many trees, of which species, in what condition, and where the gaps were. The first full census took two summers and more than three hundred volunteers, most of them armed with nothing more than a tape measure and a clipboard.",
+        "What they found was sobering. Nearly a fifth of the city’s street trees were in decline, many of them planted in the same decade and now reaching the end of their lives together. Whole avenues risked losing their canopy within a few years. At the same time, the census revealed hundreds of empty tree pits, places where something had once grown and never been replaced.",
+        "Those empty pits became the plan. They were cheap to replant, already connected to drainage and, crucially, already accepted by the people who lived beside them. Nobody objects to a tree coming back.",
+        "The replanting programme began modestly, with a hundred trees on six streets. Each one came with a watering rota, signed up for by neighbours, and a small tag giving its species and planting date. Within three years the survival rate had passed ninety per cent, far above the city’s previous record, and requests for new trees were arriving faster than the nursery could grow them. People, it turned out, look after what they have been asked to look after."
+      ]},
+      {"kind": "text", "slot": "caption", "rect": [344, 300, 120, 70], "style": "Caption", "sample": "Figure 4.2 · Mature plane trees shade the length of Mercer Street by midday in late June."},
+      {"kind": "line", "from": [344, 410], "to": [464, 410], "stroke": {"color": "accent", "weight": 2}},
+      {"kind": "text", "slot": "pullquote", "rect": [344, 422, 120, 104], "style": "Side Quote", "sample": "A street tree is the cheapest air conditioner a city will ever buy."},
+      {"kind": "text", "slot": "quotecredit", "rect": [344, 518, 120, 30], "style": "Side Credit", "sample": "Dr. Imogen Hartley, urban ecologist"}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": [58, 60, 268, 594], "mirror": true, "style": "Body"}
+    ]}, "max": 200}
+  }
+}

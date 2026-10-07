@@ -1,0 +1,46 @@
+{
+  "id": "print-poster-gig",
+  "name": "Gig Poster",
+  "category": "print",
+  "kinds": ["poster", "flyer"],
+  "tags": ["gig", "concert", "music", "tabloid", "11x17", "photo", "dark", "tour"],
+  "tone": ["bold", "dark"],
+  "description": "An 11 by 17 inch concert poster: a full-bleed photograph fading into a dark ground, a heavy two-line act name, support acts, date, doors and venue in three columns and an accent ticket band.",
+  "medium": "print",
+  "theme": "studio-dark",
+  "kit": "display",
+  "palette": {"paper": "#0b0e1a", "dark": "#05070d", "tint": "#161a2b"},
+  "styles": {"paragraph": {
+    "Gig Title": {"basedOn": "Title", "size": 12, "leading": 0.86, "tracking": -25, "caps": true, "color": "ink"},
+    "Gig Kicker": {"font": "accent", "size": 1.15, "leading": 1.2, "tracking": 160, "caps": true, "color": "ink", "hyphenate": false},
+    "Gig Kicker Right": {"basedOn": "Gig Kicker", "align": "right"},
+    "Gig Support": {"font": "accent", "size": 1.9, "leading": 1.2, "tracking": 0, "color": "accent", "hyphenate": false},
+    "Gig Date": {"font": "display", "size": 3.6, "leading": 0.95, "tracking": -10, "caps": true, "color": "ink", "hyphenate": false},
+    "Gig Info": {"font": "text", "size": 1.4, "leading": 1.35, "color": "muted", "hyphenate": false},
+    "Gig CTA": {"font": "display", "size": 2.4, "leading": 1, "tracking": -10, "caps": true, "color": "dark", "hyphenate": false},
+    "Gig CTA Right": {"font": "accent", "size": 1.6, "leading": 1, "color": "dark", "align": "right", "hyphenate": false},
+    "Gig Note": {"font": "accent", "size": 0.85, "tracking": 100, "caps": true, "color": "dark", "hyphenate": false}
+  }},
+  "page": {"size": "Tabloid", "unit": "pt", "facing": false, "margins": 44, "columns": 3, "gutter": 24, "bleed": 9},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "hero", "rect": [-9, -9, 810, 746]},
+      {"kind": "rect", "rect": [-9, -9, 810, 200], "gradient": {"angle": -90, "stops": [["paper", 0, 0.75], ["paper", 100, 0]]}},
+      {"kind": "rect", "rect": [-9, 437, 810, 300], "gradient": {"angle": -90, "stops": [["dark", 0, 0], ["dark", 100, 0.55]]}},
+      {"kind": "rect", "rect": [-9, 736, 810, 5], "fill": "accent"},
+      {"kind": "text", "slot": "kicker", "rect": [44, 44, 420, 20], "style": "Gig Kicker", "sample": "Ninefold Records presents"},
+      {"kind": "text", "slot": "date", "rect": [448, 44, 300, 20], "style": "Gig Kicker Right", "sample": "Autumn Tour 2026"},
+      {"kind": "text", "slot": "title", "rect": [44, 560, 704, 330], "style": "Gig Title", "valign": "bottom", "sample": "Night Orchard"},
+      {"kind": "text", "slot": "subtitle", "rect": [44, 902, 704, 34], "style": "Gig Support", "sample": "With special guests Ada Vale and The Quiet Hours"},
+      {"kind": "line", "from": [44, 962], "to": [748, 962], "stroke": {"color": "muted", "weight": 0.75}},
+      {"kind": "text", "slot": "eventdate", "rect": [44, 980, 218.67, 92], "style": "Gig Date", "sample": "Fri 14 Nov"},
+      {"kind": "text", "slot": "eventtime", "rect": [286.67, 984, 218.67, 80], "style": "Gig Info", "sample": ["Doors 7.30 pm", "Show 8.30 pm"]},
+      {"kind": "text", "slot": "location", "rect": [529.33, 984, 218.67, 80], "style": "Gig Info", "sample": ["The Foundry Rooms", "22 Mill Lane, Northbank"]},
+      {"kind": "rect", "rect": [-9, 1110, 810, 123], "fill": "accent"},
+      {"kind": "text", "slot": "cta", "rect": [44, 1110, 420, 70], "style": "Gig CTA", "valign": "center", "sample": "Tickets on sale now"},
+      {"kind": "text", "slot": "url", "rect": [448, 1110, 300, 70], "style": "Gig CTA Right", "valign": "center", "sample": "foundryrooms.live"},
+      {"kind": "line", "from": [44, 1180], "to": [748, 1180], "stroke": {"color": "dark", "weight": 0.75}},
+      {"kind": "text", "slot": "note", "rect": [44, 1186, 704, 22], "style": "Gig Note", "valign": "center", "sample": "Over 18s only · Photo ID required · Advance 18 · On the door 22"}
+    ]}
+  ]
+}

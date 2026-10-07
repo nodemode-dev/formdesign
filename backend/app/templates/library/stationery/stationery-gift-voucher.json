@@ -1,0 +1,48 @@
+{
+  "id": "stationery-gift-voucher",
+  "name": "Gift Voucher",
+  "category": "stationery",
+  "kinds": ["card"],
+  "tags": ["gift voucher", "gift card", "gift certificate", "voucher", "dl", "210x99", "restaurant", "shop", "print"],
+  "tone": ["elegant", "warm", "vintage"],
+  "description": "A DL (210 by 99 mm) gift voucher with bleed: a coloured panel carrying the value as a large figure and the voucher number, beside the logo and brand, a title and one line on what it buys, To and From lines to write on, the expiry and small print.",
+  "medium": "print",
+  "theme": "classic",
+  "kit": "doc",
+  "styles": {"paragraph": {
+    "Voucher Value": {"font": "display", "size": 5.8, "leading": 1.0, "tracking": -20, "color": "light", "align": "center", "hyphenate": false},
+    "Voucher Value Label": {"font": "text", "size": 0.9, "leading": 1.3, "tracking": 280, "caps": true, "color": "light", "align": "center", "hyphenate": false},
+    "Voucher Number": {"font": "text", "size": 0.86, "leading": 1.3, "tracking": 120, "caps": true, "color": "light", "align": "center", "hyphenate": false},
+    "Voucher Brand": {"font": "display", "size": 1.2, "leading": 1.1, "color": "ink", "hyphenate": false},
+    "Voucher Kicker": {"font": "text", "size": 0.84, "leading": 1.3, "tracking": 260, "caps": true, "color": "accent", "hyphenate": false},
+    "Voucher Title": {"font": "display", "size": 2.4, "leading": 1.1, "color": "ink", "hyphenate": false, "balance": true},
+    "Voucher Body": {"font": "text", "size": 1.2, "leading": 1.3, "color": "muted", "hyphenate": false},
+    "Voucher Field": {"font": "text", "size": 0.74, "leading": 1.2, "tracking": 220, "caps": true, "color": "muted", "hyphenate": false},
+    "Voucher Small": {"font": "text", "fontStyle": "italic", "size": 0.95, "leading": 1.3, "color": "muted", "hyphenate": false},
+    "Voucher Small Right": {"font": "text", "fontStyle": "italic", "size": 0.95, "leading": 1.3, "color": "muted", "align": "right", "hyphenate": false}
+  }},
+  "page": {"size": [210, 99], "unit": "mm", "facing": false, "margins": 8, "columns": 1, "gutter": 0, "bleed": 3},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": [-3, -3, 75, 105], "fill": "accent"},
+      {"kind": "rect", "rect": [6, 6, 60, 87], "stroke": {"color": "light", "weight": 0.5}, "opacity": 0.55},
+      {"kind": "polygon", "rect": [34, 15, 4, 4], "sides": 4, "fill": "light"},
+      {"kind": "line", "from": [22, 17], "to": [31.5, 17], "stroke": {"color": "light", "weight": 0.4}},
+      {"kind": "line", "from": [40.5, 17], "to": [50, 17], "stroke": {"color": "light", "weight": 0.4}},
+      {"kind": "text", "slot": "stat1", "rect": [8, 30, 56, 26], "style": "Voucher Value", "valign": "center", "sample": "£50"},
+      {"kind": "text", "slot": "stat1.label", "rect": [8, 58, 56, 6], "style": "Voucher Value Label", "sample": "Gift voucher"},
+      {"kind": "text", "slot": "note", "rect": [8, 80, 56, 6], "style": "Voucher Number", "sample": "No. SK 0148"},
+      {"kind": "image", "slot": "logo", "rect": [82, 10, 12, 12], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [98, 10, 100, 12], "style": "Voucher Brand", "valign": "center", "sample": "Saltmarsh Kitchen"},
+      {"kind": "text", "slot": "kicker", "rect": [82, 27, 116, 5], "style": "Voucher Kicker", "sample": "A gift for you"},
+      {"kind": "text", "slot": "title", "rect": [82, 33, 116, 21], "style": "Voucher Title", "sample": "Dinner for two by the harbour"},
+      {"kind": "text", "slot": "subtitle", "rect": [82, 56, 112, 12], "style": "Voucher Body", "sample": "Redeemable against food and drink at our harbour kitchen, any evening."},
+      {"kind": "text", "rect": [82, 71, 10, 5], "style": "Voucher Field", "text": "To"},
+      {"kind": "line", "from": [91, 75], "to": [136, 75], "stroke": {"color": "muted", "weight": 0.4}},
+      {"kind": "text", "rect": [142, 71, 14, 5], "style": "Voucher Field", "text": "From"},
+      {"kind": "line", "from": [155, 75], "to": [200, 75], "stroke": {"color": "muted", "weight": 0.4}},
+      {"kind": "text", "slot": "date", "rect": [82, 83, 60, 6], "style": "Voucher Small", "sample": "Valid until 31 December 2026"},
+      {"kind": "text", "slot": "legal", "rect": [140, 83, 60, 6], "style": "Voucher Small Right", "sample": "Not exchangeable for cash."}
+    ]}
+  ]
+}

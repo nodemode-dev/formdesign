@@ -1,0 +1,90 @@
+{
+  "id": "book-poetry-chapbook",
+  "name": "Poetry Chapbook",
+  "category": "book",
+  "kinds": ["book"],
+  "tags": ["poetry", "chapbook", "digest", "5.5x8.5", "verse", "contents", "title page"],
+  "tone": ["elegant", "minimal"],
+  "description": "A 5.5 by 8.5 inch poetry chapbook with generous margins: a centred title page, a contents page with right-aligned page numbers, and a verse page with hanging turnovers.",
+  "medium": "print",
+  "theme": "luxury",
+  "kit": "longform",
+  "scale": 1.2,
+  "styles": {"paragraph": {
+    "Book Title": {"font": "display", "fontStyle": "italic", "size": 2.7, "leading": 1.08, "tracking": 0, "color": "ink", "align": "center", "hyphenate": false, "balance": true},
+    "Book Subtitle": {"font": "text", "fontStyle": "italic", "size": 1.15, "leading": 1.3, "color": "muted", "align": "center", "hyphenate": false},
+    "Author": {"font": "accent", "fontStyle": "regular", "size": 0.66, "leading": 1.3, "tracking": 320, "caps": true, "color": "ink", "align": "center", "hyphenate": false},
+    "Imprint": {"font": "accent", "fontStyle": "regular", "size": 0.56, "leading": 1.4, "tracking": 260, "caps": true, "color": "accent", "align": "center", "hyphenate": false},
+    "Contents Head": {"font": "display", "fontStyle": "italic", "size": 1.7, "leading": 1.2, "color": "ink", "align": "center", "hyphenate": false},
+    "Contents Entry": {"font": "text", "size": 1.0, "leading": 1.3, "color": "ink", "spaceAfter": 0.62, "hyphenate": false},
+    "Poem Title": {"font": "display", "fontStyle": "italic", "size": 1.65, "leading": 1.15, "color": "ink", "hyphenate": false},
+    "Verse": {"font": "text", "size": 1.0, "leading": 1.42, "color": "ink", "align": "left", "firstLineIndent": -1.6, "leftIndent": 1.6, "spaceAfter": 0, "hyphenate": false},
+    "Folio": {"font": "accent", "fontStyle": "regular", "size": 0.6, "tracking": 200, "caps": true, "color": "muted", "align": "center"}
+  }},
+  "page": {"size": "Digest", "unit": "pt", "facing": true, "startLeft": false, "margins": {"top": 78, "bottom": 84, "inside": 66, "outside": 54}, "columns": 1, "gutter": 12, "bleed": 9},
+  "parents": {
+    "A": [
+      {"kind": "text", "rect": [54, 556, 276, 12], "text": "<page>", "style": "Folio", "side": "left"},
+      {"kind": "text", "rect": [66, 556, 276, 12], "text": "<page>", "style": "Folio", "side": "right"}
+    ],
+    "B": []
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "text", "slot": "title", "rect": [66, 164, 276, 82], "style": "Book Title", "sample": "The Weight of Small Weather"},
+      {"kind": "text", "slot": "subtitle", "rect": [66, 252, 276, 20], "style": "Book Subtitle", "sample": "Poems"},
+      {"kind": "line", "from": [176, 296], "to": [198, 296], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "polygon", "sides": 4, "rect": [201, 293, 6, 6], "fill": "accent"},
+      {"kind": "line", "from": [210, 296], "to": [232, 296], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "byline", "rect": [66, 318, 276, 14], "style": "Author", "sample": "Ines Marlowe"},
+      {"kind": "text", "slot": "brand", "rect": [66, 500, 276, 12], "style": "Imprint", "sample": "Quiet Harbour Press"},
+      {"kind": "text", "slot": "date", "rect": [66, 514, 276, 12], "style": "Imprint", "sample": "2026"}
+    ]},
+    {"parent": "B", "items": [
+      {"kind": "text", "rect": [54, 112, 276, 30], "text": "Contents", "style": "Contents Head"},
+      {"kind": "line", "from": [180, 156], "to": [204, 156], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "toc", "rect": [72, 182, 240, 340], "style": "Contents Entry", "sample": [
+        "Tide Tables3",
+        "The Lamplighter’s Daughter4",
+        "Weather Report, November6",
+        "What the Gulls Know7",
+        "Inventory of a Kitchen Drawer9",
+        "Small Weather10",
+        "Ferry Crossing at Dusk12",
+        "Letter to the Next Tenant13",
+        "Saltmarsh, Early15",
+        "Notes and Thanks17"
+      ]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "slot": "section", "rect": [66, 78, 276, 30], "style": "Poem Title", "sample": "Tide Tables"},
+      {"kind": "line", "from": [67, 118], "to": [91, 118], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "flow": "body", "rect": [66, 136, 276, 392], "style": "Verse", "sample": [
+        "My grandmother kept the tide tables",
+        "pinned above the kitchen sink,",
+        "a column of small numbers",
+        "she read the way some people read the psalms.",
+        "",
+        "High water, six fourteen. Low, twelve forty.",
+        "She knew when the boats would lift",
+        "and when the mud would shine",
+        "and when to send us down for cockles,",
+        "",
+        "and none of it was faith, exactly,",
+        "only the long habit of attention,",
+        "the moon’s slow arithmetic",
+        "done twice a day without complaint.",
+        "",
+        "I keep them too, now, on my phone,",
+        "and still I go down to the water",
+        "at the wrong time, mostly,",
+        "and wait, as she did, to be corrected."
+      ]}
+    ]}
+  ],
+  "flow": {
+    "body": {"page": {"parent": "A", "items": [
+      {"kind": "text", "flow": "body", "rect": "margins", "style": "Verse"}
+    ]}, "max": 60}
+  }
+}

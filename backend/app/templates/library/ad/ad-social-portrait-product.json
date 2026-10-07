@@ -1,0 +1,39 @@
+{
+  "id": "ad-social-portrait-product",
+  "name": "Social Portrait, Product",
+  "category": "ad",
+  "kinds": ["ad-social"],
+  "tags": ["instagram", "facebook", "1080x1350", "portrait", "4:5", "product", "price", "shop", "ecommerce"],
+  "tone": ["warm", "elegant"],
+  "description": "A 1080 by 1350 px portrait product ad: a large rounded product shot with a badge and logo, the product name, one line of detail, a big price, a shop button and a brand footer.",
+  "medium": "screen",
+  "theme": "warm",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Badge": {"basedOn": "Kicker", "size": 1.3, "leading": 1.2, "tracking": 160, "color": "light", "align": "center"},
+    "Ad Title": {"basedOn": "Title", "size": 5.4, "leading": 1.02, "tracking": -10, "color": "ink"},
+    "Ad Line": {"basedOn": "Body", "size": 1.9, "leading": 1.38, "color": "muted", "spaceAfter": 0, "balance": true},
+    "Ad Price": {"basedOn": "Price", "size": 8.4, "leading": 1.0, "tracking": -20, "color": "accent", "align": "right"},
+    "Ad Price Note": {"basedOn": "Small", "size": 1.35, "leading": 1.3, "color": "muted", "align": "right"},
+    "Ad CTA": {"basedOn": "CTA", "size": 1.45, "leading": 1.2, "tracking": 120, "color": "light"},
+    "Ad Brand": {"font": "display", "size": 2.6, "leading": 1.1, "color": "ink"},
+    "Ad URL": {"basedOn": "Label", "size": 1.2, "leading": 1.2, "tracking": 140, "color": "muted", "align": "right"}
+  }},
+  "page": {"size": [1080, 1350], "unit": "px", "facing": false, "margins": {"top": 56, "bottom": 56, "inside": 72, "outside": 72}, "columns": 6, "gutter": 24},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "image", "slot": "product", "rect": [56, 56, 968, 832], "corner": 28},
+      {"kind": "text", "slot": "kicker", "rect": [96, 96, 168, 52], "style": "Ad Badge", "valign": "center", "fill": "accent", "corner": 26, "sample": "New in"},
+      {"kind": "image", "slot": "logo", "rect": [912, 92, 76, 76], "fit": "fit"},
+      {"kind": "text", "slot": "title", "rect": [72, 930, 660, 160], "style": "Ad Title", "sample": "The Ember Pour-Over Kettle"},
+      {"kind": "text", "slot": "subtitle", "rect": [72, 1094, 600, 76], "style": "Ad Line", "sample": "Gooseneck spout, walnut handle and a slow, steady pour."},
+      {"kind": "text", "slot": "item1.price", "rect": [748, 908, 260, 148], "style": "Ad Price", "sample": "£89"},
+      {"kind": "text", "slot": "note", "rect": [748, 1040, 260, 30], "style": "Ad Price Note", "sample": "Free delivery over £50"},
+      {"kind": "text", "slot": "cta", "rect": [748, 1094, 260, 76], "style": "Ad CTA", "valign": "center", "fill": "dark", "corner": 38, "sample": "Shop now"},
+      {"kind": "line", "from": [72, 1210], "to": [1008, 1210], "stroke": {"color": "tint", "weight": 2}},
+      {"kind": "text", "slot": "brand", "rect": [72, 1232, 520, 56], "style": "Ad Brand", "valign": "center", "sample": "Ember Home"},
+      {"kind": "text", "slot": "url", "rect": [608, 1232, 400, 56], "style": "Ad URL", "valign": "center", "sample": "emberhome.co"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

@@ -1,0 +1,32 @@
+{
+  "id": "stationery-business-card",
+  "name": "Business Card",
+  "category": "stationery",
+  "kinds": ["card"],
+  "tags": ["business card", "3.5x2", "two-sided", "identity", "print"],
+  "tone": ["minimal", "corporate"],
+  "description": "A 3.5 by 2 inch two-sided card: logo on an accent front, name, role and contact details on the back, with bleed.",
+  "medium": "print",
+  "theme": "swiss",
+  "kit": "doc",
+  "styles": {"paragraph": {
+    "Card Name": {"font": "display", "size": 1.35, "leading": 1.1, "color": "ink"},
+    "Card Role": {"font": "accent", "size": 0.78, "tracking": 80, "caps": true, "color": "accent"},
+    "Card Detail": {"font": "text", "size": 0.74, "leading": 1.45, "color": "ink"},
+    "Card Brand": {"font": "display", "size": 1.6, "color": "light", "align": "center"}
+  }},
+  "page": {"size": [3.5, 2], "unit": "in", "facing": false, "margins": 0.18, "columns": 1, "gutter": 0, "bleed": 0.125},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "accent"},
+      {"kind": "image", "slot": "logo", "rect": [1.35, 0.42, 0.8, 0.8], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [0.3, 1.32, 2.9, 0.36], "style": "Card Brand", "sample": "Northlight"}
+    ]},
+    {"parent": null, "items": [
+      {"kind": "text", "slot": "name", "rect": [0.22, 0.24, 3.0, 0.3], "style": "Card Name", "sample": "Alex Morgan"},
+      {"kind": "text", "slot": "role", "rect": [0.22, 0.56, 3.0, 0.2], "style": "Card Role", "sample": "Creative Director"},
+      {"kind": "line", "from": [0.22, 0.9], "to": [0.9, 0.9], "stroke": {"color": "accent", "weight": 1.5}},
+      {"kind": "text", "slot": "details", "rect": [0.22, 1.02, 3.0, 0.8], "style": "Card Detail", "sample": ["+1 555 0142", "alex@northlight.studio", "12 Harbour Street, Portland"]}
+    ]}
+  ]
+}

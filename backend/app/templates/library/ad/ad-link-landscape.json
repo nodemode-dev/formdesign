@@ -1,0 +1,34 @@
+{
+  "id": "ad-link-landscape",
+  "name": "Link Ad, Landscape",
+  "category": "ad",
+  "kinds": ["ad-social"],
+  "tags": ["linkedin", "facebook link", "twitter card", "open graph", "1200x627", "landscape", "b2b", "report", "webinar"],
+  "tone": ["tech", "corporate", "dark"],
+  "description": "A 1200 by 627 px landscape link ad for feeds and link previews: logo and brand, a kicker, a two or three line headline, one line of detail and a button on a dark panel that fades into a photograph.",
+  "medium": "screen",
+  "theme": "tech",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Brand": {"font": "display", "size": 1.75, "leading": 1.1, "color": "light"},
+    "Ad Kicker": {"basedOn": "Kicker", "size": 1.15, "leading": 1.2, "tracking": 180, "color": "accent2"},
+    "Ad Title": {"basedOn": "Title", "size": 4.3, "leading": 1.04, "tracking": -20, "color": "light"},
+    "Ad Line": {"basedOn": "Body", "size": 1.6, "leading": 1.4, "color": "light", "spaceAfter": 0, "balance": true},
+    "Ad CTA": {"basedOn": "CTA", "size": 1.2, "leading": 1.2, "tracking": 60, "color": "light"}
+  }},
+  "page": {"size": [1200, 627], "unit": "px", "facing": false, "margins": {"top": 52, "bottom": 60, "inside": 64, "outside": 64}, "columns": 12, "gutter": 20},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": "bleed", "fill": "dark"},
+      {"kind": "image", "slot": "hero", "rect": [640, 0, 560, 627]},
+      {"kind": "rect", "rect": [638, 0, 240, 627], "gradient": {"angle": 0, "stops": [["dark", 0, 1.0], ["dark", 100, 0.0]]}},
+      {"kind": "image", "slot": "logo", "rect": [64, 52, 48, 48], "fit": "fit"},
+      {"kind": "text", "slot": "brand", "rect": [126, 52, 420, 48], "style": "Ad Brand", "valign": "center", "sample": "Relay Analytics"},
+      {"kind": "text", "slot": "kicker", "rect": [64, 198, 540, 26], "style": "Ad Kicker", "sample": "Free report · 2026 edition"},
+      {"kind": "text", "slot": "title", "rect": [64, 234, 560, 176], "style": "Ad Title", "sample": "The state of data teams, in forty charts"},
+      {"kind": "text", "slot": "subtitle", "rect": [64, 368, 470, 62], "style": "Ad Line", "sample": "Benchmarks on tools, hiring and spend from 1,200 teams."},
+      {"kind": "text", "slot": "cta", "rect": [64, 503, 248, 64], "style": "Ad CTA", "valign": "center", "fill": "accent", "corner": 32, "sample": "Get the report"}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}

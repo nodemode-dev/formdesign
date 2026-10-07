@@ -1,0 +1,99 @@
+{
+  "id": "presentation-lookbook",
+  "name": "Lookbook",
+  "category": "presentation",
+  "kinds": ["slides", "catalog"],
+  "tags": ["lookbook", "collection", "portfolio", "product", "interiors", "fashion", "image-led", "16:9", "1920x1080", "serif"],
+  "tone": ["elegant", "minimal"],
+  "description": "A six-slide 1920 by 1080 image-led lookbook: a full-bleed cover with serif title, an introduction beside a full-height photograph, three products with names and details, a signature piece with price and specification, an editorial image pair with a quote, and a dark showroom slide.",
+  "medium": "screen",
+  "theme": "luxury",
+  "kit": "display",
+  "scale": 2.4,
+  "styles": {"paragraph": {
+    "LB Kicker": {"font": "accent", "size": 0.58, "leading": 1.2, "tracking": 320, "caps": true, "color": "accent", "hyphenate": false},
+    "LB Kicker Light": {"basedOn": "LB Kicker", "color": "light"},
+    "LB Kicker Right": {"basedOn": "LB Kicker Light", "align": "right"},
+    "Cover Title": {"font": "display", "size": 4.8, "leading": 0.95, "tracking": -10, "color": "light", "hyphenate": false},
+    "Cover Sub": {"font": "text", "fontStyle": "italic", "size": 1.5, "leading": 1.25, "color": "light", "hyphenate": false},
+    "LB Head": {"font": "display", "size": 2.45, "leading": 1.04, "tracking": -10, "color": "ink", "hyphenate": false, "balance": true},
+    "LB Body": {"font": "text", "size": 1.08, "leading": 1.45, "color": "ink", "hyphenate": false},
+    "LB Sign": {"font": "text", "fontStyle": "italic", "size": 1.05, "leading": 1.3, "color": "accent", "hyphenate": false},
+    "Prod Name": {"font": "display", "size": 1.35, "leading": 1.15, "color": "ink", "hyphenate": false},
+    "Prod Meta": {"font": "accent", "size": 0.58, "leading": 1.3, "tracking": 220, "caps": true, "color": "muted", "hyphenate": false},
+    "Price": {"font": "display", "size": 1.7, "leading": 1.1, "color": "accent", "hyphenate": false},
+    "Spec": {"font": "text", "size": 1.0, "leading": 1.35, "color": "ink", "list": "bullets", "leftIndent": 1.25, "firstLineIndent": -1.25, "rightIndent": 1.0, "spaceAfter": 0.35, "hyphenate": false},
+    "LB Quote": {"font": "display", "fontStyle": "italic", "size": 2.6, "leading": 1.06, "color": "ink", "hyphenate": false, "balance": true},
+    "LB Credit": {"basedOn": "Prod Meta", "color": "accent"},
+    "End Head": {"font": "display", "size": 2.8, "leading": 1.04, "color": "light", "align": "center", "hyphenate": false},
+    "End Text": {"font": "text", "size": 1.1, "leading": 1.4, "color": "light", "align": "center", "hyphenate": false},
+    "End Small": {"font": "accent", "size": 0.55, "leading": 1.4, "tracking": 220, "caps": true, "color": "accent", "align": "center", "hyphenate": false},
+    "End Kicker": {"basedOn": "LB Kicker", "align": "center"},
+    "Foot": {"font": "accent", "size": 0.45, "leading": 1.2, "tracking": 260, "caps": true, "color": "muted", "align": "right", "hyphenate": false}
+  }},
+  "page": {"size": [1920, 1080], "unit": "px", "facing": false, "margins": {"top": 100, "bottom": 100, "inside": 120, "outside": 120}, "columns": 12, "gutter": 40},
+  "parents": {
+    "A": [
+      {"kind": "text", "slot": "footer", "rect": [1000, 1012, 680, 24], "style": "Foot", "sample": "Ottoline Studio · The Stone Collection"},
+      {"kind": "line", "from": [1700, 1010], "to": [1700, 1036], "stroke": {"color": "accent", "weight": 1}},
+      {"kind": "text", "rect": [1710, 1012, 90, 24], "style": "Foot", "text": "<page>"}
+    ],
+    "B": []
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "image", "slot": "hero", "rect": "page"},
+      {"kind": "rect", "rect": [0, 420, 1920, 660], "gradient": {"angle": -90, "stops": [["dark", 0, 0.0], ["dark", 100, 0.8]]}},
+      {"kind": "text", "slot": "brand", "rect": [120, 96, 900, 28], "style": "LB Kicker Light", "sample": "Ottoline Studio"},
+      {"kind": "text", "slot": "title", "rect": [120, 600, 1500, 200], "style": "Cover Title", "valign": "bottom", "sample": "The Stone Collection"},
+      {"kind": "text", "slot": "subtitle", "rect": [120, 816, 1100, 64], "style": "Cover Sub", "sample": "Furniture and textiles for autumn and winter 2026"},
+      {"kind": "line", "from": [120, 930], "to": [300, 930], "stroke": {"color": "accent", "weight": 2}},
+      {"kind": "text", "slot": "kicker", "rect": [1200, 950, 600, 28], "style": "LB Kicker Right", "sample": "Lookbook · Collection No. 7"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image5", "rect": [0, 0, 900, 1080]},
+      {"kind": "text", "rect": [1020, 200, 780, 28], "style": "LB Kicker", "text": "The collection"},
+      {"kind": "text", "slot": "feature1.title", "rect": [1020, 250, 780, 176], "style": "LB Head", "sample": "Quiet forms in travertine, oak and undyed wool"},
+      {"kind": "text", "slot": "feature1.body", "rect": [1020, 456, 740, 236], "style": "LB Body", "sample": "Twelve pieces made in small runs by workshops we have known for years. Each one is shaped by its material first: the weight of stone, the grain of the oak, the softness of wool left in its natural colour."},
+      {"kind": "line", "from": [1020, 724], "to": [1100, 724], "stroke": {"color": "accent", "weight": 1.5}},
+      {"kind": "text", "slot": "byline", "rect": [1020, 744, 740, 50], "style": "LB Sign", "sample": "Ottoline Vass, founder"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "rect": [120, 100, 900, 28], "style": "LB Kicker", "text": "Living room"},
+      {"kind": "image", "slot": "image1", "rect": [120, 150, 540, 680]},
+      {"kind": "text", "slot": "item1.title", "rect": [120, 852, 540, 50], "style": "Prod Name", "sample": "Ardent coffee table"},
+      {"kind": "text", "slot": "caption1", "rect": [120, 908, 540, 26], "style": "Prod Meta", "sample": "Honed travertine · 120 cm · £2,400"},
+      {"kind": "image", "slot": "image2", "rect": [690, 150, 540, 680]},
+      {"kind": "text", "slot": "item2.title", "rect": [690, 852, 540, 50], "style": "Prod Name", "sample": "Moss wool throw"},
+      {"kind": "text", "slot": "caption2", "rect": [690, 908, 540, 26], "style": "Prod Meta", "sample": "Undyed wool · 140 by 200 cm · £380"},
+      {"kind": "image", "slot": "image3", "rect": [1260, 150, 540, 680]},
+      {"kind": "text", "slot": "item3.title", "rect": [1260, 852, 540, 50], "style": "Prod Name", "sample": "Linden floor lamp"},
+      {"kind": "text", "slot": "caption3", "rect": [1260, 908, 540, 26], "style": "Prod Meta", "sample": "Oiled oak and linen · 160 cm · £1,150"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image4", "rect": [820, 100, 980, 840]},
+      {"kind": "text", "rect": [120, 240, 640, 28], "style": "LB Kicker", "text": "Signature piece"},
+      {"kind": "text", "slot": "item4.title", "rect": [120, 290, 640, 96], "style": "LB Head", "sample": "Calder lounge chair"},
+      {"kind": "text", "slot": "item4.body", "rect": [120, 400, 620, 180], "style": "LB Body", "sample": "A low, generous chair with a solid oak frame and deep wool cushions, made to order in our Somerset workshop."},
+      {"kind": "text", "slot": "item4.price", "rect": [120, 600, 620, 64], "style": "Price", "sample": "£3,950"},
+      {"kind": "line", "from": [120, 684], "to": [740, 684], "stroke": {"color": "tint", "weight": 1.5}},
+      {"kind": "text", "slot": "list", "rect": [120, 708, 620, 200], "style": "Spec", "sample": ["Solid white oak, hand oiled", "Boiled wool upholstery in three colours", "Made to order in eight weeks"]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image6", "rect": [120, 100, 940, 840]},
+      {"kind": "text", "slot": "quote", "rect": [1140, 100, 660, 220], "style": "LB Quote", "sample": "Made to be lived with, not looked at."},
+      {"kind": "text", "slot": "quotecredit", "rect": [1140, 330, 660, 26], "style": "LB Credit", "sample": "From the studio notebook"},
+      {"kind": "image", "slot": "image7", "rect": [1140, 400, 660, 540]}
+    ]},
+    {"parent": "B", "items": [
+      {"kind": "rect", "rect": "page", "fill": "dark"},
+      {"kind": "image", "slot": "logo", "rect": [905, 150, 110, 110], "fit": "fit"},
+      {"kind": "text", "rect": [360, 330, 1200, 28], "style": "End Kicker", "text": "Visit the showroom"},
+      {"kind": "text", "slot": "tagline", "rect": [260, 380, 1400, 180], "style": "End Head", "sample": "See and sit on the whole collection"},
+      {"kind": "text", "slot": "address", "rect": [360, 600, 1200, 50], "style": "End Text", "sample": "The Granary, 4 Mill Lane, Bath"},
+      {"kind": "text", "slot": "note", "rect": [360, 656, 1200, 50], "style": "End Text", "sample": "Thursday to Sunday, 10:00 to 17:00, or by appointment"},
+      {"kind": "line", "from": [910, 760], "to": [1010, 760], "stroke": {"color": "accent", "weight": 1.5}},
+      {"kind": "text", "slot": "contact", "rect": [360, 790, 1200, 30], "style": "End Small", "sample": "studio@ottoline.example · ottoline.example"}
+    ]}
+  ]
+}

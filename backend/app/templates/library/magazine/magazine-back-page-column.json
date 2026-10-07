@@ -1,0 +1,47 @@
+{
+  "id": "magazine-back-page-column",
+  "name": "Back Page Column",
+  "category": "magazine",
+  "kinds": ["magazine"],
+  "tags": ["back page", "column", "essay", "op-ed", "portrait", "single column", "literary"],
+  "tone": ["elegant", "vintage"],
+  "description": "A back-page column in a double keyline frame: centred column name, title and deck, a round portrait with name and role, a single-column essay and a sign-off line.",
+  "medium": "print",
+  "theme": "literary",
+  "kit": "longform",
+  "styles": {"paragraph": {
+    "Col Kicker": {"font": "accent", "size": 1.45, "leading": 1.2, "color": "accent", "align": "center", "hyphenate": false},
+    "Col Title": {"font": "display", "size": 4.0, "leading": 1.02, "tracking": -10, "color": "ink", "align": "center", "hyphenate": false},
+    "Col Deck": {"font": "text", "fontStyle": "italic", "size": 1.35, "leading": 1.32, "color": "muted", "align": "center", "hyphenate": false},
+    "Col Name": {"font": "text", "size": 0.9, "leading": 1.3, "tracking": 160, "caps": true, "color": "ink", "align": "center", "hyphenate": false},
+    "Col Role": {"font": "text", "fontStyle": "italic", "size": 1.0, "leading": 1.3, "color": "muted", "align": "center", "hyphenate": false},
+    "Col Body": {"font": "text", "size": 1.16, "leading": 1.42, "align": "justify", "firstLineIndent": 0, "spaceAfter": 0.62, "color": "ink", "hyphenate": true},
+    "Col Foot": {"font": "text", "fontStyle": "italic", "size": 1.0, "leading": 1.35, "color": "muted", "align": "center", "hyphenate": false},
+    "Col Folio": {"basedOn": "Folio", "align": "center", "caps": false, "tracking": 60, "font": "text", "size": 0.86}
+  }},
+  "page": {"size": "Letter", "unit": "pt", "facing": false, "margins": {"top": 54, "bottom": 54, "inside": 126, "outside": 126}, "columns": 1, "gutter": 12, "bleed": 9},
+  "parents": {},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "rect", "rect": [24, 24, 564, 744], "stroke": {"color": "accent", "weight": 0.75}},
+      {"kind": "rect", "rect": [28, 28, 556, 736], "stroke": {"color": "accent", "weight": 0.25}},
+      {"kind": "text", "slot": "kicker", "rect": [156, 53.08, 300, 20], "style": "Col Kicker", "sample": "The Last Word"},
+      {"kind": "line", "from": [286, 84], "to": [326, 84], "stroke": {"color": "accent", "weight": 0.75}},
+      {"kind": "text", "slot": "title", "rect": [96, 90.43, 420, 52], "style": "Col Title", "sample": "On Keeping a Lamp Lit"},
+      {"kind": "text", "slot": "subtitle", "rect": [126, 142.12, 360, 19], "style": "Col Deck", "sample": "Why the oldest habits in a house may be the ones most worth defending"},
+      {"kind": "image", "slot": "portrait", "rect": [266, 178, 80, 80], "shape": "ellipse"},
+      {"kind": "text", "slot": "byline", "rect": [156, 266.95, 300, 13], "style": "Col Name", "sample": "Teodor Lindqvist"},
+      {"kind": "text", "slot": "role", "rect": [156, 282.61, 300, 14], "style": "Col Role", "sample": "Novelist and beekeeper, writing from Fife"},
+      {"kind": "line", "from": [286, 310], "to": [326, 310], "stroke": {"color": "accent", "weight": 0.75}},
+      {"kind": "text", "flow": "body", "rect": [126, 326, 360, 370], "style": "Col Body", "sample": ["My grandmother kept a lamp in the kitchen window every night of her adult life. It was not a beacon for anyone in particular. It was simply what you did in a house at the end of a long road: you left a light, in case.", "I thought of her lamp last winter, when the power failed across the valley for three days. The village did what villages do. Someone brought round soup, someone else checked on the farm at the top of the hill, and by the second evening every house had a candle in the front window.", "Nobody organised it. Nobody needed to. It was as if an old instruction, folded away for years, had been found in a drawer and read again.", "We are told that habits like these belong to a slower age, and perhaps they do. But I have come to think of them as a kind of infrastructure, as real as the cables and pipes, and a good deal cheaper to maintain. They cost a match, a few minutes and the willingness to be thought a little old-fashioned by the people driving past.", "There is a word in the old dialect here for the hour after the lamps are lit and before anyone goes to bed. It means something like the gathered time. My grandmother used it often. I had not heard it spoken in thirty years until that week, when a neighbour said it without thinking, standing in my doorway with a pan of soup and a torch.", "When the power came back, most of the candles went out. Mine is still there. I light it most nights, for no one in particular. In case."]},
+      {"kind": "line", "from": [126, 704], "to": [486, 704], "stroke": {"color": "accent", "weight": 0.5}},
+      {"kind": "text", "slot": "note", "rect": [126, 712.61, 360, 14], "style": "Col Foot", "sample": "Teodor Lindqvist's new novel, The Winter Hive, is published in March."},
+      {"kind": "text", "slot": "email", "rect": [126, 728.61, 360, 14], "style": "Col Foot", "sample": "Write to the column at lastword@wrenquarterly.org"},
+      {"kind": "text", "rect": [156, 749.08, 300, 13], "style": "Col Folio", "text": "Wren Quarterly · Winter 2026 · <page>"}
+    ]}
+  ],
+  "flow": {
+    "body": {"max": 0}
+  },
+  "web": {"layout": "article"}
+}

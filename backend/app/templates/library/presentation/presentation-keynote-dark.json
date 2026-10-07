@@ -1,0 +1,98 @@
+{
+  "id": "presentation-keynote-dark",
+  "name": "Keynote, Dark",
+  "category": "presentation",
+  "kinds": ["slides"],
+  "tags": ["keynote", "talk", "conference", "dark", "16:9", "1920x1080", "quote", "section", "stats"],
+  "tone": ["dark", "bold", "minimal"],
+  "description": "A six-slide 1920 by 1080 conference keynote on a near-black ground: a title slide with a soft glow, a numbered section opener, a large quote, an image beside a numbered list, three big results and a closing slide with contact details.",
+  "medium": "screen",
+  "theme": "studio-dark",
+  "kit": "display",
+  "scale": 2.4,
+  "styles": {"paragraph": {
+    "Talk Kicker": {"font": "accent", "size": 0.72, "leading": 1.2, "tracking": 180, "caps": true, "color": "accent", "hyphenate": false},
+    "Mega Title": {"font": "display", "size": 5.0, "leading": 0.92, "tracking": -45, "color": "ink", "hyphenate": false},
+    "Talk Deck": {"font": "text", "size": 1.25, "leading": 1.35, "color": "muted", "hyphenate": false},
+    "Speaker": {"font": "accent", "size": 0.95, "leading": 1.3, "color": "ink", "hyphenate": false},
+    "Speaker Role": {"font": "text", "size": 0.78, "leading": 1.4, "color": "muted", "hyphenate": false},
+    "Speaker Right": {"basedOn": "Speaker Role", "align": "right"},
+    "Section Num": {"font": "display", "size": 5.6, "leading": 0.9, "tracking": -40, "color": "accent", "hyphenate": false},
+    "Section Head": {"font": "display", "size": 3.0, "leading": 1.0, "tracking": -35, "color": "ink", "hyphenate": false, "balance": true},
+    "Section Body": {"font": "text", "size": 1.1, "leading": 1.45, "color": "muted", "hyphenate": false},
+    "Quote Mark": {"font": "display", "size": 7.0, "leading": 1.0, "color": "accent", "hyphenate": false},
+    "Quote Big": {"font": "accent", "size": 2.5, "leading": 1.14, "tracking": -20, "color": "ink", "hyphenate": false, "balance": true},
+    "Quote Credit": {"font": "text", "size": 0.85, "leading": 1.35, "color": "accent2", "hyphenate": false},
+    "Slide Head": {"font": "display", "size": 2.05, "leading": 1.02, "tracking": -30, "color": "ink", "hyphenate": false, "balance": true},
+    "Talk List": {"font": "text", "size": 1.1, "leading": 1.4, "color": "ink", "list": "numbers", "leftIndent": 1.136, "firstLineIndent": -1.136, "rightIndent": 1.0, "spaceAfter": 1.1, "hyphenate": false},
+    "Result": {"font": "display", "size": 4.0, "leading": 1.0, "tracking": -40, "color": "accent", "hyphenate": false},
+    "Result Label": {"font": "text", "size": 0.85, "leading": 1.4, "color": "ink", "hyphenate": false},
+    "Note": {"basedOn": "Caption", "size": 0.62, "leading": 1.4, "color": "muted"},
+    "Thanks": {"font": "display", "size": 4.4, "leading": 0.95, "tracking": -40, "color": "ink", "hyphenate": false},
+    "Contact": {"font": "accent", "size": 0.95, "leading": 1.4, "color": "ink", "hyphenate": false},
+    "Foot": {"font": "accent", "size": 0.55, "leading": 1.2, "tracking": 140, "caps": true, "color": "muted", "hyphenate": false},
+    "Foot Right": {"basedOn": "Foot", "align": "right"}
+  }},
+  "page": {"size": [1920, 1080], "unit": "px", "facing": false, "margins": {"top": 100, "bottom": 100, "inside": 140, "outside": 140}, "columns": 12, "gutter": 40},
+  "parents": {
+    "A": [
+      {"kind": "line", "from": [140, 990], "to": [1780, 990], "stroke": {"color": "tint", "weight": 2}},
+      {"kind": "text", "slot": "footer", "rect": [140, 1010, 1100, 26], "style": "Foot", "sample": "Forma 2026 · The quiet interface"},
+      {"kind": "text", "rect": [1580, 1010, 200, 26], "style": "Foot Right", "text": "<page>"}
+    ],
+    "B": []
+  },
+  "pages": [
+    {"parent": "B", "items": [
+      {"kind": "ellipse", "rect": [1060, 60, 860, 860], "gradient": {"kind": "radial", "stops": [["accent", 0, 0.75], ["accent2", 55, 0.18], ["accent2", 100, 0.0]]}},
+      {"kind": "text", "slot": "kicker", "rect": [140, 140, 1100, 32], "style": "Talk Kicker", "sample": "Forma 2026 · Opening keynote"},
+      {"kind": "text", "slot": "title", "rect": [140, 330, 1400, 340], "style": "Mega Title", "valign": "bottom", "sample": "The quiet interface"},
+      {"kind": "text", "slot": "subtitle", "rect": [140, 700, 1200, 70], "style": "Talk Deck", "sample": "Designing products that respect attention"},
+      {"kind": "line", "from": [140, 850], "to": [1780, 850], "stroke": {"color": "tint", "weight": 2}},
+      {"kind": "text", "slot": "name", "rect": [140, 880, 800, 42], "style": "Speaker", "sample": "Mireille Haddad"},
+      {"kind": "text", "slot": "role", "rect": [140, 926, 800, 36], "style": "Speaker Role", "sample": "Principal Designer, Fieldwork Studio"},
+      {"kind": "text", "slot": "date", "rect": [1180, 926, 600, 36], "style": "Speaker Right", "sample": "12 June 2026 · Lisbon"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "rect": [140, 96, 700, 250], "style": "Section Num", "text": "01"},
+      {"kind": "rect", "rect": [140, 380, 120, 8], "fill": "accent"},
+      {"kind": "text", "slot": "feature1.title", "rect": [140, 420, 1500, 220], "style": "Section Head", "sample": "Attention is the scarcest material we work with"},
+      {"kind": "text", "slot": "feature1.body", "rect": [140, 680, 1100, 130], "style": "Section Body", "sample": "Every notification, badge and autoplay spends something the user never agreed to give."}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "ellipse", "rect": [1380, 280, 420, 420], "stroke": {"color": "accent2", "weight": 2}},
+      {"kind": "image", "slot": "portrait", "rect": [1400, 300, 380, 380], "shape": "ellipse"},
+      {"kind": "text", "rect": [130, 110, 300, 300], "style": "Quote Mark", "text": "“"},
+      {"kind": "text", "slot": "quote", "rect": [140, 300, 1160, 340], "style": "Quote Big", "sample": "The best interface is the one you forget you are using, right up until the moment you need it."},
+      {"kind": "line", "from": [140, 690], "to": [260, 690], "stroke": {"color": "accent2", "weight": 3}},
+      {"kind": "text", "slot": "quotecredit", "rect": [140, 712, 1100, 40], "style": "Quote Credit", "sample": "Ana Lindqvist, interaction designer"}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "image", "slot": "image1", "rect": [1000, 100, 780, 830], "corner": 12},
+      {"kind": "text", "rect": [140, 120, 700, 30], "style": "Talk Kicker", "text": "02 · Principles"},
+      {"kind": "text", "slot": "feature2.title", "rect": [140, 170, 780, 150], "style": "Slide Head", "sample": "Three habits of calm products"},
+      {"kind": "text", "slot": "list", "rect": [140, 380, 780, 500], "style": "Talk List", "sample": ["Interrupt only when it truly matters, and batch everything else.", "Make the respectful choice the default, not a setting.", "Let people finish what they started before asking for more."]}
+    ]},
+    {"parent": "A", "items": [
+      {"kind": "text", "rect": [140, 120, 700, 30], "style": "Talk Kicker", "text": "03 · Results"},
+      {"kind": "text", "slot": "feature3.title", "rect": [140, 170, 1640, 90], "style": "Slide Head", "sample": "What changed when we turned the volume down"},
+      {"kind": "line", "from": [693, 400], "to": [693, 780], "stroke": {"color": "tint", "weight": 2}},
+      {"kind": "line", "from": [1246, 400], "to": [1246, 780], "stroke": {"color": "tint", "weight": 2}},
+      {"kind": "text", "slot": "stat1", "rect": [140, 400, 500, 150], "style": "Result", "sample": "-38%"},
+      {"kind": "text", "slot": "stat1.label", "rect": [140, 570, 480, 110], "style": "Result Label", "sample": "notifications sent per user each week"},
+      {"kind": "text", "slot": "stat2", "rect": [733, 400, 500, 150], "style": "Result", "sample": "+21%"},
+      {"kind": "text", "slot": "stat2.label", "rect": [733, 570, 480, 110], "style": "Result Label", "sample": "tasks completed in a single session"},
+      {"kind": "text", "slot": "stat3", "rect": [1286, 400, 500, 150], "style": "Result", "sample": "4.6"},
+      {"kind": "text", "slot": "stat3.label", "rect": [1286, 570, 480, 110], "style": "Result Label", "sample": "average calm rating, out of five, up from 3.1"},
+      {"kind": "text", "slot": "caption", "rect": [140, 880, 1200, 34], "style": "Note", "sample": "Twelve week study with 2,400 participants across three products, spring 2026."}
+    ]},
+    {"parent": "B", "items": [
+      {"kind": "ellipse", "rect": [1060, 160, 860, 860], "gradient": {"kind": "radial", "stops": [["accent2", 0, 0.6], ["accent", 55, 0.15], ["accent", 100, 0.0]]}},
+      {"kind": "text", "rect": [140, 140, 900, 32], "style": "Talk Kicker", "text": "Thank you"},
+      {"kind": "text", "slot": "tagline", "rect": [140, 300, 1300, 300], "style": "Thanks", "valign": "bottom", "sample": "Make less noise."},
+      {"kind": "line", "from": [140, 850], "to": [1780, 850], "stroke": {"color": "tint", "weight": 2}},
+      {"kind": "text", "slot": "contact", "rect": [140, 880, 1000, 42], "style": "Contact", "sample": "@mireillehaddad · fieldwork.example/quiet"},
+      {"kind": "text", "slot": "note", "rect": [140, 926, 1000, 36], "style": "Speaker Role", "sample": "Slides, sources and the full study are online."}
+    ]}
+  ]
+}

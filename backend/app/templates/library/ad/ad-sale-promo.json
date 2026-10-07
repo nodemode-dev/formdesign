@@ -1,0 +1,37 @@
+{
+  "id": "ad-sale-promo",
+  "name": "Sale Promo, Big Number",
+  "category": "ad",
+  "kinds": ["ad-social"],
+  "tags": ["sale", "promo", "discount", "percentage", "1080x1080", "square", "offer", "black friday", "dark"],
+  "tone": ["bold", "dark"],
+  "description": "A 1080 px square sale ad built around one huge percentage: a kicker, the sale name, the discount and what it applies to, a line of detail, a shop button and the small print.",
+  "medium": "screen",
+  "theme": "studio-dark",
+  "kit": "display",
+  "styles": {"paragraph": {
+    "Ad Kicker": {"basedOn": "Kicker", "size": 1.6, "leading": 1.2, "tracking": 240, "color": "accent2"},
+    "Ad Title": {"basedOn": "Title", "size": 7.4, "leading": 0.95, "tracking": -25, "color": "light"},
+    "Ad Stat": {"basedOn": "Stat", "size": 34, "leading": 0.8, "tracking": -45, "color": "accent"},
+    "Ad Stat Label": {"basedOn": "Stat Label", "size": 2.1, "leading": 1.2, "tracking": 180, "color": "light"},
+    "Ad Line": {"basedOn": "Body", "size": 1.95, "leading": 1.4, "color": "muted", "spaceAfter": 0},
+    "Ad CTA": {"basedOn": "CTA", "size": 1.55, "leading": 1.2, "tracking": 100, "color": "dark"},
+    "Ad Legal": {"basedOn": "Small", "size": 1.1, "leading": 1.3, "color": "muted"}
+  }},
+  "page": {"size": [1080, 1080], "unit": "px", "facing": false, "margins": 72, "columns": 6, "gutter": 24},
+  "pages": [
+    {"parent": null, "items": [
+      {"kind": "ellipse", "rect": [600, 160, 720, 720], "fill": "tint"},
+      {"kind": "text", "slot": "kicker", "rect": [72, 72, 700, 72], "style": "Ad Kicker", "valign": "center", "sample": "Three days only"},
+      {"kind": "image", "slot": "logo", "rect": [936, 72, 72, 72], "fit": "fit"},
+      {"kind": "text", "slot": "title", "rect": [72, 160, 936, 124], "style": "Ad Title", "sample": "The Winter Sale"},
+      {"kind": "text", "slot": "stat1", "rect": [44, 196, 984, 504], "style": "Ad Stat", "sample": "40%"},
+      {"kind": "text", "slot": "stat1.label", "rect": [72, 664, 936, 40], "style": "Ad Stat Label", "sample": "Off everything, in store and online"},
+      {"kind": "line", "from": [72, 752], "to": [1008, 752], "stroke": {"color": "muted", "weight": 1}},
+      {"kind": "text", "slot": "subtitle", "rect": [72, 790, 580, 104], "style": "Ad Line", "sample": "Coats, knitwear and boots from Halden Supply. Ends Sunday at midnight."},
+      {"kind": "text", "slot": "cta", "rect": [708, 800, 300, 84], "style": "Ad CTA", "valign": "center", "fill": "accent", "corner": 42, "sample": "Shop the sale"},
+      {"kind": "text", "slot": "legal", "rect": [72, 968, 936, 40], "style": "Ad Legal", "valign": "bottom", "sample": "Excludes gift cards and items already reduced. While stocks last."}
+    ]}
+  ],
+  "web": {"layout": "card"}
+}
