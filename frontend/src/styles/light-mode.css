@@ -1,0 +1,2 @@
+body.theme-light .cv-menu, body.theme-light .cv-dialog, body.theme-light .cv-toast { box-shadow: var(--shadow-lg); }
+body.theme-light .cv-layer-thumb, body.theme-light .cv-layer-mask { background: var(--bg-tertiary); }

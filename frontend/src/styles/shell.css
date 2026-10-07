@@ -1,0 +1,404 @@
+html, body { height: 100%; overflow: hidden; }
+body { font-size: var(--fs-12); line-height: 1.35; }
+#app { height: 100%; }
+#overlay-root { position: fixed; inset: 0; z-index: var(--z-menu); pointer-events: none; }
+#overlay-root > * { pointer-events: auto; }
+#toast-root { position: fixed; right: var(--space-4); bottom: calc(var(--cv-status-h) + var(--space-3)); z-index: var(--z-toast); display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); pointer-events: none; }
+
+.cv-app { display: grid; grid-template-rows: var(--cv-titlebar-h) var(--cv-options-h) minmax(0, 1fr) var(--cv-status-h); height: 100%; background: var(--bg-primary); color: var(--text-primary); user-select: none; -webkit-user-select: none; }
+
+.cv-titlebar { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-3); padding: 0 var(--space-3); background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); min-width: 0; }
+.cv-brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--accent-color); }
+.cv-brand-name { color: var(--text-primary); font-size: var(--fs-13); font-weight: 600; letter-spacing: 0.2px; }
+.cv-menubar { display: flex; align-items: center; gap: 2px; }
+.cv-menu-btn { height: var(--ctl-md); padding: 0 var(--space-2); border: 0; border-radius: var(--radius); background: transparent; color: var(--text-secondary); font-size: var(--fs-12); cursor: default; }
+.cv-menu-btn:hover, .cv-menu-btn.is-open { background: var(--bg-tertiary); color: var(--text-primary); }
+
+.cv-tabs { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.cv-tab-strip { display: flex; align-items: center; gap: var(--space-1); min-width: 0; overflow-x: auto; scrollbar-width: none; }
+/* Tabs and the new-document button moved by a tab arriving or leaving ease into place (ui/tabs.ts render). */
+.cv-tab, .cv-tabs > .cv-icon-btn { transform: translateX(var(--flip-x, 0px)); }
+.cv-tab.is-settling, .cv-tabs > .cv-icon-btn.is-settling { transition: transform 160ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .cv-tab.is-settling, .cv-tabs > .cv-icon-btn.is-settling { transition: none; } }
+.cv-tab-strip::-webkit-scrollbar { display: none; }
+.cv-tab { display: grid; grid-template-columns: 6px minmax(0, 1fr) 20px; align-items: center; column-gap: var(--space-2); flex: none; width: 168px; height: var(--ctl-md); padding: 0 var(--space-1) 0 var(--space-2); border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-secondary); font-size: var(--fs-12); cursor: default; }
+.cv-tab:hover { background: var(--bg-hover); }
+.cv-tab.is-active { background: var(--bg-tertiary); border-color: var(--border-light); color: var(--text-primary); }
+.cv-tab.is-drop-target { background: var(--accent-tint-strong); border-color: var(--accent-color); color: var(--text-primary); }
+.cv-tab-dot { width: 6px; height: 6px; border-radius: var(--radius-pill); background: transparent; }
+.cv-tab.is-dirty .cv-tab-dot { background: var(--accent-color); }
+.cv-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-tab-close { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-tab-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.cv-zoom { display: flex; align-items: center; gap: var(--space-1); }
+.cv-zoom-label { min-width: 52px; text-align: center; color: var(--text-muted); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
+.cv-sep { width: 1px; height: 18px; background: var(--border-light); margin: 0 var(--space-1); flex: none; }
+
+.cv-btn { height: var(--ctl-md); padding: 0 var(--space-3); border-radius: var(--radius); border: 1px solid var(--border-light); background: var(--bg-tertiary); color: var(--text-secondary); font-size: var(--fs-12); display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); cursor: pointer; white-space: nowrap; }
+.cv-btn:hover { background: var(--border-light); color: var(--text-primary); }
+.cv-btn:disabled { opacity: 0.45; cursor: default; }
+.cv-btn-primary { background: var(--accent-color); border-color: transparent; color: var(--text-on-accent); }
+.cv-btn-primary:hover { background: var(--accent-color-hover); color: var(--text-on-accent); }
+.cv-btn-ghost { background: transparent; border-color: transparent; }
+.cv-btn-danger { background: transparent; border-color: var(--danger-fill); color: var(--danger-soft); }
+.cv-icon-btn { width: var(--ctl-md); height: var(--ctl-md); display: inline-flex; align-items: center; justify-content: center; flex: none; border: 0; border-radius: var(--radius); background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-icon-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.cv-icon-btn.is-active { background: var(--bg-tertiary); color: var(--accent-color); }
+.cv-icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+.cv-options { display: flex; align-items: center; padding: 0 var(--space-4); background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); overflow-x: auto; white-space: nowrap; scrollbar-width: none; min-width: 0; }
+.cv-options::-webkit-scrollbar { display: none; }
+.cv-options-edge { position: fixed; width: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; color: var(--text-secondary); cursor: pointer; }
+.cv-options-edge.is-start { background: linear-gradient(to right, var(--bg-secondary) 60%, transparent); }
+.cv-options-edge.is-end { background: linear-gradient(to left, var(--bg-secondary) 60%, transparent); }
+.cv-options-edge:hover { color: var(--accent-color); }
+.cv-options-edge[hidden] { display: none; }
+.cv-opt-group { display: flex; align-items: center; gap: var(--space-4); flex: none; }
+.cv-opt-group > * { flex: none; }
+.cv-opt-group[hidden] { display: none; }
+/* Rows shown only sometimes (a `when` condition) are hidden by attribute; the rows' own display must not override it. */
+.cv-options [hidden] { display: none; }
+
+/* The Home screen: over the canvas area, under menus and dialogs. */
+/* The start screen (Phase 21, UI_SPEC.md section 3, measured from the target's s01): the whole window below the title
+   bar, black, over the chrome (100) and under the title bar's menus (200). */
+.cv-home { position: fixed; top: var(--cv-titlebar-h); left: 0; right: 0; bottom: 0; z-index: calc(var(--z-menu) - 1); display: grid; place-items: center; background: var(--group-head); overflow-y: auto; }
+.cv-home[hidden] { display: none; }
+.cv-home-center { display: flex; flex-direction: column; align-items: center; text-align: center; padding: var(--space-6); }
+.cv-home-brand { display: flex; align-items: baseline; gap: 10px; margin: 0; color: var(--text-primary); font-size: 38px; font-weight: 400; letter-spacing: -0.015em; }
+.cv-home-by { color: var(--text-secondary); font-size: 13px; letter-spacing: 0; }
+.cv-home-sub { margin: 10px 0 20px; color: var(--text-secondary); font-size: 13px; }
+.cv-home-actions { display: flex; gap: 10px; }
+.cv-home-action { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 8px 0 12px; border: 1px solid var(--line-1); border-radius: 6px; background: var(--surface-0); color: var(--text-primary); font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.cv-home-action:first-child { width: 210px; border-color: var(--cta-bg); background: var(--cta-bg); color: var(--cta-text); box-shadow: 0 0 22px rgba(255, 255, 255, 0.09); }
+.cv-home-action:last-child { width: 190px; }
+.cv-home-action:hover { filter: brightness(1.08); }
+.cv-home-action:first-child:hover { filter: brightness(0.96); }
+.cv-home-action:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+.cv-home-label { flex: 1; text-align: left; }
+.cv-key { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; background: var(--surface-1); color: var(--text-primary); font: inherit; font-size: 12px; }
+.cv-home-action:first-child .cv-key { background: var(--text-primary); color: var(--cta-text); }
+.cv-key + .cv-key { margin-left: -4px; }
+.cv-home-hint { display: flex; align-items: center; gap: 6px; margin: 28px 0 0; color: var(--text-muted); font-size: 11px; }
+.cv-home-main { width: 420px; max-width: 100%; margin-top: 36px; text-align: left; }
+.cv-home-main[hidden] { display: none; }
+.cv-home-title { margin: 0 0 var(--space-2); color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.cv-home-list { display: flex; flex-direction: column; gap: 2px; }
+.cv-home-item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); height: 34px; padding: 0 var(--space-3); border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.cv-home-item:hover { border-color: var(--line-1); background: var(--surface-0); color: var(--text-primary); }
+.cv-home-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-home-date { color: var(--text-muted); font-size: 11px; }
+.cv-brand[role="button"] { cursor: pointer; }
+.cv-opt-title { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
+.cv-opt { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-muted); font-size: var(--fs-11); }
+.cv-opt input[type="range"] { width: 104px; accent-color: var(--accent-color); }
+.cv-opt input[type="checkbox"] { accent-color: var(--accent-color); margin: 0; }
+.cv-num { width: 56px; height: var(--ctl-sm); padding: 0 var(--space-1); border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-secondary); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
+.cv-num:focus { outline: none; border-color: var(--accent-color); }
+.cv-opt-select { height: var(--ctl-sm); padding: 0 var(--space-1); border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-secondary); font-size: var(--fs-11); }
+.cv-opt-select:focus { outline: none; border-color: var(--accent-color); }
+.cv-type-editor { position: absolute; left: var(--x, 0); top: var(--y, 0); width: var(--w, 0); height: var(--h, 0); z-index: var(--z-raised); margin: 0; padding: 0; border: 0; outline: 1px dashed var(--accent-color); background: transparent; color: var(--ink, currentColor); font: var(--font, inherit); line-height: var(--lh, normal); text-align: var(--align, left); letter-spacing: var(--ls, normal); font-kerning: var(--kern, normal); white-space: pre; overflow: hidden; resize: none; caret-color: var(--accent-color); }
+.cv-readout { min-width: 64px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.cv-seg { display: inline-flex; border: 1px solid var(--border-light); border-radius: var(--radius); overflow: hidden; }
+.cv-seg button { height: var(--ctl-sm); padding: 0 var(--space-2); border: 0; background: transparent; color: var(--text-muted); font-size: var(--fs-11); cursor: pointer; }
+.cv-seg button + button { border-left: 1px solid var(--border-light); }
+.cv-seg button.is-active { background: var(--bg-tertiary); color: var(--accent-color); }
+
+.cv-main { display: grid; grid-template-columns: var(--cv-rail-w) minmax(0, 1fr) var(--cv-props-w, 284px) 6px var(--cv-layers-w); min-height: 0; }
+.cv-rail { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-2) 0; background: var(--bg-secondary); border-right: 1px solid var(--border-color); overflow-y: auto; scrollbar-width: none; min-height: 0; }
+.cv-rail::-webkit-scrollbar { display: none; }
+.cv-rail-tools { display: flex; flex-direction: column; gap: var(--space-1); min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.cv-rail-tools::-webkit-scrollbar { display: none; }
+.cv-tool.has-group { position: relative; }
+.cv-tool.has-group::after { content: ''; position: absolute; right: 3px; bottom: 3px; border-style: solid; border-width: 0 0 5px 5px; border-color: transparent transparent currentColor transparent; opacity: 0.55; }
+.cv-flyout { position: fixed; min-width: 196px; padding: var(--space-1); background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-window); }
+.cv-flyout[hidden] { display: none; }
+.cv-flyout-item { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-2); width: 100%; height: var(--ctl-md); padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font-size: var(--fs-12); text-align: left; }
+.cv-flyout-item:hover { background: var(--accent-color); color: var(--text-on-accent); }
+.cv-flyout-item.is-active { color: var(--accent-color); }
+.cv-flyout-item.is-active:hover { color: var(--text-on-accent); }
+.cv-flyout-key { color: var(--text-muted); font-size: var(--fs-11); }
+.cv-tool { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-tool:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.cv-tool.is-active { background: var(--bg-tertiary); border-color: var(--border-light); color: var(--accent-color); }
+.cv-colors { margin-top: auto; position: relative; width: 40px; height: 44px; flex: none; }
+.cv-swatch { position: absolute; width: 24px; height: 24px; padding: 0; border: 1px solid var(--border-light); border-radius: var(--radius-sm); cursor: pointer; }
+.cv-swatch-fg { left: 0; top: 0; z-index: var(--z-raised); }
+.cv-swatch-bg { right: 0; bottom: 4px; }
+.cv-swap, .cv-reset { position: absolute; width: 14px; height: 14px; padding: 0; border: 0; background: transparent; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.cv-swap { right: 0; top: 0; }
+.cv-reset { left: 0; bottom: 4px; }
+.cv-swap:hover, .cv-reset:hover { color: var(--text-primary); }
+.cv-color-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.cv-stage { position: relative; overflow: hidden; background: var(--canvas-bg); min-width: 0; min-height: 0; }
+/* The pasteboard's dot grid (UI_SPEC.md: 1 px dots every 22 px, in the profile's --grid-color). */
+.cv-stage { background-image: radial-gradient(circle at 1px 1px, var(--grid-color) 0.9px, transparent 1.1px); background-size: 22px 22px; }
+/* The native GPU renderer (Phase 20) draws beneath the web view: with it on, the page is transparent behind the stage
+   only; every other region keeps the app's background (at zero specificity, so a panel's own background still wins). */
+.is-native-canvas body, .is-native-canvas .cv-app, .is-native-canvas .cv-main, .is-native-canvas .cv-stage { background: transparent; }
+:where(.is-native-canvas .cv-app > :not(.cv-main), .is-native-canvas .cv-main > :not(.cv-stage)) { background: var(--bg-primary); }
+.cv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.cv-scene { pointer-events: none; }
+/* The GPU display (Phase 18.2b) sits beneath the scene canvas, which then draws only the edge and pixel grid over it. */
+.cv-scene-gpu { pointer-events: none; }
+.cv-scene-gpu[hidden] { display: none; }
+.cv-ruler { position: absolute; left: 0; top: 0; display: block; z-index: var(--z-raised); touch-action: none; }
+.cv-ruler[hidden] { display: none; }
+.cv-ruler-h { width: 100%; height: 18px; cursor: row-resize; }
+.cv-ruler-v { width: 18px; height: 100%; cursor: col-resize; }
+.cv-welcome { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: var(--space-6); }
+.cv-welcome[hidden] { display: none; }
+.cv-welcome-card { width: min(440px, 100%); display: grid; gap: var(--space-4); padding: var(--space-6); background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); }
+.cv-welcome-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-16); font-weight: 600; color: var(--text-primary); }
+.cv-welcome-title .icon { color: var(--accent-color); }
+.cv-mark { display: block; flex: none; }
+.cv-welcome-sub { color: var(--text-muted); font-size: var(--fs-12); }
+.cv-welcome-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.cv-drop { position: absolute; inset: var(--space-2); border: 2px dashed var(--accent-color); border-radius: var(--radius-lg); background: var(--accent-tint-strong); pointer-events: none; }
+.cv-drop[hidden] { display: none; }
+
+.cv-resizer { cursor: col-resize; background: var(--bg-secondary); border-left: 1px solid var(--border-color); }
+.cv-resizer:hover, .cv-resizer.is-dragging { background: var(--accent-color-dim); }
+
+.cv-status { display: flex; align-items: center; gap: var(--space-4); padding: 0 var(--space-4); background: var(--bg-secondary); border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: var(--fs-11); white-space: nowrap; overflow: hidden; }
+.cv-st-zoom { min-width: 52px; font-variant-numeric: tabular-nums; }
+.cv-st-dims { min-width: 120px; font-variant-numeric: tabular-nums; }
+.cv-st-busy { display: inline-flex; align-items: center; gap: var(--space-1); min-width: 80px; color: var(--text-secondary); visibility: hidden; }
+.cv-st-busy.is-shown { visibility: visible; }
+.cv-st-engine { min-width: 150px; white-space: nowrap; }
+.cv-st-hint { flex: 1 1 0; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Phase 21, step 1b: the tool column as the target's (UI_SPEC.md section 5, measured from s20): lavender glows
+   behind the upper tool group and at the foot; the active tool in a rounded, lavender-tinted square. ── */
+.cv-rail { background: linear-gradient(to bottom, var(--surface-1) 0%, color-mix(in srgb, var(--accent-color) calc(10% * var(--accent-intensity)), var(--surface-1)) 12%, var(--surface-1) 30%, var(--surface-1) 72%, color-mix(in srgb, var(--accent-color) calc(14% * var(--accent-intensity)), var(--surface-1)) 100%); border-right-color: var(--line-0); }
+.cv-tool.is-active { background: var(--accent-soft); border-color: var(--accent-line); border-radius: 8px; color: var(--text-primary); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+
+/* ── Phase 21, step 3: title bar, its tools, document tabs and the options bar, as the target's (UI_SPEC.md sections 2
+   and 5, measured from s01 and s20). ── */
+.cv-titlebar { grid-template-columns: auto auto minmax(0, 1fr) auto auto; background: linear-gradient(to bottom, var(--surface-2), var(--surface-1)); border-bottom: 1px solid var(--line-0); }
+.cv-title-tools { position: relative; display: flex; align-items: center; gap: 8px; }
+.cv-tt-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface-1); color: var(--text-secondary); cursor: pointer; }
+.cv-tt-btn:hover { color: var(--text-primary); background: var(--surface-raised); }
+.cv-tt-btn.is-on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-color); }
+.cv-tt-bare { border-color: transparent; background: transparent; }
+.cv-tt-select { width: 154px; height: 28px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-1); color: var(--text-primary); font: inherit; font-size: 13px; }
+.cv-search-pop { position: absolute; top: 36px; right: 0; z-index: var(--z-menu); width: 340px; padding: 8px; border: 1px solid var(--line-3); border-radius: 12px; background: var(--surface-2); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55); }
+.cv-search-pop[hidden] { display: none; }
+.cv-search-input { width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: 13px; outline: 0; }
+.cv-search-input:focus { border-color: var(--accent-color); }
+.cv-search-results { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.cv-search-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.cv-search-item.is-picked, .cv-search-item:hover { background: var(--accent-soft); color: var(--text-primary); }
+.cv-search-keys { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+/* Document tabs: rounded top corners, the active one raised, a circled close button. */
+.cv-tab { border-radius: 8px 8px 0 0; border: 1px solid var(--line-1); border-bottom-color: transparent; background: var(--surface-1); }
+.cv-tab.is-active { background: var(--surface-raised); border-color: var(--line-3); border-bottom-color: transparent; }
+.cv-tab-close { border-radius: 50%; background: var(--surface-raised); }
+.cv-tab-close:hover { background: var(--surface-raised); }
+/* The options bar: its own quiet row; the tool's name as a raised chip. */
+.cv-options { background: var(--surface-0); border-bottom-color: var(--line-0); }
+.cv-opt-title { padding: 4px 10px; border: 1px solid var(--line-3); border-radius: 8px; background: var(--surface-raised); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+/* The document tabs in their own row above the canvas, as the target's (s20): the name, * when unsaved, the mode dimmed,
+   a circled close; the title bar keeps the brand, menus, zoom and its tools. */
+.cv-titlebar { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.cv-stage-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.cv-stage-col > .cv-stage { flex: 1; }
+.cv-doc-tabs { display: flex; align-items: flex-end; height: 34px; padding: 0 8px; background: var(--surface-0); border-bottom: 1px solid var(--line-0); }
+.cv-doc-tabs .cv-tabs { display: flex; align-items: flex-end; gap: 2px; min-width: 0; height: 100%; }
+.cv-tab { display: flex; align-items: center; gap: 6px; width: auto; min-width: 110px; max-width: 240px; height: 28px; padding: 0 6px 0 12px; }
+.cv-tab-name { flex: 0 1 auto; min-width: 0; font-size: 13px; }
+.cv-tab-dot { order: 2; width: auto; height: auto; background: none; border-radius: 0; color: var(--text-primary); }
+.cv-tab-dot::after { content: ''; }
+.cv-tab.is-dirty .cv-tab-dot::after { content: '*'; }
+.cv-tab-mode { order: 3; color: var(--text-muted); font-size: 11px; }
+.cv-tab-close { order: 4; margin-left: auto; width: 18px; height: 18px; }
+.cv-tab.is-dirty .cv-tab-dot { width: auto; height: auto; background: none; box-shadow: none; }
+/* Tool groups and flyouts as the target's (UI_SPEC.md section 5, s15, s20): a small dot at the corner of a tool with
+   variants (lavender on the active one); the flyout a rounded card, each variant with its shortcut as a key cap. */
+.cv-tool.has-group::after { right: 4px; bottom: 4px; width: 4px; height: 4px; border: 0; border-radius: 50%; background: var(--text-muted); }
+.cv-tool.has-group.is-active::after { background: var(--accent-ink); }
+.cv-flyout { min-width: 220px; padding: 6px; border: 1px solid var(--line-3); border-radius: 12px; background: var(--surface-2); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55); }
+.cv-flyout-item { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 10px; height: 34px; padding: 0 6px 0 10px; border-radius: 8px; color: var(--text-secondary); font-size: 14px; }
+.cv-flyout-item:hover { background: var(--accent-soft); color: var(--text-primary); }
+.cv-flyout-item.is-active { color: var(--text-primary); }
+.cv-flyout-item.is-active:hover { color: var(--text-primary); }
+.cv-flyout-key { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 6px; background: var(--surface-raised); color: var(--text-primary); font-size: 12px; }
+/* With formvis's menus in the macOS menu bar (the desktop app), the in-window menu bar gives way (Phase 21). */
+.has-native-menus .cv-menubar { display: none; }
+/* A select shown as the target's menu (ui/dropdown.ts; s21, s23): the button, a rounded list, grey headings, a tick. */
+.cv-dd-native { position: absolute !important; width: 1px !important; height: 1px !important; opacity: 0; pointer-events: none; }
+.cv-dd-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; height: 28px; padding: 0 8px 0 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-2); color: var(--text-primary); font: inherit; font-size: 13px; cursor: pointer; }
+.cv-dd-btn:disabled { color: var(--text-muted); cursor: default; }
+.cv-dd-btn[aria-expanded="true"] .icon { transform: rotate(180deg); }
+.cv-dd-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-layer-blendrow .cv-dd-btn { flex: 1; }
+.cv-title-tools .cv-dd-btn { width: 154px; background: var(--surface-1); }
+.cv-dd-pop { position: fixed; z-index: var(--z-context); max-height: 60vh; overflow-y: auto; padding: 6px; border: 1px solid var(--line-3); border-radius: 12px; background: var(--surface-2); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55); }
+.cv-dd-pop[hidden] { display: none; }
+.cv-dd-search { width: 100%; height: 30px; margin-bottom: 6px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: 13px; outline: 0; }
+.cv-dd-head { padding: 8px 10px 4px; color: var(--text-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.cv-dd-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.cv-dd-item .icon { visibility: hidden; color: var(--accent-color); }
+.cv-dd-item.is-chosen { color: var(--text-primary); }
+.cv-dd-item.is-chosen .icon { visibility: visible; }
+.cv-dd-item.is-picked, .cv-dd-item:hover { background: var(--accent-soft); color: var(--text-primary); }
+/* The tool column's density and icons as the target's (s20): 26 px a tool, 18 px line icons in a light grey, the
+   active tool in a rounded lavender-tinted square, short dashes between the tool families. */
+.cv-rail-tools { gap: 0; align-items: center; }
+.cv-tool { width: 32px; height: 26px; border-radius: 7px; color: var(--text-secondary); }
+.cv-tool .icon { width: 18px !important; height: 18px !important; }
+.cv-tool:hover { color: var(--text-primary); background: var(--surface-raised); }
+.cv-tool.is-active { width: 32px; height: 28px; margin: 1px 0; color: var(--text-primary); }
+.cv-rail-sep { display: block; width: 6px; height: 2px; margin: 5px auto; border-radius: 1px; background: var(--line-3); }
+.cv-tool.is-active { color: var(--accent-ink); }
+/* The bar's tool chip: the tool's icon, raised, as the target's (s20). */
+.cv-opt-tool { display: inline-grid; place-items: center; width: 34px; height: 28px; padding: 0; color: var(--text-primary); }
+/* Icon-only option buttons and the thin divider before them (the target's align group). */
+.cv-opt-icon { display: inline-grid; place-items: center; width: 30px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.cv-opt-icon:hover { background: var(--surface-raised); color: var(--text-primary); }
+.cv-opt-sep { display: inline-block; width: 1px; height: 20px; margin: 0 6px; background: var(--line-2); vertical-align: middle; }
+.cv-resizer.is-inert { visibility: hidden; pointer-events: none; }
+
+/* The columns reach the title bar (the owner's screenshots of the gap): the options bar spans only the rail and the
+   canvas, in the main grid's first row; the side column, its resizer and the dock span both rows. */
+.cv-app { grid-template-rows: var(--cv-titlebar-h) minmax(0, 1fr) var(--cv-status-h); }
+.cv-main {
+  grid-template-rows: var(--cv-options-h) minmax(0, 1fr);
+  grid-template-areas: "opts opts props rsz dock" "rail stage props rsz dock";
+}
+.cv-main > .cv-options { grid-area: opts; min-width: 0; }
+.cv-main > .cv-rail { grid-area: rail; }
+.cv-main > .cv-stage-col { grid-area: stage; }
+.cv-main > .cv-props-col { grid-area: props; }
+.cv-main > .cv-resizer { grid-area: rsz; }
+.cv-main > .cv-layers { grid-area: dock; }
+/* The rail's icons at the target's weight (measured at 2x: glyphs about 29 px wide against formvis's 25): 20 px, 1.75 strokes. */
+.cv-tool .icon { width: 20px !important; height: 20px !important; }
+.cv-tool svg { stroke-width: 1.75; }
+.cv-tool { width: 34px; height: 28px; }
+
+/* The rail's extras (the target's): the » toggle at its top, Quick Mask and Screen Mode below the colours; two columns. */
+.cv-rail-toggle { display: grid; place-items: center; width: 30px; height: 20px; margin: 0 auto 2px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-rail-toggle:hover { color: var(--text-primary); background: var(--surface-raised); }
+.cv-rail.is-double .cv-rail-toggle .icon { transform: rotate(180deg); }
+.cv-rail-modes { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; }
+.cv-mode-btn.is-on { color: var(--accent-ink); background: var(--accent-soft); }
+.cv-rail.is-double { --cv-rail-w: 84px; }
+.cv-app:has(.cv-rail.is-double) { --cv-rail-w: 84px; }
+.cv-rail.is-double .cv-rail-tools { display: grid; grid-template-columns: 1fr 1fr; justify-items: center; }
+.cv-rail.is-double .cv-rail-sep { grid-column: 1 / -1; }
+/* Screen modes and hidden panels (Photoshop's F and Tab). */
+.cv-app.is-panels-hidden .cv-rail, .cv-app.is-panels-hidden .cv-options, .cv-app.is-panels-hidden .cv-props-col,
+.cv-app.is-panels-hidden .cv-resizer, .cv-app.is-panels-hidden .cv-layers { display: none !important; }
+.cv-app.is-panels-hidden .cv-main { grid-template-columns: 0 minmax(0, 1fr) 0 0 0 !important; grid-template-rows: 0 minmax(0, 1fr) !important; }
+.cv-app.is-screen-menu .cv-doc-tabs, .cv-app.is-screen-full .cv-doc-tabs { display: none; }
+.cv-app.is-screen-menu, .cv-app.is-screen-full { --cv-status-h: 0px; }
+.cv-app.is-screen-menu .cv-status, .cv-app.is-screen-full .cv-status { display: none; }
+.cv-app.is-screen-full { --cv-titlebar-h: 0px; }
+.cv-app.is-screen-full .cv-titlebar { display: none; }
+.cv-app.is-screen-full .cv-stage { background: #000; }
+/* Edit Toolbar's list (the rail's •••). */
+.cv-edit-toolbar { display: flex; flex-direction: column; gap: 2px; max-height: 60vh; overflow-y: auto; margin-top: 8px; }
+.cv-edit-tool { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 30px; padding: 0 8px; border-radius: 7px; font-size: 13px; color: var(--text-primary); cursor: pointer; }
+.cv-edit-tool:hover { background: var(--surface-raised); }
+.cv-edit-tool input { accent-color: var(--accent-color); }
+/* The type editor's kinds (1.49.7): paragraph text wraps in its box; vertical type reads down, upright; a type mask
+   shows a red tint while typing, as Photoshop's. */
+.cv-type-editor.is-box { white-space: pre-wrap; overflow: hidden; }
+.cv-type-editor.is-vertical { writing-mode: vertical-rl; text-orientation: upright; }
+.cv-type-editor.is-mask { background: rgba(255, 0, 0, 0.28) !important; }
+/* The options bar's colour swatch (1.50.4). */
+.cv-opt-color input[type="color"] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--border-light); border-radius: 4px; background: none; cursor: pointer; }
+.cv-opt-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 1px; }
+.cv-opt-color input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 3px; }
+
+/* The video timeline under the canvas (1.59.3, DEV_PLAN 25.2), as Photoshop's and Photon Studio's: a fixed height, so
+   scrubbing and dragging change nothing around it; clips and the playhead move by transform alone. */
+.cv-vtl { flex: none; display: grid; grid-template-rows: 34px minmax(0, 1fr) 30px; grid-template-columns: minmax(0, 1fr); min-width: 0; height: 220px; border-top: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 12px; }
+.cv-vtl[hidden] { display: none; }
+.cv-vtl-bar, .cv-vtl-foot { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
+.cv-vtl-foot { justify-content: flex-end; border-top: 1px solid var(--border-color); }
+.cv-vtl-foot .cv-vtl-render { margin-right: auto; color: var(--text-muted); }
+.cv-vtl-foot input[type="range"] { width: 140px; }
+.cv-vtl-gap { flex: 1; }
+.cv-vtl-btn { width: 28px; height: 24px; font-size: 12px; }
+.cv-vtl-time, .cv-vtl-rate { height: 24px; padding: 0 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
+.cv-vtl-rate { font-family: inherit; color: var(--text-muted); }
+.cv-vtl-body { position: relative; display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.cv-vtl-heads { position: relative; overflow: hidden; border-right: 1px solid var(--border-color); }
+.cv-vtl-head { position: absolute; left: 0; right: 0; height: 30px; display: flex; align-items: center; padding: 0 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-bottom: 1px solid var(--border-color); }
+.cv-vtl-head.is-active { background: var(--accent-soft, rgba(128, 128, 255, 0.15)); }
+.cv-vtl-lanes { position: relative; overflow: auto; }
+.cv-vtl-ruler { display: block; position: sticky; top: 0; z-index: var(--z-raised); background: var(--bg-secondary); cursor: ew-resize; touch-action: none; }
+.cv-vtl-rows { position: relative; }
+.cv-vtl-clip { position: absolute; left: 0; top: 0; height: 24px; display: flex; align-items: center; border-radius: 5px; background: var(--accent-color, #7c5cff); color: #fff; cursor: grab; touch-action: none; overflow: hidden; }
+.cv-vtl-clip-name { flex: 1; padding: 0 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
+.cv-vtl-trim { width: 6px; align-self: stretch; cursor: ew-resize; background: rgba(0, 0, 0, 0.2); }
+.cv-vtl-playhead { position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: var(--accent-color, #7c5cff); pointer-events: none; z-index: var(--z-selected); }
+/* The keyframe lanes (1.59.4, DEV_PLAN 25.3): a lane per property under an opened track. */
+.cv-vtl-head { gap: 4px; padding: 0 6px; }
+.cv-vtl-head-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cv-vtl-chev { width: 18px; height: 20px; border: 0; background: none; color: var(--text-muted); cursor: pointer; transition: transform 120ms ease; }
+.cv-vtl-chev[aria-expanded="true"] { transform: rotate(90deg); }
+.cv-vtl-lane-head { position: absolute; left: 0; right: 0; height: 30px; display: flex; align-items: center; gap: 3px; padding: 0 4px 0 18px; color: var(--text-muted); font-size: 11px; border-bottom: 1px solid var(--border-color); }
+.cv-vtl-lane-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cv-vtl-lane-val { width: 46px; height: 20px; padding: 0 4px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); font-size: 11px; }
+.cv-vtl-watch, .cv-vtl-nav, .cv-vtl-key { width: 18px; height: 20px; padding: 0; border: 0; background: none; color: var(--text-muted); cursor: pointer; font-size: 11px; }
+.cv-vtl-watch.is-on, .cv-vtl-key.is-on { color: var(--accent-color, #7c5cff); }
+.cv-vtl-strip { position: absolute; left: 0; top: 0; height: 30px; border-bottom: 1px solid var(--border-color); background: rgba(128, 128, 128, 0.04); }
+.cv-vtl-dia { position: absolute; left: 0; top: 10px; width: 10px; height: 10px; background: var(--text-primary); border-radius: 1px; cursor: grab; touch-action: none; }
+.cv-vtl-dia.is-hold { background: var(--accent-color, #7c5cff); }
+/* The empty state (1.59.8): the same height, the two kinds of timeline offered in the middle. */
+.cv-vtl.is-empty { display: flex; align-items: center; justify-content: center; }
+.cv-vtl.is-empty > :not(.cv-vtl-empty), .cv-vtl:not(.is-empty) > .cv-vtl-empty { display: none; }
+.cv-vtl-empty { max-width: 460px; padding: 0 16px; text-align: center; }
+.cv-vtl-empty-title { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.cv-vtl-empty-note { margin: 0 0 12px; color: var(--text-muted); line-height: 1.45; }
+.cv-vtl-empty-acts { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+/* Transitions (1.59.6, DEV_PLAN 25.4): the menu under the bar, and each clip's fades as ramps over its ends. */
+.cv-vtl { position: relative; }
+.cv-vtl-pop { position: absolute; left: 160px; top: 34px; z-index: var(--z-menu); display: grid; gap: 2px; min-width: 190px; padding: 6px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.35)); }
+.cv-vtl-pop[hidden] { display: none; }
+.cv-vtl-pop .cv-btn { justify-content: flex-start; }
+.cv-vtl-pop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 8px 2px; color: var(--text-muted); font-size: 11px; }
+.cv-vtl-fade { position: absolute; top: 0; bottom: 0; width: 0; pointer-events: none; }
+.cv-vtl-fade.is-in { left: 0; background: linear-gradient(to right, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0)); }
+.cv-vtl-fade.is-out { right: 0; background: linear-gradient(to left, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0)); }
+/* The status bar's memory reading (1.60.2, DEV_PLAN 26.1), in a warning colour past 85% of the budget. */
+.cv-st-mem.is-high { color: var(--warning-color, #f59e0b); }
+/* Fades to black or white (1.60.1) drawn in their colour. */
+.cv-vtl-fade.is-in.is-black { background: linear-gradient(to right, #000, rgba(0, 0, 0, 0)); }
+.cv-vtl-fade.is-out.is-black { background: linear-gradient(to left, #000, rgba(0, 0, 0, 0)); }
+.cv-vtl-fade.is-in.is-white { background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0)); }
+.cv-vtl-fade.is-out.is-white { background: linear-gradient(to left, #fff, rgba(255, 255, 255, 0)); }
+
+/* The compact layout (1.58.7, the parity plan's L12): under 720 pixels the canvas takes the whole width, and the tool
+   rail, the panels and the side column become sheets over it (the rail from the left, the others from the bottom),
+   opened one at a time from the title bar's buttons; they move by transform alone, so the canvas never reflows. The
+   menu bar and the options bar scroll sideways. The buttons are in the shell from the start and only shown here. */
+.cv-sheet-btn { display: none; }
+.cv-sheet-btn.is-on { color: var(--accent-ink); background: var(--accent-soft); }
+@media (max-width: 719px) {
+  .cv-main { grid-template-columns: 0 minmax(0, 1fr) 0 0 0; }
+  .cv-main > .cv-resizer { display: none; }
+  .cv-main > .cv-rail, .cv-main > .cv-props-col, .cv-main > .cv-layers { position: fixed; z-index: var(--z-chrome); transition: transform 180ms ease; }
+  /* Closed sheets slide clear of the screen with their shadows (and, at the bottom, past the status bar). */
+  .cv-main > .cv-rail { left: 0; top: var(--cv-titlebar-h); bottom: var(--cv-status-h); width: var(--cv-rail-w, 44px); transform: translateX(calc(-100% - 32px)); box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.35)); }
+  .cv-main > .cv-props-col, .cv-main > .cv-layers { left: 0; right: 0; bottom: var(--cv-status-h); height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; transform: translateY(calc(100% + var(--cv-status-h) + 32px)); box-shadow: var(--shadow-lg, 0 -8px 24px rgba(0, 0, 0, 0.35)); border-top: 1px solid var(--border-color); }
+  .cv-app.is-sheet-tools .cv-main > .cv-rail, .cv-app.is-sheet-panels .cv-main > .cv-layers, .cv-app.is-sheet-props .cv-main > .cv-props-col { transform: none; }
+  .cv-sheet-btn { display: grid; }
+  .cv-brand-name { display: none; }
+  /* The title bar keeps undo, redo, Preferences and the sheets; pinching zooms, so the zoom buttons go, and the
+     title tools (theme, command search, workspaces) wait in the menus and Preferences. The menu bar takes the rest
+     and scrolls, and nothing may be wider than the screen (a tap would scroll the page sideways). */
+  .cv-app { overflow: hidden; }
+  .cv-titlebar { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .cv-title-tools, .cv-zoom [data-cmd="zoom-out"], .cv-zoom [data-cmd="zoom-in"], .cv-zoom [data-cmd="fit"], .cv-zoom .cv-zoom-label, .cv-zoom .cv-sep { display: none; }
+  .cv-menubar { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .cv-options { overflow-x: auto; scrollbar-width: none; }
+}
+@media (max-width: 719px) and (prefers-reduced-motion: reduce) {
+  .cv-main > .cv-rail, .cv-main > .cv-props-col, .cv-main > .cv-layers { transition: none; }
+}

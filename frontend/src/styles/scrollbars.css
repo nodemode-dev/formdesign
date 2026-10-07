@@ -1,0 +1,8 @@
+/* No scrollbar is ever drawn, anywhere (the owner's rule: zero scrollbars). Everything still scrolls, by wheel, trackpad,
+   touch and keys; only the bar is gone. !important so no later rule can bring one back; both engines' ways, since
+   WebKit (the macOS app) and Chromium read ::-webkit-scrollbar and Firefox reads scrollbar-width. */
+*, *::before, *::after { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+*::-webkit-scrollbar, *::-webkit-scrollbar-button, *::-webkit-scrollbar-track, *::-webkit-scrollbar-thumb, *::-webkit-scrollbar-corner {
+  display: none !important; width: 0 !important; height: 0 !important; background: transparent !important;
+}
+html, body { scrollbar-width: none !important; }

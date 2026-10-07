@@ -1,0 +1,445 @@
+.cv-layers { display: flex; flex-direction: column; min-height: 0; background: var(--bg-secondary); position: relative; }
+/* The Layers panel is one section like the others; wherever it sits in the dock it takes the space that is left, and its
+   list scrolls within it. The other panels keep their own height. */
+/* The Layers group is a panel group (1.49.2): its Layers page keeps its rows (controls, list, footer) wherever it is. */
+.cv-layers-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.cv-layers-panel > .cv-group-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cv-layers-page { flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); }
+.cv-layers-page[hidden] { display: none; }
+.cv-group-body > .cv-layers-page { min-height: 240px; }
+.cv-layers-panel[hidden] { display: none; }
+.cv-layers > section:not(.cv-layers-panel) { flex: none; }
+/* Moving panels in the dock: the header is the grip; the line shows where a dragged panel will land. */
+.cv-dock-grip { cursor: grab; }
+.cv-dock-grip:active { cursor: grabbing; }
+.cv-dock-marker { position: absolute; left: 0; right: 0; height: 2px; background: var(--accent-color); pointer-events: none; z-index: var(--z-raised); }
+.cv-dock-marker[hidden] { display: none; }
+.cv-panel-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-2) 0 var(--space-3); border-bottom: 1px solid var(--border-color); }
+.cv-panel-title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--fs-11); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.cv-layer-props { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-color); }
+.cv-select { height: var(--ctl-sm); min-width: 0; padding: 0 var(--space-1); border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-secondary); font-size: var(--fs-11); }
+.cv-select:focus { outline: none; border-color: var(--accent-color); }
+.cv-opacity { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-muted); font-size: var(--fs-11); }
+.cv-opacity input[type="range"] { width: 64px; accent-color: var(--accent-color); }
+.cv-layer-list { position: relative; overflow-y: auto; min-height: 0; padding: var(--space-1) 0; }
+.cv-layer-rows.is-clip-zone, .cv-layer-rows.is-clip-zone * { cursor: alias; }
+.cv-layer { display: grid; grid-template-columns: 28px calc(var(--depth, 0) * 14px) 16px var(--cv-thumb) auto minmax(0, 1fr); align-items: center; column-gap: var(--space-1); height: var(--cv-row-h); padding: 0 var(--space-2) 0 var(--space-1); border-left: 3px solid transparent; color: var(--text-secondary); font-size: var(--fs-12); cursor: default; transform: translateY(var(--flip, 0px)); }
+/* A row moved by a layer arriving or leaving eases into its new place (ui/layers.ts render). */
+.cv-layer.is-settling { transition: transform 160ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .cv-layer.is-settling { transition: none; } }
+.cv-layer:hover { background: var(--bg-hover); }
+.cv-layer.is-selected { background: var(--bg-tertiary); }
+.cv-layer.is-active { border-left-color: var(--accent-color); color: var(--text-primary); }
+.cv-layer.is-dimmed .cv-layer-thumb, .cv-layer.is-dimmed .cv-layer-name { opacity: 0.45; }
+.cv-layer-eye { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-layer-eye:hover { color: var(--text-primary); }
+.cv-layer-eye .cv-eye-off, .cv-layer.is-hidden .cv-layer-eye .cv-eye-on { display: none; }
+.cv-layer.is-hidden .cv-layer-eye .cv-eye-off { display: inline-flex; }
+.cv-layer-disclose { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: var(--text-muted); visibility: hidden; cursor: pointer; }
+.cv-layer.is-group .cv-layer-disclose { visibility: visible; }
+.cv-layer-disclose .cv-open, .cv-layer.is-collapsed .cv-layer-disclose .cv-shut { display: inline-flex; }
+.cv-layer-disclose .cv-shut, .cv-layer.is-collapsed .cv-layer-disclose .cv-open { display: none; }
+.cv-layer-thumb, .cv-layer-mask { width: var(--cv-thumb); height: var(--cv-thumb); border: 1px solid var(--border-light); border-radius: var(--radius-xs); background: var(--bg-primary); display: block; }
+.cv-layer-kind { width: var(--cv-thumb); height: var(--cv-thumb); display: none; align-items: center; justify-content: center; color: var(--text-muted); }
+.cv-layer.is-group .cv-layer-thumb, .cv-layer.is-adjust .cv-layer-thumb { display: none; }
+.cv-layer.is-group .cv-layer-kind, .cv-layer.is-adjust .cv-layer-kind { display: inline-flex; }
+.cv-layer-mask { visibility: hidden; }
+.cv-layer.has-mask .cv-layer-mask { visibility: visible; }
+.cv-layer.is-mask-target .cv-layer-mask, .cv-layer.is-pixel-target .cv-layer-thumb { border-color: var(--accent-color); }
+.cv-layer.mask-off .cv-layer-mask { opacity: 0.35; }
+.cv-layer-name { display: flex; align-items: center; gap: var(--space-1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-layer-fx { flex: none; padding: 0 var(--space-1); color: var(--text-muted); font-size: var(--fs-11); font-style: italic; cursor: pointer; }
+.cv-layer-eye { grid-column: 1; }
+.cv-layer-indent { grid-column: 2; }
+.cv-layer-disclose { grid-column: 3; }
+.cv-layer-thumb, .cv-layer-kind { grid-column: 4; grid-row: 1; }
+.cv-layer-mask { grid-column: 5; grid-row: 1; }
+.cv-layer-name { grid-column: 6; grid-row: 1; }
+.cv-layer-clip { display: none; color: var(--text-muted); }
+.cv-layer.is-clipped .cv-layer-clip { display: inline-flex; }
+.cv-layer-rename { width: 100%; height: var(--ctl-sm); padding: 0 var(--space-1); border: 1px solid var(--accent-color); border-radius: var(--radius-xs); background: var(--bg-input); color: var(--text-primary); font-size: var(--fs-12); }
+.cv-layer-rename:focus { outline: none; }
+.cv-drop-line { position: absolute; left: var(--space-2); right: var(--space-2); height: 2px; border-radius: var(--radius-pill); background: var(--accent-color); pointer-events: none; visibility: hidden; z-index: var(--z-raised); }
+.cv-drop-line.is-shown { visibility: visible; }
+.cv-drop-line.is-inside { height: var(--cv-row-h); background: var(--accent-tint-strong); border: 1px solid var(--accent-color); }
+.cv-layers-empty { padding: var(--space-6) var(--space-4); color: var(--text-muted); font-size: var(--fs-11); text-align: center; }
+.cv-layers-empty[hidden] { display: none; }
+.cv-panel-foot { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); height: 36px; padding: 0 var(--space-2); border-top: 1px solid var(--border-color); }
+
+.cv-menu { position: fixed; min-width: 232px; max-height: calc(100vh - 8px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: var(--space-1); background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-window); }
+.cv-menu::-webkit-scrollbar { display: none; }
+.cv-menu-sub.is-open:not(:disabled) { background: var(--accent-color); color: var(--text-on-accent); }
+.cv-menu-sub.is-open .cv-menu-keys, .cv-menu-sub:hover .cv-menu-keys { color: var(--text-on-accent); }
+.cv-menu-sub .cv-menu-keys { display: inline-flex; }
+.cv-menu[hidden] { display: none; }
+.cv-menu-item { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-2); width: 100%; height: var(--ctl-md); padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font-size: var(--fs-12); text-align: left; cursor: default; }
+.cv-menu-item:hover:not(:disabled), .cv-menu-item.is-focus:not(:disabled) { background: var(--accent-color); color: var(--text-on-accent); }
+.cv-menu-item:disabled { color: var(--text-muted); opacity: 0.55; }
+.cv-menu-check { visibility: hidden; display: inline-flex; }
+.cv-menu-item.is-checked .cv-menu-check { visibility: visible; }
+.cv-menu-keys { color: var(--text-muted); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
+.cv-menu-item:hover:not(:disabled) .cv-menu-keys { color: var(--text-on-accent); }
+.cv-menu-sep { height: 1px; margin: var(--space-1) var(--space-2); background: var(--border-color); }
+
+.cv-toast { max-width: 380px; padding: var(--space-2) var(--space-3); background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); color: var(--text-primary); font-size: var(--fs-12); pointer-events: auto; }
+.cv-toast.is-error { border-color: var(--danger-fill); color: var(--danger-text); }
+
+.cv-pick { display: flex; gap: var(--space-3); align-items: flex-start; }
+.cv-pick-field, .cv-pick-strip { border-radius: var(--radius-sm); cursor: crosshair; touch-action: none; }
+.cv-pick-side { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.cv-pick-swatch { border-radius: var(--radius-sm); border: 1px solid var(--border-light); }
+.cv-layer-smart, .cv-layer-vector { flex: none; color: var(--text-muted); line-height: 0; }
+.cv-sf-list { max-height: 220px; overflow-y: auto; }
+.cv-sf-row { grid-template-columns: 18px minmax(0, 1fr) auto auto; }
+.cv-paths { border-top: 1px solid var(--border-color); }
+.cv-paths-toggle { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; cursor: pointer; }
+.cv-paths-toggle[aria-expanded="false"] .cv-paths-chevron { transform: rotate(-90deg); }
+.cv-paths-chevron { display: inline-flex; color: var(--text-muted); }
+.cv-path-list { position: relative; height: 96px; overflow-y: auto; padding: var(--space-1) 0; }
+.cv-path-row { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: var(--space-2); height: 28px; padding: 0 var(--space-3); color: var(--text-secondary); cursor: pointer; }
+.cv-path-row:hover { background: var(--bg-hover); }
+.cv-path-row.is-active { background: var(--bg-tertiary); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--accent-color); }
+.cv-path-row.is-work .cv-path-name { font-style: italic; }
+.cv-path-icon { display: inline-flex; color: var(--text-muted); }
+.cv-path-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cv-path-rename { height: 22px; padding: 0 var(--space-1); }
+.cv-paths-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-11); text-align: center; }
+.cv-paths-empty[hidden] { display: none; }
+.cv-shape-row { display: flex; align-items: center; gap: var(--space-2); }
+.cv-shape-swatch { flex: none; width: 22px; height: 22px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--swatch, transparent); }
+.cv-timeline { border-top: 1px solid var(--border-color); }
+.cv-timeline-loops { height: 24px; font-size: var(--fs-11); }
+.cv-frame-strip { position: relative; height: 104px; overflow-x: auto; overflow-y: hidden; }
+.cv-frames { display: flex; gap: var(--space-1); width: max-content; padding: var(--space-2); }
+.cv-frame { display: grid; gap: 2px; padding: 3px; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; }
+.cv-frame:hover { background: var(--bg-hover); }
+.cv-frame.is-active { border-color: var(--accent-color); background: var(--bg-tertiary); }
+.cv-frame-thumb { display: block; width: 64px; height: 48px; border-radius: 2px; background: var(--bg-primary); }
+.cv-frame-meta { display: flex; align-items: center; justify-content: space-between; gap: 2px; color: var(--text-secondary); font-size: var(--fs-11); }
+.cv-frame-delay { max-width: 46px; height: 18px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.cv-frames-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-11); text-align: center; }
+.cv-frames-empty[hidden] { display: none; }
+.cv-anim-wrap { display: flex; justify-content: center; padding: var(--space-2); border-radius: var(--radius-sm); background: var(--bg-primary); }
+.cv-anim-view { max-width: 100%; }
+.cv-frame.is-dragging { opacity: 0.5; }
+.cv-frame.drop-before { box-shadow: inset 3px 0 0 var(--accent-color); }
+.cv-frame.drop-after { box-shadow: inset -3px 0 0 var(--accent-color); }
+.cv-steps { max-height: 180px; overflow-y: auto; }
+.cv-step-row { grid-template-columns: 24px minmax(0, 1fr) auto; }
+.cv-step-row.is-picked { background: var(--bg-tertiary); }
+.cv-step-n { color: var(--text-muted); font-size: var(--fs-11); }
+.cv-step-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cv-step-ask { height: 22px; padding: 0 var(--space-2); font-size: var(--fs-11); }
+.cv-step-ask[aria-pressed="true"] { color: var(--accent-color); }
+.cv-step-tools { align-items: center; }
+.cv-step-tools .cv-input { flex: 1 1 140px; min-width: 0; }
+.cv-step-go { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-secondary); font-size: var(--fs-11); }
+.cv-steps-empty[hidden] { display: none; }
+.cv-stop-message { margin: 0; color: var(--text-primary); line-height: 1.5; }
+.cv-history { border-top: 1px solid var(--border-color); }
+.cv-history-count { color: var(--text-muted); font-size: var(--fs-11); font-variant-numeric: tabular-nums; min-width: 10ch; text-align: right; }
+.cv-history-list { position: relative; height: 132px; overflow-y: auto; padding: var(--space-1) 0; }
+.cv-history-row { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: var(--space-2); height: 26px; padding: 0 var(--space-3); color: var(--text-secondary); cursor: pointer; }
+.cv-history-row:hover { background: var(--bg-hover); }
+.cv-history-row.is-current { background: var(--bg-tertiary); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--accent-color); }
+.cv-history-row.is-undone { color: var(--text-muted); }
+.cv-history-icon { display: inline-flex; color: var(--text-muted); }
+.cv-history-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cv-history-row.is-snapshot .cv-history-name { font-weight: 500; }
+.cv-history-row.is-snapshot.is-picked { background: var(--bg-tertiary); }
+.cv-history-row.is-snapshot + .cv-history-row:not(.is-snapshot) { border-top: 1px solid var(--border-color); }
+
+/* ── Phase 21, step 1b: panels as the target's (UI_SPEC.md section 6, measured from s20). ── */
+/* The group header: a black strip; the panel's name as a chip (the target's active tab). */
+.cv-panel-head { background: var(--group-head); border-bottom: 0; height: 40px; }
+.cv-panel-title { padding: 5px 11px; border: 1px solid var(--line-3); border-radius: 8px; background: var(--surface-raised); color: var(--text-primary); font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+/* Layer rows as rounded cards with hairline borders; the selected one with the lavender gradient glow. */
+.cv-layer { margin: 3px 8px; border: 1px solid var(--line-1); border-radius: 8px; background: var(--surface-2); }
+.cv-layer:hover { border-color: var(--line-2); }
+.cv-layer.is-active { border-color: var(--accent-glow); background: linear-gradient(90deg, var(--surface-raised) 0%, var(--accent-glow) 55%, var(--accent-glow) 100%); color: var(--text-primary); }
+
+/* ── Phase 21, step 2a: panel groups, Navigator, Swatches and Color, as the target's (UI_SPEC.md section 6). ── */
+.cv-group { display: flex; flex-direction: column; border-bottom: 1px solid var(--line-0); }
+.cv-group-head { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 8px; background: var(--group-head); border-bottom: 0; }
+.cv-group-head > span { flex: 1; }
+.cv-group-tabs { display: flex; align-items: center; gap: 4px; }
+.cv-group-tab { height: 28px; padding: 0 11px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer; }
+.cv-group-tab:hover { color: var(--text-primary); }
+.cv-group-tab.is-active { border-color: var(--line-3); background: var(--surface-raised); color: var(--text-primary); font-weight: 500; }
+.cv-group-min { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--text-secondary); cursor: pointer; }
+.cv-group-min:hover { color: var(--text-primary); background: var(--surface-raised); }
+.cv-group-body { padding: 6px 10px 8px; }
+.cv-group-body[hidden], .cv-group-page[hidden] { display: none; }
+/* Sliders, as the target's: a dark track, a white round thumb. */
+.cv-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: transparent; cursor: pointer; }
+.cv-slider::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--surface-raised); }
+.cv-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--cta-bg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+.cv-slider::-moz-range-track { height: 4px; border-radius: 2px; background: var(--surface-raised); }
+.cv-slider::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--cta-bg); }
+/* Navigator */
+.cv-nav-card { position: relative; height: clamp(90px, 13vh, 170px); border-radius: 10px; background: var(--surface-2); overflow: hidden; }
+.cv-nav-preview { display: block; width: 100%; height: 100%; cursor: crosshair; }
+.cv-nav-zooms { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; padding: 3px; border: 1px solid var(--line-3); border-radius: 12px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); }
+.cv-nav-zooms button { height: 24px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.cv-nav-zooms button:hover { background: var(--surface-raised); color: var(--text-primary); }
+.cv-nav-zoom { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; color: var(--text-secondary); font-size: 13px; }
+/* Swatches */
+.cv-swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, 18px); gap: 2px; }
+.cv-sw-tile { width: 18px; height: 18px; padding: 0; border: 1px solid color-mix(in srgb, var(--text-primary) 6%, transparent); border-radius: 3px; cursor: pointer; }
+.cv-sw-tile:hover { outline: 1px solid var(--cta-bg); outline-offset: 1px; }
+.cv-sw-add { display: inline-grid; place-items: center; background: var(--surface-2); color: var(--text-secondary); }
+.cv-swatch-hint { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--text-muted); font-size: 12px; }
+/* Color */
+.cv-color-page { display: flex; gap: 8px; height: 150px; }
+.cv-color-sv { flex: 1; min-width: 0; height: 100%; border-radius: 6px; cursor: crosshair; }
+.cv-color-hue { width: 14px; height: 100%; border-radius: 4px; cursor: ns-resize; }
+
+/* ── Phase 21, step 2b: the Layers group as the target's (UI_SPEC.md section 6): Layers | Paths tabs, the Kind row,
+   blend and the Opacity field. ── */
+.cv-layer-props { display: block; padding: 6px 8px 2px; }
+.cv-layer-kind { display: flex; align-items: center; gap: 6px; }
+.cv-kind { width: 96px; flex: none; }
+.cv-kind-icons { display: flex; gap: 1px; padding: 2px; border: 1px solid var(--line-2); border-radius: 8px; }
+.cv-kind-btn { display: inline-grid; place-items: center; width: 26px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.cv-kind-btn:hover { color: var(--text-primary); }
+.cv-kind-btn.is-on { background: var(--accent-soft); color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.cv-layer-blendrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.cv-layer-blendrow .cv-blend { flex: 1; min-width: 0; }
+.cv-vsep { width: 1px; height: 18px; background: var(--line-2); flex: none; }
+.cv-opacity { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 13px; }
+/* A numeric field as the target's: dark, rounded, the value right-aligned in the monospace face, the unit dimmed. */
+.cv-num { display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface-field); }
+.cv-num input { width: 34px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font-family: var(--font-mono); font-size: 13px; text-align: right; }
+.cv-num:focus-within { border-color: var(--accent-color); }
+.cv-unit { color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+/* The Paths tab: only the header and Paths show; Paths' own fold toggle gives way to the tab. */
+.cv-group-body > .cv-paths[hidden] { display: none; }
+.cv-group-body > .cv-paths { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+.cv-group-body > .cv-paths > .cv-panel-head { height: 34px; background: transparent; }
+.cv-group-body > .cv-paths .cv-paths-toggle { display: none; }
+
+/* ── Phase 21, step 2c: the Properties column (UI_SPEC.md sections 5 and 6, the target's s20). ── */
+.cv-props-col { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; background: var(--surface-0); border-left: 1px solid var(--line-0); }
+.cv-props-col[hidden] { display: none; }
+.cv-props-col > .cv-group { flex: none; }
+.cv-props-head { display: flex; align-items: center; gap: 12px; padding: 8px 4px 12px; border-bottom: 1px solid var(--line-2); }
+.cv-props-tile { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-2); color: var(--text-secondary); }
+.cv-props-name { color: var(--text-primary); font-size: 14px; font-weight: 600; }
+.cv-props-section { display: flex; align-items: center; gap: 6px; width: 100%; margin: 8px 0 6px; padding: 2px 0; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cv-props-section[aria-expanded="false"] .icon { transform: rotate(-90deg); }
+.cv-props-section[hidden], .cv-props-transform[hidden], .cv-props-none[hidden] { display: none; }
+.cv-props-transform { display: flex; align-items: center; gap: 8px; }
+.cv-link-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; border: 1px solid var(--line-2); border-radius: 7px; background: var(--surface-2); color: var(--text-muted); cursor: pointer; }
+.cv-link-btn.is-on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-color); }
+.cv-props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; flex: 1; min-width: 0; }
+.cv-props-field { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; }
+.cv-props-field .cv-num { flex: 1; min-width: 0; }
+.cv-props-field .cv-num input, .cv-char-row .cv-num input, .cv-brush-row .cv-num input { width: 100%; }
+.cv-props-none { margin: 6px 2px; color: var(--text-muted); font-size: 12px; }
+.cv-num input:disabled { color: var(--text-muted); }
+/* Brushes */
+.cv-brush-top { display: flex; gap: 10px; }
+.cv-brush-tip { width: 88px; height: 88px; flex: none; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface-1); }
+.cv-brush-sliders { display: flex; flex-direction: column; justify-content: space-between; flex: 1; min-width: 0; }
+.cv-brush-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 13px; }
+.cv-brush-row-head .cv-num { width: 90px; }
+.cv-brush-stroke-head { display: flex; justify-content: flex-end; margin: 10px 0 4px; color: var(--text-muted); font-size: 11px; }
+.cv-brush-stroke { display: block; width: 100%; height: 56px; border-radius: 6px; background: var(--surface-2); }
+.cv-brush-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+/* A bordered button with an icon, as the target's ("Load...", "Brush Settings"). */
+.cv-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--line-3); border-radius: 7px; background: var(--surface-2); color: var(--text-primary); font: inherit; font-size: 13px; cursor: pointer; }
+.cv-btn:hover { background: var(--surface-raised); }
+/* Paragraph: a segmented bar. */
+.cv-seg { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--surface-1); }
+.cv-seg button { flex: 1; display: inline-grid; place-items: center; height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.cv-seg button.is-on { background: var(--accent-soft); color: var(--accent-color); }
+/* Character: labels right-aligned against their fields, as the target's forms. */
+.cv-char { display: flex; flex-direction: column; gap: 6px; }
+.cv-char-row { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 13px; }
+.cv-char-row > span { text-align: right; }
+.cv-char-row .cv-num { width: 110px; }
+/* The Layers panel's one column fits the panel (without it the column grew to its widest row and overflowed), and the
+   Kind row takes the full width, its dropdown shrinking before the icons do. */
+/* (the Layers page's single column: .cv-layers-page) */
+.cv-layer-props { min-width: 0; }
+.cv-layer-kind { width: 100%; min-width: 0; }
+.cv-kind { width: auto; flex: 1 1 88px; min-width: 64px; max-width: 110px; }
+.cv-kind-icons { flex: none; }
+/* The row under Opacity: the Lock controls at the left (next), Fill at the right, as the target's. */
+.cv-layer-lockrow { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.cv-lock-slot { flex: 1; min-width: 0; }
+.cv-layer-lockrow .cv-opacity > span:first-child, .cv-layer-blendrow .cv-opacity > span:first-child { min-width: 50px; text-align: right; }
+/* The Lock row (the target's): "Lock:" and four toggles; the one on is lavender-tinted. */
+.cv-lock-slot { display: flex; align-items: center; gap: 2px; color: var(--text-secondary); font-size: 13px; }
+.cv-lock-label { margin-right: 6px; }
+.cv-lock-btn { display: inline-grid; place-items: center; width: 26px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-lock-btn:hover { color: var(--text-primary); }
+.cv-lock-btn.is-on { background: var(--accent-soft); color: var(--accent-color); box-shadow: inset 0 0 0 1px var(--accent-line); }
+
+/* ── The Brushes group as the target's (s20; walkthrough corrections): search, grid or list, folders, sizes. ── */
+.cv-brush-find { display: flex; align-items: center; gap: 8px; margin: 10px 0 8px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+.cv-brush-search { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-2); color: var(--text-muted); }
+.cv-brush-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; }
+.cv-brush-views { display: flex; gap: 2px; }
+.cv-brush-views button { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.cv-brush-views button.is-on { border-color: var(--line-3); background: var(--surface-raised); color: var(--text-primary); }
+.cv-brush-folder { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: 7px; background: var(--surface-2); color: var(--text-primary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.cv-brush-folder[aria-expanded="false"] > .icon:first-child { transform: rotate(-90deg); }
+.cv-brush-folder .cv-bf-name { flex: 1; }
+.cv-brush-folder { background: transparent; }
+.cv-brush-folder em { color: var(--text-muted); font-style: normal; font-size: 12px; }
+.cv-brush-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px 2px; margin: 6px 0 8px; }
+.cv-brush-list { display: flex; flex-direction: column; gap: 1px; margin: 6px 0 8px; }
+.cv-brush-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text-muted); font: inherit; cursor: pointer; min-width: 0; }
+.cv-brush-tile:hover { background: var(--surface-raised); }
+.cv-brush-tile.is-on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text-primary); }
+.cv-brush-grid .cv-brush-name { display: none; }
+.cv-brush-size { font-family: var(--font-mono); font-size: 10.5px; white-space: nowrap; }
+.cv-brush-list .cv-brush-tile { flex-direction: row; gap: 10px; padding: 3px 8px; }
+.cv-brush-list .cv-brush-name { flex: 1; overflow: hidden; color: var(--text-secondary); font-size: 13px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.cv-brush-none { color: var(--text-muted); font-size: 12px; }
+.cv-brush-stroke-head { justify-content: space-between; color: var(--text-secondary); font-size: 12px; }
+.cv-brush-stroke-head span:last-child { color: var(--text-muted); font-size: 11px; }
+.cv-brush-actions { justify-content: space-between; }
+.cv-brush-shape { display: flex; flex-direction: column; gap: 8px; }
+.cv-brush-more { align-self: flex-end; margin-top: 4px; }
+
+/* Menus as the target's (the owner's Filter menu screenshot): a translucent blurred card; no tick column unless a tick
+   can show in that menu; hover a soft highlight; shortcuts grey at the right; a chevron for submenus. */
+.cv-menu { padding: 6px; border: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent); border-radius: 12px; background: rgba(40, 39, 44, 0.86); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); }
+.cv-menu-item { grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; height: 30px; padding: 0 10px 0 12px; border-radius: 7px; font-size: 14px; color: var(--text-primary); }
+.cv-menu-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-menu.has-checks .cv-menu-item { grid-template-columns: 16px minmax(0, 1fr) auto; column-gap: 8px; padding-left: 8px; }
+.cv-menu:not(.has-checks) .cv-menu-check { display: none; }
+.cv-menu-item:hover:not(:disabled), .cv-menu-item.is-focus:not(:disabled) { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--text-primary); }
+.cv-menu-item:hover:not(:disabled) .cv-menu-keys, .cv-menu-keys { color: rgba(235, 235, 245, 0.45); font-size: 13px; letter-spacing: 0.04em; }
+.cv-menu-sep { height: 1px; margin: 6px 10px; background: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.cv-brush-tip { cursor: grab; touch-action: none; }
+.cv-brush-tip:active { cursor: grabbing; }
+
+/* The Properties column collapsed to its strip of icons, and the flyout a strip icon opens (the owner's screenshot). */
+.cv-props-strip { display: none; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; }
+.cv-props-col.is-collapsed { overflow: visible; }
+.cv-props-col.is-collapsed > .cv-group { display: none; }
+.cv-props-col.is-collapsed > .cv-props-strip { display: flex; }
+.cv-strip-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.cv-strip-btn:hover, .cv-strip-btn.is-on { border-color: var(--line-2); background: var(--surface-raised); color: var(--text-primary); }
+.cv-strip-expand { width: 30px; height: 26px; margin-bottom: 4px; }
+.cv-group-collapse { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-left: 4px; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-group-collapse:hover { background: var(--surface-raised); color: var(--text-primary); }
+.cv-props-fly { position: fixed; z-index: var(--z-context); width: 284px; max-height: calc(100vh - 24px); overflow-y: auto; border: 1px solid var(--line-3); border-radius: 12px; background: var(--surface-0); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6); }
+.cv-props-fly[hidden] { display: none; }
+
+/* Resizable dock groups (the target's): a splitter between groups; a sized group lays out as a column whose body scrolls;
+   a sized Navigator's preview fills it. */
+.cv-dock-split { flex: none; position: relative; z-index: 2; height: 6px; margin: -3px 0; cursor: row-resize; touch-action: none; }
+.cv-dock-split::after { content: ''; position: absolute; left: 42%; right: 42%; top: 2px; height: 2px; border-radius: 1px; background: transparent; }
+.cv-dock-split:hover::after { background: var(--line-3); }
+.cv-layers > section.is-sized { display: flex; flex-direction: column; overflow: hidden; }
+.cv-layers > section.is-sized > .cv-group-body { flex: 1; min-height: 0; overflow: auto; }
+.cv-navigator.is-sized > .cv-group-body { display: flex; flex-direction: column; overflow: hidden; }
+.cv-navigator.is-sized .cv-nav { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cv-navigator.is-sized .cv-nav-card { flex: 1; height: auto; min-height: 60px; }
+
+/* Channels (the target's tab): a row per channel, eye, thumbnail, name; the viewed one raised; the view as a filter. */
+.cv-channels { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 8px; }
+.cv-channels[hidden] { display: none; }
+.cv-ch-rows { display: flex; flex-direction: column; gap: 4px; }
+.cv-ch-row { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 10px 0 6px; border: 1px solid var(--line-1); border-radius: 8px; background: var(--surface-2); color: var(--text-primary); font-size: 13px; cursor: pointer; }
+.cv-ch-row.is-on { border-color: var(--accent-line); background: linear-gradient(90deg, var(--accent-soft), var(--accent-glow)); }
+.cv-ch-eye { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.cv-ch-eye.is-off { opacity: 0.25; }
+.cv-ch-thumb { width: 44px; height: 30px; border-radius: 4px; background: var(--surface-raised); }
+.cv-ch-note { margin: 10px 2px 0; color: var(--text-muted); font-size: 12px; }
+.cv-stage.has-channel-view .cv-scene, .cv-stage.has-channel-view .cv-scene-gpu { filter: url(#cv-channel-view); }
+/* The panel menu button (the target's •••), before the minimise button. */
+.cv-group-more { display: inline-grid; place-items: center; width: 26px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.cv-group-more[hidden] { display: none; }
+.cv-group-more:hover { background: var(--surface-raised); color: var(--text-primary); }
+/* The right column collapsed to its strip (the target's «). */
+.cv-dock-strip { display: none; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; }
+.cv-layers.is-collapsed > section, .cv-layers.is-collapsed > .cv-dock-split { display: none !important; }
+.cv-layers.is-collapsed > .cv-dock-strip { display: flex; }
+.cv-dock-fly { width: 288px; }
+.cv-dock-fly > section { display: flex !important; flex-direction: column; max-height: calc(100vh - 40px); }
+
+/* The side column over the canvas, not beside it (the owner's walkthrough): its track is the strip's 46 px; expanded,
+   it widens leftward over the canvas, above it, so collapsing or expanding never resizes the canvas. */
+/* (--cv-props-open-w is set on the root: the width handle changes it.) */
+.cv-props-col:not(.is-collapsed) {
+  justify-self: end; width: var(--cv-props-open-w); position: relative; z-index: 4;
+  box-shadow: -16px 0 36px rgba(0, 0, 0, 0.32); border-left: 1px solid var(--line-0);
+}
+
+/* Overlap and overflow (the owner's walkthrough): the Layers panel keeps room for its controls and rows, and a dock with
+   more open than fits scrolls (its scrollbar hidden) instead of stacking panels over each other; the swatch hint on
+   one line; toasts over the canvas, bottom centre, never over the panels. */
+.cv-layers { overflow-y: auto; overflow-x: hidden; }
+/* Z1 (1.59.1): it fills the space left and gives way down to its 230 pixels, but never grows with its rows (a basis of
+   0, not its content), so the list scrolls inside it and its footer stays where it is whatever the document holds. */
+.cv-layers > .cv-layers-panel { min-height: 230px; flex: 1 1 0; }
+.cv-layers > section { min-width: 0; }
+.cv-layers > section:not(.cv-layers-panel):not(.is-sized) { overflow: hidden; }
+.cv-swatch-hint { white-space: nowrap; min-width: 0; }
+.cv-swatch-hint span { overflow: hidden; text-overflow: ellipsis; }
+#toast-root { right: auto !important; left: 50%; transform: translateX(-50%); align-items: center; }
+/* The options bar ends at the open column's edge, so no control lies hidden under it. */
+:root { --cv-props-open-w: 284px; }
+/* (A window too narrow for this shows the column as its strip: PropertiesColumn.MIN_CANVAS.) */
+.cv-main:has(> .cv-props-col:not(.is-collapsed):not([hidden])) > .cv-options { margin-right: calc(var(--cv-props-open-w) - 46px); }
+/* The History Brush's source column (Photoshop's): marked on the snapshot it paints from. */
+.cv-hb-source { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: auto; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); opacity: 0.45; cursor: pointer; }
+.cv-hb-source:hover { opacity: 1; color: var(--text-primary); }
+.cv-hb-source.is-on { opacity: 1; color: var(--accent-ink); background: var(--accent-soft); }
+/* The side column's width handle (its left edge), and the drop marker inside it while a panel is dragged over. */
+.cv-props-col { position: relative; }
+.cv-props-resize { position: absolute; top: 0; bottom: 0; left: -3px; width: 6px; cursor: col-resize; z-index: 5; touch-action: none; }
+.cv-props-col.is-collapsed .cv-props-resize { display: none; }
+.cv-props-resize:hover { background: color-mix(in srgb, var(--accent-color) 40%, transparent); }
+/* Tabs moving between groups: the dragged tab's ghost, the group it would join, and a group left without tabs. */
+.cv-tab-ghost { position: fixed; z-index: var(--z-context); padding: 5px 12px; border: 1px solid var(--accent-line); border-radius: 8px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); color: var(--text-primary); font-size: 13px; pointer-events: none; }
+.cv-group.is-tab-target > .cv-group-head { box-shadow: inset 0 0 0 2px var(--accent-color); }
+.cv-group.is-empty { display: none !important; }
+
+/* Moving panels, made plain (1.49.2, the owner's walkthrough): a grip on every header; a ghost of what is dragged;
+   a bold drop marker saying what a release does (Move here, New group); a header outlined saying Add as tab. */
+.cv-group-grip { display: inline-grid; place-items: center; width: 16px; margin-right: 2px; color: var(--text-muted); opacity: 0.55; cursor: grab; flex: none; }
+.cv-panel-head:hover .cv-group-grip { opacity: 1; }
+.cv-panel-head { cursor: grab; }
+.cv-panel-head button, .cv-panel-head select, .cv-panel-head input { cursor: pointer; }
+.cv-drag-ghost { position: fixed; z-index: var(--z-context); padding: 6px 12px; border: 1px solid var(--accent-line); border-radius: 9px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); color: var(--text-primary); font-size: 13px; font-weight: 600; pointer-events: none; box-shadow: var(--glass-shadow); }
+.cv-dock-marker { height: 4px !important; border-radius: 2px; box-shadow: 0 0 12px var(--accent-color); }
+.cv-dock-marker::after { content: attr(data-label); position: absolute; right: 8px; top: -11px; padding: 2px 8px; border-radius: 6px; background: var(--accent-color); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.cv-group.is-tab-target > .cv-group-head { position: relative; }
+.cv-group.is-tab-target > .cv-group-head::after { content: 'Add as tab'; position: absolute; right: 44px; top: 50%; transform: translateY(-50%); padding: 2px 8px; border-radius: 6px; background: var(--accent-color); color: #fff; font-size: 11px; font-weight: 600; }
+/* The grip keeps its own size (the header's spacer rule, span { flex: 1 }, caught it too and pushed the tabs inward). */
+.cv-group-head > .cv-group-grip { flex: none; }
+/* Older grid headers (Timeline, History) give the grip a leading column of its own. */
+.cv-panel-head:not(.cv-group-head):has(> .cv-group-grip) { grid-template-columns: auto auto 1fr auto; }
+/* The grip in one place on every header, as the Navigator's (the owner's note): pinned at the left edge in a fixed 18 px
+   zone, with little padding, never moved by how many tabs a group has or what else its header holds. */
+.cv-group-head, .cv-panel-head:has(> .cv-group-grip) { position: relative; padding-left: 22px !important; }
+.cv-group-head > .cv-group-grip, .cv-panel-head > .cv-group-grip { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); width: 14px; height: 20px; margin: 0; }
+.cv-panel-head:not(.cv-group-head):has(> .cv-group-grip) { grid-template-columns: auto 1fr auto; }
+.cv-group.is-tab-full > .cv-group-head { position: relative; box-shadow: inset 0 0 0 2px var(--text-muted); }
+.cv-group.is-tab-full > .cv-group-head::after { content: 'Full: 7 tabs'; position: absolute; right: 44px; top: 50%; transform: translateY(-50%); padding: 2px 8px; border-radius: 6px; background: var(--surface-raised); color: var(--text-secondary); font-size: 11px; font-weight: 600; }
+/* A tab's name never wraps (Brush Settings did, in the side column): one line, shortened when it must be, the whole
+   name in its tooltip. */
+.cv-group-tabs { min-width: 0; overflow: hidden; flex-wrap: nowrap; }
+.cv-group-tab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; max-width: 100%; }
+/* Tabs fit rather than being cut (1.49.4 shortened both Brushes and Brush Settings): tighter padding; the active tab is
+   never shortened; only an inactive one gives way, and only when there is truly no room. */
+.cv-group-tab { padding-left: 10px !important; padding-right: 10px !important; }
+.cv-group-tab.is-active { flex-shrink: 0; overflow: visible; text-overflow: clip; }
+.cv-group-tabs { gap: 2px; }
+/* The tab steps (PanelGroup.fitTabs): compact, then tight lettering, before any shortening. */
+.cv-group-tabs.is-compact .cv-group-tab { font-size: 12px; padding-left: 7px !important; padding-right: 7px !important; }
+.cv-group-tabs.is-tight .cv-group-tab { font-size: 11px; padding-left: 5px !important; padding-right: 5px !important; letter-spacing: -0.1px; }
+/* The Info panel's readouts. */
+.cv-info-body { display: flex; flex-direction: column; gap: 3px; padding: 8px 12px 10px; font-size: 12px; }
+.cv-info-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; }
+.cv-info-key { color: var(--text-muted); }
+.cv-info-val { color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A hidden panel group takes no room (found by the Info panel, hidden by default: groups set display: flex, which
+   overrode the hidden attribute, so any group hidden from the Window menu still took its space). */
+.cv-group[hidden] { display: none !important; }

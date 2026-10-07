@@ -1,0 +1,266 @@
+/* stylized-nodemode · tokens.css · v1.0.0
+   The first stylesheet a NodeMode companion site loads. Token NAMES are the
+   exact names NodeMode's own stylesheets read (frontend/src/styles/_variables.css
+   at v7.1.0), so any sheet copied from assets/css-mirror/ works unchanged.
+   VALUES are the base dark profile; themes.ts overwrites the theme-owned
+   ones at runtime and theme-boot.js does the same before first paint.
+
+   Rules this file encodes:
+   1. Color comes from a token, never a literal. Semantic literals (credits
+      green, danger red, signed-in orange, handle colors) are the only
+      exceptions and they live here as named tokens so they stay greppable.
+   2. Every z-index in the site is a var(--z-*) from the scale below.
+   3. Dark is the default. Light is body.theme-light, an override layer. */
+
+:root {
+  /* Native controls (checkboxes, dropdowns, scrollbars) in the dark, as the target's; the light profiles set light. */
+  color-scheme: dark;
+  /* ── accent (settings-driven in the app; --accent-color-dim is accent + 33 alpha); the target's lavender ── */
+  --accent-color: #f97316;
+  --accent-color-dim: #f9731633;
+  --accent-color-hover: color-mix(in srgb, var(--accent-color) 82%, #ffffff);
+
+  /* ── surfaces (theme-owned; the Studio Dark profile's values, measured from the target: UI_SPEC.md) ── */
+  --bg-primary: #111111;
+  --bg-secondary: #17151b;
+  --bg-tertiary: #222127;
+  --bg-node: #191919;
+  --border-color: #2a2a2a;
+  --border-light: #34333a;
+  --text-primary: #f7f7f7;
+  --text-secondary: #a4a4a4;
+  --text-muted: #717072;
+  --canvas-bg: #1c1b1d;
+  --grid-color: #5e5e60;
+  --node-shadow: 0 6px 18px rgba(0,0,0,0.45);
+
+  /* ── canvas geometry (the app's defaults) ── */
+  --grid-size: 24px;
+  --node-opacity: 1;
+  --connection-width: 2.5px;
+  --canvas-bg-image: none;
+
+  /* ── handle colors (HANDLE_COLORS in app/constants/index.ts) ── */
+  --handle-text: #d946ef;
+  --handle-image: #5eead4;
+  --handle-array: #9ca3af;
+  --handle-video: #1120aa;
+  --handle-audio: #ff8b1f;
+  --handle-3d: #eab308;
+  --handle-number: #2eff3f;
+  --handle-list: #f7e81c;
+  --handle-boolean: #22c55e;
+  --handle-mask: #a78bfa;
+  --handle-archive: #427268;
+  --handle-code: #191d1a;
+  --handle-data: #242323;
+
+  /* ── motion ── */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --ease-glass: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* ── elevation ── */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-window: 0 24px 60px rgba(0,0,0,0.6);
+
+  /* ── spacing (the app declares 1-3; 4-8 extend the same 4px step) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  /* ── radii (measured off the sheets: 4 inputs, 6 buttons, 8 menus, 10 windows, 12 cards, 999 pills) ── */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+
+  /* ── type ── */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'JetBrains Mono', monospace;
+  --fs-9: 9px;
+  --fs-10: 10px;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+
+  /* ── control heights (density tiers the app actually uses) ── */
+  --ctl-sm: 24px;
+  --ctl-md: 28px;
+  --ctl: 32px;
+  --ctl-lg: 36px;
+  --ctl-xl: 40px;
+
+  /* ── derived surfaces (v7.3.0 light-mode-pass; body.theme-light flips them) ── */
+  --bg-input: var(--bg-tertiary);
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-scrim: rgba(0, 0, 0, 0.6);
+  --text-on-accent: #fff;
+  --text-on-cta: #000;          /* the homepage New Flow button: black on accent */
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --accent-tint: color-mix(in srgb, var(--accent-color) 6%, transparent);
+  --accent-tint-strong: color-mix(in srgb, var(--accent-color) 10%, transparent);
+
+  /* ── Phase 21 semantic tokens: every surface, line and accent tint the redesign uses, derived from the theme's own
+     variables and the accent, so all fifteen profiles (the light ones too) are right, and nothing is hardcoded.
+     --accent-intensity (Preferences > Interface, 0 to 1.5) scales how strongly the accent tints what it marks. ── */
+  --accent-intensity: 1;
+  --surface-0: var(--bg-primary);
+  --surface-1: color-mix(in srgb, var(--bg-primary) 55%, var(--bg-tertiary));
+  --surface-2: var(--bg-node);
+  --surface-field: var(--bg-input);
+  --surface-raised: color-mix(in srgb, var(--bg-node) 70%, var(--text-primary) 8%);
+  --group-head: color-mix(in srgb, var(--bg-primary) 30%, #000);
+  --line-0: color-mix(in srgb, var(--bg-primary) 55%, #000);
+  --line-1: var(--border-color);
+  --line-2: var(--border-light);
+  --line-3: color-mix(in srgb, var(--border-light) 75%, var(--text-muted));
+  --cta-bg: #ffffff;
+  --cta-bg-hover: #f2f2f2;
+  --cta-text: #000000;
+  --accent-soft: color-mix(in srgb, var(--accent-color) calc(20% * var(--accent-intensity)), var(--surface-2));
+  --accent-line: color-mix(in srgb, var(--accent-color) calc(48% * var(--accent-intensity)), var(--line-2));
+  --accent-glow: color-mix(in srgb, var(--accent-color) calc(30% * var(--accent-intensity)), var(--surface-2));
+  --accent-ink: color-mix(in srgb, var(--accent-color) calc(80% * var(--accent-intensity)), var(--text-primary));
+  --accent-wash: color-mix(in srgb, var(--accent-color) calc(10% * var(--accent-intensity)), transparent);
+
+  /* ── semantic literals the design fixes regardless of accent ── */
+  --ok: #22c55e;
+  --ok-soft: #86efac;
+  --warn: #fbbf24;
+  --danger: #ef4444;
+  --danger-soft: #f87171;
+  --danger-text: #fca5a5;
+  --success-fill: #059669;
+  --success-fill-hover: #047857;
+  --danger-fill: #dc2626;
+  --danger-fill-hover: #b91c1c;
+  --brand-orange: #f97316;
+
+  /* ── declared stacking scale ──
+     Bands mirror NodeMode's verified registry (.docs/ADDING_NODES_AND_UI.md
+     section 6.2.2) so a companion surface embedded next to the app never
+     collides. Component CSS uses var(--z-*) only. Never a raw number,
+     never 9999. */
+  --z-base: 0;
+  --z-raised: 8;          /* hovered card lift (the app's .node:hover) */
+  --z-selected: 9;        /* selected card (the app's .node.selected) */
+  --z-rail: 10;           /* mini icon rail */
+  --z-chrome: 100;        /* top and bottom bars, selection box */
+  --z-menu: 200;          /* dropdown menus anchored to chrome */
+  --z-temp: 500;          /* transient drag artifacts */
+  --z-companion: 800;     /* floating panels: navigator 800, chat 810 */
+  --z-taskbar: 900;       /* floating taskbar */
+  --z-modal: 1000;        /* gallery modal band */
+  --z-settings: 1500;     /* settings popout */
+  --z-context: 2000;      /* context menus, dialogs */
+  --z-portal: 4000;       /* extension panels 4000-6999 */
+  --z-home: 10000;        /* the homepage root; nothing else claims 10000-10999 */
+  --z-home-modal: 10010;
+  --z-home-preview: 10100;
+  --z-account-panel: 10500;
+  --z-overlay: 50000;     /* full-screen editors */
+  --z-overlay-modal: 60000;
+  --z-debug: 100000;      /* development only */
+}
+
+body.theme-light {
+  color-scheme: light;
+  /* The redesign's black header strips and white primary buttons, as the light profiles need them. */
+  --group-head: var(--bg-tertiary);
+  --line-0: var(--border-color);
+  --surface-raised: color-mix(in srgb, var(--bg-node) 88%, var(--text-primary) 8%);
+  --cta-bg: var(--text-primary);
+  --cta-bg-hover: color-mix(in srgb, var(--text-primary) 85%, var(--bg-primary));
+  --cta-text: var(--bg-secondary);
+  --bg-input: var(--bg-secondary);
+  --bg-hover: rgba(0, 0, 0, 0.06);
+  --bg-scrim: rgba(40, 36, 28, 0.45);
+  --border-soft: rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 14px rgba(96, 90, 70, 0.16);
+  --shadow-window: 0 18px 44px rgba(96, 90, 70, 0.22);
+}
+
+/* ── resets, exactly as the app ships them ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+/* the app sets user-select: none globally because it is an editor; a
+   companion SITE keeps text selectable and opts specific chrome out */
+button, [role="button"], .ns-no-select { user-select: none; }
+input, textarea, select { user-select: text; font-family: inherit; }
+button { font-family: inherit; }
+a { color: inherit; }
+
+/* ── icon base (app/_variables.css) ── */
+.icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.icon svg { width: 100%; height: 100%; }
+.icon.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ── animations off switch (settings: animationsEnabled=false) ── */
+body.animations-disabled * { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* ── view gate (app/_variables.css): body-mounted canvas surfaces hide on the home view ── */
+body.nm-home .nm-canvas-surface { display: none !important; }
+
+/* formvis · app tokens appended to the NodeMode base: layout sizes, the
+   canvas paint colors the stage reads per draw, and the toast band. */
+:root {
+  --cv-titlebar-h: 40px;
+  --cv-options-h: 40px;
+  --cv-status-h: 28px;
+  --cv-rail-w: 52px;
+  --cv-layers-w: 288px;
+  --cv-row-h: 40px;
+  --cv-thumb: 30px;
+  --cv-checker-a: #ffffff;
+  --cv-checker-b: #cccccc;
+  --cv-ants-a: #000000;
+  --cv-ants-b: #ffffff;
+  --cv-pixel-grid: rgba(128, 128, 140, 0.35);
+  --cv-handle-fill: #ffffff;
+  --cv-doc-edge: rgba(0, 0, 0, 0.55);
+  --z-toast: 3000;
+}
+
+body.theme-light { color-scheme: light; }
+
+/* ── Liquid glass (the owner's walkthrough): one look for every menu, dropdown and flyout, from the theme's own surface,
+   so it holds in light themes too; scrollbars hidden everywhere while scrolling still works. ── */
+:root {
+  --glass-bg: color-mix(in srgb, var(--surface-2) 82%, transparent);   /* dense enough that nothing behind reads through */
+  --glass-border: color-mix(in srgb, var(--text-primary) 16%, transparent);
+  --glass-highlight: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  --glass-filter: blur(40px) saturate(1.8);
+  --glass-shadow: 0 22px 56px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.cv-menu, .cv-dd-pop, .cv-flyout, .cv-search-pop, .cv-props-fly {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow) !important;
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }

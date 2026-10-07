@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>formdes</title>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="/node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    html, body { background: #0a0a0a; margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    #app { visibility: hidden; }
+    body.app-ready #app { visibility: visible; }
+    .hidden { display: none !important; }
+  </style>
+  <script>
+/* stylized-nodemode · theme-boot.js · v1.0.0
+   Inline this file's contents in a script element in the document head,
+   AFTER the critical inline style block and BEFORE any stylesheet link.
+   It runs synchronously before the body exists, so the persisted profile
+   and accent are on documentElement before the first paint. That is the
+   entire mechanism behind "no theme flash on hard reload".
+
+   Keep the PROFILES table in sync with themes.ts (same 14 ids). Only the
+   surface-visible vars are needed here; themes.ts re-applies everything
+   once the bundle loads. The body class for light profiles is applied by a
+   MutationObserver the instant body appears, still before paint. */
+(function () {
+  var KEY = 'nodemode_ui_settings';
+  var DEFAULT_THEME = 'studio';
+  var DEFAULT_ACCENT = '#f97316';
+  var LIGHT = { 'light': 1, 'sand': 1 };
+  var PROFILES = {
+    'studio':        ['#111111', '#17151b', '#222127', '#2a2a2a', '#34333a', '#f7f7f7', '#a4a4a4', '#717072', '#1c1b1d', '#5e5e60', '#191919'],
+    'nodemode-dark': ['#0a0a0a', '#121218', '#1a1a24', '#2a2a35', '#3a3a48', '#e8e8ee', '#a8a8b8', '#6a6a7a', '#0a0a0a', 'rgba(255,255,255,0.04)'],
+    'light':         ['#ecebe6', '#f7f6f1', '#e2e0d8', '#d1cdc1', '#beb9aa', '#26241d', '#4c4a40', '#8b887a', '#e7e5dd', 'rgba(70,60,30,0.10)', '#f4f3ed'],
+    'github-dark':   ['#0d1117', '#161b22', '#21262d', '#30363d', '#3d444d', '#e6edf3', '#9198a1', '#656c76', '#0d1117', 'rgba(230,237,243,0.05)'],
+    'midnight':      ['#0b1020', '#101830', '#182242', '#25325c', '#324274', '#e4e9f7', '#9fabd0', '#63709a', '#0b1020', 'rgba(160,180,255,0.06)'],
+    'forest':        ['#0c130e', '#121c15', '#1a281e', '#2a4030', '#375441', '#e4efe7', '#a4bdac', '#6a8674', '#0c130e', 'rgba(180,230,190,0.05)'],
+    'ember':         ['#140d0a', '#1d1310', '#2a1c16', '#452e22', '#5a3d2e', '#f2e8e2', '#c7ab9c', '#8f7263', '#140d0a', 'rgba(255,200,160,0.05)'],
+    'violet':        ['#100b1c', '#171129', '#221a3c', '#382c5e', '#493b78', '#ece6f9', '#b3a6d8', '#7a6da3', '#100b1c', 'rgba(210,190,255,0.06)'],
+    'slate':         ['#101418', '#171d23', '#212a32', '#32404c', '#415260', '#e7edf2', '#a3b2bf', '#6b7a87', '#101418', 'rgba(200,220,240,0.05)'],
+    'mono':          ['#0e0e0e', '#161616', '#202020', '#333333', '#454545', '#f0f0f0', '#ababab', '#6e6e6e', '#0e0e0e', 'rgba(255,255,255,0.05)'],
+    'sand':          ['#efe8da', '#f8f3e9', '#e6dcc8', '#d4c7ab', '#c2b28e', '#2a2418', '#59503c', '#8d8168', '#eae2d1', 'rgba(80,60,10,0.10)', '#f5efe2'],
+    'ocean':         ['#06131c', '#0a1c29', '#10293c', '#1d425e', '#285578', '#e2eef7', '#96b6cc', '#5b7d94', '#06131c', 'rgba(150,210,255,0.06)'],
+    'rose':          ['#170b10', '#211117', '#301a22', '#4d2b38', '#653a49', '#f5e7ec', '#cfa5b3', '#966b7b', '#170b10', 'rgba(255,190,215,0.05)'],
+    'terminal':      ['#050d05', '#0a140a', '#102010', '#1f3d1f', '#2b522b', '#d8f5d8', '#8fce8f', '#568a56', '#050d05', 'rgba(120,255,120,0.06)'],
+    'contrast':      ['#000000', '#0a0a0a', '#161616', '#555555', '#777777', '#ffffff', '#d8d8d8', '#9a9a9a', '#000000', 'rgba(255,255,255,0.10)']
+  };
+  var NAMES = ['--bg-primary', '--bg-secondary', '--bg-tertiary', '--border-color', '--border-light', '--text-primary', '--text-secondary', '--text-muted', '--canvas-bg', '--grid-color'];
+  var theme = DEFAULT_THEME, accent = DEFAULT_ACCENT, intensity = 1;
+  try {
+    var raw = localStorage.getItem(KEY);
+    /* A choice saved before the Studio Dark redesign is set aside once; from generation 2, the theme and any accent chosen
+       on purpose are kept, the old lavender default becoming orange (generation 3); themes.ts agrees. */
+    if (raw) { var s = JSON.parse(raw); if (s.appearance === 3 || s.appearance === 2) { if (s.theme && PROFILES[s.theme]) theme = s.theme; if (s.accentColor && !(s.appearance === 2 && s.accentColor === '#aba0d3')) accent = s.accentColor; if (s.appearance === 3 && typeof s.intensity === 'number') intensity = Math.min(1.5, Math.max(0, s.intensity)); } }
+  } catch (e) { /* private mode or blocked storage: defaults are correct */ }
+  var p = PROFILES[theme], root = document.documentElement, i;
+  for (i = 0; i < NAMES.length; i++) root.style.setProperty(NAMES[i], p[i]);
+  root.style.setProperty('--bg-node', p[10] || p[1]);
+  root.style.setProperty('--shadow-lg', LIGHT[theme] ? '0 4px 14px rgba(96, 90, 70, 0.16)' : '0 8px 32px rgba(0, 0, 0, 0.5)');
+  root.style.setProperty('--accent-color', accent);
+  root.style.setProperty('--accent-color-dim', accent + '33');
+  root.style.setProperty('--accent-color-hover', 'color-mix(in srgb, ' + accent + ' 82%, #ffffff)');
+  root.style.setProperty('--accent-intensity', String(intensity));
+  /* the critical inline style paints html with the profile background */
+  root.style.background = p[0];
+  if (LIGHT[theme]) {
+    root.classList.add('theme-light-pending');
+    var apply = function () { if (document.body) { document.body.classList.add('theme-light'); root.classList.remove('theme-light-pending'); return true; } return false; };
+    if (!apply()) {
+      var mo = new MutationObserver(function () { if (apply()) mo.disconnect(); });
+      mo.observe(root, { childList: true });
+    }
+  }
+})();
+  </script>
+  <link rel="stylesheet" href="/src/styles/fonts.css">
+  <link rel="stylesheet" href="/src/styles/tokens.css">
+  <link rel="stylesheet" href="/src/styles/shell.css">
+  <link rel="stylesheet" href="/src/styles/panels.css">
+  <link rel="stylesheet" href="/src/styles/dialogs.css">
+  <link rel="stylesheet" href="/src/styles/formdes.css">
+  <link rel="stylesheet" href="/src/styles/light-mode.css">
+  <link rel="stylesheet" href="/src/styles/scrollbars.css">
+</head>
+<body>
+  <div id="app"></div>
+  <div id="overlay-root"></div>
+  <div id="toast-root"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
