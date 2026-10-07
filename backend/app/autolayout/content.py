@@ -65,7 +65,7 @@ def stats_from(articles: list[dict], n: int = 8) -> list[dict]:
                     if not unit and (num < 10 or (1800 <= num <= 2100 and "." not in digits)):
                         continue
                     tail = s[m.end():].strip(" ,")
-                    label = re.split(r"[,;:.()—–]", tail)[0].strip()
+                    label = re.split(r"[,;:.()\N{EM DASH}\N{EN DASH}]", tail)[0].strip()
                     label = " ".join(label.split()[:7])
                     if B.words(label) < 2 or raw in seen:
                         continue
@@ -81,8 +81,8 @@ def split_entry(text: str) -> dict:
     m = PRICE.search(t)
     if m:
         price = m.group(1).replace(" ", "")
-        t = (t[:m.start()] + t[m.end():]).strip(" ,.-–—|")
-    m = re.match(r"^(.{2,60}?)\s*(?::|—|–| - |\|)\s*(.+)$", t)
+        t = (t[:m.start()] + t[m.end():]).strip(" ,.-\N{EN DASH}\N{EM DASH}|")
+    m = re.match(r"^(.{2,60}?)\s*(?::|\N{EM DASH}|\N{EN DASH}| - |\|)\s*(.+)$", t)
     if m:
         return {"title": m.group(1).strip(), "body": m.group(2).strip(), "price": price}
     m = re.match(r"^(.{2,60}?)[.!?]\s+(.+)$", t)
