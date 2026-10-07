@@ -26,5 +26,8 @@ async def capabilities():
         "platform": platform.system().lower(),
         "core": {"running": core.alive(), "version": core.version, "binary": str(core.binary) if core.binary else None},
         "dataDir": str(config.DATA_DIR),
+        "paths": {"projects": str(config.PROJECTS_DIR), "exports": str(config.EXPORTS_DIR), "templates": str(config.TEMPLATES_USER_DIR),
+                  "brands": str(config.BRANDS_DIR), "intake": str(config.INTAKE_DIR)},
         "fontDirs": [str(d) for d in config.font_dirs()],
+        "mcp": "http://127.0.0.1:8196/mcp",
     }

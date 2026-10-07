@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 from fastapi import APIRouter, Body, File, HTTPException, UploadFile
@@ -25,6 +26,25 @@ async def list_documents():
 @router.get("/documents/recent")
 async def recent():
     return documents.recent()
+
+
+@router.post("/files")
+async def upload_files(files: list[UploadFile] = File(...)):
+    out = []
+    total = 0
+    for f in files:
+        data = await f.read()
+        total += len(data)
+        if total > config.MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "the upload is larger than 512 MB")
+        digest = hashlib.sha1(data).hexdigest()[:16]
+        name = "".join(c if (c.isalnum() or c in "._- ") else "_" for c in Path(f.filename or "file").name).strip() or "file"
+        target = config.INTAKE_DIR / "uploads" / digest / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            target.write_bytes(data)
+        out.append({"name": name, "path": str(target), "bytes": len(data)})
+    return {"files": out}
 
 
 @router.post("/documents/new")

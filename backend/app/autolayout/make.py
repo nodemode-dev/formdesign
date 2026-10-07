@@ -367,6 +367,7 @@ async def make(core: Core, pack: dict, template_id: str | None = None, *, brand:
         res = await fit_text(core, rt, r, paras, source)
         if res:
             report["fit"][r.get("slot") or str(r["id"])] = res
+    await run(core, [{"command": "edit.deselectAll", "params": {}}], source)
     try:
         pf = await core.exec("preflight.run", {}, source=source)
         issues = pf if isinstance(pf, list) else (pf or {}).get("issues", [])
