@@ -1,0 +1,62 @@
+{
+  "skill_name": "formdes-harness",
+  "notes": "Run with the formdes MCP server connected and the sample folder from the repository's TEST_PLAN (an article in markdown with front matter, a Word file, three photos, a transparent PNG logo, a magazine PDF).",
+  "evals": [
+    {
+      "id": 1,
+      "name": "magazine-feature-from-a-folder",
+      "prompt": "Turn ~/Desktop/spring-issue (slow-craft.md, field-notes.docx and some photos) into a 6-page magazine feature for Northlight, warm and elegant, cream paper, orange accent #f97316. Save it and give me a PDF.",
+      "files": [],
+      "expected_behavior": [
+        "The agent calls intake with the folder path and the brief before reading any file itself",
+        "make_layout is called with the pack id and a magazine template that has a body flow (for example magazine-feature-spread)",
+        "At least one preview is looked at after the last change",
+        "save_document writes a .fdes and export_document a PDF, and the reply names both paths and anything still sample text"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "square-ad-from-a-one-line-idea",
+      "prompt": "quick insta ad for kiln & co - open studio weekend sat 12 april 10 to 4 at 4 mill lane leith, book a seat, £18. use ceramic-bowl.jpg and kiln-logo.png",
+      "files": [],
+      "expected_behavior": [
+        "The brief passed to intake carries Date, Time, Venue, CTA and Price as key: value lines or verbatim",
+        "A 1080 x 1080 ad template is chosen",
+        "The report's kept slots are filled with set_slots or named to the person; the logo slot shows the logo",
+        "A PNG is exported"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "pdf-question-not-a-layout",
+      "prompt": "What does page 3 of quarterly.pdf say about baseline grids?",
+      "files": [],
+      "expected_behavior": [
+        "The agent uses read_pdf (text for page 3, or search) and answers with the page cited",
+        "No layout is made and make_layout is not called"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "finish-a-made-layout",
+      "prompt": "The flyer you made still says Fernhill Garden Co in the header and the phone number is wrong: it should be 0131 496 0000 and the brand is Bramble and Bough.",
+      "files": [],
+      "expected_behavior": [
+        "One set_slots call writes brand and phone (and any other slot holding the old brand)",
+        "A preview confirms the change; no frame is rebuilt with low-level commands"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    { "query": "make me a magazine layout from this markdown and these photos", "should_trigger": true },
+    { "query": "can u design an instagram post for my bakery opening saturday", "should_trigger": true },
+    { "query": "Please typeset the attached report as an A4 white paper and export a PDF.", "should_trigger": true },
+    { "query": "I need a landing page mockup for our app launch using the screenshots in /assets", "should_trigger": true },
+    { "query": "turn this article into a newsletter", "should_trigger": true },
+    { "query": "extract the text from this PDF and lay it out as a brochure", "should_trigger": true },
+    { "query": "fix the bug in formdes's tile renderer", "should_trigger": false },
+    { "query": "add a new template to formdes for a wine label", "should_trigger": false },
+    { "query": "write a blog post about slow craft", "should_trigger": false },
+    { "query": "resize this photo to 1080 by 1080", "should_trigger": false }
+  ]
+}
