@@ -10,7 +10,7 @@ from app import __version__
 from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
-from app.routers import core_api, documents as documents_api, intake, reader, system
+from app.routers import core_api, documents as documents_api, intake, make, mcp, reader, system, templates
 
 logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("formdes")
@@ -35,6 +35,9 @@ app.include_router(core_api.router, prefix="/api")
 app.include_router(documents_api.router, prefix="/api")
 app.include_router(intake.router, prefix="/api")
 app.include_router(reader.router, prefix="/api")
+app.include_router(templates.router, prefix="/api")
+app.include_router(make.router, prefix="/api")
+app.include_router(mcp.router)
 
 
 if (config.DIST_DIR / "index.html").is_file():
