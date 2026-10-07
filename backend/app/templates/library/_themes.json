@@ -1,0 +1,92 @@
+{
+  "editorial": {
+    "name": "Editorial Serif",
+    "palette": {"ink": "#1b1a1f", "paper": "#ffffff", "accent": "#d9481c", "accent2": "#2b4c7e", "muted": "#6e6a66", "tint": "#f4efe7", "dark": "#1b1a1f", "light": "#faf8f4"},
+    "fonts": {"display": ["Playfair Display", "Bold"], "text": ["Newsreader", "Regular"], "accent": ["DM Sans", "Bold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "swiss": {
+    "name": "Swiss Grid",
+    "palette": {"ink": "#111111", "paper": "#ffffff", "accent": "#e30613", "accent2": "#0057b8", "muted": "#737373", "tint": "#f2f2f2", "dark": "#111111", "light": "#ffffff"},
+    "fonts": {"display": ["Inter Tight", "Bold"], "text": ["Inter", "Regular"], "accent": ["Inter Tight", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "modern-serif": {
+    "name": "Modern Serif",
+    "palette": {"ink": "#22201c", "paper": "#fbf8f2", "accent": "#c2410c", "accent2": "#3f6212", "muted": "#7a7268", "tint": "#efe7da", "dark": "#22201c", "light": "#fbf8f2"},
+    "fonts": {"display": ["Fraunces", "Black"], "text": ["Source Serif 4", "Regular"], "accent": ["DM Sans", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "classic": {
+    "name": "Classic Book",
+    "palette": {"ink": "#1f1d1a", "paper": "#fdfbf6", "accent": "#7f1d1d", "accent2": "#1e3a5f", "muted": "#77716a", "tint": "#f1ebdf", "dark": "#1f1d1a", "light": "#fdfbf6"},
+    "fonts": {"display": ["Libre Baskerville", "Bold"], "text": ["EB Garamond", "Regular"], "accent": ["EB Garamond", "Italic"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "bold-sans": {
+    "name": "Bold Sans",
+    "palette": {"ink": "#0d0d0d", "paper": "#ffffff", "accent": "#ff4d1c", "accent2": "#1c3fff", "muted": "#5f5f5f", "tint": "#f5f1ea", "dark": "#0d0d0d", "light": "#ffffff"},
+    "fonts": {"display": ["Archivo", "Black"], "text": ["Archivo", "Regular"], "accent": ["Archivo", "Bold"], "mono": ["Space Mono", "Regular"]}
+  },
+  "geometric": {
+    "name": "Geometric",
+    "palette": {"ink": "#14213d", "paper": "#ffffff", "accent": "#fca311", "accent2": "#2a9d8f", "muted": "#6b7280", "tint": "#eef1f6", "dark": "#14213d", "light": "#ffffff"},
+    "fonts": {"display": ["Montserrat", "Black"], "text": ["Lora", "Regular"], "accent": ["Montserrat", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "tech": {
+    "name": "Tech",
+    "palette": {"ink": "#0f172a", "paper": "#ffffff", "accent": "#6d28d9", "accent2": "#0ea5e9", "muted": "#64748b", "tint": "#f1f5f9", "dark": "#0b1020", "light": "#e2e8f0"},
+    "fonts": {"display": ["Space Grotesk", "Bold"], "text": ["IBM Plex Sans", "Regular"], "accent": ["Space Grotesk", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "warm": {
+    "name": "Warm Display",
+    "palette": {"ink": "#2b2118", "paper": "#fdf6ec", "accent": "#e07a2f", "accent2": "#6b8f71", "muted": "#8a7a68", "tint": "#f4e6d2", "dark": "#2b2118", "light": "#fdf6ec"},
+    "fonts": {"display": ["DM Serif Display", "Regular"], "text": ["Work Sans", "Regular"], "accent": ["Work Sans", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "luxury": {
+    "name": "Luxury",
+    "palette": {"ink": "#1a1714", "paper": "#f8f5f0", "accent": "#a8834a", "accent2": "#3b3530", "muted": "#8c847b", "tint": "#ece5da", "dark": "#141210", "light": "#f8f5f0"},
+    "fonts": {"display": ["Cormorant Garamond", "Bold"], "text": ["Cormorant Garamond", "Regular"], "accent": ["Raleway", "Bold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "news": {
+    "name": "Newsroom",
+    "palette": {"ink": "#121212", "paper": "#ffffff", "accent": "#b91c1c", "accent2": "#1d4ed8", "muted": "#5c5c5c", "tint": "#f3f3f1", "dark": "#121212", "light": "#ffffff"},
+    "fonts": {"display": ["Newsreader", "Bold"], "text": ["Newsreader", "Regular"], "accent": ["Inter Tight", "Bold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "poster": {
+    "name": "Poster Condensed",
+    "palette": {"ink": "#101010", "paper": "#f5f0e6", "accent": "#ff3b30", "accent2": "#ffcc00", "muted": "#6b6b6b", "tint": "#e9e1d2", "dark": "#101010", "light": "#f5f0e6"},
+    "fonts": {"display": ["Bebas Neue", "Regular"], "text": ["Barlow", "Regular"], "accent": ["Barlow Condensed", "Bold"], "mono": ["Space Mono", "Regular"]}
+  },
+  "playful": {
+    "name": "Playful",
+    "palette": {"ink": "#1e1b4b", "paper": "#fffdf7", "accent": "#ff5ca8", "accent2": "#14b8a6", "muted": "#6b6b8a", "tint": "#fff1c2", "dark": "#1e1b4b", "light": "#fffdf7"},
+    "fonts": {"display": ["Syne", "Bold"], "text": ["Outfit", "Regular"], "accent": ["Outfit", "SemiBold"], "mono": ["Space Mono", "Regular"]}
+  },
+  "corporate": {
+    "name": "Corporate",
+    "palette": {"ink": "#1f2937", "paper": "#ffffff", "accent": "#0b5cab", "accent2": "#14b8a6", "muted": "#6b7280", "tint": "#eef4fb", "dark": "#0b2545", "light": "#ffffff"},
+    "fonts": {"display": ["IBM Plex Sans", "Bold"], "text": ["IBM Plex Sans", "Regular"], "accent": ["IBM Plex Sans", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "literary": {
+    "name": "Literary",
+    "palette": {"ink": "#262421", "paper": "#fbf9f4", "accent": "#5b4636", "accent2": "#556b2f", "muted": "#857d72", "tint": "#efe9dd", "dark": "#262421", "light": "#fbf9f4"},
+    "fonts": {"display": ["EB Garamond", "Regular"], "text": ["EB Garamond", "Regular"], "accent": ["EB Garamond", "Italic"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "retro": {
+    "name": "Retro",
+    "palette": {"ink": "#2d1e2f", "paper": "#f7efe2", "accent": "#e4572e", "accent2": "#29335c", "muted": "#7d6b5d", "tint": "#f3dfc1", "dark": "#2d1e2f", "light": "#f7efe2"},
+    "fonts": {"display": ["Abril Fatface", "Regular"], "text": ["Josefin Sans", "Regular"], "accent": ["Josefin Sans", "Bold"], "mono": ["Space Mono", "Regular"]}
+  },
+  "studio-dark": {
+    "name": "Studio Dark",
+    "palette": {"ink": "#f4f4f5", "paper": "#111113", "accent": "#f97316", "accent2": "#a78bfa", "muted": "#a1a1aa", "tint": "#1c1c20", "dark": "#09090b", "light": "#f4f4f5"},
+    "fonts": {"display": ["Inter Tight", "Black"], "text": ["Inter", "Regular"], "accent": ["Inter Tight", "SemiBold"], "mono": ["JetBrains Mono", "Regular"]}
+  },
+  "fresh": {
+    "name": "Fresh",
+    "palette": {"ink": "#14332b", "paper": "#ffffff", "accent": "#16a34a", "accent2": "#f59e0b", "muted": "#5f7a72", "tint": "#ecf8f1", "dark": "#0f2a23", "light": "#ffffff"},
+    "fonts": {"display": ["Figtree", "Black"], "text": ["Figtree", "Regular"], "accent": ["Figtree", "SemiBold"], "mono": ["IBM Plex Mono", "Regular"]}
+  },
+  "condensed-news": {
+    "name": "Condensed News",
+    "palette": {"ink": "#151515", "paper": "#ffffff", "accent": "#0057ff", "accent2": "#ff2e63", "muted": "#666666", "tint": "#f0f0f0", "dark": "#151515", "light": "#ffffff"},
+    "fonts": {"display": ["Oswald", "Bold"], "text": ["Merriweather", "Regular"], "accent": ["Oswald", "Regular"], "mono": ["IBM Plex Mono", "Regular"]}
+  }
+}
