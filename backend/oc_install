@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+cd "$(dirname "$0")"
+PY=""
+for c in python3.14 python3.13 python3.12 python3; do
+  if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null; then PY="$c"; break; fi
+done
+[ -n "$PY" ] || { echo "[formdes] Python 3.12 or newer is required" >&2; exit 1; }
+[ -d venv ] || "$PY" -m venv venv
+# shellcheck disable=SC1091
+source venv/bin/activate
+python -m pip install --upgrade pip
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  pip install -r requirements_macos.txt
+else
+  pip install -r requirements.txt
+fi

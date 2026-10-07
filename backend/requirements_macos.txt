@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+pypdfium2
+python-docx
+openpyxl
+markdown-it-py
+mdit-py-plugins
+striprtf
+fonttools
+brotli
+keyring
