@@ -58,7 +58,7 @@ export class HomeScreen {
   }
 
   private fill(): void {
-    const items = this.d.recent();
+    const items = this.d.recent().slice(0, 8);
     setHidden(this.recentBox, items.length === 0);
     const key = JSON.stringify(items);
     if (key === this.listKey) return;
