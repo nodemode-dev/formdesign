@@ -1,0 +1,6 @@
+# formdes for Codex in this repository (trusted projects only). From any folder: ./formdes agents install codex.
+[mcp_servers.formdes]
+command = "sh"
+args = ["-c", "exec \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/formdes\" mcp"]
+startup_timeout_sec = 90
+tool_timeout_sec = 600

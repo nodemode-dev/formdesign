@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+export FORMDES_CWD="${FORMDES_CWD:-$PWD}"
 cd "$(dirname "$0")"
 usage() {
   printf 'formdes %s · page layout and publishing\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
@@ -52,7 +53,7 @@ case "$cmd" in
   make) exec setup/cli make "$@" ;;
   templates) exec setup/cli templates "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
-  agents) exec python3 setup/agents.py "$@" ;;
+  agents) if [ -x backend/venv/bin/python ]; then exec backend/venv/bin/python setup/agents.py "$@"; else exec python3 setup/agents.py "$@"; fi ;;
   doctor) exec setup/doctor "$@" ;;
   counts) exec setup/counts "$@" ;;
   clean) exec setup/clean "$@" ;;

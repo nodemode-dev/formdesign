@@ -1,5 +1,6 @@
 @echo off
 setlocal
+if not defined FORMDES_CWD set "FORMDES_CWD=%CD%"
 cd /d "%~dp0"
 set "CMD=%~1"
 set "ARG=%~2"
@@ -22,7 +23,10 @@ if /i "%CMD%"=="desktop" (
 if /i "%CMD%"=="make" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="templates" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py & goto :eof )
-if /i "%CMD%"=="agents" ( python setup\agents.py %ARG% & goto :eof )
+if /i "%CMD%"=="agents" (
+  if exist backend\venv\Scripts\python.exe ( backend\venv\Scripts\python.exe setup\agents.py %2 %3 %4 %5 ) else ( python setup\agents.py %2 %3 %4 %5 )
+  goto :eof
+)
 if /i "%CMD%"=="doctor" ( call setup\doctor.bat & goto :eof )
 if /i "%CMD%"=="counts" ( call setup\counts.bat %ARG% & goto :eof )
 if /i "%CMD%"=="clean" ( call setup\clean.bat %ARG% & goto :eof )
