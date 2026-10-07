@@ -268,7 +268,7 @@ def structure(path: str, max_pages: int = 400) -> dict:
             out.append(B.listing(items))
             items = []
 
-    for w, h, lines in pages:
+    for pi, (w, h, lines) in enumerate(pages):
         for l in _columns(lines, w):
             if re.sub(r"\d+", "#", l["text"]) in repeated or re.fullmatch(r"[\divxlc]+", l["text"].lower()):
                 continue
@@ -282,7 +282,7 @@ def structure(path: str, max_pages: int = 400) -> dict:
                 if out and out[-1]["type"] == "heading" and prev and prev["size"] == l["size"] and l["base"] - prev["base"] < l["size"] * 1.6:
                     out[-1]["text"] += " " + l["text"]
                 else:
-                    out.append(B.heading(level_of.get(size, 3), l["text"]))
+                    out.append({**B.heading(level_of.get(size, 3), l["text"]), "page": pi})
                 prev = l
                 continue
             m = BULLET.match(l["text"])
