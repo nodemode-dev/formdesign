@@ -25,7 +25,10 @@ The window is a thin client in vanilla TypeScript and Vite. It draws pixels the 
 | `pages.ts`, `pages/` | Pages, Layers, Links |
 | `document.ts`, `document/` | New Document, Document Setup, Export, Package, Preferences, Preflight, Info |
 | `reader.ts`, `reader/` | the PDF Reader |
-| `rulers.ts`, `glyphs.ts`, `tabs.ts`, `table.ts`, `book.ts`, `story.ts` | rulers and guides, Glyphs, Tabs, the Table panel, Books, the Story Editor |
+| `rulers.ts`, `glyphs.ts`, `tabs.ts`, `table.ts`, `book.ts`, `story.ts` | rulers and guides, Glyphs, Tabs, the Table panel, Books, the Story Editor (style column from `story.paras`, overset line) |
+| `object-styles.ts`, `properties/hub.ts` | the Object view of the Styles tab: apply, New from selection, Options, Redefine, Delete over the core's `objectStyles` |
+| `review.ts` | the Review group: Changes, Notes, Conditions |
+| `separations.ts` | Separations Preview (plates and the ink limit as tile options) and Overprint Preview |
 
 ## How a feature plugs in
 

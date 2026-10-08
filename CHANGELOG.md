@@ -2,6 +2,15 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.8.0 · 2026-10-08
+
+- Separations Preview (View > Separations Preview, Shift+F6): one plate at a time, spot inks, and the ink limit marked in red.
+- Overprint Preview (View > Overprint Preview, Alt+Shift+Ctrl+Y).
+- The Review group: Track Changes (accept or reject one change or all), Notes (add, edit, delete, convert to text) and Conditional Text (new, apply, clear, show or hide, delete).
+- The Story Editor shows each paragraph's style name beside it and a line where the text is overset.
+- Object Style Options: name, fill, stroke, stroke weight and paragraph style, applied to every object that uses the style; Redefine from the selection; Delete.
+- Parity with InDesign measured at 44.5 of 53.
+
 ## 0.7.1 · 2026-10-08
 
 - Documentation: the wiki in `.docs/wiki/` (sixteen pages), `.docs/BRANCHING.md`, the user manual `docs/MANUAL.md`, this changelog, and `.github/workflows/wiki.yml` to publish the wiki.

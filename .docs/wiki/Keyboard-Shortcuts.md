@@ -96,6 +96,8 @@ Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow
 | Frame Edges | Alt+Ctrl+H |
 | Baseline Grid | Alt+Ctrl+' |
 | Text Threads | Alt+Ctrl+Y |
+| Separations Preview | Shift+F6 |
+| Overprint Preview | Alt+Shift+Ctrl+Y |
 | Hide Panels | Tab |
 
 Help > Keyboard Shortcuts in the app lists the ones the window adds; the core's list comes from its command catalogue (`commands`). Known clash: Transform Again and Show All on Spread both claim Alt+Ctrl+3 in the core's catalogue; use the Object menu for either until it is resolved.

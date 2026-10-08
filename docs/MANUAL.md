@@ -59,8 +59,8 @@ Good habits: put the article's title as the first heading, a one-line deck as a 
 | Tool rail | 37 InDesign tools; hold a tool to see its group; single-key shortcuts as in InDesign |
 | Document tabs | every open document; the dot marks unsaved changes |
 | Canvas | pages on the pasteboard; rulers on the top and left |
-| Left of the dock | Properties, Character, Paragraph |
-| Right dock | Make and Slots; Swatches, Styles and Table; Pages, Layers and Links; Preflight, Info, Glyphs and Tabs |
+| Left of the dock | Properties, Character, Paragraph; Glyphs and Tabs; Changes, Notes and Conditions |
+| Right dock | Make and Slots; Swatches, Styles and Table; Pages, Layers and Links; Preflight, Info and Separations |
 | Status bar | the engine and layout core, the current page, the active tool, the version |
 
 Panel groups can be minimised with the minus button and moved by their grip; Tab hides every panel. Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex and Cursor.
@@ -73,10 +73,11 @@ The Pages panel shows parent pages (masters) at the top and the document's pages
 
 - **Typing.** Pick the Type tool (T), drag a frame and type, or click into an existing frame. Selecting the frame's out port and clicking another frame threads the story on.
 - **Formatting.** The Character (Ctrl+T) and Paragraph (Alt+Ctrl+T) panels and the control bar set fonts, sizes, leading, tracking, indents, spacing, hyphenation and keep options. The composer is Knuth-Plass, like InDesign's Paragraph Composer.
-- **Styles.** The Styles tab switches between paragraph, character and object styles. Click a style to apply it; a plus sign marks local overrides; the buttons make a style from the selection, redefine it, edit its options or delete it. F11 and Shift+F11 open it on paragraph and character styles.
+- **Styles.** The Styles tab switches between paragraph, character and object styles. Click a style to apply it; a plus sign marks local overrides; the buttons make a style from the selection, redefine it, edit its options or delete it. F11 and Shift+F11 open it on paragraph and character styles, Ctrl+F7 on object styles. An object style's Options set its name, fill, stroke, stroke weight and paragraph style, and every object using the style follows; Redefine takes the selected object's look into the style; Delete leaves the objects looking as they did.
 - **Glyphs.** The Glyphs panel (Alt+Shift+F11) shows every character of the selected text's font, by set; click one to insert it at the cursor.
 - **Tabs.** The Tabs panel (Shift+Ctrl+T) shows the paragraph's tab stops on a ruler as wide as its frame. Click to add a stop, drag to move it, drag it down off the ruler to remove it; set its alignment, position, leader and the character to align on.
-- **Story Editor.** Ctrl+Y opens the story as plain text, one paragraph per line, for writing and editing without layout getting in the way. Changes appear in the layout as you type and keep their formatting.
+- **Story Editor.** Ctrl+Y opens the story as plain text, one paragraph per line, for writing and editing without layout getting in the way. Changes appear in the layout as you type and keep their formatting. The column on the left names each paragraph's style, and a red Overset line marks where the text runs past the last frame.
+- **Review.** The Changes panel turns Track Changes on and lists every insertion and deletion with its author and time; accept or reject each one, or all. The Notes panel adds a note at the text cursor and lets you edit, delete or turn notes into text. The Conditions panel makes conditions, applies them to selected text, and shows or hides each one, so one document can hold several versions of its copy.
 - **Find and spell.** Edit > Find/Change searches text with plain words or GREP and changes it, optionally applying formatting; Edit > Spelling checks the story.
 - **Long text.** Footnotes and endnotes, cross-references, hyperlinks, text variables, conditional text and tables of contents and indexes are in the Type and Layout menus.
 
@@ -101,6 +102,8 @@ Rulers count from the top-left of the spread in your units (Preferences, Units).
 ## Checking your work
 
 The Preflight panel lists overset text, missing fonts and links, low-resolution images and RGB colour in print documents, and goes green when the document is ready. The Info panel shows the pointer's position and the selection's size. Preview (W) hides guides and frame edges.
+
+View > Separations Preview (Shift+F6) opens the Separations panel. Choose Separations, then Cyan, Magenta, Yellow or Black to see only that plate, as a printer's film would show it, or CMYK for all four. Choose Ink Limit and set a total (300 percent is common for coated stock) to see in red every area that would carry more ink than the press allows; Off returns to the normal view. Spot inks are listed underneath, each with Print as process. View > Overprint Preview (Alt+Shift+Ctrl+Y) shows how objects set to overprint will mix with the colours beneath them. Soft proofing against a printer's profile is not available yet.
 
 ## Exporting and printing
 

@@ -28,9 +28,10 @@ Working end to end:
 - **The editor.** Tiled rendering of the layout core with overlays, the 37 InDesign tools, menus built from the core's 432 commands, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
 - **Desktop.** A Tauri 2 app for macOS, Windows and Linux with the engine and the layout core as sidecars; CI builds the bundles on each `v*.*.*` tag.
 
-- **InDesign workspace pieces.** Rulers with drag-out guides (Ctrl+R), the Glyphs panel, the Tabs ruler, one Styles tab for paragraph, character and object styles, the Table panel (options, alternating rows, cell and table styles), Books (File > Book: chapters, numbering, style sync, one PDF) and the Story Editor (Ctrl+Y).
+- **InDesign workspace pieces.** Rulers with drag-out guides (Ctrl+R), the Glyphs panel, the Tabs ruler, one Styles tab for paragraph, character and object styles, the Table panel (options, alternating rows, cell and table styles), Books (File > Book: chapters, numbering, style sync, one PDF) and the Story Editor (Ctrl+Y) with a style-name column and the overset line.
+- **Review and output.** Track Changes, Notes and Conditional Text panels; Separations Preview with the ink limit (Shift+F6) and Overprint Preview; Object Style Options, Redefine and Delete.
 
-Measured against InDesign 2026 in 53 rows (full 1, partial 0.5, none 0), formdes scores 42.5 (80 percent) at 0.7.0, up from 39.5 at 0.6.1. Next: the Story Editor's style column, object style options, Track Changes and Notes panels, Separations Preview.
+Measured against InDesign 2026 in 53 rows (full 1, partial 0.5, none 0), formdes scores 44.5 (84 percent) at 0.8.0, up from 42.5 at 0.7.0. Next: a Find/Change dialog with GREP and saved queries, dynamic spelling, preflight profiles, the XML Structure and Library panels, saved workspaces.
 
 **Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
 

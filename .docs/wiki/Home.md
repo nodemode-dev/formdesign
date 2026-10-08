@@ -15,11 +15,12 @@ Version 0.7.1 · Rust layout core (formdes-core over formdes's own layout crates
 | MCP server (26 tools), stdio bridge, agent installers, CLI | Stable |
 | The editor: canvas, tools, menus, Properties, Character, Paragraph, Make, Slots, Pages, Layers, Links, Swatches, Styles, Preflight, Info | Working; verified in the browser at 0.6.1 |
 | Rulers, Glyphs, Tabs, Table, Book, Story Editor | Working; new at 0.7.0, verified once each |
+| Separations and Overprint Preview, Track Changes, Notes, Conditional Text, Object Style Options | Working; new at 0.8.0, verified once each |
 | PDF Reader | Working |
 | Desktop app | Linux built and launched; macOS and Windows built only by CI so far |
-| Web export beyond one HTML page, Separations Preview, Track Changes and Notes panels, animation | Not built |
+| Web export beyond one HTML page, soft proofing, a Find/Change dialog with GREP and saved queries, preflight profiles, the XML Structure and Library panels, animation | Not built |
 
-The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 42.5 at 0.7.0.
+The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 44.5 at 0.8.0.
 
 ## Where to go
 

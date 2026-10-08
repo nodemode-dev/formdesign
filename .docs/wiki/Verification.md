@@ -35,7 +35,7 @@ Every change that touches the window:
 3. Exercise every path the change touched, and watch the moment of change, not the end state: panels patch values without a section disappearing and coming back, lists keep their scroll and focus, the canvas keeps its old tiles until new ones arrive.
 4. Change the selection a few times with a panel open. A mutation observer on the panel column should see text nodes and option lists change, never whole sections rebuilt.
 
-At 0.6.1 the main panels passed steps 2 to 4; the rulers, Glyphs, Tabs, Table, Book and Story Editor added at 0.7.0 have been exercised but not yet throttled.
+At 0.6.1 the main panels passed steps 2 to 4; the rulers, Glyphs, Tabs, Table, Book and Story Editor added at 0.7.0 have been exercised but not yet throttled. At 0.8.0 the Separations, Changes, Notes, Conditions and Object Styles views passed steps 2 to 4 under 4x CPU and a slow network: the first paint was in the dark profile, showing each panel added its rows once, and switching plates, modes and the selection removed no node.
 
 ## Before calling a template done
 
