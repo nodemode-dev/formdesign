@@ -3,9 +3,10 @@
 .mk-page { --mk-bg: var(--bg-secondary); }
 .mk-page[hidden] { display: none; }
 .mk { container-type: inline-size; color: var(--text-primary); font-size: var(--fs-12); }
-.mk-layout { display: flex; flex-direction: column; }
+.mk-layout { display: flex; flex-direction: column; gap: 8px; }
 .mk-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 4px 0 12px; }
-.mk-col-out { padding-top: 10px; border-top: 1px solid var(--line-1); }
+.mk-col-in { border-bottom: 1px solid var(--line-1); }
+.mk-col-out { display: contents; }
 
 .mk-head { display: flex; align-items: center; gap: 7px; height: 22px; }
 .mk-head-n { display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px; border: 1px solid var(--line-3); border-radius: 50%; background: var(--surface-raised); color: var(--text-secondary); font-size: var(--fs-10); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -164,10 +165,10 @@
 .mk-dialog .cv-dialog-foot { display: none; }
 .mk-dialog .mk { --mk-bg: var(--surface-2); }
 @container (min-width: 720px) {
-  .mk-layout { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); align-items: start; }
+  .mk-layout { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); align-items: start; gap: 0; }
   .mk-col { gap: 10px; padding: 16px 18px 18px; }
-  .mk-col-in { position: sticky; top: 0; border-right: 1px solid var(--line-1); }
-  .mk-col-out { border-top: 0; }
+  .mk-col-in { position: sticky; top: 0; border-right: 1px solid var(--line-1); border-bottom: 0; }
+  .mk-col-out { display: flex; }
   .mk-drop { padding: 18px 14px; }
   .mk-cards { gap: 8px; }
   .mk-card { padding: 5px 5px 6px; }
