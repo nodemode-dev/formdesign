@@ -5,5 +5,7 @@ import { feature as pages } from './pages';
 import { feature as properties } from './properties';
 import { feature as reader } from './reader';
 import { rulersFeature as rulers } from './rulers';
+import { installGlyphs } from './glyphs';
+import { installTabs } from './tabs';
 
-export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers];
+export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }];

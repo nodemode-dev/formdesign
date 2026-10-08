@@ -1,0 +1,18 @@
+.ft-panel { display: flex; flex-direction: column; gap: var(--space-2); }
+.ft-align { display: flex; }
+.ft-fields { display: grid; grid-template-columns: 1.2fr 1fr 0.8fr; gap: var(--space-1); }
+.ft-lab { cursor: default; }
+.ft-wide { width: auto; padding: 0 6px; }
+.ft-ruler { position: relative; height: 40px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface-field); cursor: copy; touch-action: none; user-select: none; overflow: hidden; }
+.ft-scale { position: absolute; inset: 0 0 18px 0; border-bottom: 1px solid var(--line-1); }
+.ft-tick { position: absolute; left: 0; top: 0; height: 100%; padding-left: 3px; border-left: 1px solid var(--line-2); color: var(--text-muted); font-size: 9px; line-height: 12px; font-variant-numeric: tabular-nums; }
+.ft-stops { position: absolute; left: 0; right: 0; bottom: 3px; height: 12px; }
+.ft-stop { position: absolute; left: 0; top: 0; width: 12px; height: 12px; color: var(--text-secondary); cursor: ew-resize; }
+.ft-stop.is-current { color: var(--accent-color); }
+.ft-stop.is-off { opacity: 0.35; }
+.ft-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--text-muted); font-size: var(--fs-11); }
+.ft-hint { line-height: 1.35; }
+.ft-clear { flex: none; }
+.ft-empty { color: var(--text-muted); font-size: var(--fs-11); }
+.ft-empty[hidden] { display: none; }
+.ft-panel.is-off .ft-ruler, .ft-panel.is-off .ft-fields, .ft-panel.is-off .ft-align, .ft-panel.is-off .ft-foot { opacity: 0.45; pointer-events: none; }
