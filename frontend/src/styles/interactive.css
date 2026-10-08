@@ -1,0 +1,21 @@
+.fin-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px var(--space-2); }
+.fin-form[hidden] { display: none; }
+.fin-f { display: flex; flex-direction: column; gap: 3px; min-width: 0; color: var(--text-muted); font-size: var(--fs-11); }
+.fin-f[hidden], .fin-checks[hidden] { display: none; }
+.fin-wide { grid-column: 1 / -1; }
+.fin-f .cv-dd-btn { width: 100%; height: var(--ctl-sm); }
+.fin-in { width: 100%; min-width: 0; height: var(--ctl-sm); padding: 0 8px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: var(--fs-12); }
+textarea.fin-in { height: auto; padding: 5px 8px; resize: vertical; }
+.fin-in:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px var(--accent-wash); }
+.fin-hz { align-self: end; height: var(--ctl-sm); }
+.fin-checks { grid-column: 1 / -1; display: flex; gap: var(--space-3); }
+.fin-row { grid-template-columns: 10px minmax(0, 1fr); cursor: pointer; }
+.fin-dot { width: 8px; height: 8px; border: 1px solid var(--line-3); border-radius: 50%; }
+.fin-row.is-on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text-primary); }
+.fin-row.is-on .fin-dot { border-color: var(--accent-color); background: var(--accent-color); }
+.fin-rename { min-width: 0; height: 22px; padding: 0 6px; border: 1px solid var(--accent-color); border-radius: var(--radius-sm); background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: var(--fs-12); }
+.fin-rename[hidden], .fin-name[hidden] { display: none; }
+.fin-trow { width: 100%; grid-template-columns: minmax(0, 1fr) auto; border: 1px solid transparent; background: none; font: inherit; text-align: left; cursor: pointer; }
+.fin-trow.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.fin-tk { color: var(--text-muted); font-size: var(--fs-11); white-space: nowrap; }
+.fin-states .frv-list, .fin-trans .frv-list { min-height: 64px; }

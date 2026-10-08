@@ -18,7 +18,7 @@ function excerpt(t: string, n = 70): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s || '(empty)';
 }
 
-abstract class LivePanel {
+export abstract class LivePanel {
   abstract readonly root: HTMLElement;
   protected visible = false;
   private timer = 0;
