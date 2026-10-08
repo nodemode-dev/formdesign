@@ -37,6 +37,9 @@ export const DOC_ICONS: Record<string, string> = {
   terminal: S('<rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15H17"/>'),
   palette: S('<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.3 0 1.9-.9 1.5-2-.5-1.3.3-2.6 1.7-2.6h2.1a3.2 3.2 0 0 0 3.2-3.4C20.2 7.4 16.6 3.5 12 3.5z"/><circle cx="7.8" cy="11" r="1.1"/><circle cx="10.5" cy="7.4" r="1.1"/><circle cx="15" cy="7.6" r="1.1"/>'),
   ruler: S('<rect x="2.5" y="8" width="19" height="8" rx="1.3"/><path d="M6 8v3M9.5 8v4.5M13 8v3M16.5 8v4.5"/>'),
+  globe: S('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.4 2.3 3.6 5.1 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.1-3.6-8.5S9.6 5.8 12 3.5z"/>'),
+  external: S('<path d="M13.5 4.5h6v6"/><path d="M19.5 4.5 11 13"/><path d="M17.5 13.5v5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V8A1.5 1.5 0 0 1 6 6.5h5"/>'),
+  remove: S('<path d="M4.5 7h15"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12"/><path d="M10 11v5.5M14 11v5.5"/>'),
 };
 
 export function docIcon(name: string, size = 16): string {

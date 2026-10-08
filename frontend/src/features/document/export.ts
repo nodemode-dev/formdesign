@@ -7,8 +7,9 @@ import { Check, copyText, field, Pick, row, Seg } from './form';
 import { docIcon } from './icons';
 import { capabilities, join, safeName, stem } from './paths';
 import { formatBytes } from './units';
+import { WebOptions } from './web-options';
 
-export type ExportFormat = 'pdf' | 'idml' | 'epub' | 'epub-fixed' | 'html' | 'png' | 'jpg' | 'txt' | 'xml';
+export type ExportFormat = 'pdf' | 'idml' | 'epub' | 'epub-fixed' | 'html' | 'web' | 'png' | 'jpg' | 'txt' | 'xml';
 
 interface FormatInfo { id: ExportFormat; label: string; sub: string; icon: string; ext: string }
 
@@ -18,6 +19,7 @@ const FORMATS: FormatInfo[] = [
   { id: 'epub', label: 'EPUB', sub: 'Reflowable e-book', icon: 'epub', ext: '.epub' },
   { id: 'epub-fixed', label: 'EPUB Fixed Layout', sub: 'Pages as designed', icon: 'epubFixed', ext: '.epub' },
   { id: 'html', label: 'HTML', sub: 'One self-contained page', icon: 'html', ext: '.html' },
+  { id: 'web', label: 'Website', sub: 'Pages that fit any screen', icon: 'web', ext: '.zip' },
   { id: 'png', label: 'PNG', sub: 'A page as an image', icon: 'image', ext: '.png' },
   { id: 'jpg', label: 'JPEG', sub: 'A page as a photo', icon: 'image', ext: '.jpg' },
   { id: 'txt', label: 'Text', sub: 'The selected story', icon: 'text', ext: '.txt' },
@@ -67,6 +69,7 @@ export class ExportDialog {
   private readonly imgPrev = el('<div class="fd-ex-prev"><img class="fd-ex-previmg" alt="" decoding="async"></div>');
   private readonly txtFormat = new Seg<'txt' | 'rtf' | 'tagged'>([{ value: 'txt', label: 'Plain' }, { value: 'rtf', label: 'RTF' }, { value: 'tagged', label: 'Tagged' }], 'txt');
   private readonly txtNote = el('<p class="fd-f-note"></p>');
+  private readonly web = new WebOptions();
 
   private readonly dest = new Seg<Dest>([
     { value: 'download', label: 'Download', icon: docIcon('download', 15) },
@@ -126,6 +129,7 @@ export class ExportDialog {
     q(cover, '.fd-f-checks').appendChild(this.epubCover.root);
     this.group('epub-fixed').appendChild(el('<p class="fd-f-note">Each page keeps its design, with its text kept live for search and reading aloud.</p>'));
     this.group('html').appendChild(el('<p class="fd-f-note">One page with the styles inline and the images embedded, the stories and graphics in reading order.</p>'));
+    this.group('web').append(this.web.root, el('<p class="fd-f-note">A folder of web pages that reflow for phones, in the document’s type and colours, with a page-by-page edition. To put it online from here, use File &gt; Publish Online.</p>'));
 
     const img = this.group('image');
     img.append(row(field('Page', this.imgPage.root), field('Scale', this.imgScale.root)), el('<div class="fd-f-checks"></div>'), this.imgInfo, this.imgPrev);
@@ -152,7 +156,7 @@ export class ExportDialog {
     this.d.foot.appendChild(this.status);
     this.cancel = this.d.button('Cancel', 'ghost', () => this.d.close());
     this.go = this.d.button('Export', 'primary', () => void this.run());
-    this.dest.onChange = () => this.syncDest();
+    this.dest.onChange = () => { if (this.fmt === 'web') this.syncName(); else this.syncDest(); };
     this.fileName.addEventListener('input', () => { this.nameTouched = true; setHidden(this.result, true); this.syncDest(); });
     q(this.result, '.fd-ex-copy').addEventListener('click', () => void copyText(this.lastPath).then((ok) => toast(ok ? 'Path copied' : 'Could not copy the path', ok ? 'info' : 'error')));
     this.d.scrim.addEventListener('keydown', (e) => {
@@ -248,18 +252,20 @@ export class ExportDialog {
 
   private ext(): string {
     if (this.fmt === 'txt' && this.txtFormat.value === 'rtf') return '.rtf';
+    if (this.fmt === 'web') return this.dest.value === 'folder' ? '' : '.zip';
     return this.info().ext;
   }
 
   private syncName(): void {
     const base = stem(editor.doc?.title);
     let name = base;
+    if (this.fmt === 'web') name += ' site';
     if (this.fmt === 'png' || this.fmt === 'jpg') {
       const p = editor.layout?.pages.find((x) => x.abs === Number(this.imgPage.value));
       if ((editor.layout?.pages.length ?? 0) > 1 && p) name += ` p${p.name}`;
     }
     if (this.nameTouched) {
-      const cur = this.fileName.value.trim().replace(/\.[a-z0-9]{2,5}$/i, '');
+      const cur = this.fileName.value.trim().replace(/\.(pdf|idml|epub|html|zip|png|jpg|txt|rtf|xml)$/i, '');
       this.fileName.value = `${cur || name}${this.ext()}`;
     } else this.fileName.value = `${name}${this.ext()}`;
     this.syncDest();
@@ -307,6 +313,7 @@ export class ExportDialog {
       case 'epub': meta(); o.cover = this.epubCover.value; return { format: 'epub', options: o };
       case 'epub-fixed': meta(); return { format: 'epub-fixed', options: o };
       case 'html': meta(); delete o.author; return { format: 'html', options: o };
+      case 'web': return { format: 'web', options: this.web.values() };
       case 'png': case 'jpg':
         o.page = Number(this.imgPage.value); o.scale = Number(this.imgScale.value); o.bleed = this.imgBleed.value;
         return { format: fmt, options: o };
@@ -320,6 +327,7 @@ export class ExportDialog {
 
   private async run(): Promise<void> {
     if (this.running || !editor.hasDoc) return;
+    if (this.fmt === 'web' && this.web.problem()) { toast(this.web.problem(), 'error'); return; }
     for (const inp of Array.from(this.d.body.querySelectorAll('input'))) inp.dispatchEvent(new Event('change'));
     const { format, options } = this.options();
     const folder = this.dest.value === 'folder';
@@ -360,6 +368,7 @@ export class ExportDialog {
       done();
       this.running = false;
       setDisabled(this.go, false);
+      if (this.d.scrim.isConnected && !this.d.scrim.contains(document.activeElement)) this.go.focus();
       void this.syncText();
     }
   }
