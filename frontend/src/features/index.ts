@@ -9,5 +9,7 @@ import { installGlyphs } from './glyphs';
 import { installTabs } from './tabs';
 import { installTable } from './table';
 import { installBook } from './book';
+import { installStoryEditor } from './story';
 
-export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook }];
+export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
+  { install: installStoryEditor }];

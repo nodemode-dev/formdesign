@@ -1,0 +1,11 @@
+.fd-story { position: absolute; inset: 0; z-index: var(--z-chrome); display: grid; grid-template-rows: 44px minmax(0, 1fr) 30px; background: var(--surface-0); color: var(--text-primary); }
+.fd-story[hidden] { display: none; }
+.fd-story-head { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-3); border-bottom: 1px solid var(--line-0); background: var(--surface-1); }
+.fd-story-title { font-size: var(--fs-13); font-weight: 600; white-space: nowrap; }
+.fd-story-pick { flex: 0 1 360px; min-width: 0; height: var(--ctl-md); font-size: var(--fs-12); }
+.fd-story-meta { flex: 1; color: var(--text-muted); font-size: var(--fs-12); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fd-story-text { width: 100%; height: 100%; padding: var(--space-5) max(var(--space-5), calc((100% - 760px) / 2)); border: 0; outline: 0; resize: none; background: var(--surface-0); color: var(--text-primary); font-family: var(--font-mono); font-size: 14px; line-height: 1.75; white-space: pre-wrap; tab-size: 4; }
+.fd-story-text::selection { background: var(--accent-soft); }
+.fd-story-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-3); border-top: 1px solid var(--line-0); color: var(--text-muted); font-size: var(--fs-11); }
+.fd-story-over { color: var(--danger-soft); font-weight: 600; }
+.fd-story-over[hidden] { display: none; }
