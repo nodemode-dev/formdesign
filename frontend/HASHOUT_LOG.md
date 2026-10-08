@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.1.0
-Last updated: 2026-10-07 · the shell in the family's Studio Dark, the engine client
+Current build version: v0.7.0
+Last updated: 2026-10-08 · the editor, the feature modules, rulers, Glyphs, Tabs, Table, Styles hub, Book, Story Editor
 
 ---
 
@@ -27,6 +27,19 @@ frontend/
     ├── version.ts                VERSION
     ├── engine/
     │   └── client.ts             socket RPC to the engine, binary frames, change events, REST helper
+    ├── editor/
+    │   ├── editor.ts             the Editor singleton: docs, layout, selection, tools, exec, inspect
+    │   ├── viewport.ts           512 px tiles, damage invalidation, overlays, zoom and pan
+    │   └── input.ts              pointer and key routing to the core (wantsText from each pointer reply)
+    ├── features/                 one module per feature, registered through ui/workspace.ts (index.ts lists them)
+    │   ├── make*, properties*, pages*, document*, reader*   Make, Properties and text panels, Pages, Layers, Links, dialogs, Reader
+    │   ├── properties/hub.ts     the Styles tab: paragraph, character and object styles behind one switch
+    │   ├── rulers.ts             canvas rulers and drag-out guides (guide.add)
+    │   ├── glyphs.ts, tabs.ts    the Glyphs and Tabs panels (fonts load from /api/core/font)
+    │   ├── table.ts              the Table panel
+    │   ├── object-styles.ts      the object styles list used by the Styles tab
+    │   ├── book.ts               the Book window over /api/books
+    │   └── story.ts              the Story Editor (story.replaceRange of the changed span only)
     ├── styles/
     │   ├── tokens.css            family tokens (vendored, verbatim from formvis 1.65.0)
     │   ├── shell.css, panels.css, dialogs.css, light-mode.css, scrollbars.css, fonts.css   family sheets (vendored)
@@ -34,7 +47,9 @@ frontend/
     └── ui/
         ├── dom.ts, themes.ts     zero-flash helpers and the 14 profiles (vendored)
         ├── icons.ts              inline currentColor SVG set (vendored, grows with formdes's own)
-        ├── menu.ts, commands.ts, toast.ts, dialogs.ts, dropdown.ts, panel-group.ts, dock.ts   family controls (vendored)
+        ├── menu.ts, commands.ts, toast.ts, dialogs.ts, dropdown.ts, panel-group.ts   family controls (vendored; panel-group adds startMin and border-aware tab fitting)
+        ├── shell.ts, workspace.ts   the Shell implements the Workspace contract features install into
+        ├── tool-icons.ts         the tool rail glyphs
         ├── brand.ts              the formdes mark
         └── home.ts               the start screen
 ```
