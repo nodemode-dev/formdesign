@@ -8,7 +8,8 @@ import { icon } from '../ui/icons';
 import type { Workspace } from '../ui/workspace';
 import { floating } from './floating';
 
-interface Miss { story: number; start: number; end: number; word: string }
+interface Miss { story: number; start: number; end: number; word: string; lang?: string | null }
+interface Lang { language: string; code: string; installed: boolean; builtin: boolean; file?: string | null; downloadable?: boolean; removable?: boolean; source?: string | null }
 type Rect4 = [number, number, number, number];
 
 const DYNAMIC_KEY = 'formdes.dynamicSpelling';
@@ -22,7 +23,7 @@ export class SpellWindow {
       <div class="ff-field fsc-torow"><span class="ff-lab">Change To</span><input class="ff-in fsc-to" type="text" spellcheck="false" aria-label="Change to"></div>
       <span class="ff-lab">Suggested Corrections</span>
       <div class="fsc-sugg" role="listbox" aria-label="Suggested corrections"></div>
-      <div class="ff-opts"><select class="cv-select fsc-scope" aria-label="Search"></select><span class="ff-lab fsc-lang">Language: English (USA)</span></div>
+      <div class="ff-opts"><select class="cv-select fsc-scope" aria-label="Search"></select><span class="ff-lab fsc-lang">Language: English: USA</span></div>
       <div class="fsc-acts">
         <button class="cv-btn cv-btn-primary fsc-start" type="button">Start</button>
         <button class="cv-btn fsc-skip" type="button">Skip</button>
@@ -110,10 +111,13 @@ export class SpellWindow {
     await this.next();
   }
 
+  private langs: Lang[] | null = null;
+
   private async list(): Promise<Miss[]> {
-    const params: Record<string, unknown> = { suggestions: false };
+    const params: Record<string, unknown> = {};
     if (this.range) params.story = this.range.story;
-    const all = (await editor.exec<Miss[]>('spelling.check', params, true)) ?? [];
+    if (!this.langs) this.langs = (await engine.call<{ languages: Lang[] }>('spellLanguages', {}).catch(() => undefined))?.result?.languages ?? [];
+    const all = (await engine.call<Miss[]>('spellCheck', params)).result ?? [];
     return all.filter((m) => !this.ignore.has(m.word.toLowerCase()) && (!this.range || (m.start >= this.range.a && m.end <= this.range.b)));
   }
 
@@ -138,7 +142,8 @@ export class SpellWindow {
       this.ws.viewport.refreshOverlays();
       const rect = r.result?.match?.rect;
       if (rect) this.ws.viewport.reveal(rect);
-      const s = await engine.call<{ suggestions: string[] }>('spellSuggest', { word: hit.word }).catch(() => undefined);
+      setText(q(this.root, '.fsc-lang'), `Language: ${this.langs?.find((l) => l.code === (hit?.lang ?? 'en_US'))?.language ?? 'English: USA'}`);
+      const s = await engine.call<{ suggestions: string[] }>('spellSuggest', { word: hit.word, ...(hit.lang ? { lang: hit.lang } : {}) }).catch(() => undefined);
       this.suggestions = s?.result?.suggestions ?? [];
       this.to.value = this.suggestions[0] ?? hit.word;
       this.status(`${list.length} ${list.length === 1 ? 'word' : 'words'} not in the dictionary${this.wrapped ? '; started again from the beginning' : ''}.`);

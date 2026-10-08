@@ -18,10 +18,11 @@ import { installPathType } from './pathtype';
 import { installInteractive } from './interactive';
 import { installXml } from './xml';
 import { installLibrary } from './library';
+import { installDictionaries } from './dictionaries';
 import { installProof } from './proof';
 import { installShortcuts } from './shortcuts';
 import { installWorkspaces } from './workspaces';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
   { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }, { install: installPathType }, { install: installInteractive }, { install: installXml }, { install: installLibrary },
-  { install: installProof }, { install: installWorkspaces }, { install: installShortcuts }];
+  { install: installDictionaries }, { install: installProof }, { install: installWorkspaces }, { install: installShortcuts }];
