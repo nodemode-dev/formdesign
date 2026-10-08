@@ -9,7 +9,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 - Documents: `list_documents`, `switch_document`, `new_document`, `open_document`, `save_document`, `export_document`, `book`
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
-- Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`
+- Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`, `library`
 
 ## intake
 
@@ -256,5 +256,21 @@ Find/Change across the active document, as in InDesign. mode text (plain words; 
 - `toGlyph`: object
 - `object`: object
 - `objectChange`: object
+
+Note: writes or replaces files.
+
+## library
+
+Object libraries: reusable objects (a logo lockup, a footer, a pull-quote box) saved with their styles, swatches and images. list: the libraries. create (name). items (name): each item's index, name and description. add (name, ids or the selection, title, description). place (name, index, x and y in points on the spread, spread): a copy in the active document, bringing missing styles and swatches. rename (name, index, title, description). remove (name, index).
+
+- `action`: string (list | create | items | add | place | rename | remove); required
+- `name`: string
+- `index`: integer
+- `ids`: array
+- `title`: string
+- `description`: string
+- `x`: number
+- `y`: number
+- `spread`: integer
 
 Note: writes or replaces files.

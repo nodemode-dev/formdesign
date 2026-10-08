@@ -14,7 +14,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
-from app.services import books, pdfread, profiles, queries
+from app.services import books, libraries, pdfread, profiles, queries
 from app.templates import brands, registry, spec
 
 router = APIRouter()
@@ -108,6 +108,12 @@ TOOLS = [
            "caseSensitive": {"type": "boolean"}, "wholeWord": {"type": "boolean"}, "scope": {"type": "string", "enum": ["document", "story", "selection"], "default": "document"},
            "include": {"type": "object", "description": "locked, hidden, parents: booleans (default false)"}, "findFormat": _OBJ, "changeFormat": _OBJ,
            "glyph": _OBJ, "toGlyph": _OBJ, "object": _OBJ, "objectChange": _OBJ}, ["op"], destructive=True),
+    _tool("library", "Object libraries: reusable objects (a logo lockup, a footer, a pull-quote box) saved with their styles, swatches and images. list: the libraries. create (name). items (name): "
+          "each item's index, name and description. add (name, ids or the selection, title, description). place (name, index, x and y in points on the spread, spread): a copy in the active "
+          "document, bringing missing styles and swatches. rename (name, index, title, description). remove (name, index).",
+          {"action": {"type": "string", "enum": ["list", "create", "items", "add", "place", "rename", "remove"]}, "name": {"type": "string"}, "index": {"type": "integer", "minimum": 0},
+           "ids": {"type": "array", "items": {"type": "integer"}}, "title": {"type": "string"}, "description": {"type": "string"},
+           "x": {"type": "number"}, "y": {"type": "number"}, "spread": {"type": "integer", "minimum": 0}}, ["action"], destructive=True),
 ]
 NAMES = {t["name"] for t in TOOLS}
 _status = {"calls": 0, "last": None, "at": 0.0}
@@ -324,7 +330,32 @@ async def _run(name: str, a: dict) -> dict:
         return await _book(a)
     if name == "find_change":
         return await _find(a)
+    if name == "library":
+        return await _library(a)
     return _fail(f"no tool {name}")
+
+
+async def _library(a: dict) -> dict:
+    act, lib = a.get("action"), str(a.get("name") or "")
+    try:
+        if act == "list":
+            return _text(libraries.listing())
+        if act == "create":
+            return _text(libraries.create(lib))
+        if act == "items":
+            return _text([{k: v for k, v in it.items() if k != "thumb"} for it in libraries.items(lib)])
+        if act == "add":
+            return _text(await libraries.add(lib, a.get("title"), str(a.get("description") or ""), a.get("ids")))
+        if act == "place":
+            return _text(await libraries.place(lib, int(a.get("index", -1)), a.get("x"), a.get("y"), a.get("spread")))
+        if act == "rename":
+            return _text(libraries.update(lib, int(a.get("index", -1)), a.get("title"), a.get("description")))
+        if act == "remove":
+            libraries.remove(lib, int(a.get("index", -1)))
+            return _text({"ok": True})
+    except libraries.LibraryError as exc:
+        return _fail(str(exc))
+    return _fail(f"unknown action {act}")
 
 
 async def _find(a: dict) -> dict:
