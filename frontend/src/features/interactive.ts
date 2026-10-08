@@ -183,7 +183,12 @@ export class InteractivePanel extends LivePanel {
       <label class="fin-f fin-x"><span>Font size (0 = auto)</span><input class="fin-in fin-fs" type="number" min="0" step="1"></label>
       <div class="fin-checks fin-x"><label class="frv-check fin-mlf"><input type="checkbox" class="fin-ml"><span>Multiline</span></label><label class="frv-check"><input type="checkbox" class="fin-req"><span>Required</span></label></div>
     </div>
+    <div class="fin-media" hidden>
+      <p class="frv-hint fin-mwhat"></p>
+      <div class="fin-checks"><label class="frv-check"><input type="checkbox" class="fin-mplay"><span>Play on page load</span></label><label class="frv-check"><input type="checkbox" class="fin-mloop"><span>Loop</span></label><label class="frv-check"><input type="checkbox" class="fin-mctl"><span>Show controls</span></label></div>
+    </div>
   </div>`);
+  private media: { kind?: string; name?: string; playOnPageLoad?: boolean; loop?: boolean; controls?: boolean } | null = null;
   private id: number | null = null;
   private button: ButtonInfo | null = null;
   private field: FieldInfo | null = null;
@@ -200,6 +205,11 @@ export class InteractivePanel extends LivePanel {
     for (const c of ['.fin-name', '.fin-value', '.fin-opts', '.fin-fs', '.fin-ml', '.fin-req']) q(this.root, c).addEventListener('change', () => void this.applyField());
     for (const c of ['.fin-page', '.fin-url', '.fin-name', '.fin-value', '.fin-fs']) q(this.root, c).addEventListener('keydown', (e) => { e.stopPropagation(); if ((e as KeyboardEvent).key === 'Enter') (e.target as HTMLElement).blur(); });
     q(this.root, '.fin-opts').addEventListener('keydown', (e) => e.stopPropagation());
+    for (const c of ['.fin-mplay', '.fin-mloop', '.fin-mctl']) q(this.root, c).addEventListener('change', () => {
+      if (this.id === null) return;
+      const on = (k: string) => q<HTMLInputElement>(this.root, k).checked;
+      void this.run('media.options', { ids: [this.id], playOnPageLoad: on('.fin-mplay'), loop: on('.fin-mloop'), controls: on('.fin-mctl') });
+    });
   }
 
   protected async load(): Promise<void> {
@@ -207,8 +217,10 @@ export class InteractivePanel extends LivePanel {
     this.id = editor.hasDoc && items.length === 1 && !editor.selection?.text ? items[0] : null;
     this.button = null;
     this.field = null;
+    this.media = null;
     if (this.id !== null) {
-      const [bs, fs] = await Promise.all([editor.exec<ButtonInfo[]>('button.list', {}, true), editor.exec<FieldInfo[]>('form.list', {}, true)]);
+      const [bs, fs, md] = await Promise.all([editor.exec<ButtonInfo[]>('button.list', {}, true), editor.exec<FieldInfo[]>('form.list', {}, true), editor.exec<InteractivePanel['media']>('media.get', { id: this.id }, true)]);
+      this.media = md ?? null;
       this.button = bs?.find((b) => b.id === this.id) ?? null;
       this.field = fs?.find((f) => f.id === this.id) ?? null;
     }
@@ -221,6 +233,13 @@ export class InteractivePanel extends LivePanel {
     const has = this.id !== null;
     setText(q(this.root, '.fin-iwhat'), has ? 'Buttons and form fields work in interactive PDF exports.' : 'Select one object to make it a button or a form field.');
     setHidden(q(this.root, '.fin-body'), !has);
+    setHidden(q(this.root, '.fin-media'), !has || !this.media);
+    if (has && this.media) {
+      setText(q(this.root, '.fin-mwhat'), `${this.media.kind === 'audio' || this.media.kind === 'sound' ? 'Sound' : 'Video'}: ${this.media.name ?? ''}. Plays in interactive PDF and EPUB.`);
+      setChecked(q<HTMLInputElement>(this.root, '.fin-mplay'), !!this.media.playOnPageLoad);
+      setChecked(q<HTMLInputElement>(this.root, '.fin-mloop'), !!this.media.loop);
+      setChecked(q<HTMLInputElement>(this.root, '.fin-mctl'), !!this.media.controls);
+    }
     if (!has) return;
     const t = this.type();
     setValue(q<HTMLSelectElement>(this.root, '.fin-type'), t);

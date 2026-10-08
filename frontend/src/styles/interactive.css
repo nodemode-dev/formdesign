@@ -19,3 +19,6 @@ textarea.fin-in { height: auto; padding: 5px 8px; resize: vertical; }
 .fin-trow.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
 .fin-tk { color: var(--text-muted); font-size: var(--fs-11); white-space: nowrap; }
 .fin-states .frv-list, .fin-trans .frv-list { min-height: 64px; }
+.fin-media { display: flex; flex-direction: column; gap: 6px; padding-top: var(--space-2); border-top: 1px solid var(--line-1); }
+.fin-media[hidden] { display: none; }
+.fin-media .fin-checks { flex-wrap: wrap; gap: 6px var(--space-3); }
