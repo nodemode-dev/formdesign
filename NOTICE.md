@@ -16,6 +16,13 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | Source Sans 3, Source Serif 4, Inter, JetBrains Mono (embedded in formdes-core) | SIL OFL 1.1 | |
 | vello_cpu, kurbo, skrifa, harfrust, krilla, hayro, image, resvg, quick-xml, zip and their dependencies | MIT, Apache-2.0, BSD, ISC, Zlib | per `cargo metadata` |
 | fancy-regex 0.19 (with regex-automata, regex-syntax, bit-set) | MIT (fancy-regex), MIT OR Apache-2.0 (the rest) | GREP in Find/Change: lookahead, lookbehind and backreferences |
+| spellbook 0.4 (helix-editor/spellbook, https://github.com/helix-editor/spellbook), with foldhash and hashbrown | MPL-2.0 (spellbook, used unmodified; its source is available at that address), Zlib (foldhash), MIT OR Apache-2.0 (hashbrown) | Hunspell dictionaries for spelling in languages other than US English |
+
+## Downloaded at your request, not distributed
+
+| Work | License | Notes |
+| --- | --- | --- |
+| Hunspell dictionaries from the LibreOffice dictionaries repository (https://github.com/LibreOffice/dictionaries) | each its own (GPL, LGPL, MPL, BSD or Creative Commons, listed in the dictionary's folder there) | fetched by Edit > Language Dictionaries > Get into your data folder; none ships with formdes |
 
 ## Distributed with the app
 
