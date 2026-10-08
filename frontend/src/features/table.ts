@@ -1,6 +1,7 @@
 import '../styles/table.css';
 import { editor } from '../editor/editor';
 import type { ChangeEvent } from '../engine/client';
+import { promptName } from '../ui/dialogs';
 import { el, q, setChecked, setDisabled, setHidden, setText, setValue } from '../ui/dom';
 import type { Workspace } from '../ui/workspace';
 import { fmt, parseLength, readUnits } from './document/units';
@@ -44,6 +45,7 @@ export class TablePanel {
       <div class="ftb-sec">Table</div>
       <div class="ftb-grid2">${num('Border', 'ftb-border')}<label class="ftb-check"><input type="checkbox" class="ftb-alt"><span>Alternating rows</span></label></div>
       <div class="ftb-grid2"><select class="cv-select ftb-tstyle" aria-label="Table style"></select><select class="cv-select ftb-cstyle" aria-label="Cell style"></select></div>
+      <div class="ftb-grid2"><button class="cv-btn ftb-act ftb-newt" type="button">New table style</button><button class="cv-btn ftb-act ftb-newc" type="button">New cell style</button></div>
     </div>
   </div>`);
   private info: TableInfo | null = null;
@@ -83,6 +85,8 @@ export class TablePanel {
     }));
     q<HTMLSelectElement>(this.root, '.ftb-tstyle').addEventListener('change', (e) => void this.run('style.table.apply', { name: (e.target as HTMLSelectElement).value }));
     q<HTMLSelectElement>(this.root, '.ftb-cstyle').addEventListener('change', (e) => void this.run('style.cell.apply', { name: (e.target as HTMLSelectElement).value }));
+    q(this.root, '.ftb-newt').addEventListener('click', () => void this.newStyle('table'));
+    q(this.root, '.ftb-newc').addEventListener('click', () => void this.newStyle('cell'));
     editor.on('selection', () => this.schedule(60));
     editor.on('change', (e: ChangeEvent) => this.schedule(e?.docChanged ? 120 : 400));
     window.addEventListener('formdes:units', () => this.render());
@@ -166,6 +170,24 @@ export class TablePanel {
   private async insert(): Promise<void> {
     const n = (sel: string, d: number) => { const v = Math.round(Number(this.input(sel).value)); return Number.isFinite(v) && v >= 0 ? v : d; };
     await this.run('table.insert', { rows: Math.max(1, n('.ftb-new-rows', 4)), cols: Math.max(1, n('.ftb-new-cols', 3)), headerRows: n('.ftb-new-head', 1) });
+  }
+
+  private async newStyle(kind: 'table' | 'cell'): Promise<void> {
+    const t = this.info;
+    if (!t) return;
+    const taken = Array.from(q<HTMLSelectElement>(this.root, kind === 'table' ? '.ftb-tstyle' : '.ftb-cstyle').options).map((o) => o.value);
+    let i = 1;
+    while (taken.includes(`${kind === 'table' ? 'Table' : 'Cell'} Style ${i}`)) i++;
+    const name = await promptName(kind === 'table' ? 'New Table Style' : 'New Cell Style', `${kind === 'table' ? 'Table' : 'Cell'} Style ${i}`, 'Create');
+    if (!name) return;
+    if (kind === 'cell') {
+      if (await this.run('style.cell.create', { name, fromSelection: true }) !== undefined) await this.run('style.cell.apply', { name });
+      return;
+    }
+    const alt = t.options.altRows as { first?: number; firstColor?: string; next?: number; nextColor?: string } | undefined;
+    const params: Record<string, unknown> = { name, border: { weight: t.options.border?.weight ?? 1, color: '[Black]' } };
+    if (alt) params.altRows = { first: alt.first ?? 1, firstColor: alt.firstColor ?? '[Black]', next: alt.next ?? 1, nextColor: alt.nextColor ?? '[None]' };
+    if (await this.run('style.table.create', params) !== undefined) await this.run('style.table.apply', { name });
   }
 
   private async run(cmd: string, params: Record<string, unknown>): Promise<unknown> {
