@@ -2,6 +2,16 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.10.0 · 2026-10-08
+
+- Object States (Window > Object States): make a multi-state object from a selection, show, rename and release states.
+- Buttons and Forms: buttons that go to a page or a URL; text fields, check boxes, combo boxes, list boxes and signature fields with names, defaults, choices, font size, multiline and required. Placed video and sound get Play on page load, Loop and Show controls.
+- Page Transitions: a transition and speed for each spread, Apply to All Spreads, Clear All.
+- The XML Tags and Structure panels (Alt+Ctrl+1): tag frames and text, map paragraph styles to tags, load a DTD and validate, import XML into tagged frames, export XML.
+- Libraries (Window > Library): libraries of saved pieces with thumbnails; add the selection, drag an item onto the page to place it there, or place it where it was; rename, delete and search. Libraries live in the data folder or in `FORMDES_LIBRARIES_DIR`.
+- The `library` MCP tool (28 tools): agents list, create and fill libraries and place their pieces.
+- Parity with InDesign measured at 47.0 of 53.
+
 ## 0.9.0 · 2026-10-08
 
 - Find/Change (Edit > Find/Change, Ctrl+F): a floating window with Text, GREP, Glyph and Object tabs; InDesign's special characters and GREP codes, lookahead, lookbehind and `$1`; Find Format and Change Format; scopes, case, whole word, locked, hidden and parent-page options; tables and footnotes included; Find All with page and context; Find Next (Alt+Ctrl+F), Change, Change All, Change/Find; twelve built-in queries and your own.

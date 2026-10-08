@@ -61,6 +61,7 @@ Everything a person makes lives in `~/Formdes` (or `FORMDES_DATA_DIR`):
 | `Brands/` | brand kits as JSON |
 | `Queries/` | your saved Find/Change queries |
 | `Preflight/` | your preflight profiles |
+| `Libraries/` | your libraries as `.fdlib` files (or `FORMDES_LIBRARIES_DIR`, to share a folder with others) |
 | `Intake/` | content packs, uploads, PDFs opened in the Reader |
 | `Exports/` | exported files, book PDFs |
 | `Fonts/` | fonts you add |

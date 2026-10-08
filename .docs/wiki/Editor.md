@@ -34,6 +34,9 @@ The window is a thin client in vanilla TypeScript and Vite. It draws pixels the 
 | `pathtype.ts` | Type on a Path Options |
 | `floating.ts` | drag and remembered position for floating windows |
 | `document/preflight.ts` | the Preflight panel, its profiles and the Define dialog |
+| `interactive.ts` | the Interactive group: Object States, Buttons and Forms (with media options), Page Transitions |
+| `xml.ts` | the XML group: Structure (validate, import, export) and Tags (tagging, style mapping, DTD) |
+| `library.ts` | the Library panel over `/api/libraries`: thumbnails, Add, Place, drag onto the page |
 
 ## How a feature plugs in
 

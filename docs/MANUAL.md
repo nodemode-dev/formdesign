@@ -17,9 +17,12 @@ This manual is for people laying out documents with formdes. If you are changing
 11. [Checking your work](#checking-your-work)
 12. [Exporting and printing](#exporting-and-printing)
 13. [Books](#books)
-14. [The PDF Reader](#the-pdf-reader)
-15. [Working with an agent](#working-with-an-agent)
-16. [Files, saving and recovery](#files-saving-and-recovery)
+14. [Interactive documents](#interactive-documents)
+15. [XML](#xml)
+16. [Libraries](#libraries)
+17. [The PDF Reader](#the-pdf-reader)
+18. [Working with an agent](#working-with-an-agent)
+19. [Files, saving and recovery](#files-saving-and-recovery)
 
 ## What formdes does
 
@@ -120,6 +123,18 @@ File > Book collects saved documents as the chapters of one book. Add documents 
 - **Export Book PDF**: one PDF with every chapter in order.
 
 Double-click a chapter to open it. A chapter open with unsaved changes has to be saved before numbering or synchronising.
+
+## Interactive documents
+
+Three panels in the Window menu make a document that does things in an interactive PDF, an EPUB or HTML. **Object States**: select two or more frames and choose New to stack them as the states of one object; click a state to show it, double-click to rename it, and Release to turn the states back into ordinary frames. **Buttons and Forms**: select a frame and choose a type. A button goes to a page or a URL when clicked; a text field, check box, combo box, list box or signature field gets a name, a default value, its choices one per line, a font size (0 for automatic), and whether it is multiline or required. With a placed video or sound selected, the same panel sets Play on page load, Loop and Show controls. **Page Transitions**: choose a transition and a speed for the current spread, or Apply to All Spreads; Clear All removes them.
+
+## XML
+
+The Tags and Structure panels (Window > XML Structure, Alt+Ctrl+1) give a document a structure that other systems can read and fill. Make a tag with New, then select a frame, or some text, and click the tag to make it an element; Untag removes the element and keeps the content. Map styles to tags chooses, for each paragraph style, the element its paragraphs export as and come back in as. Load DTD reads a DTD and adds its elements as tags; Validate in the Structure panel then lists anything that does not follow it. Export writes the structure and its text as XML; Import fills tagged frames from an XML file with matching elements and tells you what had nowhere to go.
+
+## Libraries
+
+A library keeps pieces you use again (a logo lockup, a footer, a pull-quote box) with their styles and colours. Window > Library opens the panel: choose a library or make a new one, select objects on the page and choose Add, and the piece is stored with a thumbnail. Drag a thumbnail onto the page to place a copy where you drop it, or pick it and choose Place to put it back where it was taken from. Double-click to rename; search finds pieces by name. Libraries are `.fdlib` files in `~/Formdes/Libraries`; set `FORMDES_LIBRARIES_DIR` to keep them in a shared folder instead.
 
 ## The PDF Reader
 

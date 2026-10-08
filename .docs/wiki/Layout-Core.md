@@ -16,6 +16,7 @@
 | `native/formdes-core/src/find.rs` | `findChange`: text, GREP, glyph and object find and change for the Find/Change window and the `find_change` MCP tool |
 | `native/formdes-core/src/spell.rs` | `spellMarks` and `spellSuggest`: dynamic spelling marks and ranked suggestions |
 | `native/formdes-core/src/preflight.rs` | `preflight`: the engine's checks filtered and extended by a profile |
+| `native/formdes-core/src/thumb.rs` | `snippetThumb`: a library item's PNG thumbnail, rendered on its own |
 
 ## The wire format
 
@@ -40,6 +41,7 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | `findChange` | `{mode: text, grep, glyph or object, op: all, next, change, changeAll, changeFind or select, find, change, findFormat, changeFormat, scope, within, include, glyph, toGlyph, object, objectChange}`; GREP runs on fancy-regex with InDesign's codes translated |
 | `spellMarks`, `spellSuggest` | misspelled words in the visible frames as underline segments (cached per document revision); suggestions for one word |
 | `preflight` | `{profile: {overset, fonts, links, emptyFrames, rgb, transparency, minPpi, maxPpi, bleed, safety, minType, spotMax, pageMultiple}}` to `{errors, warnings, issues}` |
+| `snippetThumb` | `{base64, size}` (a snippet from `snippet.export`) to a PNG with a transparent background, longest side `size`; the engine calls it when a library item is added |
 
 ## Environment
 

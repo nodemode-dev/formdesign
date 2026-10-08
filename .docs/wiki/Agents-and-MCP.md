@@ -9,7 +9,7 @@ formdes is built to be driven by agents as much as by hand. Claude Code, Codex a
 | Streamable HTTP | `POST http://127.0.0.1:8196/mcp`, stateless JSON, Origin checked | the engine is already running |
 | Standard input and output | `./formdes mcp` (`setup/mcp_stdio.py`), which starts the engine if it is not running | Claude Desktop, Claude Code, Codex, Cursor |
 
-The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 27 tools, by group:
+The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 28 tools, by group:
 
 | Group | Tools |
 | --- | --- |
@@ -18,7 +18,7 @@ The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_st
 | Documents | `list_documents`, `switch_document`, `new_document`, `open_document`, `save_document`, `export_document`, `book` |
 | Any command | `run_commands`, `find_commands`, `undo`, `redo` |
 | PDF sources | `read_pdf`, `pdf_page_image` |
-| Brands and templates | `list_brands`, `save_brand`, `validate_template`, `save_template` |
+| Brands and templates | `list_brands`, `save_brand`, `validate_template`, `save_template`, `library` |
 
 The fast path for a finished piece is five calls: `intake` (files and a brief into a pack), `make_layout` (the Make pass and its report), `preview` (page images), `set_slots` (replace what is still sample text), `export_document` (PDF, IDML, PNG, HTML, EPUB or `.fdes`). `run_commands` reaches all 432 core commands for anything else; `find_commands` searches them by words.
 
