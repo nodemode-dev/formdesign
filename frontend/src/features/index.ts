@@ -8,5 +8,6 @@ import { rulersFeature as rulers } from './rulers';
 import { installGlyphs } from './glyphs';
 import { installTabs } from './tabs';
 import { installTable } from './table';
+import { installBook } from './book';
 
-export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }];
+export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook }];
