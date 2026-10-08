@@ -4,7 +4,7 @@ import { editor, type Rect4 } from './editor';
 export interface ViewState { zoom: number; x: number; y: number }
 export interface ViewOptions {
   guides: boolean; frames: boolean; baseline: boolean; preview: boolean; threads: boolean; quality: 'fast' | 'typical' | 'high';
-  overprint: boolean; plate: number | null; inkLimit: number | null; notes: boolean; changes: boolean;
+  overprint: boolean; plate: number | null; inkLimit: number | null; notes: boolean; changes: boolean; spelling: boolean;
 }
 
 interface Tile { key: string; level: number; i: number; j: number; rect: Rect4; bmp: ImageBitmap | null; stale: boolean; dirtyAt: number; used: number }
@@ -18,8 +18,9 @@ function intersects(a: Rect4, b: Rect4): boolean { return a[0] < b[2] && a[2] > 
 
 export class Viewport {
   view: ViewState = { zoom: 1, x: 0, y: 0 };
-  opts: ViewOptions = { guides: true, frames: true, baseline: false, preview: false, threads: false, quality: 'high', overprint: false, plate: null, inkLimit: null, notes: true, changes: false };
+  opts: ViewOptions = { guides: true, frames: true, baseline: false, preview: false, threads: false, quality: 'high', overprint: false, plate: null, inkLimit: null, notes: true, changes: false, spelling: false };
   overlays: any = null;
+  spell: number[][] = [];
   onView: (() => void) | null = null;
   private readonly views = new Map<number, ViewState>();
   private readonly caches = new Map<number, Map<string, Tile>>();
@@ -370,6 +371,7 @@ export class Viewport {
     try {
       const vr = this.visibleRect();
       this.overlays = (await engine.call('overlays', { zoom: this.view.zoom, rect: vr })).result;
+      this.spell = this.opts.spelling ? ((await engine.call<{ lines: number[][] }>('spellMarks', { rect: vr })).result?.lines ?? []) : [];
     } catch { }
     this.overlayBusy = false;
     this.drawOverlays();
@@ -418,6 +420,21 @@ export class Viewport {
       }
       h.strokeStyle = c.guide ?? '#4ae3ff';
       for (const g of ov.guides ?? []) line(h, g.a[0], g.a[1], g.b[0], g.b[1]);
+    }
+    if (!preview && this.opts.spelling && this.spell.length) {
+      h.strokeStyle = getComputedStyle(this.stage).getPropertyValue('--danger').trim() || 'red';
+      h.lineWidth = Math.max(1, dpr);
+      const amp = 1.4 * dpr, step = 2.5 * dpr;
+      for (const l of this.spell) {
+        const ax = X(l[0]), ay = Y(l[1]), bx = X(l[2]), by = Y(l[3]);
+        const len = Math.hypot(bx - ax, by - ay);
+        if (len < 2) continue;
+        const ux = (bx - ax) / len, uy = (by - ay) / len;
+        h.beginPath();
+        h.moveTo(ax, ay);
+        for (let d = step, k = 1; d <= len; d += step, k++) { const o = k % 2 ? amp : -amp; h.lineTo(ax + ux * d - uy * o, ay + uy * d + ux * o); }
+        h.stroke();
+      }
     }
     if (!preview && this.opts.frames) {
       h.globalAlpha = 0.55;

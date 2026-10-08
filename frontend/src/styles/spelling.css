@@ -1,0 +1,25 @@
+.fsc-win { width: 400px; }
+.fsc-not { display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: var(--space-2); min-height: var(--ctl-md); }
+.fsc-word { overflow: hidden; padding: 0 8px; border-radius: var(--radius); background: var(--accent-wash); color: var(--text-primary); font-size: var(--fs-13); font-weight: 600; line-height: var(--ctl-md); text-overflow: ellipsis; white-space: nowrap; }
+.fsc-not.is-empty .fsc-word { background: transparent; }
+.fsc-torow { grid-template-columns: 104px minmax(0, 1fr); }
+.fsc-sugg { display: flex; flex-direction: column; gap: 1px; height: 132px; padding: 3px; overflow-y: auto; border: 1px solid var(--line-1); border-radius: var(--radius); background: var(--surface-0); }
+.fsc-s { flex: none; height: 24px; padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fs-12); text-align: left; cursor: pointer; }
+.fsc-s:hover { background: var(--surface-raised); color: var(--text-primary); }
+.fsc-s.is-on { background: var(--accent-soft); color: var(--accent-ink); }
+.fsc-lang { margin-left: auto; }
+.fsc-acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.fsc-acts .cv-btn { min-width: 0; height: var(--ctl-md); padding: 0 6px; font-size: var(--fs-11); }
+.fsc-dicttog { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 2px 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: var(--fs-11); font-weight: 600; cursor: pointer; }
+.fsc-dicttog svg { transition: transform var(--transition-fast); }
+.fsc-dicttog.is-open svg { transform: rotate(90deg); }
+.fsc-dicttog:hover { color: var(--text-primary); }
+.fsc-dict { display: flex; flex-direction: column; gap: 6px; }
+.fsc-dict[hidden] { display: none; }
+.fsc-dhead { display: flex; align-items: baseline; justify-content: space-between; margin-top: 2px; }
+.fsc-dcount, .fsc-hcount { color: var(--text-muted); font-size: var(--fs-11); }
+.fsc-dlist { display: flex; flex-wrap: wrap; gap: 4px; min-height: 26px; }
+.fsc-d { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 2px 0 8px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface-raised); color: var(--text-primary); font-size: var(--fs-11); }
+.fsc-dx { width: 20px; height: 20px; }
+.fsc-dadd { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.fsc-dadd .ff-mini { height: var(--ctl-md); }
