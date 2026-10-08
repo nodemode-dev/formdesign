@@ -253,7 +253,7 @@ export class Shell implements Workspace {
     switch (name) {
       case 'File': return { pre: ['ui.open', 'ui.close', 'ui.save', 'ui.saveAs', '-', 'ui.place'], post: [] };
       case 'Edit': return { pre: ['ui.undo', 'ui.redo'], post: ['ui.shortcuts'] };
-      case 'View': return { pre: ['ui.zoomIn', 'ui.zoomOut', 'ui.fitPage', 'ui.fitSpread', 'ui.actualSize', 'ui.fitAll', '-', 'ui.preview', 'ui.quality', '-', 'ui.guides', 'ui.frames', 'ui.baseline', 'ui.threads', '-', 'ui.prevPage', 'ui.nextPage'], post: [] };
+      case 'View': return { pre: ['ui.zoomIn', 'ui.zoomOut', 'ui.fitPage', 'ui.fitSpread', 'ui.actualSize', 'ui.fitAll', '-', 'ui.preview', 'ui.quality', '-', 'ui.rulers', 'ui.guides', 'ui.frames', 'ui.baseline', 'ui.threads', '-', 'ui.prevPage', 'ui.nextPage'], post: [] };
       case 'Window': return { pre: this.panels.map((p) => `ui.panel.${p.id}`), post: ['ui.panels', 'ui.home'] };
       case 'Help': return { pre: ['ui.about'], post: [] };
       default: return { pre: [], post: [] };

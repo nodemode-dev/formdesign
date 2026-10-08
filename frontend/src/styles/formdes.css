@@ -9,6 +9,9 @@
 .fd-app .cv-layers > section.cv-make.cv-group:not(.is-min):not(.is-sized) { flex-grow: 1.6; }
 .fd-app .cv-layers > section.cv-group > .cv-group-body:not([hidden]) { flex: 1; min-height: 0; overflow-y: auto; }
 .fd-app .cv-layers > section.cv-make > .cv-group-body { padding-bottom: 0; }
+.fd-guide-ghost { position: absolute; left: 0; top: 0; z-index: var(--z-raised); width: 100%; height: 1px; background: var(--accent-color); pointer-events: none; }
+.fd-guide-ghost.is-v { width: 1px; height: 100%; }
+.fd-guide-ghost[hidden], .fd-ruler-probe { display: none; }
 .fd-make-btn { display: inline-flex; align-items: center; gap: 6px; height: var(--ctl-md); padding: 0 var(--space-3); border: 1px solid var(--accent-line); border-radius: var(--radius); background: var(--accent-soft); color: var(--text-primary); font-size: var(--fs-12); }
 .fd-make-btn:hover { background: var(--accent-wash); }
 .fd-status { display: flex; align-items: center; gap: var(--space-4); padding: 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-11); }
