@@ -2,8 +2,8 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.8.0
-Last updated: 2026-10-08 · books, the font route, the core methods the window may call
+Current build version: v0.9.0
+Last updated: 2026-10-08 · saved queries and preflight profiles, find_change and the preflight profile in MCP
 
 ---
 
@@ -30,14 +30,15 @@ backend/
     │   ├── core.py               the formdes-core child process: calls, binary replies, events, restart
     │   └── documents.py          .fdes packages, open, save, adopt, recent
     ├── intake/                   files and a brief into one content pack (brief.py reads the brief)
-    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book)
+    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight)
     ├── templates/                spec, compile, registry, brands, library/ (71 JSON templates)
     ├── autolayout/               content, rank, make, fill, tagged, slots: the Make pass
     └── routers/
         ├── system.py             version, health, capabilities
         ├── core_api.py           /api/core/* REST, /api/core/font and the /api/ws window socket
         ├── documents.py, intake.py, templates.py, make.py, reader.py, books.py
-        └── mcp.py                /mcp, the 26 tools (book among them) and the layout_strategy prompt
+        ├── find.py, preflight.py /api/find/queries and /api/preflight/profiles
+        └── mcp.py                /mcp, the 27 tools (book and find_change among them) and the layout_strategy prompt
 ```
 
 ---
@@ -51,6 +52,7 @@ backend/
 - [formdes_engine.py](#frozen)
 - [app/intake/brief.py](#brief)
 - [app/autolayout/make.py](#make)
+- [app/services/queries.py, profiles.py](#presets)
 
 ---
 
@@ -163,3 +165,21 @@ Key: value lines (and inline "CTA: ..." after a sentence) become fields through 
 - logged: v0.6.0 · 2026-10-07
 
 Runs only when the frame is overset. Prose (body slots and long bases) first drops whole paragraphs, or sentences when there is one paragraph, by binary search; then shrinks size and leading together to 78 percent. Short fields (titles, dates, times, prices) skip the trimming and shrink further, to 55 percent, because a cut date or headline reads as broken while a smaller one still reads. Only after shrinking fails are words trimmed with an ellipsis. The returned dict goes into the report's `fit`.
+
+---
+
+## app/services/queries.py, profiles.py {#presets}
+
+### queries.py, profiles.py · storage
+- refers-to: backend/app/services/queries.py, backend/app/services/profiles.py
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+Both follow the brand-kit pattern: built-ins live in code and cannot be overwritten or deleted; the person's own are one JSON file each (`Queries/`, `Preflight/` in the data folder) named by a slug of the name, so saving under an existing name replaces it. `clean()` keeps only the known keys, so a query or profile saved by an agent cannot smuggle other parameters into the core call. A query's settings are exactly `findChange` parameters; a profile's `checks` are exactly the core `preflight` profile.
+
+### mcp.py · find_change, preflight
+- refers-to: backend/app/routers/mcp.py :: _find, call_tool preflight
+- kind: rationale
+- logged: v0.9.0 · 2026-10-08
+
+`find_change` offers count, all, change_all and queries rather than the window's Find Next and Change, because an agent works on the whole document and a selection-driven loop would cost a call per match. Listing is capped at 200 matches with context; count asks for up to 20000. Pages in the reply count from 1, as `preview` does; zero values are kept (an earlier filter dropped page 0 as falsy). `preflight` now always calls the core's `preflight` method, with the named profile's checks and `min_ppi` laid over them.

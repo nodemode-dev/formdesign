@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.8.0
-Last updated: 2026-10-08 · Separations, the Review group, Object Style Options, the Story Editor's style column, function keys while typing, the Make bar in a short group
+Current build version: v0.9.0
+Last updated: 2026-10-08 · Find/Change, spelling, floating windows, Type on a Path Options, preflight profiles, Viewport.reveal and the spelling marks
 
 ---
 
@@ -40,6 +40,10 @@ frontend/
     │   ├── object-styles.ts      the Styles tab's object view: apply, New, Options, Redefine, Delete (core objectStyles)
     │   ├── review.ts             the Review group: Changes, Notes, Conditions
     │   ├── separations.ts        Separations Preview and the ink limit (tile options), Overprint Preview
+    │   ├── find.ts               the Find/Change window (findChange, /api/find/queries)
+    │   ├── spelling.ts           Check Spelling, Dynamic Spelling, the document dictionary
+    │   ├── pathtype.ts           Type on a Path Options (pathType, type.pathOptions)
+    │   ├── floating.ts           drag and remembered position for floating windows
     │   ├── book.ts               the Book window over /api/books
     │   └── story.ts              the Story Editor (story.replaceRange of the changed span only; style column from story.paras)
     ├── styles/
@@ -69,6 +73,7 @@ frontend/
 - [src/ui/shell.ts](#shell)
 - [src/features (0.8.0 panels)](#panels080)
 - [src/styles/make.css](#make-css)
+- [src/features (0.9.0 windows)](#windows090)
 
 ---
 
@@ -182,3 +187,42 @@ The buttons act on the picked row, or on the selection's applied style when noth
 - logged: v0.8.0 · 2026-10-08
 
 A sticky element cannot rise above the top of its containing block. In the narrow dock layout the output column started below the brief, so in a short Make group the Make layout bar was cut off until scrolled. The output column is `display: contents` there, making `.mk-layout` the bar's containing block; the column separator is the input column's bottom border, and `.mk-layout` carries the column gap. The container query restores the column as a flex box for the wide two-column layout.
+
+---
+
+## src/features (0.9.0 windows) {#windows090}
+
+### find.ts · FindWindow
+- refers-to: frontend/src/features/find.ts :: FindWindow
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+A floating window on `--z-companion`, not a Dialog: Dialog adds a scrim and counts as open in `anyDialogOpen`, which stops canvas keys, and Find/Change has to stay open while the person works on the page. All matching runs in the core (`findChange`); the window only builds the parameters. For the To End of Story and Selection scopes it snapshots the selection as `within` the first time a search runs and keeps it until a setting changes, because each Find Next moves the selection onto the match. Results are keyed by story, cell or note and start, patched in place; they clear on a tab change or a switch of document (by uid, since the `docs` event also fires on every edit). Find Next asks the viewport to `reveal` the match's canvas rect, which pans only when the match is off screen. Special-character menus are native selects shown through `enhanceSelect`, reset to `@` after each insert; codes with a gap (`()`, `(?<=)`, `[]`) leave the caret inside.
+
+### find.ts · source text
+- refers-to: frontend/src/features/find.ts :: visible, LINE_BREAK, MARKERS
+- kind: rationale
+- logged: v0.9.0 · 2026-10-08
+
+The line separator and the private-use marker range are built with `String.fromCharCode`: written as escapes in a regex literal, an editing tool once turned them into raw characters, and a raw U+2028 ends a JavaScript regex literal.
+
+### spelling.ts · SpellWindow
+- refers-to: frontend/src/features/spelling.ts :: SpellWindow
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+Each step re-runs `spelling.check` without suggestions (cheap) and asks `spellSuggest` for the current word only. A cursor of story and byte offset marks where the check has got to; offsets are UTF-8 bytes, as the core counts them, hence `bytes()` after a change. The check goes round the document once from the cursor. Ignore All lasts until the window is reloaded; Add writes to the document's dictionary, so it travels with the file. Change All goes through `findChange` (whole word, case sensitive) so it is one undo step.
+
+### viewport.ts · spelling marks and reveal
+- refers-to: frontend/src/editor/viewport.ts :: fetchOverlays, drawOverlays, reveal
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+With `opts.spelling` on, each overlay fetch also asks the core for `spellMarks` in the visible rect, and the marks are drawn as a zigzag in `--danger` on the highlight canvas, under the frame edges, hidden in Preview. `reveal(rect)` does nothing when the rect is inside the view with a margin, fits it when it is bigger than the view, and otherwise centres it at the current zoom.
+
+### document/preflight.ts · profiles
+- refers-to: frontend/src/features/document/preflight.ts :: PreflightPanel
+- kind: explainer
+- logged: v0.9.0 · 2026-10-08
+
+The panel calls the core's `preflight` with the chosen profile's checks rather than `preflight.run`. The working profile is a per-browser choice (localStorage), so two people sharing a document can check it for different destinations. Define edits a copy when the profile is built in.
