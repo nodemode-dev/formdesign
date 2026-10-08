@@ -121,6 +121,7 @@ export class Input {
     try {
       const r = await engine.call<{ cursor?: string; wantsText?: boolean; tool?: string }>('pointer', { events, zoom: this.vp.view.zoom });
       editor.handleRequests(r.meta?.requests);
+      if (typeof r.result?.wantsText === 'boolean') editor.wantsText = r.result.wantsText;
       const c = r.result?.cursor;
       if (c && !this.panning) this.setCursor(CURSORS[String(c).toLowerCase()] ?? 'default');
       if (r.result?.tool && r.result.tool !== editor.tool) editor.schedule();
