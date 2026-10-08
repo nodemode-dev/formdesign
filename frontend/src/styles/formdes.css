@@ -17,6 +17,13 @@
 .fd-app section.cv-group[hidden] { display: none !important; }
 .fd-app section.cv-group.is-min + .cv-dock-split { pointer-events: none; }
 .fd-app .cv-dd-btn.fd-ws-select { width: 178px; }
+.fd-st-proof { color: var(--accent-ink); white-space: nowrap; }
+.fd-st-proof:empty { display: none; }
+.fd-field { display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: var(--fs-11); }
+.fd-field .cv-dd-btn { width: 100%; }
+.fd-note { margin: var(--space-2) 0 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }
+.fd-proof { display: flex; flex-direction: column; gap: var(--space-3); }
+.fd-proof .cv-dd-btn { width: 100%; }
 .fd-guide-ghost { position: absolute; left: 0; top: 0; z-index: var(--z-raised); width: 100%; height: 1px; background: var(--accent-color); pointer-events: none; }
 .fd-guide-ghost.is-v { width: 1px; height: 100%; }
 .fd-guide-ghost[hidden], .fd-ruler-probe { display: none; }
