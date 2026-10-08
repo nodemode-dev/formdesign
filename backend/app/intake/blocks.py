@@ -1,6 +1,7 @@
 import re
 
 WORD = re.compile(r"[\w'\u2019-]+", re.UNICODE)
+BYLINE = re.compile(r"^\s*(?:by|words by|written by|text by|story by)\s+([A-Z][^\n]{1,60}?)\s*$", re.I)
 
 
 def words(text: str) -> int:
@@ -85,11 +86,20 @@ def article_from_blocks(blocks: list[dict], source: str, aid: str, meta: dict | 
     if not deck and rest and rest[0]["type"] == "paragraph" and words(rest[0]["text"]) <= 45 and len(rest) > 2:
         if rest[0].get("runs") and all(r.get("i") for r in rest[0]["runs"] if r.get("text", "").strip()):
             deck = rest.pop(0)["text"]
+    if not deck and title and len(rest) > 2 and rest[0]["type"] == "heading" and rest[0]["level"] >= 2 and 5 <= words(rest[0]["text"]) <= 30:
+        deck = rest.pop(0)["text"]
+    byline = meta.get("author") or meta.get("byline") or ""
+    for i, b in enumerate(rest[:2]):
+        m = BYLINE.match(b.get("text", "")) if b["type"] == "paragraph" else None
+        if m and not byline and words(b["text"]) <= 10:
+            byline = m.group(1)
+            rest.pop(i)
+            break
     if not title:
         first = next((b for b in rest if b["type"] == "paragraph"), None)
         if first and words(first["text"]) <= 12:
             title = first["text"]
             rest.remove(first)
-    return {"id": aid, "title": clean(title), "deck": clean(deck), "byline": clean(meta.get("author") or meta.get("byline") or ""),
+    return {"id": aid, "title": clean(title), "deck": clean(deck), "byline": clean(byline),
             "date": str(meta.get("date") or ""), "tags": meta.get("tags") or [], "source": source, "blocks": rest,
             "words": block_words(rest), "meta": {k: v for k, v in meta.items() if k not in ("title", "subtitle", "description", "deck", "author", "byline", "date", "tags")}}
