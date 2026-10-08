@@ -161,9 +161,10 @@ Steps forward through the active document's history.
 
 ## preflight
 
-Checks the active document for output problems: overset text, missing fonts or links, low resolution images, RGB in print.
+Checks the active document for output problems: overset text, missing fonts or links, low resolution images, RGB in print. profile names a preflight profile ([Basic], Commercial print, PDF/X-1a no transparency, Saddle-stitched booklet, Digital and screen, or one the person saved) that adds bleed, trim safety, minimum type size, maximum resolution, spot ink count, transparency and page count checks.
 
-- `min_ppi`: integer; default 150
+- `min_ppi`: integer
+- `profile`: string
 
 Note: read-only.
 
