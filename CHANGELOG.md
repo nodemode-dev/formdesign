@@ -10,7 +10,7 @@ Every release of formdes, newest first. Versions follow semver; tags read `v*.*.
 - Publish Online (File > Publish Online): the open document's site gets a link served from this computer, updated each time you publish again; the list of published sites opens, copies, shows, downloads as .zip or unpublishes each one.
 - Export reports what to fix before publishing: images without alt text, buttons without a link, placeholder art still in place, fonts that cannot be embedded.
 - For agents: `export_document` takes `web` and the `publish_website` tool publishes, lists and unpublishes (29 tools); `./formdes export FILE --out site.zip` from a terminal.
-- Parity with InDesign measured at 49.0 of 53.
+- Parity with InDesign measured at 48.0 of 53, unchanged: HTML export and Publish Online (row 42) stays partial because a published site's link works on this computer only; a hosted publishing service is not built.
 
 ## 0.11.0 · 2026-10-08
 

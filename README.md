@@ -35,7 +35,7 @@ Working end to end:
 - **Interactive, structure and reuse.** Object States, Buttons and Forms (with media options) and Page Transitions panels; the XML Tags and Structure panels (Alt+Ctrl+1) with style mapping, DTD validation, import and export; Libraries of saved pieces with thumbnails, dragged onto the page, also as the `library` MCP tool.
 - **Your workspace.** Seven built-in workspaces and your own (Window > Workspace or the title-bar switcher); panel groups that move between columns, split, size and close; keyboard shortcut sets with every command and tool rebindable (Alt+Shift+Ctrl+K).
 
-Measured against InDesign 2026 in 53 rows (full 1, partial 0.5, none 0), formdes scores 49.0 (92 percent) at 0.12.0, up from 48.0 at 0.11.0. Next: the composer pieces (drop caps, synthesised small caps, the wrapped last line).
+Measured against InDesign 2026 in 53 rows (full 1, partial 0.5, none 0), formdes scores 48.0 (91 percent) at 0.12.0, as at 0.11.0: website export closes the multi-page half of the HTML and Publish Online row, which stays partial until published sites can go to a public host from the window. Next: the composer pieces (drop caps, synthesised small caps, the wrapped last line).
 
 **Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
 
