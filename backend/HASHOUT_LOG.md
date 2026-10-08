@@ -2,8 +2,8 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.9.0
-Last updated: 2026-10-08 · saved queries and preflight profiles, find_change and the preflight profile in MCP
+Current build version: v0.10.0
+Last updated: 2026-10-08 · libraries (service, routes, thumbnails) and the library MCP tool
 
 ---
 
@@ -30,7 +30,7 @@ backend/
     │   ├── core.py               the formdes-core child process: calls, binary replies, events, restart
     │   └── documents.py          .fdes packages, open, save, adopt, recent
     ├── intake/                   files and a brief into one content pack (brief.py reads the brief)
-    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight)
+    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files)
     ├── templates/                spec, compile, registry, brands, library/ (71 JSON templates)
     ├── autolayout/               content, rank, make, fill, tagged, slots: the Make pass
     └── routers/
@@ -38,7 +38,8 @@ backend/
         ├── core_api.py           /api/core/* REST, /api/core/font and the /api/ws window socket
         ├── documents.py, intake.py, templates.py, make.py, reader.py, books.py
         ├── find.py, preflight.py /api/find/queries and /api/preflight/profiles
-        └── mcp.py                /mcp, the 27 tools (book and find_change among them) and the layout_strategy prompt
+        ├── libraries.py          /api/libraries, its items and place
+        └── mcp.py                /mcp, the 28 tools (book, find_change and library among them) and the layout_strategy prompt
 ```
 
 ---
@@ -53,6 +54,7 @@ backend/
 - [app/intake/brief.py](#brief)
 - [app/autolayout/make.py](#make)
 - [app/services/queries.py, profiles.py](#presets)
+- [app/services/libraries.py](#libraries)
 
 ---
 
@@ -183,3 +185,26 @@ Both follow the brand-kit pattern: built-ins live in code and cannot be overwrit
 - logged: v0.9.0 · 2026-10-08
 
 `find_change` offers count, all, change_all and queries rather than the window's Find Next and Change, because an agent works on the whole document and a selection-driven loop would cost a call per match. Listing is capped at 200 matches with context; count asks for up to 20000. Pages in the reply count from 1, as `preview` does; zero values are kept (an earlier filter dropped page 0 as falsy). `preflight` now always calls the core's `preflight` method, with the named profile's checks and `min_ppi` laid over them.
+
+## app/services/libraries.py {#libraries}
+
+### libraries.py · storage
+- refers-to: backend/app/services/libraries.py :: folder, _path, _load, _save, listing
+- kind: rationale
+- logged: v0.10.0 · 2026-10-08
+
+One `.fdlib` JSON file per library, named by a slug of its name, in `Libraries/` under the data folder or in `FORMDES_LIBRARIES_DIR`, read at each call so a folder shared between people (a synced drive) shows their additions without a restart. `_path` refuses any name whose slug would land outside the folder. Each item keeps its title, description, the snippet as base64 and the thumbnail as a PNG data URL, so the panel draws a library from one GET with no further requests; a file that will not parse is skipped in the listing rather than failing it.
+
+### libraries.py · add, place
+- refers-to: backend/app/services/libraries.py :: add, thumb, place
+- kind: explainer
+- logged: v0.10.0 · 2026-10-08
+
+Add selects the given ids when an agent passes them (the window passes none and uses its selection), exports a snippet through the core and asks the core for `snippetThumb` at 192 px; a failed thumbnail leaves an empty one rather than losing the item. Place hands the snippet back to `snippet.place`: with x and y it lands there on the given spread, without them where it was taken from. Both run as source `engine`, so the window hears about the change through the usual document event.
+
+### mcp.py · library
+- refers-to: backend/app/routers/mcp.py :: _library
+- kind: rationale
+- logged: v0.10.0 · 2026-10-08
+
+One tool with an `action` rather than seven, because the actions share the library name and an agent reaches for them together. `items` leaves out the thumbnails: a data URL per item would spend tokens on pixels the agent cannot use, and `preview` after `place` shows the result anyway. Library errors come back as tool failures with the message, never as an exception.

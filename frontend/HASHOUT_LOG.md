@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.9.0
-Last updated: 2026-10-08 · Find/Change, spelling, floating windows, Type on a Path Options, preflight profiles, Viewport.reveal and the spelling marks
+Current build version: v0.10.0
+Last updated: 2026-10-08 · the Interactive, XML and Library panels, LivePanel exported, three more groups starting minimised
 
 ---
 
@@ -44,6 +44,9 @@ frontend/
     │   ├── spelling.ts           Check Spelling, Dynamic Spelling, the document dictionary
     │   ├── pathtype.ts           Type on a Path Options (pathType, type.pathOptions)
     │   ├── floating.ts           drag and remembered position for floating windows
+    │   ├── interactive.ts        Object States, Buttons and Forms (media options), Page Transitions
+    │   ├── xml.ts                the XML Structure and Tags panels
+    │   ├── library.ts            the Library panel over /api/libraries, drag onto the page
     │   ├── book.ts               the Book window over /api/books
     │   └── story.ts              the Story Editor (story.replaceRange of the changed span only; style column from story.paras)
     ├── styles/
@@ -74,6 +77,7 @@ frontend/
 - [src/features (0.8.0 panels)](#panels080)
 - [src/styles/make.css](#make-css)
 - [src/features (0.9.0 windows)](#windows090)
+- [src/features (0.10.0 panels)](#panels0100)
 
 ---
 
@@ -226,3 +230,40 @@ With `opts.spelling` on, each overlay fetch also asks the core for `spellMarks` 
 - logged: v0.9.0 · 2026-10-08
 
 The panel calls the core's `preflight` with the chosen profile's checks rather than `preflight.run`. The working profile is a per-browser choice (localStorage), so two people sharing a document can check it for different destinations. Define edits a copy when the profile is built in.
+
+## src/features (0.10.0 panels) {#panels0100}
+
+### review.ts · LivePanel exported
+- refers-to: frontend/src/features/review.ts :: LivePanel
+- kind: rationale
+- logged: v0.10.0 · 2026-10-08
+
+The Review panels' base (load on show, reload on document change and selection, `run` that executes and reloads, errors as toasts) fits the Interactive and XML panels exactly, so it is exported and they extend it rather than carrying a copy each.
+
+### interactive.ts · three panels
+- refers-to: frontend/src/features/interactive.ts :: StatesPanel, InteractivePanel, TransitionsPanel, installInteractive
+- kind: explainer
+- logged: v0.10.0 · 2026-10-08
+
+All three sit in one side-column group, `interactive`, which starts minimised. States reads `states.list` for the selected object and renames in place with an inline field (Enter keeps, Escape restores). The Buttons and Forms panel works on one selected object: one round of `button.list`, `form.list` and `media.get` decides its type and which rows show (`.fin-b` for buttons, `.fin-x` for fields), and changing the type clears the old button or field (`button.clear`, `form.clear`) before `button.set` or `form.set`, so an object is never both. The media block shows only when `media.get` answers for the object, so the panel has no media kinds of its own. Transitions lists only spreads with a transition, and the speed is in seconds as InDesign shows it.
+
+### xml.ts · Tags and Structure
+- refers-to: frontend/src/features/xml.ts :: TagsPanel, StructurePanel
+- kind: explainer
+- logged: v0.10.0 · 2026-10-08
+
+Clicking a tag both picks it (for Delete) and applies it when something is selected: text when the selection has a range, otherwise the selected frames, which is how InDesign's Tags panel behaves. Tag names are checked against XML's name rule before the core is asked. The style mapping list is built from the document's paragraph styles and patched in place; a select's options are replaced only when the tag list changes (`dataset.key`). Export builds the file in the window and downloads it, since the core already returns the text; Validate is enabled only while a DTD is loaded, and its problems are cleared when the DTD changes.
+
+### library.ts · panel and drop
+- refers-to: frontend/src/features/library.ts :: LibraryPanel
+- kind: explainer
+- logged: v0.10.0 · 2026-10-08
+
+The panel is plain REST over `/api/libraries`; the chosen library is remembered per browser. A thumbnail card's key includes the thumbnail's length, so a rename patches the card and only a new picture replaces its image. Cards drag with their own MIME type, so the stage's capture-phase drop handler takes only library drags and leaves file drops to the workspace; the drop point goes through `viewport.toCanvas` and the engine places the snippet's top left there. Thumbnails sit on `--fd-paper`, because a snippet is drawn on transparency and dark type would vanish on the panel's surface.
+
+### shell.ts · startMin
+- refers-to: frontend/src/ui/shell.ts :: PanelGroup.startMin
+- kind: rationale
+- logged: v0.10.0 · 2026-10-08
+
+`interactive`, `xml` and `library` join the groups that start minimised, so a first run shows the panels most layouts use and the specialist ones wait behind a tab click.
