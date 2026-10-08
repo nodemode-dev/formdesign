@@ -82,11 +82,15 @@ class Core:
             try:
                 self.proc.stdin.write(req.encode() + b"\n")
                 await self.proc.stdin.drain()
-                line = await asyncio.wait_for(self.proc.stdout.readline(), timeout)
-                if not line:
-                    raise CoreError("the layout core closed its output")
-                head = json.loads(line)
-                data = await self.proc.stdout.readexactly(head["bin"]) if head.get("bin") else None
+                while True:
+                    line = await asyncio.wait_for(self.proc.stdout.readline(), timeout)
+                    if not line:
+                        raise CoreError("the layout core closed its output")
+                    head = json.loads(line)
+                    data = await self.proc.stdout.readexactly(head["bin"]) if head.get("bin") else None
+                    if head.get("id") in (None, self.next_id):
+                        break
+                    log.warning("formdes-core: skipped the late reply to request %s", head.get("id"))
             except (BrokenPipeError, ConnectionResetError, asyncio.IncompleteReadError) as exc:
                 raise CoreError(f"the layout core stopped while answering {method}: {exc}") from exc
         meta = {k: head.get(k) for k in ("rev", "selRev", "changed", "damage", "requests") if k in head}
