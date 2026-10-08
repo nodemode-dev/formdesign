@@ -2,7 +2,7 @@
 <h1 align="center">formdes</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.8.0-f97316" alt="version 0.8.0">
+<img src="https://img.shields.io/badge/version-0.9.0-f97316" alt="version 0.9.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -16,7 +16,7 @@ formdes is the form family's page-layout application: an alternative to InDesign
 
 **Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
 
-## Status at 0.8.0
+## Status at 0.9.0
 
 Working end to end:
 
