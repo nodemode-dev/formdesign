@@ -12,7 +12,8 @@ router = APIRouter()
 log = logging.getLogger("formdes.ws")
 
 JSON_METHODS = {"exec", "batch", "commands", "inspect", "state", "layout", "overlays", "pointer", "key", "text", "cursor",
-                "tool", "tools", "docs.activate", "docs.close", "fonts.families", "hello", "ping", "slots", "frame.thread", "frame.unthread"}
+                "tool", "tools", "docs.activate", "docs.close", "fonts.families", "fonts.styles", "fonts.face", "hello", "ping", "slots",
+                "frame.thread", "frame.unthread"}
 BINARY_METHODS = {"tiles", "page.png", "serialize"}
 ROUTED = {"file.save", "file.saveAs", "file.new", "file.open"}
 
@@ -50,6 +51,15 @@ async def page_png(page: int = 0, maxSide: float | None = Query(default=None), s
     except CoreError as exc:
         raise HTTPException(422, str(exc)) from exc
     return Response(r.bin or b"", media_type=r.result.get("mime", "image/png"), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/core/font")
+async def font_file(family: str, style: str = "Regular"):
+    try:
+        r = await core.call("fonts.data", {"family": family, "style": style}, source="rest")
+    except CoreError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return Response(r.bin or b"", media_type="font/ttf", headers={"Cache-Control": "private, max-age=3600"})
 
 
 def _frame(header: dict, payload: bytes) -> bytes:
