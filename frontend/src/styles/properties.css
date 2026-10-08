@@ -205,3 +205,7 @@ body.fp-scrubbing, body.fp-scrubbing * { cursor: ew-resize !important; user-sele
 .fp-colorin::-webkit-color-swatch { border: 0; border-radius: var(--radius-xs); }
 .fp-hex { width: 110px; flex: none; font-family: var(--font-mono); }
 .fp-stform .fp-seg { margin-top: 2px; }
+.fs-hub { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; }
+.fs-kinds button { font-size: var(--fs-12); }
+.fs-pages > [hidden] { display: none; }
+.fo-new { flex: none; height: var(--ctl-sm); font-size: var(--fs-11); }
