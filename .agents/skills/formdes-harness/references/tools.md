@@ -5,7 +5,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 ## Contents
 
 - Intake and make: `intake`, `list_templates`, `get_template`, `make_layout`
-- Look and fix: `preview`, `get_slots`, `set_slots`, `get_document`, `preflight`
+- Look and fix: `preview`, `get_slots`, `set_slots`, `get_document`, `preflight`, `find_change`
 - Documents: `list_documents`, `switch_document`, `new_document`, `open_document`, `save_document`, `export_document`, `book`
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
@@ -232,5 +232,28 @@ Books collect saved .fdes documents as chapters. list: the books and the saved d
 - `index`: integer
 - `to`: integer
 - `path`: string; Absolute path (~ is expanded).
+
+Note: writes or replaces files.
+
+## find_change
+
+Find/Change across the active document, as in InDesign. mode text (plain words; ^p return, ^t tab, ^n line break, ^9 digit, ^$ letter, ^? any character), grep (regular expressions with InDesign's \r return, \n line break, ~= en dash, ~_ em dash, ~e ellipsis, ~{ ~} curly quotes, lookahead and lookbehind; $1 in change), glyph (glyph {char: a character or U+2014, fontFamily, fontStyle} to toGlyph) or object (object {kind: text|graphic|shape|line|group, fill, stroke, strokeWeight, opacity 0 to 1, layer, objectStyle} to objectChange). findFormat and changeFormat take paragraphStyle, characterStyle and character attributes (fontFamily, fontStyle, size, fill). op count, all (matches with page and context), change_all (one undo step; locked text is skipped), queries (the saved and built-in queries). query runs a saved query by name; save_as saves these settings. An empty change with no changeFormat deletes the matches.
+
+- `op`: string (count | all | change_all | queries); required
+- `mode`: string (text | grep | glyph | object); default "text"
+- `find`: string
+- `change`: string
+- `query`: string
+- `save_as`: string
+- `caseSensitive`: boolean
+- `wholeWord`: boolean
+- `scope`: string (document | story | selection); default "document"
+- `include`: object; locked, hidden, parents: booleans (default false)
+- `findFormat`: object
+- `changeFormat`: object
+- `glyph`: object
+- `toGlyph`: object
+- `object`: object
+- `objectChange`: object
 
 Note: writes or replaces files.

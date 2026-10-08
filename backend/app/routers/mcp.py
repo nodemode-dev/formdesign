@@ -14,7 +14,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
-from app.services import books, pdfread
+from app.services import books, pdfread, queries
 from app.templates import brands, registry, spec
 
 router = APIRouter()
@@ -36,6 +36,7 @@ STRATEGY = """How to make a layout in formdes with these tools.
 8. New templates: write the JSON spec (docs/TEMPLATES.md), validate_template until it renders cleanly with no overset outside flows, then save_template.
 9. PDFs as sources: read_pdf for structured text (headings, paragraphs, lists), pdf_page_image to see a page.
 10. Long documents in parts: save each part, then book (create, add each saved .fdes, paginate, sync, export) numbers them in sequence, shares styles and writes one PDF.
+11. Clean-up and restyling across a document: find_change. count first, then change_all; the built-in queries (op queries) fix straight quotes, dashes, double spaces and stray returns, and findFormat with an empty find restyles every run in a style.
 """
 PROMPTS = [{"name": "layout_strategy", "title": "How to lay out in formdes", "description": "The decision tree for formdes's tools: intake, choose a template, make, look, fix, deliver.", "arguments": []}]
 
@@ -94,6 +95,17 @@ TOOLS = [
           {"action": {"type": "string", "enum": ["list", "create", "info", "add", "remove", "move", "source", "paginate", "sync", "export"]}, "book": {"type": "string", "description": "The .fdbook path (from list or create)."},
            "name": {"type": "string"}, "doc": _PATH, "at": {"type": "integer", "minimum": 0}, "index": {"type": "integer", "minimum": 0}, "to": {"type": "integer", "minimum": 0}, "path": _PATH},
           ["action"], destructive=True),
+    _tool("find_change", "Find/Change across the active document, as in InDesign. mode text (plain words; ^p return, ^t tab, ^n line break, ^9 digit, ^$ letter, ^? any character), grep "
+          "(regular expressions with InDesign's \\r return, \\n line break, ~= en dash, ~_ em dash, ~e ellipsis, ~{ ~} curly quotes, lookahead and lookbehind; $1 in change), glyph "
+          "(glyph {char: a character or U+2014, fontFamily, fontStyle} to toGlyph) or object (object {kind: text|graphic|shape|line|group, fill, stroke, strokeWeight, opacity 0 to 1, layer, "
+          "objectStyle} to objectChange). findFormat and changeFormat take paragraphStyle, characterStyle and character attributes (fontFamily, fontStyle, size, fill). op count, all (matches "
+          "with page and context), change_all (one undo step; locked text is skipped), queries (the saved and built-in queries). query runs a saved query by name; save_as saves these settings. "
+          "An empty change with no changeFormat deletes the matches.",
+          {"op": {"type": "string", "enum": ["count", "all", "change_all", "queries"]}, "mode": {"type": "string", "enum": ["text", "grep", "glyph", "object"], "default": "text"},
+           "find": {"type": "string"}, "change": {"type": "string"}, "query": {"type": "string"}, "save_as": {"type": "string"},
+           "caseSensitive": {"type": "boolean"}, "wholeWord": {"type": "boolean"}, "scope": {"type": "string", "enum": ["document", "story", "selection"], "default": "document"},
+           "include": {"type": "object", "description": "locked, hidden, parents: booleans (default false)"}, "findFormat": _OBJ, "changeFormat": _OBJ,
+           "glyph": _OBJ, "toGlyph": _OBJ, "object": _OBJ, "objectChange": _OBJ}, ["op"], destructive=True),
 ]
 NAMES = {t["name"] for t in TOOLS}
 _status = {"calls": 0, "last": None, "at": 0.0}
@@ -300,7 +312,44 @@ async def _run(name: str, a: dict) -> dict:
         return _text({"saved": str(f), "overset": rep.get("overset")})
     if name == "book":
         return await _book(a)
+    if name == "find_change":
+        return await _find(a)
     return _fail(f"no tool {name}")
+
+
+async def _find(a: dict) -> dict:
+    op = a.get("op", "all")
+    if op == "queries":
+        return _text([{k: q[k] for k in ("name", "mode", "find", "change", "object", "objectChange", "builtin") if q.get(k) not in (None, "")} for q in queries.listing()])
+    p: dict = {}
+    if a.get("query"):
+        q = queries.get(a["query"])
+        if q is None:
+            return _fail(f"no saved query named {a['query']}; op queries lists them")
+        p.update(queries.params(q))
+    p.update({k: v for k, v in a.items() if k not in ("op", "query", "save_as") and v is not None})
+    p.setdefault("mode", "text")
+    if a.get("save_as"):
+        try:
+            queries.save({**p, "name": a["save_as"]})
+        except queries.QueryError as exc:
+            return _fail(str(exc))
+    p["op"] = "changeAll" if op == "change_all" else "all"
+    if op != "change_all":
+        p["limit"] = 200 if op == "all" else 20000
+    res = (await core.call("findChange", p, source="mcp")).result
+    if op == "count":
+        return _text({"total": res.get("total"), "truncated": res.get("truncated", False)})
+    if op == "all":
+        keep = ("id", "kind", "name", "story", "note", "cell", "start", "end", "text", "before", "after", "locked", "overset")
+        rows = []
+        for m in res.get("matches", []):
+            row = {k: m[k] for k in keep if m.get(k) is not None and m.get(k) != "" and m.get(k) is not False}
+            if isinstance(m.get("page"), int):
+                row["page"] = m["page"] + 1
+            rows.append(row)
+        return _text({"total": res.get("total"), "truncated": res.get("truncated", False), "pages": "count from 1", "matches": rows})
+    return _text(res)
 
 
 async def _book(a: dict) -> dict:

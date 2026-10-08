@@ -22,6 +22,7 @@ DATA_DIR = _data_dir()
 PROJECTS_DIR = DATA_DIR / "Projects"
 TEMPLATES_USER_DIR = DATA_DIR / "Templates"
 BRANDS_DIR = DATA_DIR / "Brands"
+QUERIES_DIR = DATA_DIR / "Queries"
 INTAKE_DIR = DATA_DIR / "Intake"
 EXPORTS_DIR = DATA_DIR / "Exports"
 FONTS_USER_DIR = DATA_DIR / "Fonts"
@@ -61,5 +62,5 @@ def font_dirs() -> list[Path]:
 
 
 def ensure_dirs() -> None:
-    for d in (DATA_DIR, PROJECTS_DIR, TEMPLATES_USER_DIR, BRANDS_DIR, INTAKE_DIR, EXPORTS_DIR, FONTS_USER_DIR, CACHE_DIR):
+    for d in (DATA_DIR, PROJECTS_DIR, TEMPLATES_USER_DIR, BRANDS_DIR, QUERIES_DIR, INTAKE_DIR, EXPORTS_DIR, FONTS_USER_DIR, CACHE_DIR):
         d.mkdir(parents=True, exist_ok=True)

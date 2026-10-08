@@ -23,7 +23,7 @@ SKILLS = ["formdes-harness", "formdes-template-creator"]
 SRC = ROOT / ".claude" / "skills"
 MIRROR = ROOT / ".agents" / "skills"
 LAUNCH = str(ROOT / ("formdes.bat" if os.name == "nt" else "formdes"))
-GROUPS = [("Intake and make", ["intake", "list_templates", "get_template", "make_layout"]), ("Look and fix", ["preview", "get_slots", "set_slots", "get_document", "preflight"]),
+GROUPS = [("Intake and make", ["intake", "list_templates", "get_template", "make_layout"]), ("Look and fix", ["preview", "get_slots", "set_slots", "get_document", "preflight", "find_change"]),
           ("Documents", ["list_documents", "switch_document", "new_document", "open_document", "save_document", "export_document", "book"]),
           ("Any command", ["run_commands", "find_commands", "undo", "redo"]), ("PDF sources", ["read_pdf", "pdf_page_image"]),
           ("Brands and templates", ["list_brands", "save_brand", "validate_template", "save_template"])]
