@@ -8,7 +8,7 @@ export interface SlotInfo { spread: number; bounds: Rect4; rotation: number; xf:
 export interface LayoutInfo { slots: SlotInfo[]; pages: PageInfo[]; pasteboard: Rect4; editingParents: boolean; bleed: number | number[] }
 export interface DocInfo {
   index: number; uid: number; title: string; dirty: boolean; path: string | null; pages: number;
-  canUndo: boolean; canRedo: boolean; undoLabel: string | null; redoLabel: string | null; template?: string | null;
+  canUndo: boolean; canRedo: boolean; undoLabel: string | null; redoLabel: string | null; template?: string | null; trackChanges?: boolean;
 }
 export interface CoreCommand { id: string; label: string; menu: string[]; params: string; shortcut: string | null; enabled: boolean }
 export interface ToolInfo { id: string; label: string; icon: string; shortcut: string | null }

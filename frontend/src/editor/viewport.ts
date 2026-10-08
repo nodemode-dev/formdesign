@@ -2,7 +2,10 @@ import { engine, type ChangeEvent } from '../engine/client';
 import { editor, type Rect4 } from './editor';
 
 export interface ViewState { zoom: number; x: number; y: number }
-export interface ViewOptions { guides: boolean; frames: boolean; baseline: boolean; preview: boolean; threads: boolean; quality: 'fast' | 'typical' | 'high' }
+export interface ViewOptions {
+  guides: boolean; frames: boolean; baseline: boolean; preview: boolean; threads: boolean; quality: 'fast' | 'typical' | 'high';
+  overprint: boolean; plate: number | null; inkLimit: number | null; notes: boolean; changes: boolean;
+}
 
 interface Tile { key: string; level: number; i: number; j: number; rect: Rect4; bmp: ImageBitmap | null; stale: boolean; dirtyAt: number; used: number }
 
@@ -15,7 +18,7 @@ function intersects(a: Rect4, b: Rect4): boolean { return a[0] < b[2] && a[2] > 
 
 export class Viewport {
   view: ViewState = { zoom: 1, x: 0, y: 0 };
-  opts: ViewOptions = { guides: true, frames: true, baseline: false, preview: false, threads: false, quality: 'high' };
+  opts: ViewOptions = { guides: true, frames: true, baseline: false, preview: false, threads: false, quality: 'high', overprint: false, plate: null, inkLimit: null, notes: true, changes: false };
   overlays: any = null;
   onView: (() => void) | null = null;
   private readonly views = new Map<number, ViewState>();
@@ -313,7 +316,9 @@ export class Viewport {
     }
     try {
       const rep = await engine.callBinary<{ tiles: Array<{ key: string; w: number; h: number; offset: number; len: number }> }>('tiles', {
-        tiles: req, bg: this.bg, preview: this.opts.preview, quality: this.opts.quality,
+        tiles: req, bg: this.bg, preview: this.opts.preview, quality: this.opts.quality, overprint: this.opts.overprint,
+        notes: this.opts.notes, changes: this.opts.changes, ...(this.opts.plate != null ? { plate: this.opts.plate } : {}),
+        ...(this.opts.inkLimit ? { inkLimit: this.opts.inkLimit } : {}),
       });
       if (uid !== this.uid) return;
       const bytes = new Uint8ClampedArray(rep.data);

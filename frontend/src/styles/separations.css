@@ -1,0 +1,17 @@
+.fsp-panel { display: flex; flex-direction: column; gap: var(--space-2); }
+.fsp-mode button { font-size: var(--fs-11); }
+.fsp-plates { display: flex; flex-direction: column; gap: 2px; }
+.fsp-plates[hidden], .fsp-limit[hidden] { display: none; }
+.fsp-plate { display: flex; align-items: center; gap: var(--space-2); height: 28px; padding: 0 var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fs-12); text-align: left; cursor: pointer; }
+.fsp-plate:hover { background: var(--surface-raised); }
+.fsp-plate.is-on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text-primary); }
+.fsp-sw { width: 14px; height: 14px; border: 1px solid var(--line-2); border-radius: 3px; background: var(--fsp-sw, var(--text-muted)); }
+.fsp-limit { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: var(--space-2); }
+.fsp-lab { width: auto; padding: 0 6px; cursor: default; }
+.fsp-unit, .fsp-note, .fsp-none { color: var(--text-muted); font-size: var(--fs-11); line-height: 1.4; }
+.fsp-note { margin: 0; }
+.fsp-check { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: var(--fs-12); cursor: pointer; }
+.fsp-sec { margin-top: var(--space-1); color: var(--text-muted); font-size: var(--fs-11); font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; }
+.fsp-inks { display: flex; flex-direction: column; gap: 4px; }
+.fsp-ink { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--text-secondary); font-size: var(--fs-12); }
+.fsp-proc { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: var(--fs-11); }
