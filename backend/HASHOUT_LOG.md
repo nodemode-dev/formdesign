@@ -2,8 +2,8 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.6.0
-Last updated: 2026-10-07 · frozen engine entry, brief reading, the Make pass's fit and fill rules, templates, MCP
+Current build version: v0.8.0
+Last updated: 2026-10-08 · books, the font route, the core methods the window may call
 
 ---
 
@@ -30,13 +30,13 @@ backend/
     │   ├── core.py               the formdes-core child process: calls, binary replies, events, restart
     │   └── documents.py          .fdes packages, open, save, adopt, recent
     ├── intake/                   files and a brief into one content pack (brief.py reads the brief)
-    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure)
+    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book)
     ├── templates/                spec, compile, registry, brands, library/ (71 JSON templates)
     ├── autolayout/               content, rank, make, fill, tagged, slots: the Make pass
     └── routers/
         ├── system.py             version, health, capabilities
-        ├── core_api.py           /api/core/* REST and the /api/ws window socket
-        ├── documents.py, intake.py, templates.py, make.py, reader.py
+        ├── core_api.py           /api/core/* REST, /api/core/font and the /api/ws window socket
+        ├── documents.py, intake.py, templates.py, make.py, reader.py, books.py
         └── mcp.py                /mcp, the 26 tools (book among them) and the layout_strategy prompt
 ```
 
@@ -98,6 +98,13 @@ A core that died is started again on the next call and asked to reopen whatever 
 - logged: v0.1.0 · 2026-10-07
 
 The window's socket. Text frames are JSON requests `{id, method, params}` answered by JSON `{id, ok, result, rev, selRev, ...}`; a binary reply is one binary frame: a 4-byte big-endian header length, the JSON header, then the payload. Each request runs as its own task so a slow tile render does not hold back the next pointer event in the socket; the core lock still orders them. Change events from any source are pushed as `{type: "changed", ...}`. Only the methods in `JSON_METHODS` and `BINARY_METHODS` pass.
+
+### core_api.py · JSON_METHODS
+- refers-to: backend/app/routers/core_api.py :: JSON_METHODS
+- kind: rationale
+- logged: v0.8.0 · 2026-10-08
+
+The whitelist is the window's and REST's whole reach into the core; anything else (`fonts.add`, `fonts.data`) stays engine-internal. `fonts.styles` and `fonts.face` serve the Glyphs panel, `story.paras` the Story Editor's style column, `objectStyles` the Object Styles view. The font file itself goes out through `GET /api/core/font`, which calls `fonts.data` and answers `font/ttf` with a private one-hour cache, so the binary never rides the socket.
 
 ---
 
