@@ -12,7 +12,7 @@ router = APIRouter()
 log = logging.getLogger("formdes.ws")
 
 JSON_METHODS = {"exec", "batch", "commands", "inspect", "state", "layout", "overlays", "pointer", "key", "text", "cursor",
-                "tool", "tools", "docs.activate", "docs.close", "fonts.families", "fonts.styles", "fonts.face", "hello", "ping", "slots",
+                "tool", "tools", "docs.activate", "docs.close", "fonts.families", "fonts.styles", "fonts.face", "story.paras", "objectStyles", "hello", "ping", "slots",
                 "frame.thread", "frame.unthread"}
 BINARY_METHODS = {"tiles", "page.png", "serialize"}
 ROUTED = {"file.save", "file.saveAs", "file.new", "file.open"}
