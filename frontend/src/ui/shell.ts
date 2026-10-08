@@ -207,7 +207,7 @@ export class Shell implements Workspace {
   private onKeyCommand(e: KeyboardEvent): boolean {
     if (this.menubar?.isOpen) return false;
     const combo = comboOf(e);
-    if (editor.wantsText && !/Mod\+/.test(combo) && combo !== 'Escape') return false;
+    if (editor.wantsText && !/Mod\+|(^|\+)F\d{1,2}$/.test(combo) && combo !== 'Escape') return false;
     if (combo === 'Tab' && editor.wantsText) return false;
     const cmd = this.commands.forCombo(combo);
     if (!cmd) return false;
