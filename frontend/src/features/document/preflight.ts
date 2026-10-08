@@ -1,6 +1,8 @@
 import { editor } from '../../editor/editor';
-import type { ChangeEvent } from '../../engine/client';
-import { el, patchList, q, setClass, setHidden, setText, setTitle } from '../../ui/dom';
+import { api, engine, type ChangeEvent } from '../../engine/client';
+import { confirmAction, Dialog } from '../../ui/dialogs';
+import { enhanceSelect } from '../../ui/dropdown';
+import { el, patchList, q, setClass, setDisabled, setHidden, setText, setTitle } from '../../ui/dom';
 import { icon } from '../../ui/icons';
 import { toolIcon } from '../../ui/tool-icons';
 import type { Workspace } from '../../ui/workspace';
@@ -18,7 +20,19 @@ const KINDS: Record<string, { label: string; icon: string; order: number }> = {
   lowResolution: { label: 'Low resolution images', icon: 'lowResolution', order: 3 },
   rgbColor: { label: 'RGB in print', icon: 'rgbColor', order: 4 },
   emptyText: { label: 'Empty text frames', icon: 'emptyText', order: 5 },
+  bleed: { label: 'Missing bleed', icon: 'issue', order: 6 },
+  pageCount: { label: 'Page count', icon: 'issue', order: 7 },
+  spotColors: { label: 'Spot inks', icon: 'rgbColor', order: 8 },
+  highResolution: { label: 'Very high resolution images', icon: 'lowResolution', order: 9 },
+  smallType: { label: 'Small type', icon: 'issue', order: 10 },
+  trimSafety: { label: 'Text near the trim', icon: 'issue', order: 11 },
+  transparency: { label: 'Transparency', icon: 'issue', order: 12 },
 };
+
+interface Profile { name: string; note?: string; builtin?: boolean; checks: Record<string, boolean | number | null> }
+const PROFILE_KEY = 'formdes.preflight.profile';
+const TOGGLES: Array<[string, string]> = [['overset', 'Overset text'], ['fonts', 'Missing fonts'], ['links', 'Missing links'], ['emptyFrames', 'Empty text frames'], ['rgb', 'RGB colour'], ['transparency', 'Transparency']];
+const LIMITS: Array<[string, string, string]> = [['minPpi', 'Images below', 'ppi'], ['maxPpi', 'Images above', 'ppi'], ['bleed', 'Bleed of at least', 'pt'], ['safety', 'Text kept inside the trim by', 'pt'], ['minType', 'Type smaller than', 'pt'], ['spotMax', 'Spot inks, at most', ''], ['pageMultiple', 'Page count in multiples of', '']];
 
 function kindInfo(kind: string): { label: string; icon: string; order: number } {
   return KINDS[kind] ?? { label: kind.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase()), icon: 'issue', order: 50 };
@@ -27,6 +41,7 @@ function kindInfo(kind: string): { label: string; icon: string; order: number } 
 export class PreflightPanel {
   readonly root = el(`<div class="fd-pf">
     <div class="fd-pf-head"><span class="fd-pf-dot"></span><span class="fd-pf-status"></span><span class="fd-pf-sub"></span><button class="cv-icon-btn fd-pf-run" type="button" title="Check again" aria-label="Check again">${docIcon('refresh', 15)}</button></div>
+    <div class="fd-pf-prof"><span class="fd-pf-plab">Profile</span><select class="cv-select fd-pf-psel" aria-label="Preflight profile"></select><button class="cv-btn fd-pf-pdef" type="button" title="Define or change preflight profiles">Define</button></div>
     <div class="fd-pf-list"></div>
     <div class="fd-pf-empty" hidden><span class="fd-pf-empty-icon"><span class="fd-pf-i-ok">${docIcon('check', 22)}</span><span class="fd-pf-i-none">${toolIcon('preflight', 22)}</span></span><p class="fd-pf-empty-title"></p><p class="fd-pf-empty-note"></p></div>
   </div>`);
@@ -41,9 +56,18 @@ export class PreflightPanel {
   private uid: number | null = null;
   private stories = new Map<number, string>();
   private rows: Row[] = [];
+  private profiles: Profile[] = [];
+  private readonly psel = q<HTMLSelectElement>(this.root, '.fd-pf-psel');
 
   constructor(private readonly ws: Workspace) {
     q(this.root, '.fd-pf-run').addEventListener('click', () => void this.run());
+    enhanceSelect(this.psel);
+    this.psel.addEventListener('change', () => {
+      try { localStorage.setItem(PROFILE_KEY, this.psel.value); } catch { }
+      this.schedule(0);
+    });
+    q(this.root, '.fd-pf-pdef').addEventListener('click', () => void this.define());
+    void this.loadProfiles();
     editor.on('change', (e: ChangeEvent) => { if (e?.docChanged) this.schedule(600); });
     editor.on('docs', () => { const uid = editor.doc?.uid ?? null; if (uid !== this.uid) { this.uid = uid; this.schedule(60); } });
     editor.on('selection', () => this.markSelected());
@@ -69,7 +93,7 @@ export class PreflightPanel {
     const slow = window.setTimeout(() => setClass(this.root, 'is-checking', true), 300);
     try {
       if (!editor.hasDoc) { this.render(null); return; }
-      const [rep, ins] = await Promise.all([editor.exec<Report>('preflight.run', {}, true), editor.inspect()]);
+      const [rep, ins] = await Promise.all([engine.call<Report>('preflight', { profile: this.current()?.checks ?? {} }).then((r) => r.result).catch(() => undefined), editor.inspect()]);
       this.stories = new Map();
       for (const s of ins?.stories ?? []) for (const f of s.frames ?? []) this.stories.set(f, String(s.preview ?? '').replace(//g, '').replace(/\s+/g, ' ').trim());
       this.render(rep ?? { issues: [] });
@@ -96,7 +120,8 @@ export class PreflightPanel {
         const n = Number(tail.match(/\d+/)?.[0] ?? NaN);
         return { title: preview || 'Text frame', detail: Number.isFinite(n) ? `+${n.toLocaleString()} chars` : tail };
       }
-      case 'lowResolution': {
+      case 'lowResolution':
+      case 'highResolution': {
         const name = m.includes(': ') ? m.slice(0, m.indexOf(': ')) : 'Image';
         return { title: name, detail: tail.replace(/^effective\s*/, '').replace(/\s*\(.*\)$/, '') };
       }
@@ -199,6 +224,86 @@ export class PreflightPanel {
     setHidden(this.list, none);
     setClass(this.empty, 'is-clean', !!c);
     setText(q(this.empty, '.fd-pf-empty-title'), c ? 'Ready for output' : 'Nothing to check');
-    setText(q(this.empty, '.fd-pf-empty-note'), c ? 'No overset text, missing fonts or links, low resolution images or RGB in print.' : 'Open or make a document and Preflight checks it as you work.');
+    setText(q(this.empty, '.fd-pf-empty-note'), c ? `Nothing the ${this.current()?.name ?? '[Basic]'} profile checks for was found.` : 'Open or make a document and Preflight checks it as you work.');
+  }
+
+  private current(): Profile | undefined {
+    return this.profiles.find((p) => p.name === this.psel.value) ?? this.profiles[0];
+  }
+
+  private async loadProfiles(want?: string): Promise<void> {
+    try { this.profiles = (await api<{ profiles: Profile[] }>('/preflight/profiles')).profiles ?? []; } catch { this.profiles = []; }
+    let saved = want ?? '';
+    if (!saved) { try { saved = localStorage.getItem(PROFILE_KEY) ?? ''; } catch { saved = ''; } }
+    this.psel.replaceChildren(...this.profiles.map((p) => new Option(p.name, p.name)));
+    this.psel.value = this.profiles.some((p) => p.name === saved) ? saved : (this.profiles[0]?.name ?? '');
+    setTitle(this.psel, this.current()?.note ?? '');
+    if (want) { try { localStorage.setItem(PROFILE_KEY, want); } catch { } }
+    this.schedule(0);
+  }
+
+  private async define(): Promise<void> {
+    const base = this.current() ?? { name: '[Basic]', checks: {} };
+    const d = new Dialog('Preflight Profile', 460);
+    const body = el(`<div class="fo-form fd-pp">
+      <label class="fo-field"><span>Name</span><input class="fd-pp-name" type="text" spellcheck="false"></label>
+      <p class="fo-note fd-pp-note"></p>
+      <div class="fd-pp-sec">Report</div>
+      <div class="fd-pp-toggles"></div>
+      <div class="fd-pp-sec">Limits</div>
+      <div class="fd-pp-limits"></div>
+    </div>`);
+    q<HTMLInputElement>(body, '.fd-pp-name').value = base.builtin ? `${base.name.replace(/^\[|\]$/g, '')} (mine)` : base.name;
+    setText(q(body, '.fd-pp-note'), base.builtin ? `${base.name} is built in; saving makes your own copy. ${base.note ?? ''}` : base.note ?? '');
+    const def = (k: string): boolean | number | null => {
+      if (k in base.checks) return base.checks[k];
+      if (k === 'rgb') return true;
+      if (k === 'minPpi') return 150;
+      return ['overset', 'fonts', 'links', 'emptyFrames'].includes(k) ? true : k === 'transparency' ? false : null;
+    };
+    for (const [k, label] of TOGGLES) {
+      const r = el(`<label class="cv-check fd-pp-t"><input type="checkbox" data-k="${k}"><span></span></label>`);
+      setText(q(r, 'span'), label);
+      q<HTMLInputElement>(r, 'input').checked = def(k) === true;
+      q(body, '.fd-pp-toggles').append(r);
+    }
+    for (const [k, label, unit] of LIMITS) {
+      const v = def(k);
+      const r = el(`<div class="fd-pp-l"><label class="cv-check"><input type="checkbox" class="fd-pp-on" data-k="${k}"><span></span></label><input class="fd-pp-v" type="number" min="0" step="1" data-k="${k}"><span class="fd-pp-u"></span></div>`);
+      setText(q(r, '.cv-check span'), label);
+      setText(q(r, '.fd-pp-u'), unit);
+      const on = q<HTMLInputElement>(r, '.fd-pp-on'), num = q<HTMLInputElement>(r, '.fd-pp-v');
+      on.checked = typeof v === 'number';
+      num.value = typeof v === 'number' ? String(v) : '';
+      num.disabled = !on.checked;
+      on.addEventListener('change', () => { num.disabled = !on.checked; if (on.checked && !num.value) num.value = k === 'spotMax' ? '2' : k === 'pageMultiple' ? '4' : '9'; });
+      q(body, '.fd-pp-limits').append(r);
+    }
+    d.body.appendChild(body);
+    const del = el<HTMLButtonElement>('<button class="cv-btn cv-btn-danger cv-btn-apart" type="button">Delete</button>');
+    const cancel = el<HTMLButtonElement>('<button class="cv-btn" type="button">Cancel</button>');
+    const save = el<HTMLButtonElement>('<button class="cv-btn cv-btn-primary" type="button">Save</button>');
+    setDisabled(del, !!base.builtin);
+    d.foot.append(del, cancel, save);
+    cancel.addEventListener('click', () => d.close());
+    del.addEventListener('click', async () => {
+      if (!(await confirmAction('Delete Profile', `Delete the preflight profile "${base.name}"?`, 'Delete', true))) return;
+      try { await api(`/preflight/profiles?name=${encodeURIComponent(base.name)}`, { method: 'DELETE' }); d.close(); await this.loadProfiles(this.profiles[0]?.name); } catch (err) { setText(q(body, '.fd-pp-note'), (err as Error).message); }
+    });
+    save.addEventListener('click', async () => {
+      const checks: Record<string, boolean | number | null> = {};
+      for (const i of body.querySelectorAll<HTMLInputElement>('.fd-pp-toggles input')) checks[i.dataset.k as string] = i.checked;
+      for (const i of body.querySelectorAll<HTMLInputElement>('.fd-pp-on')) {
+        const n = Number(q<HTMLInputElement>(i.closest('.fd-pp-l') as HTMLElement, '.fd-pp-v').value);
+        checks[i.dataset.k as string] = i.checked && Number.isFinite(n) ? n : null;
+      }
+      try {
+        const out = await api<Profile>('/preflight/profiles', { json: { name: q<HTMLInputElement>(body, '.fd-pp-name').value, checks } });
+        d.close();
+        await this.loadProfiles(out.name);
+      } catch (err) { setText(q(body, '.fd-pp-note'), (err as Error).message); }
+    });
+    d.onClose = () => d.scrim.remove();
+    d.open(q(body, '.fd-pp-name'));
   }
 }

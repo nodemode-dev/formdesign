@@ -173,6 +173,19 @@
 .fd-pf-status { color: var(--text-primary); font-size: var(--fs-13); font-weight: 500; white-space: nowrap; }
 .fd-pf-sub { flex: 1; min-width: 0; overflow: hidden; color: var(--text-muted); font-size: var(--fs-12); text-overflow: ellipsis; white-space: nowrap; }
 .fd-pf-run { width: 26px; height: 26px; }
+.fd-pf-prof { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; padding-left: 4px; }
+.fd-pf-plab { color: var(--text-muted); font-size: var(--fs-11); }
+.fd-pf-prof .cv-dd-btn { width: 100%; height: var(--ctl-sm); }
+.fd-pf-pdef { height: var(--ctl-sm); padding: 0 9px; font-size: var(--fs-11); }
+.fd-pp-sec { margin-top: 4px; color: var(--text-secondary); font-size: var(--fs-11); font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; }
+.fd-pp-toggles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px var(--space-3); }
+.fd-pp-t { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: var(--fs-12); }
+.fd-pp-limits { display: flex; flex-direction: column; gap: 6px; }
+.fd-pp-l { display: grid; grid-template-columns: minmax(0, 1fr) 76px 28px; align-items: center; gap: var(--space-2); }
+.fd-pp-l .cv-check { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: var(--fs-12); }
+.fd-pp-v { height: var(--ctl-sm); padding: 0 8px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: var(--fs-12); }
+.fd-pp-v:disabled { opacity: 0.45; }
+.fd-pp-u { color: var(--text-muted); font-size: var(--fs-11); }
 .fd-pf-list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
 .fd-pf-list[hidden], .fd-pf-empty[hidden] { display: none; }
 .fd-pf-group { flex: none; overflow: hidden; border: 1px solid var(--line-1); border-radius: 9px; background: var(--surface-2); }

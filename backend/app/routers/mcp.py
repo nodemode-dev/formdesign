@@ -14,7 +14,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
-from app.services import books, pdfread, queries
+from app.services import books, pdfread, profiles, queries
 from app.templates import brands, registry, spec
 
 router = APIRouter()
@@ -80,7 +80,9 @@ TOOLS = [
     _tool("find_commands", "Searches the 432 layout commands by id, label or menu: each with its parameters.", {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 60, "default": 20}}, ["query"], read=True, idempotent=True),
     _tool("undo", "Steps back through the active document's history.", {"steps": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1}}),
     _tool("redo", "Steps forward through the active document's history.", {"steps": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1}}),
-    _tool("preflight", "Checks the active document for output problems: overset text, missing fonts or links, low resolution images, RGB in print.", {"min_ppi": {"type": "integer", "default": 150}}, read=True, idempotent=True),
+    _tool("preflight", "Checks the active document for output problems: overset text, missing fonts or links, low resolution images, RGB in print. profile names a preflight profile "
+          "([Basic], Commercial print, PDF/X-1a no transparency, Saddle-stitched booklet, Digital and screen, or one the person saved) that adds bleed, trim safety, minimum type size, "
+          "maximum resolution, spot ink count, transparency and page count checks.", {"min_ppi": {"type": "integer"}, "profile": {"type": "string"}}, read=True, idempotent=True),
     _tool("read_pdf", "Reads a PDF: info (pages, metadata), structure (headings, paragraphs, lists as markdown-like blocks, columns joined, headers removed), text of pages, or search.",
           {"path": _PATH, "mode": {"type": "string", "enum": ["info", "structure", "text", "search"], "default": "structure"}, "pages": {"type": "array", "items": {"type": "integer"}, "description": "1-based pages for text."},
            "query": {"type": "string"}}, ["path"], read=True, idempotent=True),
@@ -263,7 +265,15 @@ async def _run(name: str, a: dict) -> dict:
             await core.exec(f"edit.{name}", {}, source="mcp")
         return _text({"ok": True})
     if name == "preflight":
-        pf = await core.exec("preflight.run", {"minPpi": int(a.get("min_ppi", 150))}, source="mcp")
+        checks: dict = {}
+        if a.get("profile"):
+            prof = profiles.get(a["profile"])
+            if prof is None:
+                return _fail(f"no preflight profile named {a['profile']}; known: " + ", ".join(p["name"] for p in profiles.listing()))
+            checks.update(prof.get("checks") or {})
+        if a.get("min_ppi"):
+            checks["minPpi"] = int(a["min_ppi"])
+        pf = (await core.call("preflight", {"profile": checks}, source="mcp")).result
         issues = pf if isinstance(pf, list) else (pf or {}).get("issues", [])
         return _text({"issues": [{k: i.get(k) for k in ("severity", "message", "page", "item") if i.get(k) is not None} for i in issues[:40]], "total": len(issues)})
     if name == "read_pdf":
