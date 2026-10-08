@@ -41,6 +41,7 @@ class Core:
         self.binary = binary
         env = dict(os.environ)
         env["FORMDES_FONT_DIRS"] = os.pathsep.join(str(d) for d in config.font_dirs())
+        env["FORMDES_DICT_DIRS"] = os.pathsep.join(str(d) for d in config.dictionary_dirs())
         self.proc = await asyncio.create_subprocess_exec(
             str(binary), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             env=env, limit=1 << 30)
@@ -104,6 +105,7 @@ class Core:
         binary = config.core_binary()
         env = dict(os.environ)
         env["FORMDES_FONT_DIRS"] = os.pathsep.join(str(d) for d in config.font_dirs())
+        env["FORMDES_DICT_DIRS"] = os.pathsep.join(str(d) for d in config.dictionary_dirs())
         self.proc = await asyncio.create_subprocess_exec(
             str(binary), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             env=env, limit=1 << 30)

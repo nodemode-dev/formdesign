@@ -61,6 +61,14 @@ def font_dirs() -> list[Path]:
     return [d for d in [FONTS_DIR, FONTS_USER_DIR, *extra] if d.is_dir()]
 
 
+DICTIONARIES_DIR = DATA_DIR / "Dictionaries"
+
+
+def dictionary_dirs() -> list[Path]:
+    extra = [Path(p) for p in os.environ.get("FORMDES_DICT_DIRS", "").split(os.pathsep) if p.strip()]
+    return [DICTIONARIES_DIR, *extra]
+
+
 def ensure_dirs() -> None:
     for d in (DATA_DIR, PROJECTS_DIR, TEMPLATES_USER_DIR, BRANDS_DIR, QUERIES_DIR, INTAKE_DIR, EXPORTS_DIR, FONTS_USER_DIR, CACHE_DIR):
         d.mkdir(parents=True, exist_ok=True)
