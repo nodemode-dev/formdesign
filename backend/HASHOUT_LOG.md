@@ -2,8 +2,8 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.10.0
-Last updated: 2026-10-08 · libraries (service, routes, thumbnails) and the library MCP tool
+Current build version: v0.11.0
+Last updated: 2026-10-08 · late core replies skipped; workspaces, shortcut sets and ICC profiles under /api/prefs; language dictionaries
 
 ---
 
@@ -30,7 +30,7 @@ backend/
     │   ├── core.py               the formdes-core child process: calls, binary replies, events, restart
     │   └── documents.py          .fdes packages, open, save, adopt, recent
     ├── intake/                   files and a brief into one content pack (brief.py reads the brief)
-    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files)
+    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files); userprefs (workspaces, shortcut sets, ICC profiles); dictionaries (Hunspell)
     ├── templates/                spec, compile, registry, brands, library/ (71 JSON templates)
     ├── autolayout/               content, rank, make, fill, tagged, slots: the Make pass
     └── routers/
@@ -39,6 +39,8 @@ backend/
         ├── documents.py, intake.py, templates.py, make.py, reader.py, books.py
         ├── find.py, preflight.py /api/find/queries and /api/preflight/profiles
         ├── libraries.py          /api/libraries, its items and place
+        ├── userprefs.py          /api/prefs/workspaces, /api/prefs/shortcuts, /api/prefs/profiles
+        ├── dictionaries.py       /api/dictionaries: list, install, add, remove
         └── mcp.py                /mcp, the 28 tools (book, find_change and library among them) and the layout_strategy prompt
 ```
 
@@ -55,6 +57,8 @@ backend/
 - [app/autolayout/make.py](#make)
 - [app/services/queries.py, profiles.py](#presets)
 - [app/services/libraries.py](#libraries)
+- [app/services/userprefs.py](#userprefs)
+- [app/services/dictionaries.py](#dictionaries)
 
 ---
 
@@ -91,6 +95,20 @@ One pipe, one request at a time under an asyncio lock (FIFO, so window and agent
 - logged: v0.1.0 · 2026-10-07
 
 A core that died is started again on the next call and asked to reopen whatever the recovery folder holds (`~/Formdes/.cache/recovery`), so a crash costs at most the edits since the last recovery save.
+
+### core.py · Core.call · late replies
+- refers-to: backend/app/engine/core.py :: Core.call
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+When the coroutine waiting for a reply is cancelled (its window closed, an HTTP client went away) after the request was written, the lock is released with the reply still in the pipe, and before 0.11.0 the next call read it as its own: every answer after that was one behind (`commands` returned the tools, `state` the commands). Replies echo the request id, so the read loop now consumes and skips any reply whose id is not the one just sent, binary payload included, and logs it. A cancellation in the middle of a binary payload would still leave bytes behind; it has not been seen, because the payload follows its line at once.
+
+### core.py · FORMDES_DICT_DIRS
+- refers-to: backend/app/engine/core.py :: Core.start, Core._restart_unlocked
+- kind: explainer
+- logged: v0.11.0 · 2026-10-08
+
+The core is started with `FORMDES_DICT_DIRS` (the data folder's `Dictionaries/` and any folders the person names in the same variable) beside `FORMDES_FONT_DIRS`. The core checks the folders when a dictionary is first wanted, so a folder created later still counts.
 
 ---
 
@@ -208,3 +226,29 @@ Add selects the given ids when an agent passes them (the window passes none and 
 - logged: v0.10.0 · 2026-10-08
 
 One tool with an `action` rather than seven, because the actions share the library name and an agent reaches for them together. `items` leaves out the thumbnails: a data URL per item would spend tokens on pixels the agent cannot use, and `preview` after `place` shows the result anyway. Library errors come back as tool failures with the message, never as an exception.
+
+## app/services/userprefs.py {#userprefs}
+
+### userprefs.py · workspaces and shortcut sets
+- refers-to: backend/app/services/userprefs.py :: clean, _layout, _keys, listing, save, delete; backend/app/routers/userprefs.py
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+Workspaces and shortcut sets are the person's, not a document's, so they live as one JSON file each in `Workspaces/` and `Shortcuts/` of the data folder, where the browser window and the desktop app both reach them (browser storage would keep them per browser). The window still keeps the live arrangement and the active set's keys in its own storage, so it starts without waiting for the engine; the files are what a saved name means. Built-in names (the seven workspaces, Default) are reserved by the router. Everything written is rebuilt from known shapes: ids match one pattern, heights and widths are numbers in range, a command keeps at most four keys, so a crafted request cannot store anything else.
+
+### userprefs.py · ICC profiles
+- refers-to: backend/app/services/userprefs.py :: add_profile, load_profiles, profile_files; backend/app/main.py :: lifespan
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+The core keeps loaded ICC profiles for the life of the process, so a proof set against a printer's profile came back empty after a restart. A profile is loaded into the core first (so one the core cannot use is refused before it is kept), then copied into `Profiles/` under a slug of its name; the engine loads every file there after the core starts. A core restarted after a crash does not reload them yet.
+
+## app/services/dictionaries.py {#dictionaries}
+
+### dictionaries.py · install, add, remove
+- refers-to: backend/app/services/dictionaries.py :: CATALOG, to_utf8, install, add_files, remove, listing
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+formdes ships no dictionary: the Hunspell dictionaries for most languages are GPL, LGPL or MPL, so they are fetched on the person's request from the LibreOffice dictionaries repository into the data folder, where their licences travel with their source (the listing links each one's folder). `CATALOG` maps the core's codes to the repository's file stems, which do not follow one pattern (`de/de_DE_frami`, `fr_FR/dictionaries/fr`). Every pair is stored as UTF-8 named by code: the `SET` line names the encoding, Python decodes it (with aliases for the Windows code pages Hunspell spells its own way), and the line is rewritten, so the core never has to know an encoding. Install, add and remove end with the core's `spellReload` and return the fresh listing, so the window redraws from one reply.
+

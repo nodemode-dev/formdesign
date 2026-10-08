@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.10.0
-Last updated: 2026-10-08 · the Interactive, XML and Library panels, LivePanel exported, three more groups starting minimised
+Current build version: v0.11.0
+Last updated: 2026-10-08 · the dock, workspaces, keyboard shortcut sets, soft proofing, language dictionaries
 
 ---
 
@@ -47,6 +47,10 @@ frontend/
     │   ├── interactive.ts        Object States, Buttons and Forms (media options), Page Transitions
     │   ├── xml.ts                the XML Structure and Tags panels
     │   ├── library.ts            the Library panel over /api/libraries, drag onto the page
+    │   ├── workspaces.ts         Window > Workspace and the title-bar switcher (/api/prefs/workspaces)
+    │   ├── shortcuts.ts          Edit > Keyboard Shortcuts: sets, tool commands, Show Set (/api/prefs/shortcuts)
+    │   ├── proof.ts              View > Proof Setup and Proof Colors (the tiles' proof option)
+    │   ├── dictionaries.ts       Edit > Language Dictionaries (/api/dictionaries)
     │   ├── book.ts               the Book window over /api/books
     │   └── story.ts              the Story Editor (story.replaceRange of the changed span only; style column from story.paras)
     ├── styles/
@@ -58,6 +62,7 @@ frontend/
         ├── icons.ts              inline currentColor SVG set (vendored, grows with formdes's own)
         ├── menu.ts, commands.ts, toast.ts, dialogs.ts, dropdown.ts, panel-group.ts   family controls (vendored; panel-group adds startMin and border-aware tab fitting)
         ├── shell.ts, workspace.ts   the Shell implements the Workspace contract features install into
+        ├── dock.ts               the two panel columns: order, hidden groups, heights, width, groups made from dropped tabs
         ├── tool-icons.ts         the tool rail glyphs
         ├── brand.ts              the formdes mark
         └── home.ts               the start screen
@@ -78,6 +83,7 @@ frontend/
 - [src/styles/make.css](#make-css)
 - [src/features (0.9.0 windows)](#windows090)
 - [src/features (0.10.0 panels)](#panels0100)
+- [src/ui/dock.ts and the 0.11.0 features](#dock0110)
 
 ---
 
@@ -116,12 +122,12 @@ One socket to `/api/ws`. Requests get increasing ids and resolve when their repl
 
 ## src/ui (vendored family files) {#vendored}
 
-### dom.ts, themes.ts, icons.ts, menu.ts, commands.ts, toast.ts, dialogs.ts, dropdown.ts, panel-group.ts, dock.ts · provenance
+### dom.ts, themes.ts, icons.ts, menu.ts, commands.ts, toast.ts, dialogs.ts, dropdown.ts, panel-group.ts · provenance
 - refers-to: frontend/src/ui :: the files named
 - kind: rationale
 - logged: v0.1.0 · 2026-10-07
 
-Copied verbatim from formvis 1.65.0 (Apache-2.0, the same owner; dom.ts, themes.ts and part of icons.ts are the NodeMode stylized design system, MIT). Their in-file comments are kept as they are upstream so a later family update can be diffed and taken whole; formdes's own files carry none. formdes adds icons by appending to `ICONS`, never by editing the family's glyphs.
+Copied verbatim from formvis 1.65.0 (Apache-2.0, the same owner; dom.ts, themes.ts and part of icons.ts are the NodeMode stylized design system, MIT). Their in-file comments are kept as they are upstream so a later family update can be diffed and taken whole; formdes's own files carry none. formdes adds icons by appending to `ICONS`, never by editing the family's glyphs. Local changes to take care of in a family update (0.11.0): `commands.ts` gains `released`, `menu.ts` refreshes each row's keys when a menu opens, `panel-group.ts` gains the `tabIds` and `minimised` getters. formvis's `dock.ts` was not taken: formdes's `ui/dock.ts` is its own, written for groups that features register.
 
 ---
 
@@ -267,3 +273,47 @@ The panel is plain REST over `/api/libraries`; the chosen library is remembered 
 - logged: v0.10.0 · 2026-10-08
 
 `interactive`, `xml` and `library` join the groups that start minimised, so a first run shows the panels most layouts use and the specialist ones wait behind a tab click.
+
+## src/ui/dock.ts and the 0.11.0 features {#dock0110}
+
+### dock.ts · Dock
+- refers-to: frontend/src/ui/dock.ts :: Dock
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+The columns hold `PanelGroup` sections that features register, so the dock works on group ids rather than formvis's fixed list: the starting order is read from the DOM after `mountPanels`, a saved order is merged over it (a group newer than the saved state takes its default place), and groups made by dropping a tab between groups (`g` plus a time code) are recreated empty before tab homes are restored, then dropped once empty. Sections move only when the order differs, by appending the same nodes, never rebuilt; splitters are kept in a map by the group above them and reused, so a drag keeps its pointer capture. A group is dragged by its header except its buttons and, when it has several tabs, its tabs (those move a tab instead); the click that ends a drag is swallowed. Width and heights are written during the drag and saved on release; a double-click returns either to its default. A minimised group ignores its height (CSS) and its splitter does nothing.
+
+### shell.ts · layouts, areas, keys
+- refers-to: frontend/src/ui/shell.ts :: layout, applyLayout, menuAreas, onKeyCommand, groupMenuFor, menuItems
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+`layout()` is everything a workspace needs: the dock's state, each group's tab and minimised flag, and which group each tab lives in. `applyLayout` creates any custom groups first, sends every tab home (the layout's home or the group its feature registered it in), removes custom groups the layout does not name, then sets tabs and minimised flags, so a built-in workspace needs to say only what differs. `menuAreas()` walks the built menus, which is how Keyboard Shortcuts knows each command's product area without a second list. A key that a command had by default but no command has now is swallowed, or the core would still act on its own copy of the shortcut. A core command whose cached state says disabled refreshes the states once and then runs: the states are fetched when a menu opens, so before 0.11.0 a shortcut after a selection change did nothing until a menu had been opened. Right-click on a group header opens Close Group and Minimise Group rather than a ••• button, which would have taken tab room in every header. Menu additions can go `top`, above the shell's own items (Window > Workspace).
+
+### workspaces.ts · built-ins and your own
+- refers-to: frontend/src/features/workspaces.ts :: BUILTIN, installWorkspaces
+- kind: explainer
+- logged: v0.11.0 · 2026-10-08
+
+Built-in workspaces are written as columns, open groups, hidden groups and tabs, and turned into a layout when chosen; yours are whole layouts from `/api/prefs/workspaces`. Choosing one applies it; the arrangement you then make is kept as the live one, and Reset applies the chosen workspace again. The switcher is a select inserted into the title bar at install, before the window is revealed, and enhanced like every select; it and the Window menu's submenu are refreshed together, the select's options only when the list of names changes.
+
+### shortcuts.ts · sets and tools
+- refers-to: frontend/src/features/shortcuts.ts :: installShortcuts, ShortcutsDialog
+- kind: rationale
+- logged: v0.11.0 · 2026-10-08
+
+A set is the difference from the defaults (`commands.overrides()`), so a set made today still gives new commands their default keys. The active set's keys are cached on this device and applied when the core's commands arrive, before the engine answers, then compared with the saved copy. The default set is read-only as in InDesign: a first change asks for a name and makes a set. Tools become commands (`tool.ID`) carrying the core's tool keys, so they are listed and rebindable; single-key commands are not matched while text is being typed, as before. New shortcuts are captured in a read-only field that takes every key but Tab (focus) and Escape (clears), and the field names the key's current owner before Assign moves it. Show Set writes the set as text by product area.
+
+### proof.ts · Proof Setup and Proof Colors
+- refers-to: frontend/src/features/proof.ts :: installProof
+- kind: explainer
+- logged: v0.11.0 · 2026-10-08
+
+The setup (target, intent, paper) is remembered on this device; Proof Colors puts a copy on the viewport's options and redraws every tile, and turns itself off when no document is open. The custom dialog lists Working CMYK, every CMYK profile the core knows (`color.settings`), and the RGB and vision targets; Load Profile uploads the file and posts its path to `/api/prefs/profiles`, which keeps it. The status bar chip is empty (and takes no room) while proofing is off.
+
+### dictionaries.ts, spelling.ts · languages
+- refers-to: frontend/src/features/dictionaries.ts :: DictionariesDialog; frontend/src/features/spelling.ts :: SpellWindow.list, SpellWindow.next
+- kind: explainer
+- logged: v0.11.0 · 2026-10-08
+
+Check Spelling asks the core's `spellCheck` (not the engine's `spelling.check`) so each word comes with its language; the window shows the language and asks `spellSuggest` with it. The dialog shows each language's state from the engine's listing: built in, installed, using another region's dictionary, or not installed; Get, Remove and the licence link follow from the same listing, and every action redraws from the listing it returns. Add Hunspell Files installs a picked pair for the language picked in the list.
