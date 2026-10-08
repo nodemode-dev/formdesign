@@ -320,6 +320,14 @@ class Builder:
                 words = sum(len(b.text.split()) for b in groups[0][1] if b.kind == "story")
                 if words < 150:
                     front = front + groups.pop(0)[1]
+            merged: list[tuple[str | None, list[Block]]] = []
+            for name, blocks in groups:
+                words = sum(len(b.text.split()) for b in blocks if b.kind == "story")
+                if merged and words < 120:
+                    merged[-1] = (merged[-1][0], merged[-1][1] + blocks)
+                else:
+                    merged.append((name, blocks))
+            groups = merged if len(merged) >= 2 else []
             home = self.make_page("index", front, "home", doc_title)
             out.append(home)
             for name, blocks in groups:
@@ -687,7 +695,13 @@ class Builder:
         seq = [b for b in blocks if b.order not in paired and not any(b is f for f in later_figs)]
         ctx = {"page": page, "pairs": pairs, "main": main, "later": later_figs, "has_h1": has_h1, "skip": skip}
         if not rows:
-            return await self.seq_html(seq, ctx)
+            def flat(node: tuple) -> list[Block]:
+                return node[1] if node[0] == "leaf" else [b for k in node[1] for b in flat(k)]
+            pages_of: dict[int, list[Block]] = {}
+            for b in seq:
+                pages_of.setdefault(b.page, []).append(b)
+            ordered = [b for pg in sorted(pages_of) for b in flat(self.cut(pages_of[pg]))]
+            return await self.seq_html(ordered, ctx)
         by_page: dict[int, list[Block]] = {}
         for b in seq:
             by_page.setdefault(b.page, []).append(b)
@@ -849,7 +863,8 @@ class Builder:
         return name
 
     async def page_html(self, page: WebPage) -> str:
-        if self.layout in ("landing", "card", "email", "docs") or page.kind == "page":
+        composed = self.site.split == "single" and len(self.c.get("pages", [])) == 1 and page.words < 400
+        if self.layout in ("landing", "card", "email", "docs") or page.kind == "page" or composed:
             body = await self.content_html(page, True, set(), rows=True)
             lead = "" if self._h1 else f'<h1 class="visually-hidden">{escape(page.title)}</h1>\n'
             return f'{lead}<div class="sections" id="main-content">\n{body}\n</div>'
