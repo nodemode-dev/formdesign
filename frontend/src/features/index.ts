@@ -18,6 +18,9 @@ import { installPathType } from './pathtype';
 import { installInteractive } from './interactive';
 import { installXml } from './xml';
 import { installLibrary } from './library';
+import { installShortcuts } from './shortcuts';
+import { installWorkspaces } from './workspaces';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
-  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }, { install: installPathType }, { install: installInteractive }, { install: installXml }, { install: installLibrary }];
+  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }, { install: installPathType }, { install: installInteractive }, { install: installXml }, { install: installLibrary },
+  { install: installWorkspaces }, { install: installShortcuts }];

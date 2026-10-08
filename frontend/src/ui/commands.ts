@@ -70,6 +70,12 @@ export class Commands {
   /** The command that has `combo`, if any. */
   forCombo(combo: string): Command | undefined { return this.byKey.get(combo); }
 
+  released(combo: string): boolean {
+    if (this.byKey.has(combo)) return false;
+    for (const d of this.defaults.values()) if (d.includes(combo)) return true;
+    return false;
+  }
+
   /** A command's keys as defined, before any rebinding. */
   defaultKeys(id: string): string[] { return [...(this.defaults.get(id) ?? [])]; }
 

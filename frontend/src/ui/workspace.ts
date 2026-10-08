@@ -2,6 +2,7 @@ import type { Editor } from '../editor/editor';
 import type { Input } from '../editor/input';
 import type { Viewport } from '../editor/viewport';
 import type { Command, Commands } from './commands';
+import type { PanelLayout } from './dock';
 import type { MenuItem } from './menu';
 
 export type Column = 'side' | 'dock';
@@ -17,7 +18,7 @@ export interface PanelSpec {
   onShow?: () => void;
 }
 
-export interface MenuAddition { menu: MenuName; items: MenuItem[]; at?: 'start' | 'end' | string }
+export interface MenuAddition { menu: MenuName; items: MenuItem[]; at?: 'top' | 'start' | 'end' | string }
 
 export interface Workspace {
   readonly editor: Editor;
@@ -37,6 +38,9 @@ export interface Workspace {
   upload(files: File[]): Promise<string[]>;
   showHome(): void;
   onDropFiles(handler: (files: File[]) => boolean): void;
+  layout(): PanelLayout;
+  applyLayout(layout: PanelLayout): void;
+  menuAreas(): Map<string, string>;
 }
 
 export interface Feature { install(ws: Workspace): void }

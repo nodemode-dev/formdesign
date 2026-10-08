@@ -7,7 +7,8 @@ import { askSaveChanges, Dialog } from './dialogs';
 import { el, escapeHtml, isMac, patchList, q, setClass, setHidden, setText, setTitle } from './dom';
 import { HomeScreen } from './home';
 import { icon } from './icons';
-import { MenuBar, type MenuDef, type MenuItem } from './menu';
+import { Dock, type PanelLayout } from './dock';
+import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './menu';
 import { PanelGroup, type GroupTab } from './panel-group';
 import { toast } from './toast';
 import { toolIcon } from './tool-icons';
@@ -50,6 +51,9 @@ export class Shell implements Workspace {
   private coreLoaded = false;
   private readonly fileInput = el<HTMLInputElement>('<input type="file" hidden>');
   private readonly stage: HTMLElement;
+  private dock: Dock | null = null;
+  private groupMenu: PopupMenu | null = null;
+  private menuGroup = '';
 
   constructor(readonly root: HTMLElement) {
     this.stage = q(root, '.fd-stage');
@@ -83,8 +87,47 @@ export class Shell implements Workspace {
     const spec = this.panels.find((p) => p.id === id);
     if (!spec) return;
     const g = [...PanelGroup.all.values()].find((x) => x.root.querySelector(`[data-panel="${id}"]`));
-    if (g) { g.show(id); g.setMinimised(false); }
+    if (g) { this.dock?.show(g.id); g.show(id); g.setMinimised(false); }
     spec.onShow?.();
+  }
+
+  private panelOpen(id: string): boolean {
+    const g = [...PanelGroup.all.values()].find((x) => x.has(id));
+    return !!g && !this.dock?.isHidden(g.id) && !g.minimised && g.current === id;
+  }
+
+  layout(): PanelLayout {
+    const groups: PanelLayout['groups'] = {}, homes: Record<string, string> = {};
+    for (const [gid, g] of PanelGroup.all) { groups[gid] = { tab: g.current, min: g.minimised }; for (const t of g.tabIds) homes[t] = gid; }
+    const dock = this.dock?.snapshot ?? { side: [], dock: [], hidden: [], heights: {}, custom: [], width: null };
+    return { dock, groups, homes };
+  }
+
+  applyLayout(l: PanelLayout): void {
+    if (!this.dock) return;
+    const custom = l.dock?.custom ?? [];
+    this.dock.setState({ ...l.dock, custom });
+    for (const p of this.panels) {
+      const want = PanelGroup.all.get(l.homes?.[p.id] ?? '') ?? PanelGroup.all.get(p.group), from = [...PanelGroup.all.values()].find((g) => g.has(p.id));
+      if (want && from && want !== from && !want.full) PanelGroup.moveTab(p.id, from, want);
+    }
+    PanelGroup.saveHomes();
+    for (const g of [...PanelGroup.all.values()]) if (/^g[0-9a-z]+$/.test(g.id) && g.size === 0 && !custom.some((c) => c.id === g.id)) g.remove();
+    for (const [gid, g] of PanelGroup.all) {
+      const st = l.groups?.[gid];
+      if (st?.tab && g.has(st.tab)) g.show(st.tab);
+      g.setMinimised(st?.min ?? PanelGroup.startMin.has(gid));
+    }
+    this.dock.refresh();
+  }
+
+  menuAreas(): Map<string, string> {
+    const out = new Map<string, string>();
+    for (const m of MENUS) {
+      const walk = (items: MenuItem[]): void => { for (const it of items) { if (typeof it !== 'string') walk(it.items); else if (it !== '-' && !out.has(it)) out.set(it, m); } };
+      walk(this.menuItems(m));
+    }
+    return out;
   }
 
   addCommands(...cmds: Command[]): void { this.commands.add(...cmds); }
@@ -193,7 +236,8 @@ export class Shell implements Workspace {
       { id: 'ui.nextPage', label: 'Next Page', keys: ['Shift+PageDown'], enabled: has, run: () => this.stepPage(1) },
       { id: 'ui.panels', label: 'Hide Panels', keys: ['Tab'], run: () => this.root.classList.toggle('is-panels-hidden') },
       { id: 'ui.about', label: 'About formdes', run: () => toast(`formdes ${VERSION} · layout core ${editor.coreVersion || 'offline'} · Apache-2.0`) },
-      { id: 'ui.shortcuts', label: 'Keyboard Shortcuts', run: () => this.shortcutsDialog() },
+      { id: 'ui.group.close', label: 'Close Group', run: () => { if (this.menuGroup) this.dock?.hide(this.menuGroup); } },
+      { id: 'ui.group.minimise', label: () => (PanelGroup.all.get(this.menuGroup)?.minimised ? 'Expand Group' : 'Minimise Group'), run: () => { const g = PanelGroup.all.get(this.menuGroup); g?.setMinimised(!g.minimised); } },
     );
   }
 
@@ -210,7 +254,9 @@ export class Shell implements Workspace {
     if (editor.wantsText && !/Mod\+|(^|\+)F\d{1,2}$/.test(combo) && combo !== 'Escape') return false;
     if (combo === 'Tab' && editor.wantsText) return false;
     const cmd = this.commands.forCombo(combo);
-    if (!cmd) return false;
+    if (!cmd) return this.commands.released(combo);
+    const core = editor.command(cmd.id);
+    if (core && !core.enabled && !this.overrides.has(cmd.id)) { void this.refreshEnabled().then(() => { this.commands.run(cmd.id); }); return true; }
     return this.commands.run(cmd.id) || true;
   }
 
@@ -234,12 +280,13 @@ export class Shell implements Workspace {
   }
 
   private menuItems(name: MenuName): MenuItem[] {
+    const top: MenuItem[] = [];
     const pre: MenuItem[] = [];
     const post: MenuItem[] = [];
-    for (const a of this.additions.filter((x) => x.menu === name)) (a.at === 'start' ? pre : post).push(...a.items, '-');
+    for (const a of this.additions.filter((x) => x.menu === name)) (a.at === 'top' ? top : a.at === 'start' ? pre : post).push(...a.items, '-');
     const core = this.coreTree(name);
     const ui = this.uiMenu(name);
-    const out = [...ui.pre, ...(ui.pre.length ? ['-'] : []), ...pre, ...core, ...(post.length ? ['-', ...post] : []), ...(ui.post.length ? ['-', ...ui.post] : [])] as MenuItem[];
+    const out = [...top, ...ui.pre, ...(ui.pre.length ? ['-'] : []), ...pre, ...core, ...(post.length ? ['-', ...post] : []), ...(ui.post.length ? ['-', ...ui.post] : [])] as MenuItem[];
     const clean: MenuItem[] = [];
     for (const it of out) {
       if (it === '-' && (!clean.length || clean[clean.length - 1] === '-')) continue;
@@ -284,7 +331,7 @@ export class Shell implements Workspace {
   private buildMenus(): void {
     if (this.menubar) return;
     for (const p of this.panels) {
-      if (!this.commands.get(`ui.panel.${p.id}`)) this.commands.add({ id: `ui.panel.${p.id}`, label: p.label, run: () => this.showPanel(p.id) });
+      if (!this.commands.get(`ui.panel.${p.id}`)) this.commands.add({ id: `ui.panel.${p.id}`, label: p.label, checked: () => this.panelOpen(p.id), run: () => this.showPanel(p.id) });
     }
     const defs: MenuDef[] = MENUS.map((m) => ({ label: m, items: () => this.menuItems(m) }));
     this.menubar = new MenuBar(q(this.root, '.cv-menubar'), this.commands, defs);
@@ -322,8 +369,39 @@ export class Shell implements Workspace {
       });
       const g = new PanelGroup(list[0].column === 'side' ? side : dock, gid, tabs, list.map((p) => p.label).join(', '));
       g.onTab = (id) => this.panels.find((p) => p.id === id)?.onShow?.();
+      this.groupMenuFor(g);
       this.groups.set(gid, g);
     }
+    const makeGroup = (host: HTMLElement, id: string, label: string): PanelGroup => {
+      const g = new PanelGroup(host, id, [], label);
+      g.onTab = (tid) => this.panels.find((p) => p.id === tid)?.onShow?.();
+      this.groupMenuFor(g);
+      return g;
+    };
+    const dk = new Dock(this.root, { side, dock }, q(this.root, '.cv-resizer'), makeGroup);
+    this.dock = dk;
+    PanelGroup.restoreHomes();
+    PanelGroup.onMoved = () => dk.refresh();
+    PanelGroup.onGapHint = (x, y) => { if (x === null) dk.hideGap(); else dk.showGap(x, y, 'New group'); };
+    PanelGroup.onDetach = (tid, from, x, y) => {
+      const at = dk.gapAt(x, y);
+      if (!at || from.size < 2) return false;
+      const id = `g${Date.now().toString(36)}`, label = from.labelOf(tid), g = makeGroup(at.host, id, label);
+      dk.addCustom(id, label, at.col, at.index);
+      PanelGroup.moveTab(tid, from, g);
+      return true;
+    };
+    dk.refresh();
+  }
+
+  private groupMenuFor(g: PanelGroup): void {
+    q(g.root, '.cv-group-head').addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.menuGroup = g.id;
+      this.groupMenu ??= new PopupMenu(this.commands, null, true);
+      this.groupMenu.setItems(['ui.group.close', 'ui.group.minimise']);
+      this.groupMenu.openAt(e.clientX, e.clientY);
+    });
   }
 
   private mountPanel(spec: PanelSpec): void {
@@ -474,14 +552,6 @@ export class Shell implements Workspace {
       const cmd = editor.commands.find((c) => c.id === id || c.id.endsWith(`.${id}`));
       if (cmd) this.paramsDialog(cmd, 'Set the options, then run.', (r.params ?? {}) as Record<string, unknown>);
     }
-  }
-
-  private shortcutsDialog(): void {
-    const d = new Dialog('Keyboard Shortcuts', 560);
-    const rows = this.commands.all().filter((c) => c.keys?.length).map((c) => `<div class="fd-sc-row"><span>${escapeHtml(this.commands.label(c))}</span><kbd class="cv-key">${escapeHtml(this.commands.keyLabel(c))}</kbd></div>`).join('');
-    d.body.append(el(`<div class="fd-sc-list">${rows}</div>`));
-    d.onClose = () => d.scrim.remove();
-    d.open();
   }
 
   private renderTools(): void {

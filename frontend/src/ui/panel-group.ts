@@ -74,6 +74,8 @@ export class PanelGroup {
   }
 
   get current(): string { return this.active; }
+  get tabIds(): string[] { return [...this.tabs.keys()]; }
+  get minimised(): boolean { return this.root.classList.contains('is-min'); }
 
   /** A tab's button and page in this group: its click shows it here; dragged onto another group's header, it moves. */
   /** Adds a tab (its page as it is), before the tab named, or last (the Layers group's Channels and Paths). */
