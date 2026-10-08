@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 
 from app.core import config
+from app.engine.core import CoreError, core
 
 ID = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 COMBO = re.compile(r"^[^\s]{1,40}$")
@@ -81,6 +82,42 @@ def save(kind: str, body: dict, reserved: tuple[str, ...] = ()) -> dict:
     d.mkdir(parents=True, exist_ok=True)
     (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=1, ensure_ascii=False))
     return out
+
+
+def profiles_dir() -> Path:
+    return config.DATA_DIR / "Profiles"
+
+
+def profile_files() -> list[Path]:
+    d = profiles_dir()
+    return sorted(f for f in d.iterdir() if f.suffix.lower() in (".icc", ".icm")) if d.is_dir() else []
+
+
+async def add_profile(src: str) -> dict:
+    p = Path(src or "")
+    if not p.is_file() or p.suffix.lower() not in (".icc", ".icm"):
+        raise PrefsError("Choose an ICC profile (.icc or .icm).")
+    try:
+        info = (await core.exec("color.loadProfile", {"path": str(p)}, source="engine")) or {}
+    except CoreError as exc:
+        raise PrefsError(str(exc).split(": ", 1)[-1]) from exc
+    d = profiles_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    dest = d / f"{slug(info.get('name') or p.stem)}{p.suffix.lower()}"
+    if p.resolve() != dest.resolve():
+        dest.write_bytes(p.read_bytes())
+    return info
+
+
+async def load_profiles() -> int:
+    n = 0
+    for f in profile_files():
+        try:
+            await core.exec("color.loadProfile", {"path": str(f)}, source="engine")
+            n += 1
+        except CoreError:
+            continue
+    return n
 
 
 def delete(kind: str, name: str) -> None:

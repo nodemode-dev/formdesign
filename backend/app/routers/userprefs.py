@@ -10,6 +10,14 @@ RESERVED = {
 }
 
 
+@router.post("/prefs/profiles")
+async def add_profile(body: dict = Body(...)):
+    try:
+        return await userprefs.add_profile(str(body.get("path") or ""))
+    except userprefs.PrefsError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 def _kind(kind: str) -> str:
     if kind not in userprefs.KINDS:
         raise HTTPException(404, f"unknown kind {kind}")

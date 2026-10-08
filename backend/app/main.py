@@ -10,6 +10,7 @@ from app import __version__
 from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
+from app.services import userprefs as userprefs_service
 from app.routers import books, core_api, documents as documents_api, find, intake, libraries, make, mcp, preflight, reader, system, templates, userprefs
 
 logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
@@ -21,6 +22,7 @@ async def lifespan(_: FastAPI):
     config.ensure_dirs()
     try:
         await core.start()
+        await userprefs_service.load_profiles()
         documents.start_autosave()
     except CoreError as exc:
         log.error("%s", exc)
