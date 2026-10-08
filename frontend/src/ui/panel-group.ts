@@ -93,7 +93,7 @@ export class PanelGroup {
     setText(btn, label);
     btn.title = label;   // the whole name, if the tab is shortened
     btn.dataset.tab = tid;
-    btn.addEventListener('click', (e) => { if (PanelGroup.justDragged) { e.preventDefault(); PanelGroup.justDragged = false; return; } this.show(tid); });
+    btn.addEventListener('click', (e) => { if (PanelGroup.justDragged) { e.preventDefault(); PanelGroup.justDragged = false; return; } this.show(tid); if (this.root.classList.contains('is-min')) this.setMinimised(false); });
     btn.addEventListener('pointerdown', (e) => this.tabDrag(e, tid, btn));
     strip.appendChild(btn);
     body.appendChild(page);
