@@ -13,7 +13,7 @@ log = logging.getLogger("formdes.ws")
 
 JSON_METHODS = {"exec", "batch", "commands", "inspect", "state", "layout", "overlays", "pointer", "key", "text", "cursor",
                 "tool", "tools", "docs.activate", "docs.close", "fonts.families", "fonts.styles", "fonts.face", "story.paras", "objectStyles", "findChange", "spellMarks", "spellSuggest", "spellCheck", "spellLanguages", "pathType", "preflight", "hello", "ping", "slots",
-                "frame.thread", "frame.unthread"}
+                "frame.thread", "frame.unthread", "web"}
 BINARY_METHODS = {"tiles", "page.png", "serialize"}
 ROUTED = {"file.save", "file.saveAs", "file.new", "file.open"}
 

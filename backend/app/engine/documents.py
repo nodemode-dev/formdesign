@@ -189,6 +189,9 @@ class Documents:
                 Path(path).expanduser().write_bytes(data)
                 return {"path": path, "bytes": len(data)}, None, config.FDES_MIME
             return {"bytes": len(data)}, data, config.FDES_MIME
+        if fmt in ("web", "website", "site"):
+            from app.services import website
+            return await website.export(path, options)
         if fmt not in EXPORTS:
             raise CoreError(f"unknown export format {fmt}: one of {', '.join(sorted([*EXPORTS, 'png', 'jpg', 'fdes', 'web']))}")
         command, ext, mime = EXPORTS[fmt]

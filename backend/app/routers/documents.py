@@ -91,7 +91,7 @@ async def export(body: dict = Body(...)):
         raise _fail(exc) from exc
     if data is None:
         return info
-    ext = EXPORTS.get(fmt, (None, f".{fmt}"))[1] if fmt in EXPORTS else (".jpg" if fmt in ("jpg", "jpeg") else f".{fmt}")
+    ext = EXPORTS.get(fmt, (None, f".{fmt}"))[1] if fmt in EXPORTS else (".jpg" if fmt in ("jpg", "jpeg") else " site.zip" if fmt in ("web", "website", "site") else f".{fmt}")
     state = await documents.overview()
     title = Path(state["docs"][state["active"]]["title"]).stem if state.get("active") is not None else "formdes"
     return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{title}{ext}"', "Cache-Control": "no-store"})

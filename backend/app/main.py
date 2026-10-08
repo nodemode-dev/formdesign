@@ -11,7 +11,7 @@ from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.services import userprefs as userprefs_service
-from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, reader, system, templates, userprefs
+from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, reader, system, templates, userprefs, website
 
 logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("formdes")
@@ -45,6 +45,8 @@ app.include_router(preflight.router, prefix="/api")
 app.include_router(libraries.router, prefix="/api")
 app.include_router(userprefs.router, prefix="/api")
 app.include_router(dictionaries.router, prefix="/api")
+app.include_router(website.router, prefix="/api")
+app.include_router(website.sites)
 app.include_router(mcp.router)
 
 
