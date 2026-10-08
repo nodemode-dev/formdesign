@@ -12,6 +12,7 @@ import { installBook } from './book';
 import { installStoryEditor } from './story';
 import { installReview } from './review';
 import { installSeparations } from './separations';
+import { installFind } from './find';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
-  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }];
+  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }];

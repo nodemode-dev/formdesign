@@ -164,6 +164,14 @@ export class Viewport {
     return best;
   }
 
+  reveal(r: Rect4, pad = 48): void {
+    const vr = this.visibleRect(), m = pad / this.view.zoom;
+    if (r[0] >= vr[0] + m && r[1] >= vr[1] + m && r[2] <= vr[2] - m && r[3] <= vr[3] - m) return;
+    if (r[2] - r[0] > vr[2] - vr[0] - 2 * m || r[3] - r[1] > vr[3] - vr[1] - 2 * m) { this.fitRect(r, pad); return; }
+    const cx = (r[0] + r[2]) / 2, cy = (r[1] + r[3]) / 2;
+    this.setView({ zoom: this.view.zoom, x: cx - this.w / 2 / this.view.zoom, y: cy - this.h / 2 / this.view.zoom });
+  }
+
   fitSpread(index = this.currentSpread()): void {
     const s = editor.layout?.slots[index];
     if (s) this.fitRect(s.bounds);
