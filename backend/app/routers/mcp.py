@@ -14,7 +14,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
-from app.services import pdfread
+from app.services import books, pdfread
 from app.templates import brands, registry, spec
 
 router = APIRouter()
@@ -35,6 +35,7 @@ STRATEGY = """How to make a layout in formdes with these tools.
 7. More options: make_layout with variations 2 or 3 makes alternatives in other templates; the person picks in the window.
 8. New templates: write the JSON spec (docs/TEMPLATES.md), validate_template until it renders cleanly with no overset outside flows, then save_template.
 9. PDFs as sources: read_pdf for structured text (headings, paragraphs, lists), pdf_page_image to see a page.
+10. Long documents in parts: save each part, then book (create, add each saved .fdes, paginate, sync, export) numbers them in sequence, shares styles and writes one PDF.
 """
 PROMPTS = [{"name": "layout_strategy", "title": "How to lay out in formdes", "description": "The decision tree for formdes's tools: intake, choose a template, make, look, fix, deliver.", "arguments": []}]
 
@@ -89,6 +90,10 @@ TOOLS = [
     _tool("validate_template", "Checks a template JSON spec (docs/TEMPLATES.md): structural problems, then compiles it with sample content and returns pages, slots, overflow, preflight and page images.",
           {"spec": _OBJ, "render": {"type": "boolean", "default": True}}, ["spec"], read=True),
     _tool("save_template", "Saves a template JSON spec to the person's template library after it compiles; it appears in list_templates and the gallery.", {"spec": _OBJ}, ["spec"]),
+    _tool("book", "Books collect saved .fdes documents as chapters. list: the books and the saved documents that can be added. create (name). info, add (doc path, at), remove (index), move (index, to), source (index: the style source chapter), paginate (number pages across chapters), sync (copy the source's styles and swatches to every chapter), export (one PDF of every chapter, written to path or the Exports folder). Chapters open with unsaved changes stop paginate and sync.",
+          {"action": {"type": "string", "enum": ["list", "create", "info", "add", "remove", "move", "source", "paginate", "sync", "export"]}, "book": {"type": "string", "description": "The .fdbook path (from list or create)."},
+           "name": {"type": "string"}, "doc": _PATH, "at": {"type": "integer", "minimum": 0}, "index": {"type": "integer", "minimum": 0}, "to": {"type": "integer", "minimum": 0}, "path": _PATH},
+          ["action"], destructive=True),
 ]
 NAMES = {t["name"] for t in TOOLS}
 _status = {"calls": 0, "last": None, "at": 0.0}
@@ -293,7 +298,45 @@ async def _run(name: str, a: dict) -> dict:
         f.write_text(json.dumps({k: v for k, v in t.items() if not k.startswith("_")}, indent=2, ensure_ascii=False))
         registry.templates(refresh=True)
         return _text({"saved": str(f), "overset": rep.get("overset")})
+    if name == "book":
+        return await _book(a)
     return _fail(f"no tool {name}")
+
+
+async def _book(a: dict) -> dict:
+    act = a.get("action")
+    if act == "list":
+        return _text({"books": books.all_books(), "documents": books.project_documents()[:40]})
+    if act == "create":
+        return _text(await books.info(books.create(str(a.get("name") or "Book"))))
+    path = str(_abs(a.get("book") or ""))
+    try:
+        if act == "info":
+            return _text(await books.info(path))
+        if act == "add":
+            books.add(path, str(_abs(a.get("doc") or "")), a.get("at"))
+        elif act == "remove":
+            books.remove(path, int(a.get("index", -1)))
+        elif act == "move":
+            books.move(path, int(a.get("index", -1)), int(a.get("to", 0)))
+        elif act == "source":
+            books.set_source(path, int(a.get("index", -1)))
+        elif act in ("paginate", "sync"):
+            r = await books.run(path, [("book.paginate" if act == "paginate" else "book.syncStyles", {})], write_back=True)
+            return _text({k: r[k] for k in ("chapters", "changed", "reopen")})
+        elif act == "export":
+            r, out = await books.export_pdf(path)
+            if a.get("path"):
+                dest = _abs(a["path"])
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(out.read_bytes())
+                out = dest
+            return _text({"path": str(out), "bytes": out.stat().st_size, "chapters": len(r["chapters"])})
+        else:
+            return _fail(f"unknown book action {act}")
+        return _text(await books.info(path))
+    except books.BookError as exc:
+        return _fail(str(exc))
 
 
 async def call_tool(name: str, args: dict) -> dict:

@@ -6,7 +6,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 
 - Intake and make: `intake`, `list_templates`, `get_template`, `make_layout`
 - Look and fix: `preview`, `get_slots`, `set_slots`, `get_document`, `preflight`
-- Documents: `list_documents`, `switch_document`, `new_document`, `open_document`, `save_document`, `export_document`
+- Documents: `list_documents`, `switch_document`, `new_document`, `open_document`, `save_document`, `export_document`, `book`
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
 - Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`
@@ -219,3 +219,18 @@ Note: read-only.
 Saves a template JSON spec to the person's template library after it compiles; it appears in list_templates and the gallery.
 
 - `spec`: object; required
+
+## book
+
+Books collect saved .fdes documents as chapters. list: the books and the saved documents that can be added. create (name). info, add (doc path, at), remove (index), move (index, to), source (index: the style source chapter), paginate (number pages across chapters), sync (copy the source's styles and swatches to every chapter), export (one PDF of every chapter, written to path or the Exports folder). Chapters open with unsaved changes stop paginate and sync.
+
+- `action`: string (list | create | info | add | remove | move | source | paginate | sync | export); required
+- `book`: string; The .fdbook path (from list or create).
+- `name`: string
+- `doc`: string; Absolute path (~ is expanded).
+- `at`: integer
+- `index`: integer
+- `to`: integer
+- `path`: string; Absolute path (~ is expanded).
+
+Note: writes or replaces files.

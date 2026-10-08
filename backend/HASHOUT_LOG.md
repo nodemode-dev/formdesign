@@ -37,7 +37,7 @@ backend/
         ├── system.py             version, health, capabilities
         ├── core_api.py           /api/core/* REST and the /api/ws window socket
         ├── documents.py, intake.py, templates.py, make.py, reader.py
-        └── mcp.py                /mcp, the 25 tools and the layout_strategy prompt
+        └── mcp.py                /mcp, the 26 tools (book among them) and the layout_strategy prompt
 ```
 
 ---

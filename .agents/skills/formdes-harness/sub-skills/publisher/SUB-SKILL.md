@@ -1,6 +1,6 @@
 ---
 name: publisher
-description: "Saves and exports formdes documents: .fdes, PDF for print or screen, IDML for InDesign, HTML, EPUB, PNG and JPG images, text, and packages."
+description: "Saves and exports formdes documents: .fdes, PDF for print or screen, IDML for InDesign, HTML, EPUB, PNG and JPG images, text, packages, and books of several documents numbered and exported as one PDF."
 ---
 
 # Publisher
@@ -24,7 +24,8 @@ The document to deliver is active (`list_documents`, then `switch_document {inde
    - Hand-off: `idml`; `txt`, `rtf` or `xml` for the text.
    - Print shop booklet: `booklet`.
 3. **Package for a printer** with `run_commands [{"command": "file.package", "params": {"dir": "/abs/folder/name-package", "idml": true, "pdf": true}}]`: the document, its linked files and fonts list.
-4. **Check** that each reported path exists and is not empty; for PDFs, `read_pdf {path, mode: "info"}` confirms the page count.
+4. **Books, for work in parts** (chapters, a magazine's sections, a catalogue in several files): save each part as a .fdes, then `book {action: "create", name}`, `book {action: "add", book, doc}` for each part in order, `book {action: "source", book, index}` for the part whose styles lead, `book {action: "paginate", book}` and `book {action: "sync", book}`, then `book {action: "export", book, path: "/abs/folder/name.pdf"}` for one PDF. A part open with unsaved changes stops paginate and sync: save it first.
+5. **Check** that each reported path exists and is not empty; for PDFs, `read_pdf {path, mode: "info"}` confirms the page count.
 
 ## Gate
 
