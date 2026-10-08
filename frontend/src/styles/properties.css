@@ -213,4 +213,5 @@ body.fp-scrubbing, body.fp-scrubbing * { cursor: ew-resize !important; user-sele
 .fo-form { display: flex; flex-direction: column; gap: var(--space-2); }
 .fo-field { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--fs-12); }
 .fo-field input, .fo-field select { height: var(--ctl-md); padding: 0 8px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: var(--fs-12); }
+.fo-field input[type="checkbox"] { justify-self: start; width: 16px; height: 16px; padding: 0; accent-color: var(--accent-color); }
 .fo-note { margin: 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }

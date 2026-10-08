@@ -14,6 +14,7 @@ import { installReview } from './review';
 import { installSeparations } from './separations';
 import { installFind } from './find';
 import { installSpelling } from './spelling';
+import { installPathType } from './pathtype';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
-  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }];
+  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }, { install: installPathType }];
