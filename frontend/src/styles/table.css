@@ -1,0 +1,14 @@
+.ftb-panel { display: flex; flex-direction: column; gap: var(--space-2); }
+.ftb-none, .ftb-in { display: flex; flex-direction: column; gap: var(--space-2); }
+.ftb-none[hidden], .ftb-in[hidden] { display: none; }
+.ftb-note { margin: 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.4; }
+.ftb-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); align-items: center; }
+.ftb-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-1); }
+.ftb-lab { width: auto; padding: 0 6px; cursor: default; }
+.ftb-sum { color: var(--text-secondary); font-size: var(--fs-11); }
+.ftb-sec { margin-top: var(--space-1); color: var(--text-muted); font-size: var(--fs-11); font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; }
+.ftb-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.ftb-act { height: var(--ctl-sm); padding: 0 6px; font-size: var(--fs-11); }
+.ftb-vj button { font-size: var(--fs-11); }
+.ftb-check { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: var(--fs-11); }
+.ftb-panel .cv-select { width: 100%; height: var(--fp-field-h); }
