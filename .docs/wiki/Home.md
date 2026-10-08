@@ -12,15 +12,16 @@ Version 0.8.0 · Rust layout core (formdes-core over formdes's own layout crates
 | Intake (Markdown, Word, RTF, text, HTML, CSV, spreadsheets, PDF, images, briefs) | Stable |
 | Templates (71), brand kits, the template checker | Stable |
 | The Make pass (rank, fill, continue, fit, report) | Stable; swept across all 71 templates every release |
-| MCP server (26 tools), stdio bridge, agent installers, CLI | Stable |
+| MCP server (27 tools), stdio bridge, agent installers, CLI | Stable |
 | The editor: canvas, tools, menus, Properties, Character, Paragraph, Make, Slots, Pages, Layers, Links, Swatches, Styles, Preflight, Info | Working; verified in the browser at 0.6.1 |
 | Rulers, Glyphs, Tabs, Table, Book, Story Editor | Working; new at 0.7.0, verified once each |
 | Separations and Overprint Preview, Track Changes, Notes, Conditional Text, Object Style Options | Working; new at 0.8.0, verified once each |
+| Find/Change with saved queries, Check Spelling and Dynamic Spelling, Type on a Path Options, preflight profiles | Working; new at 0.9.0, verified once each, Find/Change under throttling |
 | PDF Reader | Working |
 | Desktop app | Linux built and launched; macOS and Windows built only by CI so far |
-| Web export beyond one HTML page, soft proofing, a Find/Change dialog with GREP and saved queries, preflight profiles, the XML Structure and Library panels, animation | Not built |
+| Web export beyond one HTML page, soft proofing, spelling in languages other than US English, object states in the window, the XML Structure and Library panels, animation | Not built |
 
-The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 44.5 at 0.8.0.
+The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 46.0 at 0.9.0.
 
 ## Where to go
 

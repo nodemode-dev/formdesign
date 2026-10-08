@@ -13,6 +13,9 @@
 | `native/formdes-core/src/overlays.rs` | frame edges, handles, ports, threads, guides, caret and selection geometry |
 | `native/formdes-core/src/input.rs` | `pointer` and `key`: tools, snapping, text input |
 | `native/formdes-core/src/slots.rs` | `slots`: frames labelled `slot:NAME` or `flow:NAME` with their content |
+| `native/formdes-core/src/find.rs` | `findChange`: text, GREP, glyph and object find and change for the Find/Change window and the `find_change` MCP tool |
+| `native/formdes-core/src/spell.rs` | `spellMarks` and `spellSuggest`: dynamic spelling marks and ranked suggestions |
+| `native/formdes-core/src/preflight.rs` | `preflight`: the engine's checks filtered and extended by a profile |
 
 ## The wire format
 
@@ -33,6 +36,10 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | `serialize`, `docs.activate`, `docs.close`, `docs.saved` | document bytes and session housekeeping |
 | `slots`, `frame.thread`, `frame.unthread` | formdes additions for templates and the Make pass |
 | `fonts.add`, `fonts.families`, `fonts.styles`, `fonts.face`, `fonts.data` | the font catalogue; `fonts.data` returns a face's file for the Glyphs panel |
+| `story.paras`, `objectStyles`, `pathType` | a story's paragraphs with their styles (Story Editor), object style listing and editing, a type-on-path item's options |
+| `findChange` | `{mode: text, grep, glyph or object, op: all, next, change, changeAll, changeFind or select, find, change, findFormat, changeFormat, scope, within, include, glyph, toGlyph, object, objectChange}`; GREP runs on fancy-regex with InDesign's codes translated |
+| `spellMarks`, `spellSuggest` | misspelled words in the visible frames as underline segments (cached per document revision); suggestions for one word |
+| `preflight` | `{profile: {overset, fonts, links, emptyFrames, rgb, transparency, minPpi, maxPpi, bleed, safety, minType, spotMax, pageMultiple}}` to `{errors, warnings, issues}` |
 
 ## Environment
 

@@ -29,6 +29,11 @@ The window is a thin client in vanilla TypeScript and Vite. It draws pixels the 
 | `object-styles.ts`, `properties/hub.ts` | the Object view of the Styles tab: apply, New from selection, Options, Redefine, Delete over the core's `objectStyles` |
 | `review.ts` | the Review group: Changes, Notes, Conditions |
 | `separations.ts` | Separations Preview (plates and the ink limit as tile options) and Overprint Preview |
+| `find.ts` | the Find/Change window over the core's `findChange`, saved queries over `/api/find/queries` |
+| `spelling.ts` | Check Spelling, Dynamic Spelling (`spellMarks` drawn by the viewport) and the document dictionary |
+| `pathtype.ts` | Type on a Path Options |
+| `floating.ts` | drag and remembered position for floating windows |
+| `document/preflight.ts` | the Preflight panel, its profiles and the Define dialog |
 
 ## How a feature plugs in
 

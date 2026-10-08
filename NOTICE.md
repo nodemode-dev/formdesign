@@ -15,6 +15,7 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | --- | --- | --- |
 | Source Sans 3, Source Serif 4, Inter, JetBrains Mono (embedded in formdes-core) | SIL OFL 1.1 | |
 | vello_cpu, kurbo, skrifa, harfrust, krilla, hayro, image, resvg, quick-xml, zip and their dependencies | MIT, Apache-2.0, BSD, ISC, Zlib | per `cargo metadata` |
+| fancy-regex 0.19 (with regex-automata, regex-syntax, bit-set) | MIT (fancy-regex), MIT OR Apache-2.0 (the rest) | GREP in Find/Change: lookahead, lookbehind and backreferences |
 
 ## Distributed with the app
 

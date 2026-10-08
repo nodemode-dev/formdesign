@@ -9,12 +9,12 @@ formdes is built to be driven by agents as much as by hand. Claude Code, Codex a
 | Streamable HTTP | `POST http://127.0.0.1:8196/mcp`, stateless JSON, Origin checked | the engine is already running |
 | Standard input and output | `./formdes mcp` (`setup/mcp_stdio.py`), which starts the engine if it is not running | Claude Desktop, Claude Code, Codex, Cursor |
 
-The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 26 tools, by group:
+The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 27 tools, by group:
 
 | Group | Tools |
 | --- | --- |
 | Intake and make | `intake`, `list_templates`, `get_template`, `make_layout` |
-| Look and fix | `preview`, `get_slots`, `set_slots`, `get_document`, `preflight` |
+| Look and fix | `preview`, `get_slots`, `set_slots`, `get_document`, `preflight` (with a `profile`), `find_change` |
 | Documents | `list_documents`, `switch_document`, `new_document`, `open_document`, `save_document`, `export_document`, `book` |
 | Any command | `run_commands`, `find_commands`, `undo`, `redo` |
 | PDF sources | `read_pdf`, `pdf_page_image` |

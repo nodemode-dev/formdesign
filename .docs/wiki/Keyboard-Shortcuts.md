@@ -43,6 +43,7 @@ Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow
 | Duplicate | Alt+Shift+Ctrl+D |
 | Step and Repeat | Alt+Ctrl+U |
 | Select All, Deselect All | Ctrl+A, Shift+Ctrl+A |
+| Find/Change | Ctrl+F |
 | Find Next | Alt+Ctrl+F |
 | Check Spelling | Ctrl+I |
 | Edit in Story Editor | Ctrl+Y |
