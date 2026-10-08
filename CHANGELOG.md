@@ -2,6 +2,16 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.12.0 · 2026-10-08
+
+- Websites from any layout: File > Export > Website makes a folder (or a .zip) of web pages that reflow for phones, in the document's own type, colours and embedded fonts. A magazine or report with several articles becomes a home page with a card for each article and a page per article, figures placed among the paragraphs; a web template keeps its rows and columns (hero, feature columns, card grids, stats) and stacks them on a phone; one-page pieces become one page.
+- The edition: a page-by-page view of the layout as designed, spreads side by side on wide screens, with its text kept for search and reading aloud and links on the pages clickable.
+- An address for the site adds a sitemap, an RSS feed for articles, canonical and share links; every article page carries its headline, description and author for search engines.
+- Publish Online (File > Publish Online): the open document's site gets a link served from this computer, updated each time you publish again; the list of published sites opens, copies, shows, downloads as .zip or unpublishes each one.
+- Export reports what to fix before publishing: images without alt text, buttons without a link, placeholder art still in place, fonts that cannot be embedded.
+- For agents: `export_document` takes `web` and the `publish_website` tool publishes, lists and unpublishes (29 tools); `./formdes export FILE --out site.zip` from a terminal.
+- Parity with InDesign measured at 49.0 of 53.
+
 ## 0.11.0 · 2026-10-08
 
 - Workspaces: Window > Workspace and a switcher in the title bar with Essentials, Advanced, Book, Digital Publishing, Interactive for PDF, Printing and Proofing and Typography, plus your own (New, Delete, Reset).

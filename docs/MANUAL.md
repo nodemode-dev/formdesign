@@ -16,13 +16,14 @@ This manual is for people laying out documents with formdes. If you are changing
 10. [Rulers and guides](#rulers-and-guides)
 11. [Checking your work](#checking-your-work)
 12. [Exporting and printing](#exporting-and-printing)
-13. [Books](#books)
-14. [Interactive documents](#interactive-documents)
-15. [XML](#xml)
-16. [Libraries](#libraries)
-17. [The PDF Reader](#the-pdf-reader)
-18. [Working with an agent](#working-with-an-agent)
-19. [Files, saving and recovery](#files-saving-and-recovery)
+13. [Websites and Publish Online](#websites-and-publish-online)
+14. [Books](#books)
+15. [Interactive documents](#interactive-documents)
+16. [XML](#xml)
+17. [Libraries](#libraries)
+18. [The PDF Reader](#the-pdf-reader)
+19. [Working with an agent](#working-with-an-agent)
+20. [Files, saving and recovery](#files-saving-and-recovery)
 
 ## What formdes does
 
@@ -120,7 +121,22 @@ View > Proof Colors shows the page as it will print on the press chosen in View 
 
 ## Exporting and printing
 
-File > Export (Ctrl+E) exports PDF (print or interactive, page ranges, spreads, bleed and crop marks, transparency flattening, PDF/X, tagged PDF), InDesign Markup (IDML), EPUB and fixed-layout EPUB, HTML, PNG, JPEG, text and XML, to a download or to the Exports folder. File > Package collects the document, its links, an IDML copy and a report into a folder for a printer. File > Print prints or writes a booklet.
+File > Export (Ctrl+E) exports PDF (print or interactive, page ranges, spreads, bleed and crop marks, transparency flattening, PDF/X, tagged PDF), InDesign Markup (IDML), EPUB and fixed-layout EPUB, HTML, a website, PNG, JPEG, text and XML, to a download or to the Exports folder. File > Package collects the document, its links, an IDML copy and a report into a folder for a printer. File > Print prints or writes a booklet.
+
+## Websites and Publish Online
+
+Export's **Website** format turns the open document into a site you can put on any web host: a folder (or a .zip) of pages that reflow for phones, set in the document's own fonts and colours. What it makes depends on the document, and **Web pages** lets you choose:
+
+- **Automatic** picks for you. A magazine, newsletter or report with several headlines becomes a home page with a card for each article and a page for each; a web template becomes one web page per page; anything else becomes one page.
+- **One per article** follows the Articles panel when it has articles, otherwise each headline starts an article.
+- **One per page** keeps the document's pages, with their rows and columns laid out side by side on a wide screen and stacked on a phone.
+- **One long page** puts everything on one page.
+
+**Layout** comes from the template (article, landing page, card, email or docs) unless you choose one. **Edition** adds a page-by-page view of the layout exactly as designed, with spreads side by side, its text searchable and its links clickable; it is on by default for multi-page print layouts. **Address** is where the site will live (for example `https://example.com/issue-12`): with it, the site gets a sitemap, an RSS feed for its articles and links that work when shared. Site title, description and language are read from the document unless you type them.
+
+The result lists what to fix before the site goes out: pictures without a description (Object > Object Export Options, Alt Text), buttons with no link (Window > Interactive > Hyperlinks), placeholder art from Make, and fonts whose licence does not allow putting them on a website (the site uses a similar system font instead). Fonts that can be shared go into the site with their licences.
+
+File > Publish Online gives the open document's site a link you can open now: formdes serves it from this computer, and publishing the same document again updates it. The list below shows every published site; for each you can open it in the browser, copy its link, show its folder, download it as a .zip, or unpublish it (click the bin twice). To put a site on the public web, download its .zip or export the website into a folder, and upload that folder to a static host such as GitHub Pages, Netlify or Cloudflare Pages.
 
 ## Books
 

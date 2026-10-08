@@ -84,6 +84,7 @@ frontend/
 - [src/features (0.9.0 windows)](#windows090)
 - [src/features (0.10.0 panels)](#panels0100)
 - [src/ui/dock.ts and the 0.11.0 features](#dock0110)
+- [src/features/document: websites](#web0120)
 
 ---
 
@@ -317,3 +318,19 @@ The setup (target, intent, paper) is remembered on this device; Proof Colors put
 - logged: v0.11.0 · 2026-10-08
 
 Check Spelling asks the core's `spellCheck` (not the engine's `spelling.check`) so each word comes with its language; the window shows the language and asks `spellSuggest` with it. The dialog shows each language's state from the engine's listing: built in, installed, using another region's dictionary, or not installed; Get, Remove and the licence link follow from the same listing, and every action redraws from the listing it returns. Add Hunspell Files installs a picked pair for the language picked in the list.
+
+## src/features/document: websites {#web0120}
+
+### web-options.ts, export.ts · the Website format
+- refers-to: frontend/src/features/document/web-options.ts :: WebOptions; frontend/src/features/document/export.ts :: ExportDialog.ext, syncName, options, run
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+One `WebOptions` block serves both Export and Publish Online, so the two never disagree about what a site option means. Empty fields are left out of the options (the engine reads title, description and language from the document); Edition is a three-way choice because its automatic default depends on the document. A website downloads as a .zip but goes into the Exports folder as a folder, so switching the destination renames the file field. A bad address stops the run before the engine is asked. Both dialogs give focus back to their main button after a run: the button is disabled while working, the browser moves focus to the page, and Escape then never reached the dialog.
+
+### publish.ts · PublishDialog
+- refers-to: frontend/src/features/document/publish.ts :: PublishDialog.refresh, fill, act, publish
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+The engine says which site belongs to the open document (`active`), because an unsaved document has no path the window could match. Rows are keyed by slug and patched in place, so a republish changes only the size and time text (checked under 4x CPU and a slow network: no rows added or removed). Unpublish needs a second click within three seconds rather than a confirm dialog, which would block the window. Links open through the engine (`/api/system/open`), which works the same in the browser and the desktop shell, and fall back to `window.open`.

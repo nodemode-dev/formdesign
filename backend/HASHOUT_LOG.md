@@ -30,7 +30,7 @@ backend/
     │   ├── core.py               the formdes-core child process: calls, binary replies, events, restart
     │   └── documents.py          .fdes packages, open, save, adopt, recent
     ├── intake/                   files and a brief into one content pack (brief.py reads the brief)
-    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files); userprefs (workspaces, shortcut sets, ICC profiles); dictionaries (Hunspell)
+    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files); userprefs (workspaces, shortcut sets, ICC profiles); dictionaries (Hunspell); website (web export, Publish Online)
     ├── templates/                spec, compile, registry, brands, library/ (71 JSON templates)
     ├── autolayout/               content, rank, make, fill, tagged, slots: the Make pass
     └── routers/
@@ -41,7 +41,8 @@ backend/
         ├── libraries.py          /api/libraries, its items and place
         ├── userprefs.py          /api/prefs/workspaces, /api/prefs/shortcuts, /api/prefs/profiles
         ├── dictionaries.py       /api/dictionaries: list, install, add, remove
-        └── mcp.py                /mcp, the 28 tools (book, find_change and library among them) and the layout_strategy prompt
+        ├── website.py            /api/website (published sites), /api/system/open and the /sites/{slug} pages
+        └── mcp.py                /mcp, the 29 tools (book, find_change, library and publish_website among them) and the layout_strategy prompt
 ```
 
 ---
@@ -59,6 +60,7 @@ backend/
 - [app/services/libraries.py](#libraries)
 - [app/services/userprefs.py](#userprefs)
 - [app/services/dictionaries.py](#dictionaries)
+- [app/services/website.py](#website)
 
 ---
 
@@ -251,4 +253,34 @@ The core keeps loaded ICC profiles for the life of the process, so a proof set a
 - logged: v0.11.0 · 2026-10-08
 
 formdes ships no dictionary: the Hunspell dictionaries for most languages are GPL, LGPL or MPL, so they are fetched on the person's request from the LibreOffice dictionaries repository into the data folder, where their licences travel with their source (the listing links each one's folder). `CATALOG` maps the core's codes to the repository's file stems, which do not follow one pattern (`de/de_DE_frami`, `fr_FR/dictionaries/fr`). Every pair is stored as UTF-8 named by code: the `SET` line names the encoding, Python decodes it (with aliases for the Windows code pages Hunspell spells its own way), and the line is rewritten, so the core never has to know an encoding. Install, add and remove end with the core's `spellReload` and return the fresh listing, so the window redraws from one reply.
+
+## app/services/website.py {#website}
+
+### website.py · roles, split and the reading of a page
+- refers-to: backend/app/services/website.py :: role_of, Builder.split_mode, Builder.split, Builder._article_groups
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+The core's `web` gives blocks in reading order with their slot and first paragraph style; everything web-specific is decided here, where agents and template authors can read it. A block's role comes from its slot (the last dotted part names it: `feature1.title` is a title, `item3.date` meta, `stat1.label` the label of `stat1`), else from its first paragraph style's name (Kicker, Deck, Byline, Caption, Pull Quote, Title). `name` is a byline, not a title, because templates use it for a person under a quote. The split follows the document: Articles panel entries first (InDesign's own export order), then web templates and web-intent documents one web page per page, then two or more titles one page per article, else one page. An article group starts at each title and takes the kickers just above it; a first group on page 1 with fewer than 150 words is a cover, so it becomes the home page's hero rather than an article. Furniture (folios, running heads, issue lines), navigation and table-of-contents text are dropped, because the site has its own.
+
+### website.py · XY cuts for pages, a single flow for articles
+- refers-to: backend/app/services/website.py :: Builder._split, Builder._merge_strips, Builder.cut, Builder.tree_html, Builder.content_html
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+Web layouts (landing, card, email, docs, and pages split by page) keep the document's geometry: blocks on a page are cut recursively, columns first and strips second, into rows of columns that stack on a phone in reading order. Columns first, because a card grid only reads correctly card by card; at page level a full-width title prevents a column cut, so the strips that follow are merged back when they sit within 2.5 percent of the page width of each other and share one column structure, and a strip that repeats the first strip's kinds starts a new group (the next row of cards). Without the gap rule a hero and the section below it merged into two columns and read column by column on a phone. Articles do not use cuts: the body story is one long flow, figures from later pages go among its paragraphs in proportion to their page, captions pair with images by slot number or nearness, stats take their labels by slot or by the block just under them.
+
+### website.py · type, colour, fonts and what it reports
+- refers-to: backend/app/services/website.py :: Builder.style_css, Builder.site_css, Builder.fonts_css, font_info, Builder.figure_html, Builder.build
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+Paragraph styles become classes sized against the body style (the style with the most body text), so a 9.5 pt print body and an 18 px web body both read at 1.125rem; display sizes get a fluid clamp between 360 and 1440 px viewports. A style colour that would not show on the paper colour (white type from a dark box) falls back to ink, and the palette comes from the template's swatch names (Ink, Paper Color, Accent, Muted, Tint). Only styles that appear on a page get rules and fonts. A face is embedded only when its licence allows it: a bundled family's OFL file, or a name table that says OFL or Apache (its copyright line is written above the OFL text); anything else, which includes most fonts a person installs, falls back to a system font with a warning. Images are WebP at 1600 px with a 720 px source in `srcset`; animated GIFs and SVG pass through. The report counts what blocks publishing rather than failing: missing alt text, buttons with no link (a CTA without a hyperlink, url slot or address), Make's placeholder art (`ph-` names) and fonts left out.
+
+### website.py · Publish Online
+- refers-to: backend/app/services/website.py :: Published, SESSION, write_dir; backend/app/routers/website.py :: serve, open_target
+- kind: rationale
+- logged: v0.12.0 · 2026-10-08
+
+InDesign publishes to Adobe's servers; formdes has no hosted service, so a published site is a folder under `Published/` served by the engine at `/sites/{slug}/` and an `index.json` record. A document owns its site by its saved path, or, while unsaved, by its uid within this engine run (`SESSION`), so publishing again updates rather than duplicates and an old record cannot claim a new document after a restart. A rebuild writes a sibling `.partial` folder and swaps it in, so a reader never sees half a site. `/sites` resolves paths inside the site's folder only and answers the site's own 404 page otherwise; `/api/system/open` opens http and https links, or folders inside the data folder, nothing else.
 

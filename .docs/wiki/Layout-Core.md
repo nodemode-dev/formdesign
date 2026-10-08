@@ -17,6 +17,7 @@
 | `native/formdes-core/src/spell.rs` | `spellMarks`, `spellCheck`, `spellSuggest`, `spellLanguages`, `spellReload`: spelling in each text's language, US English built in and the rest from Hunspell dictionaries through spellbook |
 | `native/formdes-core/src/preflight.rs` | `preflight`: the engine's checks filtered and extended by a profile |
 | `native/formdes-core/src/thumb.rs` | `snippetThumb`: a library item's PNG thumbnail, rendered on its own |
+| `native/formdes-core/src/web.rs` | `web` and `web.asset`: the document as structured content for the engine's website export |
 
 ## The wire format
 
@@ -44,6 +45,8 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | `tiles` `proof` | `{target: workingCmyk, cmyk:NAME, srgb, legacyMacRgb, monitorRgb, protanopia or deuteranopia, intent, simulatePaper}` runs the tile through the proof table |
 | `preflight` | `{profile: {overset, fonts, links, emptyFrames, rgb, transparency, minPpi, maxPpi, bleed, safety, minType, spotMax, pageMultiple}}` to `{errors, warnings, issues}` |
 | `snippetThumb` | `{base64, size}` (a snippet from `snippet.export`) to a PNG with a transparent background, longest side `size`; the engine calls it when a library item is added |
+| `web` | `{}` to `{title, intent, facing, pageWidth, pageHeight, language, pages, blocks, articles, hotspots, styles, swatches}`: placed stories and graphics in reading order (page, then top, then left), each with its page, bounds and slot; stories as paragraphs of runs carrying only what differs from the paragraph (bold, italic, colour, size, position, character style, link); pages with their spread; exported Articles; item hyperlinks as hotspots; paragraph and character styles resolved to plain values |
+| `web.asset` | `{asset}` to the placed file's bytes with its type and pixel size |
 
 ## Environment
 

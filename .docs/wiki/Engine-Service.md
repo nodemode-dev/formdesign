@@ -15,6 +15,7 @@ The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout 
 | `backend/app/autolayout/` | the Make pass: `content.py`, `rank.py`, `make.py`, `fill.py`, `slots.py`, `tagged.py` |
 | `backend/app/services/pdfread.py` | the Reader: pages, text with boxes, search, outline, structure, extraction (pypdfium2) |
 | `backend/app/services/books.py` | `.fdbook` books over the core's book commands |
+| `backend/app/services/website.py` | website export over the core's `web` method: roles from slots and style names, the split into web pages, XY cuts for rows and columns, figures, stats, the edition, embedded fonts with licences, sitemap and feed; published sites in `Published/` |
 | `backend/app/routers/` | the HTTP surface, one module per area, and `mcp.py` |
 | `backend/app/cli.py` | `./formdes make`, `intake`, `export`, `templates`, `check-template` |
 | `backend/formdes_engine.py` | the PyInstaller entry for the desktop app |
@@ -37,6 +38,8 @@ The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout 
 | Workspaces and shortcut sets | `GET`, `POST` and `DELETE /api/prefs/workspaces` and `/api/prefs/shortcuts` (one JSON file each in `Workspaces/` and `Shortcuts/`; built-in names reserved) |
 | ICC profiles | `POST /api/prefs/profiles {path}` loads a profile into the core and keeps it in `Profiles/`; every profile there loads when the engine starts |
 | Language dictionaries | `GET /api/dictionaries`; `POST /api/dictionaries/install {code}` (from the LibreOffice dictionaries repository), `POST /api/dictionaries/add {code, aff, dic}`; `DELETE /api/dictionaries?code=` (UTF-8 copies in `Dictionaries/`) |
+| Websites | `POST /api/documents/export {format: "web"}` (a .zip, or a folder with `path`); `GET /api/website/published` (with the active document's `active` slug), `POST /api/website/publish {options, slug?}`, `/api/website/unpublish {slug}`, `GET /api/website/zip/{slug}`; the sites themselves at `GET /sites/{slug}/...` (outside `/api`, a 404 page for anything missing) |
+| Opening things | `POST /api/system/open {url}` (http and https only) or `{path}` (folders inside the data folder only) in the system's browser or file manager |
 | MCP | `POST /mcp` (streamable HTTP, stateless JSON), `GET /api/mcp/status` |
 
 ## How documents are kept
