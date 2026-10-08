@@ -2,7 +2,7 @@
 
 formdes is the form family's page-layout application, an alternative to InDesign for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. You (or an agent) drop in Markdown, PDFs, Word files, images and a brief in plain words; formdes picks one of its 71 templates, fills it, threads the article across pages, fits the copy and reports what is still sample text. The result is a real layout document you finish with InDesign-class tools in the window, or that an agent finishes over MCP.
 
-Version 0.7.0 · Rust layout core (formdes-core over formdes's own layout crates), Python and FastAPI engine, vanilla TypeScript and Vite window, Tauri 2 desktop shell · Apache-2.0.
+Version 0.7.1 · Rust layout core (formdes-core over formdes's own layout crates), Python and FastAPI engine, vanilla TypeScript and Vite window, Tauri 2 desktop shell · Apache-2.0.
 
 ## Status at a glance
 
