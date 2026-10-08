@@ -1,11 +1,11 @@
 ---
 name: formdes-harness
-description: "Makes print, web and ad layouts in formdes from the person's files and brief through the formdes MCP tools. Use whenever someone asks to design, lay out, typeset or make a magazine spread, newsletter, brochure, flyer, poster, ad, Instagram post, banner, website page, blog post, email, report, one-pager, resume, invoice or deck from markdown, a PDF, Word files, images or an idea; to turn an article into a layout; to re-skin a layout with a brand; to read or extract a PDF; or to export a layout as PDF, IDML, HTML, EPUB or images. Covers magazines, newsletters, books, reports, flyers, posters, menus, cards, social and banner ads, landing pages, blogs, emails and decks. Also for formdes, the formdes MCP, make_layout, slots and templates."
+description: "Makes print, web and ad layouts in formdes from the person's files and brief through the formdes MCP tools. Use whenever someone asks to design, lay out, typeset or make a magazine spread, newsletter, brochure, flyer, poster, ad, Instagram post, banner, website page, blog post, email, report, one-pager, resume, invoice or deck from markdown, a PDF, Word files, images or an idea; to turn an article into a layout; to re-skin a layout with a brand; to read or extract a PDF; or to export a layout as PDF, IDML, a responsive website, HTML, EPUB or images, or publish it online. Covers magazines, newsletters, books, reports, flyers, posters, menus, cards, social and banner ads, landing pages, blogs, emails and decks. Also for formdes, the formdes MCP, make_layout, slots and templates."
 license: Apache-2.0
 metadata:
   author: nodemode-ai
-  compiled: "2026-10-07"
-  version: "0.6.0"
+  compiled: "2026-10-08"
+  version: "0.12.0"
 ---
 
 # formdes harness
@@ -25,7 +25,7 @@ Start with `sub-skills/layout-director/SUB-SKILL.md` for any request to make or 
 | Which template, the 71 built-ins, sizes, kinds, why the ranking chose one | `template-picker` |
 | Reading the Make report, fixing kept sample text, swapping images, moving or restyling frames, adding pages | `layout-finisher` |
 | Brand colours and fonts, brand kits, re-skinning | `brand-stylist` |
-| Saving, exporting (PDF, IDML, HTML, EPUB, PNG, JPG), packaging | `publisher` |
+| Saving, exporting (PDF, IDML, a website, HTML, EPUB, PNG, JPG), publishing online, packaging | `publisher` |
 | Reading, searching or extracting a PDF | `pdf-reader` |
 | No MCP connection: the command line | `cli-fallback` |
 | Designing a brand new template | the sibling skill `formdes-template-creator` |
@@ -38,7 +38,7 @@ Paths inside a SUB-SKILL.md resolve against that specialist's folder; `reference
 2. `make_layout` with the pack id (and a template id when the person named a kind the ranking missed).
 3. `preview` page 1, and any page the report mentions.
 4. `set_slots` for what the report lists as kept or emptied; `run_commands` only for changes slots cannot express.
-5. `save_document` and `export_document` as asked; tell the person what is still sample or placeholder.
+5. `save_document` and `export_document` as asked (`format: "web"` for a website or blog, `publish_website` for a link to look at now); tell the person what is still sample or placeholder.
 
 ## Gates before saying it is done
 

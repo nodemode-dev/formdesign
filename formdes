@@ -20,6 +20,7 @@ usage: ./formdes [command] [options]
   freeze              freeze the engine and copy the core into the Tauri sidecars
   desktop dev|build   run or bundle the desktop app
   make [args]         lay out from the command line: ./formdes make --template ID --brief TEXT FILES... --out FILE
+  export FILE --out F export a document: .pdf .idml .epub .html .png, or .zip for a website
   templates [ID]      list the templates, or show one
   mcp                 formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
   agents install|sync set up Claude Code, Codex and Cursor (install), or refresh the harness skill's tool reference (sync)
@@ -51,6 +52,7 @@ case "$cmd" in
       *) usage; exit 2 ;;
     esac ;;
   make) exec setup/cli make "$@" ;;
+  export) exec setup/cli export "$@" ;;
   templates) exec setup/cli templates "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   agents) if [ -x backend/venv/bin/python ]; then exec backend/venv/bin/python setup/agents.py "$@"; else exec python3 setup/agents.py "$@"; fi ;;

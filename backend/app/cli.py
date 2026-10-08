@@ -78,7 +78,7 @@ async def save_outputs(paths: list[str], stem: str) -> list[dict]:
                 res, _, _ = await documents.export(ext, str(target), {"page": i, "scale": 2.0})
                 saved.append(res)
         else:
-            res, _, _ = await documents.export({"htm": "html"}.get(ext, ext), str(p))
+            res, _, _ = await documents.export({"htm": "html", "zip": "web"}.get(ext, ext), str(p))
             saved.append({"path": str(p), **({k: v for k, v in (res or {}).items() if k in ("pages", "bytes")} if isinstance(res, dict) else {})})
     return saved
 
@@ -180,7 +180,7 @@ def main() -> int:
             m.add_argument("--fills", help="JSON slot values, e.g. {\"cta\": \"Book now\"}")
             m.add_argument("--variations", type=int, default=1)
             m.add_argument("--no-placeholders", action="store_true")
-            m.add_argument("--out", action="append", default=[], help="file to write: .fdes .pdf .idml .png .jpg .html .epub (repeatable)")
+            m.add_argument("--out", action="append", default=[], help="file to write: .fdes .pdf .idml .png .jpg .html .epub, or .zip for a website (repeatable)")
     e = sub.add_parser("export", help="export a .fdes, .fdoc or .idml document")
     e.add_argument("file")
     e.add_argument("--out", action="append", required=True)

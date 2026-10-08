@@ -45,6 +45,17 @@
         "One set_slots call writes brand and phone (and any other slot holding the old brand)",
         "A preview confirms the change; no frame is rebuilt with low-level commands"
       ]
+    },
+    {
+      "id": 5,
+      "name": "magazine-to-website",
+      "prompt": "Can you make the spring issue I have open into a website too? It'll live at https://northlight.example/spring. Give me something I can upload, and a link to look at now.",
+      "files": [],
+      "expected_behavior": [
+        "export_document is called with format web, a folder or .zip path, and options.baseUrl https://northlight.example/spring",
+        "publish_website publish is called and its url is given to the person",
+        "The warnings in the export reply are fixed (alt text, button links) or named to the person, and the reply says where the upload-ready folder or .zip is"
+      ]
     }
   ],
   "trigger_evals": [
@@ -54,6 +65,8 @@
     { "query": "I need a landing page mockup for our app launch using the screenshots in /assets", "should_trigger": true },
     { "query": "turn this article into a newsletter", "should_trigger": true },
     { "query": "extract the text from this PDF and lay it out as a brochure", "should_trigger": true },
+    { "query": "turn the newsletter layout into a little website I can put on github pages", "should_trigger": true },
+    { "query": "deploy my next.js site to vercel", "should_trigger": false },
     { "query": "fix the bug in formdes's tile renderer", "should_trigger": false },
     { "query": "add a new template to formdes for a wine label", "should_trigger": false },
     { "query": "write a blog post about slow craft", "should_trigger": false },

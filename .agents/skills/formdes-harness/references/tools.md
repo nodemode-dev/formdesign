@@ -10,6 +10,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
 - Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`, `library`
+- Other: `publish_website`
 
 ## intake
 
@@ -124,11 +125,21 @@ Note: writes or replaces files.
 
 ## export_document
 
-Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), or a print booklet.
+Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), a print booklet, or web: a responsive multi-page website (path is a folder, or a .zip). web options: split auto|articles|pages|single, layout article|landing|card|email|docs, edition (true adds the page-by-page edition), baseUrl (adds sitemap, feed and share links), title, description, language. Returns the pages made and warnings to fix.
 
-- `format`: string (pdf | idml | html | epub | epub-fixed | txt | rtf | xml | png | jpg | booklet); required
+- `format`: string (pdf | idml | html | web | epub | epub-fixed | txt | rtf | xml | png | jpg | booklet); required
 - `path`: string; required; Absolute path (~ is expanded).
-- `options`: object; Passed to the exporter (pdf: pages, bleed, marks...).
+- `options`: object; Passed to the exporter (pdf: pages, bleed, marks...; web: split, layout, edition, baseUrl, title, description, language).
+
+Note: writes or replaces files.
+
+## publish_website
+
+Publish Online: the active document as a website that formdes serves on this computer at a link (127.0.0.1), kept up to date by publishing again. publish (options as export_document's web options; publishing the same document again updates its site). list: the published sites with their links. unpublish (slug). To put a site on the public web, export_document web to a folder or .zip and upload that to a static host.
+
+- `action`: string (publish | list | unpublish); required
+- `slug`: string
+- `options`: object
 
 Note: writes or replaces files.
 

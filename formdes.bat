@@ -22,6 +22,7 @@ if /i "%CMD%"=="desktop" (
 )
 if /i "%CMD%"=="make" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="templates" ( call setup\cli.bat %* & goto :eof )
+if /i "%CMD%"=="export" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py & goto :eof )
 if /i "%CMD%"=="agents" (
   if exist backend\venv\Scripts\python.exe ( backend\venv\Scripts\python.exe setup\agents.py %2 %3 %4 %5 ) else ( python setup\agents.py %2 %3 %4 %5 )
@@ -37,6 +38,6 @@ exit /b 2
 :usage
 echo formdes.bat [command]
 echo   boot ^| install [--lite] ^| install-core ^| install-fonts ^| install-desktop ^| backend ^| frontend
-echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| templates ^| mcp ^| agents
+echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| mcp ^| agents
 echo   doctor ^| counts ^| clean [--all] ^| help
 exit /b 0

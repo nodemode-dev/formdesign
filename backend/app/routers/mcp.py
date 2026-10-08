@@ -10,6 +10,7 @@ from app import __version__
 from app.autolayout import make as M
 from app.autolayout import rank as R
 from app.autolayout import slots as S
+from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
@@ -32,6 +33,7 @@ STRATEGY = """How to make a layout in formdes with these tools.
 4. Look. preview the first page (and any page the report mentions). Check hierarchy, crops, and that no sample text is left where real content belongs.
 5. Fix. set_slots with {slot: text} or {slot: image id or path}; flow:body takes markdown for the running story. For layout changes beyond slots, run_commands with layout commands (find_commands to look them up; object ids come from get_document).
 6. Deliver. save_document (a .fdes keeps everything editable), export_document as pdf, idml, html, epub, png or jpg. Tell the person what is still placeholder.
+   For a website or blog, export_document web (a folder or .zip of responsive pages, with an edition for print layouts) or publish_website publish for a link to open now; fix what its warnings list (alt text, button links, placeholder art).
 7. More options: make_layout with variations 2 or 3 makes alternatives in other templates; the person picks in the window.
 8. New templates: write the JSON spec (docs/TEMPLATES.md), validate_template until it renders cleanly with no overset outside flows, then save_template.
 9. PDFs as sources: read_pdf for structured text (headings, paragraphs, lists), pdf_page_image to see a page.
@@ -73,8 +75,14 @@ TOOLS = [
            "width": {"type": "number"}, "height": {"type": "number"}, "pages": {"type": "integer", "minimum": 1}, "facing": {"type": "boolean"}, "preset": {"type": "string", "description": "Letter, A4, A5, Tabloid..."}}),
     _tool("open_document", "Opens a .fdes, .fdoc or .idml file.", {"path": _PATH}, ["path"]),
     _tool("save_document", "Saves the active document (.fdes by default, keeps slots and the content pack; .fdoc or .idml by extension).", {"path": _PATH}, destructive=True),
-    _tool("export_document", "Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), or a print booklet.",
-          {"format": {"type": "string", "enum": ["pdf", "idml", "html", "epub", "epub-fixed", "txt", "rtf", "xml", "png", "jpg", "booklet"]}, "path": _PATH, "options": {"type": "object", "description": "Passed to the exporter (pdf: pages, bleed, marks...)."}}, ["format", "path"], destructive=True),
+    _tool("export_document", "Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), a print booklet, "
+          "or web: a responsive multi-page website (path is a folder, or a .zip). web options: split auto|articles|pages|single, layout article|landing|card|email|docs, "
+          "edition (true adds the page-by-page edition), baseUrl (adds sitemap, feed and share links), title, description, language. Returns the pages made and warnings to fix.",
+          {"format": {"type": "string", "enum": ["pdf", "idml", "html", "web", "epub", "epub-fixed", "txt", "rtf", "xml", "png", "jpg", "booklet"]}, "path": _PATH, "options": {"type": "object", "description": "Passed to the exporter (pdf: pages, bleed, marks...; web: split, layout, edition, baseUrl, title, description, language)."}}, ["format", "path"], destructive=True),
+    _tool("publish_website", "Publish Online: the active document as a website that formdes serves on this computer at a link (127.0.0.1), kept up to date by publishing again. "
+          "publish (options as export_document's web options; publishing the same document again updates its site). list: the published sites with their links. "
+          "unpublish (slug). To put a site on the public web, export_document web to a folder or .zip and upload that to a static host.",
+          {"action": {"type": "string", "enum": ["publish", "list", "unpublish"]}, "slug": {"type": "string"}, "options": _OBJ}, ["action"], destructive=True),
     _tool("run_commands", "Runs layout commands on the active document as one undoable batch (all or nothing): [{command, params}]. Later steps can use earlier results as $N.id. find_commands lists commands and their parameters.",
           {"commands": {"type": "array", "items": _OBJ, "minItems": 1, "maxItems": 400}}, ["commands"]),
     _tool("find_commands", "Searches the 432 layout commands by id, label or menu: each with its parameters.", {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 60, "default": 20}}, ["query"], read=True, idempotent=True),
@@ -332,7 +340,25 @@ async def _run(name: str, a: dict) -> dict:
         return await _find(a)
     if name == "library":
         return await _library(a)
+    if name == "publish_website":
+        return await _publish(a)
     return _fail(f"no tool {name}")
+
+
+async def _publish(a: dict) -> dict:
+    from app.services.website import published
+    base = f"http://127.0.0.1:{config.PORT}/sites/"
+    act = a.get("action")
+    if act == "list":
+        return _text({"sites": [{"slug": s["slug"], "title": s.get("title"), "url": f"{base}{s['slug']}/", "pages": s.get("pages"), "updated": s.get("updated")} for s in published.entries()],
+                      "active": await published.active_slug()})
+    if act == "unpublish":
+        slug = str(a.get("slug") or "")
+        return _text({"unpublished": slug}) if published.unpublish(slug) else _fail(f"no published site {slug}")
+    if act == "publish":
+        rec = await published.publish(a.get("options") or {}, a.get("slug"))
+        return _text({"url": f"{base}{rec['slug']}/", **{k: rec.get(k) for k in ("slug", "title", "pages", "split", "files", "bytes", "path", "warnings")}})
+    return _fail(f"unknown action {act}: publish, list or unpublish")
 
 
 async def _library(a: dict) -> dict:
