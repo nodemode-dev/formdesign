@@ -7,7 +7,7 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | Work | License | Where |
 | --- | --- | --- |
 | NodeMode stylized design system: tokens, theme profiles, theme boot, dom-stable helpers, icon subset, by way of formvis 1.65.0 | MIT (design system), Apache-2.0 (formvis) | `frontend/src/styles/`, `frontend/src/ui/themes.ts`, `frontend/src/ui/dom.ts`, `frontend/src/ui/icons.ts`, `frontend/index.html` |
-| formvis 1.65.0 shell controls (menu, commands, toast, dialogs, dropdown, panel group, dock), setup script layout, MCP stdio bridge pattern | Apache-2.0, Copyright 2026 nodemode-ai | `frontend/src/ui/`, `setup/` |
+| formvis 1.65.0 shell controls (menu, commands, toast, dialogs, dropdown, panel group), setup script layout, MCP stdio bridge pattern | Apache-2.0, Copyright 2026 nodemode-ai | `frontend/src/ui/`, `setup/` |
 
 ## Built into the layout core
 
