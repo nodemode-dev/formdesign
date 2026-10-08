@@ -21,7 +21,8 @@ An active document made by make_layout (or opened .fdes) and its report.
 4. **Fix fit.** If a headline was shrunk or trimmed, write a shorter one with set_slots rather than accepting a small size. If the body story is longer than the template holds, either cut copy (set flow:body to a shorter markdown) or choose a template with continuation pages.
 5. **Structural changes with run_commands.** One batch per change so it is one undo step. Ids and bounds come from `get_document` (items with `id`, `slot`, `b` = bounds in points on the spread). Common recipes are in `references/command-recipes.md`; anything else: `find_commands {query}`.
 6. **Clean up and restyle across the document with find_change**, not story by story. `op: count` first, then `op: change_all` (one undo step). `op: queries` lists the built-in fixes (straight quotes to curly, hyphens in number ranges to en dashes, double spaces, stray returns); run one with `query`. To restyle everything in a style, leave `find` empty and set `findFormat {paragraphStyle}` and `changeFormat`. GREP uses InDesign's codes (`\r` return, `~=` en dash, `$1` in the change).
-7. **Look after each meaningful change** with `preview`.
+7. **Reuse saved pieces with library.** `library {action: "list"}` shows the person's libraries; `items` lists a library's pieces (a logo lockup, a footer, a pull-quote box); `place {name, index, x, y}` drops a copy with its styles and swatches. When you build something the person will want again, `add` it with a title.
+8. **Look after each meaningful change** with `preview`.
 
 ## Gate
 
