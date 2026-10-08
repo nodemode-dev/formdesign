@@ -13,8 +13,8 @@ export const feature: Feature = {
     ws.registerPanel({ id: 'character', label: 'Character', group: 'props', column: 'side', order: 20, create: () => new CharacterPanel().root, onShow: () => ctx.schedule() });
     ws.registerPanel({ id: 'paragraph', label: 'Paragraph', group: 'props', column: 'side', order: 30, create: () => new ParagraphPanel().root, onShow: () => ctx.schedule() });
     ws.registerPanel({ id: 'swatches', label: 'Swatches', group: 'swatches', column: 'dock', order: 10, create: () => new SwatchesPanel().root, onShow: () => ctx.schedule() });
-    ws.registerPanel({ id: 'paraStyles', label: 'Paragraph Styles', group: 'swatches', column: 'dock', order: 20, create: () => new StylesPanel('paragraph').root, onShow: () => ctx.schedule() });
-    ws.registerPanel({ id: 'charStyles', label: 'Character Styles', group: 'swatches', column: 'dock', order: 30, create: () => new StylesPanel('character').root, onShow: () => ctx.schedule() });
+    ws.registerPanel({ id: 'paraStyles', label: 'Para Styles', group: 'swatches', column: 'dock', order: 20, create: () => new StylesPanel('paragraph').root, onShow: () => ctx.schedule() });
+    ws.registerPanel({ id: 'charStyles', label: 'Char Styles', group: 'swatches', column: 'dock', order: 30, create: () => new StylesPanel('character').root, onShow: () => ctx.schedule() });
     ws.setControl('properties', new ControlBar().root, 10);
     ws.addCommands(
       { id: 'ui.type.character', label: 'Character', keys: ['Mod+T'], run: () => ws.showPanel('character') },

@@ -39,6 +39,7 @@ export class PanelGroup {
   onTab: ((id: string) => void) | null = null;
   /** The panel menu (the target's •••): the app opens it with these command ids (PanelGroup.menuHost). */
   static menuHost: ((anchor: HTMLElement, ids: string[]) => void) | null = null;
+  static startMin = new Set<string>();
   private menu: (() => string[]) | null = null;
   setMenu(items: () => string[]): void { this.menu = items; setHidden(this.root.querySelector('.cv-group-more') as HTMLElement, false); }
 
@@ -53,7 +54,7 @@ export class PanelGroup {
     const saved = loadState()[id] ?? {};
     if (list.length) this.show(saved.tab && this.tabs.has(saved.tab) ? saved.tab : list[0].id, false);
     else this.root.classList.add('is-empty');   // a group made by detaching a tab, until its tab arrives
-    this.setMinimised(!!saved.min, false);
+    this.setMinimised(saved.min ?? PanelGroup.startMin.has(id), false);
     (this.root.querySelector('.cv-group-min') as HTMLElement).addEventListener('click', () => this.setMinimised(!this.root.classList.contains('is-min')));
     host.appendChild(this.root);
     // Tabs fit in steps (1.49.6, the owner's walkthrough: tabs were shortened to Chann..., Pa...): normal, then compact,
@@ -67,7 +68,7 @@ export class PanelGroup {
     for (const step of ['', 'is-compact', 'is-tight']) {
       strip.classList.remove('is-compact', 'is-tight');
       if (step) strip.classList.add(step);
-      const need = [...strip.children].reduce((w, c) => w + (c as HTMLElement).scrollWidth, 0) + Math.max(0, strip.children.length - 1) * 2;
+      const need = [...strip.children].reduce((w, c) => w + (c as HTMLElement).scrollWidth + (c as HTMLElement).offsetWidth - (c as HTMLElement).clientWidth, 0) + Math.max(0, strip.children.length - 1) * 2;
       if (need <= strip.clientWidth + 0.5) return;
     }
   }

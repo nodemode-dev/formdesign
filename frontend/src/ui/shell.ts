@@ -63,7 +63,7 @@ export class Shell implements Workspace {
       openRecent: (path) => void this.openPath(path),
     }, [
       { label: 'Make a layout…', command: 'ui.make', icon: 'sparkle', key: 'M' },
-      { label: 'New from template…', command: 'ui.templates', icon: 'newFile', key: 'N' },
+      { label: 'New from template…', command: 'ui.templates', icon: 'newFile' },
       { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
       { label: 'Open a PDF in the Reader…', command: 'ui.reader', icon: 'fileImage' },
     ]);
@@ -306,6 +306,7 @@ export class Shell implements Workspace {
 
   mountPanels(): void {
     const side = q(this.root, '.cv-props-col'), dock = q(this.root, '.cv-layers');
+    PanelGroup.startMin = new Set(['swatches', 'preflight']);
     const byGroup = new Map<string, PanelSpec[]>();
     for (const p of [...this.panels].sort((a, b) => (a.order ?? 50) - (b.order ?? 50))) {
       const list = byGroup.get(p.group) ?? [];
