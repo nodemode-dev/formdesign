@@ -18,11 +18,12 @@ Version 0.10.0 · Rust layout core (formdes-core over formdes's own layout crate
 | Separations and Overprint Preview, Track Changes, Notes, Conditional Text, Object Style Options | Working; new at 0.8.0, verified once each |
 | Find/Change with saved queries, Check Spelling and Dynamic Spelling, Type on a Path Options, preflight profiles | Working; new at 0.9.0, verified once each, Find/Change under throttling |
 | Object States, Buttons and Forms, media options, Page Transitions, XML Tags and Structure, Libraries | Working; new at 0.10.0, verified once each and under throttling |
+| Workspaces, the movable dock, keyboard shortcut sets, soft proofing, spelling in twenty more languages | Working; new at 0.11.0, verified once each, the dock and workspaces under throttling |
 | PDF Reader | Working |
 | Desktop app | Linux built and launched; macOS and Windows built only by CI so far |
-| Web export beyond one HTML page, soft proofing, spelling in languages other than US English, saved workspaces, shortcut editing, animation | Not built |
+| Web export beyond one HTML page, hyphenation in languages other than English, cloud documents, animation | Not built |
 
-The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 47.0 at 0.10.0.
+The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 48.0 at 0.11.0.
 
 ## Where to go
 

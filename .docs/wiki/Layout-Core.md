@@ -9,12 +9,12 @@
 | `native/formdes-core/src/main.rs` | entry: `--version`, `--selfcheck`, font folders from the environment, then the serve loop |
 | `native/formdes-core/src/proto.rs` | the wire format, panics caught per request, binary replies |
 | `native/formdes-core/src/core.rs` | method dispatch, documents, undo for formdes's own edits, change metadata, fonts |
-| `native/formdes-core/src/view.rs` | `tiles` (RGBA tiles of the canvas) and `page.png` |
+| `native/formdes-core/src/view.rs` | `tiles` (RGBA tiles of the canvas, with plates, the ink limit or a proof condition) and `page.png` |
 | `native/formdes-core/src/overlays.rs` | frame edges, handles, ports, threads, guides, caret and selection geometry |
 | `native/formdes-core/src/input.rs` | `pointer` and `key`: tools, snapping, text input |
 | `native/formdes-core/src/slots.rs` | `slots`: frames labelled `slot:NAME` or `flow:NAME` with their content |
 | `native/formdes-core/src/find.rs` | `findChange`: text, GREP, glyph and object find and change for the Find/Change window and the `find_change` MCP tool |
-| `native/formdes-core/src/spell.rs` | `spellMarks` and `spellSuggest`: dynamic spelling marks and ranked suggestions |
+| `native/formdes-core/src/spell.rs` | `spellMarks`, `spellCheck`, `spellSuggest`, `spellLanguages`, `spellReload`: spelling in each text's language, US English built in and the rest from Hunspell dictionaries through spellbook |
 | `native/formdes-core/src/preflight.rs` | `preflight`: the engine's checks filtered and extended by a profile |
 | `native/formdes-core/src/thumb.rs` | `snippetThumb`: a library item's PNG thumbnail, rendered on its own |
 
@@ -39,7 +39,9 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | `fonts.add`, `fonts.families`, `fonts.styles`, `fonts.face`, `fonts.data` | the font catalogue; `fonts.data` returns a face's file for the Glyphs panel |
 | `story.paras`, `objectStyles`, `pathType` | a story's paragraphs with their styles (Story Editor), object style listing and editing, a type-on-path item's options |
 | `findChange` | `{mode: text, grep, glyph or object, op: all, next, change, changeAll, changeFind or select, find, change, findFormat, changeFormat, scope, within, include, glyph, toGlyph, object, objectChange}`; GREP runs on fancy-regex with InDesign's codes translated |
-| `spellMarks`, `spellSuggest` | misspelled words in the visible frames as underline segments (cached per document revision); suggestions for one word |
+| `spellMarks`, `spellSuggest` | misspelled words in the visible frames as underline segments (cached per document revision); suggestions for one word, from the dictionary of `lang` when given |
+| `spellCheck`, `spellLanguages`, `spellReload` | `{story?}` to `[{story, start, end, word, lang}]`; the languages with a dictionary found in `FORMDES_DICT_DIRS`; forget loaded dictionaries after one is added or removed |
+| `tiles` `proof` | `{target: workingCmyk, cmyk:NAME, srgb, legacyMacRgb, monitorRgb, protanopia or deuteranopia, intent, simulatePaper}` runs the tile through the proof table |
 | `preflight` | `{profile: {overset, fonts, links, emptyFrames, rgb, transparency, minPpi, maxPpi, bleed, safety, minType, spotMax, pageMultiple}}` to `{errors, warnings, issues}` |
 | `snippetThumb` | `{base64, size}` (a snippet from `snippet.export`) to a PNG with a transparent background, longest side `size`; the engine calls it when a library item is added |
 

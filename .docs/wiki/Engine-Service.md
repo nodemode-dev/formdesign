@@ -34,6 +34,9 @@ The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout 
 | Find/Change queries | `GET`, `POST` and `DELETE /api/find/queries` (twelve built in, the rest one file each in `Queries/`) |
 | Preflight profiles | `GET`, `POST` and `DELETE /api/preflight/profiles` (five built in, the rest one file each in `Preflight/`) |
 | Libraries | `GET`, `POST` and `DELETE /api/libraries`; `GET`, `POST`, `PATCH` and `DELETE /api/libraries/items`; `POST /api/libraries/place` (one `.fdlib` file each in `Libraries/` or `FORMDES_LIBRARIES_DIR`) |
+| Workspaces and shortcut sets | `GET`, `POST` and `DELETE /api/prefs/workspaces` and `/api/prefs/shortcuts` (one JSON file each in `Workspaces/` and `Shortcuts/`; built-in names reserved) |
+| ICC profiles | `POST /api/prefs/profiles {path}` loads a profile into the core and keeps it in `Profiles/`; every profile there loads when the engine starts |
+| Language dictionaries | `GET /api/dictionaries`; `POST /api/dictionaries/install {code}` (from the LibreOffice dictionaries repository), `POST /api/dictionaries/add {code, aff, dic}`; `DELETE /api/dictionaries?code=` (UTF-8 copies in `Dictionaries/`) |
 | MCP | `POST /mcp` (streamable HTTP, stateless JSON), `GET /api/mcp/status` |
 
 ## How documents are kept

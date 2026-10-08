@@ -46,6 +46,7 @@ Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow
 | Find/Change | Ctrl+F |
 | Find Next | Alt+Ctrl+F |
 | Check Spelling | Ctrl+I |
+| Keyboard Shortcuts | Alt+Shift+Ctrl+K |
 | Edit in Story Editor | Ctrl+Y |
 | Preferences | Ctrl+, |
 
@@ -102,4 +103,4 @@ Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow
 | XML Structure | Alt+Ctrl+1 |
 | Hide Panels | Tab |
 
-Help > Keyboard Shortcuts in the app lists the ones the window adds; the core's list comes from its command catalogue (`commands`). Known clash: Transform Again and Show All on Spread both claim Alt+Ctrl+3 in the core's catalogue; use the Object menu for either until it is resolved.
+These are the defaults. Edit > Keyboard Shortcuts (Alt+Shift+Ctrl+K) changes any command's or tool's keys in a set of your own, kept in `Shortcuts/` in the data folder, and Show Set writes the current set as text. The core's list comes from its command catalogue (`commands`). Known clash: Transform Again and Show All on Spread both claim Alt+Ctrl+3 in the core's catalogue; use the Object menu for either until it is resolved.

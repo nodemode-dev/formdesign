@@ -2,6 +2,16 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.11.0 · 2026-10-08
+
+- Workspaces: Window > Workspace and a switcher in the title bar with Essentials, Advanced, Book, Digital Publishing, Interactive for PDF, Printing and Proofing and Typography, plus your own (New, Delete, Reset).
+- Panels: drag a group by its header within or between the columns, drop a tab between groups to make a new group, set group heights and the dock's width, right-click a header to close or minimise a group; all remembered.
+- Keyboard shortcut sets (Edit > Keyboard Shortcuts, Alt+Shift+Ctrl+K): product areas, search, current shortcuts, a new shortcut with the command that has it now, Show Set; tools are listed and can be rebound. Menus show the keys as changed.
+- Soft proofing: View > Proof Setup (Working CMYK, a custom press with any CMYK profile, intent and Simulate Paper Color, RGB screens, two colour-blindness simulations) and View > Proof Colors. Loaded ICC profiles are kept in the data folder.
+- Spelling in other languages: text is checked in its own language; Edit > Language Dictionaries gets twenty dictionaries from the LibreOffice project or installs your own Hunspell files.
+- Fixed: a request whose window closed mid-call no longer leaves its reply for the next call (every later answer was one behind); a core shortcut works straight after the selection changes, without opening a menu first; dialog fields and notes are styled.
+- Parity with InDesign measured at 48.0 of 53.
+
 ## 0.10.0 · 2026-10-08
 
 - Object States (Window > Object States): make a multi-state object from a selection, show, rename and release states.

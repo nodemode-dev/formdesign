@@ -57,16 +57,22 @@ Good habits: put the article's title as the first heading, a one-line deck as a 
 
 | Area | What is there |
 | --- | --- |
-| Title bar | menus (File, Edit, Layout, Type, Object, Table, View, Window, Help), undo and redo, zoom, Make, Preferences |
+| Title bar | menus (File, Edit, Layout, Type, Object, Table, View, Window, Help), undo and redo, zoom, Make, the workspace switcher, Preferences |
 | Control bar | the selection's position, size, rotation, fill and stroke; with text, the font, size, leading, tracking and alignment |
 | Tool rail | 37 InDesign tools; hold a tool to see its group; single-key shortcuts as in InDesign |
 | Document tabs | every open document; the dot marks unsaved changes |
 | Canvas | pages on the pasteboard; rulers on the top and left |
-| Left of the dock | Properties, Character, Paragraph; Glyphs and Tabs; Changes, Notes and Conditions |
-| Right dock | Make and Slots; Swatches, Styles and Table; Pages, Layers and Links; Preflight, Info and Separations |
-| Status bar | the engine and layout core, the current page, the active tool, the version |
+| Left of the dock | Properties, Character, Paragraph; Glyphs and Tabs; Changes, Notes and Conditions; States, Buttons and Transitions |
+| Right dock | Make and Slots; Swatches, Styles and Table; Pages, Layers and Links; Preflight, Info and Separations; Structure and Tags; Library |
+| Status bar | the engine and layout core, the current page, the active tool, the proof condition when Proof Colors is on, the version |
 
-Panel groups can be minimised with the minus button and moved by their grip; Tab hides every panel. Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex and Cursor.
+Panel groups can be minimised with the minus button. Drag a group by its header to move it up or down or into the other column; a line shows where it will land. Drag a tab onto another group's header to join that group, or between groups to make a new group of its own. The thin bar between two groups sets the upper one's height (double-click it to let the group size itself), and the bar left of the dock sets the dock's width. Right-click a group's header to close or minimise it; choosing one of its panels in the Window menu brings it back. Tab hides every panel. formdes remembers all of this.
+
+Window > Workspace, or the switcher in the title bar, arranges the panels for a kind of work: Essentials, Advanced, Book, Digital Publishing, Interactive for PDF, Printing and Proofing and Typography. New Workspace saves the arrangement you have under a name of your own, Delete Workspace removes one of yours, and Reset puts the current workspace back as it was saved.
+
+Edit > Keyboard Shortcuts (Alt+Shift+Ctrl+K) changes the keys. Choose a product area or search, pick a command, click New shortcut and press the keys; the dialog says which command has them now, and Assign moves them to the picked command. Remove takes a key away. The default set cannot be changed, so your first change asks for a name and makes your own set, which you can switch, delete or reset; Show Set saves every shortcut in the set as a text file. Tools are listed too.
+
+Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex and Cursor.
 
 ## Pages and parents
 
@@ -82,7 +88,7 @@ The Pages panel shows parent pages (masters) at the top and the document's pages
 - **Story Editor.** Ctrl+Y opens the story as plain text, one paragraph per line, for writing and editing without layout getting in the way. Changes appear in the layout as you type and keep their formatting. The column on the left names each paragraph's style, and a red Overset line marks where the text runs past the last frame.
 - **Review.** The Changes panel turns Track Changes on and lists every insertion and deletion with its author and time; accept or reject each one, or all. The Notes panel adds a note at the text cursor and lets you edit, delete or turn notes into text. The Conditions panel makes conditions, applies them to selected text, and shows or hides each one, so one document can hold several versions of its copy.
 - **Find/Change.** Ctrl+F opens a window that stays open beside the page. The Text tab finds words (the @ menu inserts tabs, returns, dashes and wildcards such as any digit); GREP takes regular expressions with InDesign's codes (`\r` for a return, `~=` for an en dash, `$1` in Change To for the first group); Glyph finds one character in one font; Object finds frames by kind, fill, stroke, opacity, layer or object style. Find Format and Change Format restyle what is found, and with Find What left empty they find every run in a style. Find All lists matches with their page; click one to go to it. Find Next (Alt+Ctrl+F), Change, Change All and Change/Find work as in InDesign, and Change All is one undo. The Query menu holds ready-made clean-ups (curly quotes, en dashes in number ranges, double spaces, empty paragraphs) and the queries you save.
-- **Spelling.** Edit > Check Spelling (Ctrl+I) steps through words not in the dictionary from the cursor, with suggestions; Change, Change All, Skip, Ignore All, or Add the word to the document's dictionary. Edit > Dynamic Spelling underlines misspelled words in red as you work. Edit > Dictionary lists the document's own words and its hyphenation exceptions (`ex~am~ple` breaks only where the tildes are). The dictionary is US English.
+- **Spelling.** Edit > Check Spelling (Ctrl+I) steps through words not in the dictionary from the cursor, with suggestions; Change, Change All, Skip, Ignore All, or Add the word to the document's dictionary. Edit > Dynamic Spelling underlines misspelled words in red as you work. Edit > Dictionary lists the document's own words and its hyphenation exceptions (`ex~am~ple` breaks only where the tildes are). Text is checked in the language set on it (Character panel, Language): US English is built in, and Edit > Language Dictionaries gets the dictionary for another language (German, French, Spanish, Italian, Portuguese, Dutch, the Scandinavian languages, Polish, Czech, Hungarian, Greek, Russian, Ukrainian, Turkish, UK and Canadian English) from the LibreOffice project, or installs a Hunspell .aff and .dic pair you have. Hyphenation is still English only.
 - **Type on a path.** The Type on a Path tool (Shift+T) puts type along any line, shape or path you click; Type > Type on a Path > Options sets which part of the type sits on the path, where it starts, flips it, or removes the type.
 - **Long text.** Footnotes and endnotes, cross-references, hyperlinks, text variables, conditional text and tables of contents and indexes are in the Type and Layout menus.
 
@@ -108,7 +114,9 @@ Rulers count from the top-left of the spread in your units (Preferences, Units).
 
 The Preflight panel lists overset text, missing fonts and links, low-resolution images and RGB colour in print documents, and goes green when the document is ready. Choose a profile for where the file is going: Commercial print adds 300 ppi images, 9 pt of bleed on anything that reaches the trim, text at least 9 pt inside the trim, type of 6 pt and up and at most two spot inks; PDF/X-1a adds transparency; Saddle-stitched booklet wants a page count in fours; Digital and screen accepts RGB and 72 ppi. Define makes your own profile from any of them. The Info panel shows the pointer's position and the selection's size. Preview (W) hides guides and frame edges.
 
-View > Separations Preview (Shift+F6) opens the Separations panel. Choose Separations, then Cyan, Magenta, Yellow or Black to see only that plate, as a printer's film would show it, or CMYK for all four. Choose Ink Limit and set a total (300 percent is common for coated stock) to see in red every area that would carry more ink than the press allows; Off returns to the normal view. Spot inks are listed underneath, each with Print as process. View > Overprint Preview (Alt+Shift+Ctrl+Y) shows how objects set to overprint will mix with the colours beneath them. Soft proofing against a printer's profile is not available yet.
+View > Separations Preview (Shift+F6) opens the Separations panel. Choose Separations, then Cyan, Magenta, Yellow or Black to see only that plate, as a printer's film would show it, or CMYK for all four. Choose Ink Limit and set a total (300 percent is common for coated stock) to see in red every area that would carry more ink than the press allows; Off returns to the normal view. Spot inks are listed underneath, each with Print as process. View > Overprint Preview (Alt+Shift+Ctrl+Y) shows how objects set to overprint will mix with the colours beneath them.
+
+View > Proof Colors shows the page as it will print on the press chosen in View > Proof Setup: Working CMYK, or Custom, where you pick any CMYK profile (Load Profile adds your printer's .icc file, kept for next time), the rendering intent, and Simulate Paper Color for the paper's own white and the ink's real black. Proof Setup also simulates sRGB, legacy Macintosh RGB and monitor RGB screens, and two kinds of colour blindness. While proofing, the status bar names the condition.
 
 ## Exporting and printing
 
