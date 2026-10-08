@@ -231,7 +231,7 @@ export class TabsPanel {
 export function installTabs(ws: Workspace): void {
   let panel: TabsPanel | null = null;
   ws.registerPanel({
-    id: 'tabs', label: 'Tabs', group: 'preflight', column: 'dock', order: 40,
+    id: 'tabs', label: 'Tabs', group: 'typeextra', column: 'side', order: 20,
     create: () => (panel = new TabsPanel(ws)).root,
     onShow: () => panel?.onShow(),
   });

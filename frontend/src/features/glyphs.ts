@@ -176,7 +176,7 @@ export class GlyphsPanel {
 export function installGlyphs(ws: Workspace): void {
   let panel: GlyphsPanel | null = null;
   ws.registerPanel({
-    id: 'glyphs', label: 'Glyphs', group: 'preflight', column: 'dock', order: 30,
+    id: 'glyphs', label: 'Glyphs', group: 'typeextra', column: 'side', order: 10,
     create: () => (panel = new GlyphsPanel(ws)).root,
     onShow: () => void panel?.onShow(),
   });

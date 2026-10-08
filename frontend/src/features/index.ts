@@ -10,6 +10,8 @@ import { installTabs } from './tabs';
 import { installTable } from './table';
 import { installBook } from './book';
 import { installStoryEditor } from './story';
+import { installReview } from './review';
+import { installSeparations } from './separations';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, reader, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
-  { install: installStoryEditor }];
+  { install: installStoryEditor }, { install: installReview }, { install: installSeparations }];
