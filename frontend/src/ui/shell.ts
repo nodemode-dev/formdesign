@@ -590,7 +590,7 @@ export class Shell implements Workspace {
     if (!lay || !lay.pages.length) { setText(el2, ''); return; }
     const abs = this.viewport.currentPage();
     const p = lay.pages.find((x) => x.abs === abs);
-    setText(el2, p ? `Page ${p.name} of ${lay.pages.length}` : '');
+    setText(el2, !p ? '' : p.name === String(p.abs + 1) ? `Page ${p.name} of ${lay.pages.length}` : `Page ${p.name} (${p.abs + 1} of ${lay.pages.length})`);
   }
 
   private syncStatus(on: boolean): void {
