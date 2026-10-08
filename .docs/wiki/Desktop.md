@@ -1,0 +1,49 @@
+# Desktop
+
+The desktop app is a Tauri 2 shell around the same engine and window the browser build uses. It ships two sidecars: the engine frozen with PyInstaller (with the built window, the template library and the font library inside it) and the layout core binary.
+
+## Source
+
+| Path | What lives there |
+| --- | --- |
+| `src-tauri/src/main.rs` | the shell: splash, starting the engine sidecar with the core's path, reading the engine's port, opening the main window, the updater |
+| `src-tauri/tauri.conf.json` | product name, identifier `ai.nodemode.formdes`, the splash window, bundle targets, file associations, the updater endpoint |
+| `src-tauri/tauri.updater.conf.json` | merged in for signed release builds: turns on updater artifacts |
+| `src-tauri/capabilities/default.json` | core permissions only; the window talks HTTP and WebSocket to its engine |
+| `src-tauri/entitlements.plist` | macOS hardened-runtime entitlements for the frozen Python engine |
+| `src-tauri/icons/` | generated from `assets/formdes_icon.png` |
+| `src-tauri/binaries/` | `formdes-engine-[triple]` and `formdes-core-[triple]`, written by `./formdes freeze` (ignored by git) |
+| `backend/formdes_engine.py` | the engine's frozen entry and `--selfcheck` |
+| `setup/freeze_backend`, `install_desktop`, `desktop_dev`, `desktop_build` (and `.bat` twins) | the build scripts |
+| `frontend/public/splash.html` | the splash shown while the engine starts |
+
+## Start-up
+
+1. The splash opens (360 by 180, no decorations).
+2. The shell starts `formdes-engine` with `FORMDES_PORT=8196` and `FORMDES_CORE` pointing at the `formdes-core` binary beside the app.
+3. The engine takes 8196 if it is free, or a free port if not, and uvicorn logs the address. The shell reads the port from that line.
+4. The main window opens at 90 percent of the screen (at least 1100 by 700) on `http://127.0.0.1:[port]`, and the splash closes.
+5. If the engine never reports a port, the shell shows a dialog and exits. Quitting the app stops the engine, which stops the core.
+
+## Building
+
+```bash
+./formdes install-desktop        # PyInstaller; checks Rust and, on Linux, the webview packages
+./formdes desktop dev            # run against a frozen engine (freezes first if needed)
+./formdes desktop build          # bundles in src-tauri/target/release/bundle
+./formdes desktop build --bundles deb     # one format only
+```
+
+Windows uses `formdes.bat install-desktop` and `formdes.bat desktop build`; the batch scripts handle the `venv\Scripts` layout. `./formdes freeze` alone rebuilds the sidecars and runs the engine's self-check, which reports whether the window, templates and fonts made it into the archive.
+
+| Platform | Bundles | Built and run so far |
+| --- | --- | --- |
+| Linux x64 | `.deb`, `.rpm`, `.AppImage` | `.deb` built and launched (0.6.0) |
+| macOS arm64 | `.dmg`, `.app` | by `desktop.yml` only |
+| Windows x64 | `.msi`, NSIS `-setup.exe` | by `desktop.yml` only |
+
+## Contract
+
+- The window inside the app is the same build as the browser's; desktop-only behaviour goes in `src-tauri/src/main.rs`, not in the frontend.
+- Everything the engine reads at run time must be added to the freeze (`--add-data` in `setup/freeze_backend` and its `.bat` twin) and reported by `--selfcheck`.
+- No signing keys in the repository. Signing and the updater key come from GitHub secrets (see [[Releasing]]).

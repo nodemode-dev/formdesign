@@ -1,0 +1,32 @@
+name: wiki
+
+on:
+  push:
+    branches: [main]
+    paths: ['.docs/wiki/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish .docs/wiki to the GitHub wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" "$RUNNER_TEMP/wiki"; then
+            echo "The wiki is not initialized. Create any first page in the GitHub wiki once, then rerun this workflow."
+            exit 1
+          fi
+          rsync -a --delete --exclude .git .docs/wiki/ "$RUNNER_TEMP/wiki/"
+          cd "$RUNNER_TEMP/wiki"
+          git config user.name "nodemode-ai"
+          git config user.email "mackin@nodemode.ai"
+          git add -A
+          if git diff --cached --quiet; then echo "wiki already up to date"; exit 0; fi
+          git commit -m "docs(wiki): sync from ${GITHUB_SHA::7}"
+          git push
