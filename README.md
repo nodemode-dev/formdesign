@@ -2,7 +2,7 @@
 <h1 align="center">formdes</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.6.1-f97316" alt="version 0.6.1">
+<img src="https://img.shields.io/badge/version-0.7.0-f97316" alt="version 0.7.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -16,7 +16,7 @@ formdes is the form family's page-layout application: an alternative to InDesign
 
 **Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
 
-## Status at 0.6.1
+## Status at 0.7.0
 
 Working end to end:
 
@@ -28,7 +28,9 @@ Working end to end:
 - **The editor.** Tiled rendering of the layout core with overlays, the 37 InDesign tools, menus built from the core's 432 commands, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
 - **Desktop.** A Tauri 2 app for macOS, Windows and Linux with the engine and the layout core as sidecars; CI builds the bundles on each `v*.*.*` tag.
 
-Measured against InDesign 2026 in 53 rows (full 1, partial 0.5, none 0), formdes scores 39.5 (74.5 percent) at 0.6.1. Next: rulers with drag-out guides, the Glyphs, Tabs, Object Styles, Table and Book panels, the Story Editor, the manual and the wiki.
+- **InDesign workspace pieces.** Rulers with drag-out guides (Ctrl+R), the Glyphs panel, the Tabs ruler, one Styles tab for paragraph, character and object styles, the Table panel (options, alternating rows, cell and table styles), Books (File > Book: chapters, numbering, style sync, one PDF) and the Story Editor (Ctrl+Y).
+
+Measured against InDesign 2026 in 53 rows (full 1, partial 0.5, none 0), formdes scores 42.5 (80 percent) at 0.7.0, up from 39.5 at 0.6.1. Next: the manual and the wiki, Separations Preview, Track Changes and Notes panels.
 
 ## Try it
 
