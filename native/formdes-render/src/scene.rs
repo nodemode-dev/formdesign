@@ -61,6 +61,31 @@ pub enum Op {
     PushBlend(String),
     Pop,
     Link { rect: Rect, target: LinkTarget },
+    Tag(Tagging),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Tagging {
+    Para,
+    Heading(u16, String),
+    Figure(String),
+    End,
+}
+
+fn heading_level(style: &str) -> Option<u16> {
+    let s = style.to_ascii_lowercase();
+    if s.contains("title") && !s.contains("subtitle") {
+        return Some(1);
+    }
+    if !(s.contains("head") || s.starts_with('h')) || s.contains("header") || s.contains("headline deck") {
+        return None;
+    }
+    let digit = s.chars().rev().find(|c| c.is_ascii_digit()).and_then(|c| c.to_digit(10)).map(|d| d as u16);
+    match digit {
+        Some(d) if (1..=6).contains(&d) => Some(d),
+        _ if s.contains("head") => Some(2),
+        _ => None,
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -171,9 +196,11 @@ impl Ctx<'_> {
                             && let Some(asset) = self.doc.assets.get(&aid)
                         {
                             let (w, h) = asset.natural_size();
+                            self.ops.push(Op::Tag(Tagging::Figure(it.alt_text.clone())));
                             self.ops.push(Op::PushClip(path.clone()));
                             self.ops.push(Op::Image { asset: aid, xf: xf * g.content, w, h });
                             self.ops.push(Op::Pop);
+                            self.ops.push(Op::Tag(Tagging::End));
                         }
                     }
                     ItemKind::Text(_) => self.text(id, xf),
@@ -234,6 +261,22 @@ impl Ctx<'_> {
     }
 
     fn link_item(&mut self, id: ItemId, path: &BezPath) {
+        if let Some(a) = self.doc.item(id).and_then(|it| it.extra.get("button")).and_then(|b| b.get("action")) {
+            let last = self.doc.page_count().saturating_sub(1);
+            let here = self.page.unwrap_or(0);
+            let target = match a.get("kind").and_then(|k| k.as_str()) {
+                Some("goToPage") => a.get("page").and_then(|p| p.as_u64()).map(|p| LinkTarget::Page(p as usize)),
+                Some("goToFirstPage") => Some(LinkTarget::Page(0)),
+                Some("goToLastPage") => Some(LinkTarget::Page(last)),
+                Some("goToNextPage") => Some(LinkTarget::Page((here + 1).min(last))),
+                Some("goToPreviousPage") => Some(LinkTarget::Page(here.saturating_sub(1))),
+                Some("goToUrl") => a.get("url").and_then(|u| u.as_str()).map(|u| LinkTarget::Url(u.to_string())),
+                _ => None,
+            };
+            if let Some(t) = target {
+                self.ops.push(Op::Link { rect: path.bounding_box(), target: t });
+            }
+        }
         for h in &self.doc.hyperlinks {
             if let LinkSource::Item { item } = &h.source
                 && *item == id
@@ -319,10 +362,27 @@ impl Ctx<'_> {
                 }
             }
         }
+        let mut open: Option<usize> = None;
         for l in flow.lines.iter().filter(|l| l.frame == fi) {
+            if open != Some(l.para) {
+                if open.is_some() {
+                    self.ops.push(Op::Tag(Tagging::End));
+                }
+                let para = story.and_then(|s| s.paras.get(l.para));
+                let style = para.map(|p| p.style.as_str()).unwrap_or("");
+                let tag = match heading_level(style) {
+                    Some(n) => Tagging::Heading(n, para.map(|p| p.plain().trim().to_string()).unwrap_or_default()),
+                    None => Tagging::Para,
+                };
+                self.ops.push(Op::Tag(tag));
+                open = Some(l.para);
+            }
             let text = flow.para_texts.get(l.para).map(String::as_str).unwrap_or("");
             self.line(&l.line, l.baseline, xf, text);
             self.text_links(sl, l.para, &l.line, l.baseline, xf);
+        }
+        if open.is_some() {
+            self.ops.push(Op::Tag(Tagging::End));
         }
         for d in flow.drops.iter().filter(|d| d.frame == fi) {
             let mut run = d.drop.run.clone();

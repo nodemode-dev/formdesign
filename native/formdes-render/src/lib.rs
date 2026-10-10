@@ -33,9 +33,13 @@ impl Renderer {
     }
 
     pub fn pdf(&self, doc: &Doc, lay: &DocLayout, pages: Option<Vec<usize>>, bleed: bool) -> Result<Vec<u8>, String> {
+        self.pdf_with(doc, lay, pages, bleed, &pdf::PdfOpts { title: doc.title.clone(), ..Default::default() })
+    }
+
+    pub fn pdf_with(&self, doc: &Doc, lay: &DocLayout, pages: Option<Vec<usize>>, bleed: bool, popts: &pdf::PdfOpts) -> Result<Vec<u8>, String> {
         let list = pages.unwrap_or_else(|| (0..doc.page_count()).collect());
         let opts = SceneOpts { printing: true, bleed, overprint: false };
         let scenes: Vec<PageScene> = list.into_iter().filter_map(|p| page_scene(doc, lay, p, &opts)).collect();
-        pdf::export(&scenes, doc, &self.images, &pdf::PdfOpts { title: doc.title.clone() })
+        pdf::export(&scenes, doc, &self.images, popts)
     }
 }

@@ -202,7 +202,7 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
             Op::PushOpacity(o) => ctx.push_opacity_layer(*o as f32),
             Op::PushBlend(b) => ctx.push_blend_layer(blend(b)),
             Op::Pop => ctx.pop_layer(),
-            Op::Link { .. } => {}
+            Op::Link { .. } | Op::Tag(_) => {}
         }
     }
 }

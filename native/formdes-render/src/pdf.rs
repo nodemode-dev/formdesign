@@ -23,6 +23,10 @@ use crate::scene::{Brush, GlyphOp, LinkTarget, Op, PageScene, StrokeStyle};
 #[derive(Clone, Debug, Default)]
 pub struct PdfOpts {
     pub title: String,
+    pub tagged: bool,
+    pub standard: Option<String>,
+    pub language: Option<String>,
+    pub cmyk_profile: Option<Vec<u8>>,
 }
 
 fn kpath(p: &BezPath) -> Option<Path> {
@@ -222,8 +226,88 @@ fn image_for(asset: &formdes_model::item::Asset, images: &Images) -> Option<kril
     })
 }
 
+fn configuration(standard: Option<&str>) -> Result<krilla::configure::Configuration, String> {
+    use krilla::configure::{Archival, ConfigurationBuilder, Validator};
+    let b = ConfigurationBuilder::new();
+    let b = match standard.unwrap_or("none") {
+        "none" | "" => b,
+        "pdfA2b" | "PDF/A-2b" | "pdf/a-2b" | "a2b" => b.set_validator(Validator::A(Archival::A2_B)),
+        "pdfA2a" | "PDF/A-2a" | "a2a" => b.set_validator(Validator::A(Archival::A2_A)),
+        "pdfA2u" | "PDF/A-2u" | "a2u" => b.set_validator(Validator::A(Archival::A2_U)),
+        "pdfA3b" | "PDF/A-3b" | "a3b" => b.set_validator(Validator::A(Archival::A3_B)),
+        "pdfA4" | "PDF/A-4" | "a4" => b.set_validator(Validator::A(Archival::A4)),
+        "pdfUA1" | "PDF/UA-1" | "ua1" => b.set_validator(Validator::Ua(krilla::configure::Accessibility::UA1)),
+        other => return Err(format!("the PDF standard {other} is not supported: use PDF/A-2b, PDF/A-2a, PDF/A-2u, PDF/A-3b, PDF/A-4 or PDF/UA-1")),
+    };
+    b.finish().map_err(|e| format!("{e:?}"))
+}
+
+fn rgb_color(c: Color) -> Color {
+    match c {
+        Color::Cmyk(_) => {
+            let [r, g, b] = c.to_rgb();
+            Color::Rgb([r, g, b])
+        }
+        other => other,
+    }
+}
+
+fn rgb_brush(b: &Brush) -> Brush {
+    match b {
+        Brush::Solid(c, a) => Brush::Solid(rgb_color(*c), *a),
+        Brush::Linear { start, end, stops, alpha } => Brush::Linear { start: *start, end: *end, stops: stops.iter().map(|(t, c, a)| (*t, rgb_color(*c), *a)).collect(), alpha: *alpha },
+        Brush::Radial { center, radius, stops, alpha } => Brush::Radial { center: *center, radius: *radius, stops: stops.iter().map(|(t, c, a)| (*t, rgb_color(*c), *a)).collect(), alpha: *alpha },
+    }
+}
+
+fn rgb_ops(ops: &[Op]) -> Vec<Op> {
+    ops.iter()
+        .map(|op| match op {
+            Op::Fill { path, brush, even_odd } => Op::Fill { path: path.clone(), brush: rgb_brush(brush), even_odd: *even_odd },
+            Op::Stroke { path, brush, style } => Op::Stroke { path: path.clone(), brush: rgb_brush(brush), style: style.clone() },
+            Op::Glyphs(g) => {
+                let mut g = g.clone();
+                g.fill = g.fill.as_ref().map(rgb_brush);
+                g.stroke = g.stroke.as_ref().map(|(b, w)| (rgb_brush(b), *w));
+                Op::Glyphs(g)
+            }
+            other => other.clone(),
+        })
+        .collect()
+}
+
+fn today() -> krilla::metadata::DateTime {
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    let z = secs.div_euclid(86_400) + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    let rem = secs.rem_euclid(86_400);
+    krilla::metadata::DateTime::new(y as u16).month(m as u8).day(d as u8).hour((rem / 3600) as u8).minute(((rem % 3600) / 60) as u8).second((rem % 60) as u8)
+}
+
 pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) -> Result<Vec<u8>, String> {
-    let mut document = Document::new();
+    let archival = opts.standard.as_deref().is_some_and(|s| s.to_ascii_lowercase().contains('a') && !s.to_ascii_lowercase().contains("ua"));
+    let ua = opts.standard.as_deref().is_some_and(|s| s.to_ascii_lowercase().contains("ua"));
+    let profile = opts.cmyk_profile.as_deref().and_then(krilla::icc::ICCProfile::<4>::new);
+    let converted: Vec<PageScene>;
+    let scenes: &[PageScene] = if (archival || ua) && profile.is_none() {
+        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: rgb_ops(&s.ops) }).collect();
+        &converted
+    } else {
+        scenes
+    };
+    let settings = krilla::SerializeSettings { configuration: configuration(opts.standard.as_deref())?, enable_tagging: opts.tagged || ua, cmyk_profile: profile, ..Default::default() };
+    let mut document = Document::new_with(settings);
+    let mut tree = krilla::tagging::TagTree::new();
+    let mut open: Vec<krilla::tagging::TagGroup> = Vec::new();
+    let mut headings: Vec<(u16, String, usize)> = Vec::new();
+    let mut page_no = 0usize;
     let mut fonts = Fonts(HashMap::new());
     let mut img_cache: HashMap<AssetId, Option<krilla::image::Image>> = HashMap::new();
     let mut pdf_cache: HashMap<AssetId, Option<krilla::pdf::PdfDocument>> = HashMap::new();
@@ -294,23 +378,75 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
                     Op::PushBlend(m) => surface.push_blend_mode(blend(m)),
                     Op::Pop => surface.pop(),
                     Op::Link { rect, target } => links.push((*rect, target.clone())),
+                    Op::Tag(t) => {
+                        use krilla::tagging::{ContentTag, SpanTag, Tag, TagGroup};
+                        if !(opts.tagged || ua) {
+                            continue;
+                        }
+                        match t {
+                            crate::scene::Tagging::End => {
+                                if let Some(g) = open.pop() {
+                                    surface.end_tagged();
+                                    tree.push(g);
+                                }
+                            }
+                            other => {
+                                if let Some(g) = open.pop() {
+                                    surface.end_tagged();
+                                    tree.push(g);
+                                }
+                                let (mut group, content) = match other {
+                                    crate::scene::Tagging::Heading(l, title) => {
+                                        headings.push((*l, title.clone(), page_no));
+                                        (TagGroup::new(Tag::Hn(std::num::NonZeroU16::new(*l).unwrap_or(std::num::NonZeroU16::MIN), Some(if title.is_empty() { "Heading".to_string() } else { title.clone() }))), ContentTag::Span(SpanTag::empty()))
+                                    }
+                                    crate::scene::Tagging::Figure(alt) => (TagGroup::new(Tag::Figure(Some(if alt.is_empty() { "Image".to_string() } else { alt.clone() }))), ContentTag::Other),
+                                    _ => (TagGroup::new(Tag::P), ContentTag::Span(SpanTag::empty())),
+                                };
+                                let id = surface.start_tagged(content);
+                                group.push(id);
+                                open.push(group);
+                            }
+                        }
+                    }
                 }
+            }
+            while let Some(g) = open.pop() {
+                surface.end_tagged();
+                tree.push(g);
             }
             surface.pop();
             surface.finish();
         }
         for (r, t) in links {
             let Some(rect) = Rect::from_ltrb((r.x0 + b.inside) as f32, (r.y0 + b.top) as f32, (r.x1 + b.inside) as f32, (r.y1 + b.top) as f32) else { continue };
-            let target = match t {
-                LinkTarget::Url(u) => Target::Action(LinkAction::new(u).into()),
+            let (target, alt) = match t {
+                LinkTarget::Url(u) => (Target::Action(LinkAction::new(u.clone()).into()), format!("Link to {u}")),
                 LinkTarget::Page(p) => match index_of.get(&p) {
-                    Some(i) => Target::Destination(XyzDestination::new(*i, Point::from_xy(0.0, 0.0)).into()),
+                    Some(i) => (Target::Destination(XyzDestination::new(*i, Point::from_xy(0.0, 0.0)).into()), format!("Link to page {}", doc.page_name(p))),
                     None => continue,
                 },
             };
-            page.add_annotation(Annotation::new_link(LinkAnnotation::new(rect, target), None));
+            page.add_annotation(Annotation::new_link(LinkAnnotation::new(rect, target), Some(alt)));
         }
         page.finish();
+        page_no += 1;
+    }
+    let has_marks = doc.prefs.get("bookmarks").and_then(|v| v.as_array()).is_some_and(|a| !a.is_empty());
+    if !has_marks && (ua || opts.tagged) && !headings.is_empty() {
+        let mut outline = krilla::outline::Outline::new();
+        let mut top: Vec<krilla::outline::OutlineNode> = Vec::new();
+        for (level, title, page) in &headings {
+            let node = krilla::outline::OutlineNode::new(if title.is_empty() { "Heading".into() } else { title.clone() }, XyzDestination::new(*page, Point::from_xy(0.0, 0.0)));
+            match top.last_mut() {
+                Some(parent) if *level > 1 => parent.push_child(node),
+                _ => top.push(node),
+            }
+        }
+        for n in top {
+            outline.push_child(n);
+        }
+        document.set_outline(outline);
     }
     if let Some(serde_json::Value::Array(marks)) = doc.prefs.get("bookmarks") {
         let mut outline = krilla::outline::Outline::new();
@@ -336,7 +472,13 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
     if !opts.title.is_empty() {
         meta = meta.title(opts.title.clone());
     }
-    meta = meta.creator("formdes".into());
+    meta = meta.creator("formdes".into()).creation_date(today());
+    if let Some(l) = &opts.language {
+        meta = meta.language(l.clone());
+    }
     document.set_metadata(meta);
+    if opts.tagged || ua {
+        document.set_tag_tree(tree);
+    }
     document.finish().map_err(|e| format!("{e:?}"))
 }
