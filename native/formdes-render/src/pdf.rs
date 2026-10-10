@@ -312,6 +312,26 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
         }
         page.finish();
     }
+    if let Some(serde_json::Value::Array(marks)) = doc.prefs.get("bookmarks") {
+        let mut outline = krilla::outline::Outline::new();
+        let mut top: Vec<krilla::outline::OutlineNode> = Vec::new();
+        for m in marks {
+            let Some(name) = m.get("name").and_then(|v| v.as_str()) else { continue };
+            let Some(page) = m.get("page").and_then(|v| v.as_u64()).and_then(|p| index_of.get(&(p as usize))) else { continue };
+            let y = m.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+            let node = krilla::outline::OutlineNode::new(name.to_string(), XyzDestination::new(*page, Point::from_xy(0.0, y)));
+            match (m.get("level").and_then(|v| v.as_u64()).unwrap_or(1), top.last_mut()) {
+                (l, Some(parent)) if l > 1 => parent.push_child(node),
+                _ => top.push(node),
+            }
+        }
+        if !top.is_empty() {
+            for n in top {
+                outline.push_child(n);
+            }
+            document.set_outline(outline);
+        }
+    }
     let mut meta = krilla::metadata::Metadata::new();
     if !opts.title.is_empty() {
         meta = meta.title(opts.title.clone());

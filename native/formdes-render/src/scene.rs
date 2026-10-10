@@ -154,7 +154,8 @@ impl Ctx<'_> {
                 if it.shape.closed()
                     && let Some(b) = brush_of(self.doc, &it.fill, 1.0, bbox, xf)
                 {
-                    self.ops.push(Op::Fill { path: path.clone(), brush: b, even_odd: false });
+                    let even_odd = it.extra.get("fillRule").and_then(|v| v.as_str()) == Some("evenodd");
+                    self.ops.push(Op::Fill { path: path.clone(), brush: b, even_odd });
                 }
                 match &it.kind {
                     ItemKind::Graphic(g) => {
