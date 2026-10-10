@@ -1183,7 +1183,7 @@ pub fn register(r: &mut Registry) {
     cmd("object.group", "Group").menu(&["Object", "Group"]).key("Mod+G").needs(Needs::Items).sig("{ids?: [id]}").reg(r, group);
     cmd("object.ungroup", "Ungroup").menu(&["Object", "Ungroup"]).key("Mod+Shift+G").needs(Needs::Items).sig("{ids?}").reg(r, ungroup);
     cmd("object.label", "Script Label").needs(Needs::Items).sig("{label, ids?}").reg(r, label);
-    cmd("object.opacity", "Opacity").needs(Needs::Items).sig("{opacity: 0..1, blend?, ids?}").reg(r, opacity);
+    cmd("object.opacity", "Transparency").menu(&["Object", "Effects", "Transparency..."]).needs(Needs::Items).sig("{opacity?: 0..1, blend?: normal|multiply|screen|overlay|softLight|hardLight|colorDodge|colorBurn|darken|lighten|difference|exclusion|hue|saturation|color|luminosity, ids?}").reg(r, opacity);
     cmd("object.rename", "Rename").needs(Needs::Items).sig("{id, name}").reg(r, rename);
     cmd("object.setFlags", "Object Flags").needs(Needs::Items).sig("{hidden? | locked?, ids?}").reg(r, set_flags);
     cmd("object.setLayer", "Move to Layer").needs(Needs::Items).sig("{layer: layer id, ids?}").reg(r, set_layer);
