@@ -340,7 +340,9 @@ dependencies = [
  "formdes-model",
  "formdes-render",
  "formdes-text",
+ "i_overlay",
  "kurbo",
+ "qrcodegen",
  "quick-xml",
  "serde",
  "serde_json",
@@ -593,6 +595,49 @@ name = "hypher"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45f2b4f6b5da34d400d4c112eadcc14512cc5d04307a8eee182586d9bebd7ce6"
+
+[[package]]
+name = "i_float"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45e7ef24468e120e08d3a6c1a342c45a6325d82515d172dc2a166775b7960e2c"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "i_key_sort"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "963382c5702e8580722bacfdb85f4de5efeee744ac48f3f454e66c45a81a1d74"
+
+[[package]]
+name = "i_overlay"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ecc3d2dcbf6dbc2edb7a2ff48d134e594f63ed192d57d62a9c3f132d0d6b91"
+dependencies = [
+ "i_float",
+ "i_key_sort",
+ "i_shape",
+ "i_tree",
+]
+
+[[package]]
+name = "i_shape"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac5aa16ea6353395bbe058ebeaa427f214c164cbfacb1a13f28ad7d2a3ce8418"
+dependencies = [
+ "i_float",
+ "serde",
+]
+
+[[package]]
+name = "i_tree"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5db59b4274383f96cbacd6bd391c3888fcd07c4af6807874d7af1d8ae26dcf9c"
 
 [[package]]
 name = "image"
@@ -883,6 +928,12 @@ name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
+
+[[package]]
+name = "qrcodegen"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4339fc7a1021c9c1621d87f5e3505f2805c8c105420ba2f2a4df86814590c142"
 
 [[package]]
 name = "quick-error"

@@ -1,6 +1,8 @@
+pub mod art;
 pub mod book;
 pub mod clip;
 pub mod edit;
+pub mod generate;
 pub mod guides;
 pub mod paths;
 pub mod refs;
@@ -33,5 +35,7 @@ pub fn registry() -> Registry {
     guides::register(&mut r);
     paths::register(&mut r);
     refs::register(&mut r);
+    generate::register(&mut r);
+    art::register(&mut r);
     r
 }

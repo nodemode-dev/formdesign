@@ -20,7 +20,7 @@ The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_st
 | PDF sources | `read_pdf`, `pdf_page_image` |
 | Brands and templates | `list_brands`, `save_brand`, `validate_template`, `save_template`, `library` |
 
-The fast path for a finished piece is five calls: `intake` (files and a brief into a pack), `make_layout` (the Make pass and its report), `preview` (page images), `set_slots` (replace what is still sample text), `export_document` (PDF, IDML, PNG, HTML, EPUB, a website or `.fdes`). `run_commands` reaches all 212 core commands for anything else; `find_commands` searches them by words.
+The fast path for a finished piece is five calls: `intake` (files and a brief into a pack), `make_layout` (the Make pass and its report), `preview` (page images), `set_slots` (replace what is still sample text), `export_document` (PDF, IDML, PNG, HTML, EPUB, a website or `.fdes`). `run_commands` reaches all 270 core commands for anything else; `find_commands` searches them by words.
 
 For the web, `export_document {format: "web"}` writes a responsive site to a folder or a .zip (options `split`, `layout`, `edition`, `baseUrl`, `title`, `description`, `language`) and returns its pages and `warnings`; `publish_website` publishes the active document's site at `http://127.0.0.1:PORT/sites/SLUG/`, lists published sites and unpublishes them.
 

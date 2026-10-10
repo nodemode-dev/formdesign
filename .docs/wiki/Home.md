@@ -8,7 +8,7 @@ Version 0.17.0 · Rust layout core (formdes-core over formdes's own layout crate
 
 | Area | State |
 | --- | --- |
-| Layout core: 212 commands, 36 tools, tiles, overlays, slots, threads, fonts | Stable |
+| Layout core: 270 commands, 36 tools, tiles, overlays, slots, threads, fonts | Stable |
 | Intake (Markdown, Word, RTF, text, HTML, CSV, spreadsheets, PDF, images, briefs) | Stable |
 | Templates (71), brand kits, the template checker | Stable |
 | The Make pass (rank, fill, continue, fit, report) | Stable; swept across all 71 templates every release |
