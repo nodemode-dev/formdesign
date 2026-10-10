@@ -46,7 +46,7 @@ pub fn snippet(core: &mut Core, p: &Value) -> Result<Reply, String> {
     let view = Affine::translate((pad, pad)) * Affine::scale(s) * Affine::translate((-b.x0, -b.y0));
     let r = &core.ses.renderer;
     let lay = r.layout(&doc);
-    let ops = Arc::new(spread_ops(&doc, &lay, Target::Spread(si), &SceneOpts { printing: true, bleed: false }));
+    let ops = Arc::new(spread_ops(&doc, &lay, Target::Spread(si), &SceneOpts { printing: true, bleed: false, overprint: false }));
     let placed = [Placed { xf: Affine::IDENTITY, pages: vec![b], ops }];
     let opts = ViewOpts { background: [0, 0, 0, 0], paper: false, shadow: false, printing_only: true, greek_px: 0.0, plate: None };
     let img = render_view(&doc, &placed, w, h, view, &opts, &r.outlines, &r.images);

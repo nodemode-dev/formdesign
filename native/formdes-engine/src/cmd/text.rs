@@ -30,6 +30,18 @@ fn smart_quote(prev: Option<char>, q: char) -> char {
 }
 
 pub fn insert_at_selection(c: &mut Ctx, text: &str, raw: bool) -> Result<usize> {
+    if c.state()?.selection.text.is_none()
+        && let Some(ct) = c.state()?.selection.cell_text
+    {
+        let text = if !raw && (text == "\"" || text == "'") { smart_quote(None, text.chars().next().unwrap_or('"')).to_string() } else { text.to_string() };
+        let (caret, n) = crate::celltext::insert(c.doc_mut()?, &ct, &text)?;
+        c.label("Typing");
+        if let Ok(s) = c.state_mut() {
+            s.selection = ct.caret(caret).selection();
+        }
+        c.session.sel_rev += 1;
+        return Ok(n);
+    }
     let st = c.state()?;
     let sel = st.selection.text.ok_or_else(|| EngineError::new("nothing is taking text: click into a text frame with the Type tool first"))?;
     let tracking = st.track_changes;
@@ -77,6 +89,17 @@ pub fn insert_at_selection(c: &mut Ctx, text: &str, raw: bool) -> Result<usize> 
 }
 
 pub fn text_delete(c: &mut Ctx, p: &Value) -> Result<Value> {
+    if c.state()?.selection.text.is_none()
+        && let Some(ct) = c.state()?.selection.cell_text
+    {
+        let caret = crate::celltext::delete(c.doc_mut()?, &ct, args::opt_bool(p, "forward").unwrap_or(false), args::opt_bool(p, "word").unwrap_or(false))?;
+        c.label("Typing");
+        if let Ok(s) = c.state_mut() {
+            s.selection = ct.caret(caret).selection();
+        }
+        c.session.sel_rev += 1;
+        return Ok(json!({"deleted": 1}));
+    }
     let st = c.state()?;
     let sel = st.selection.text.ok_or_else(|| EngineError::new("needs a text cursor: click into text with the Type tool"))?;
     let tracking = st.track_changes;

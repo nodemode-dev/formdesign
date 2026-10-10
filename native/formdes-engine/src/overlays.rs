@@ -300,6 +300,20 @@ fn caret_x(carets: &[(usize, f64)], byte: usize, left: f64) -> f64 {
 fn text_json(ses: &Session, doc: &Doc, cv: &Canvas, lay: &DocLayout, tol: f64) -> Value {
     let mut out = json!({"quads": [], "caret": null, "frames": []});
     let Some(st) = ses.active() else { return out };
+    if let Some(ct) = st.selection.cell_text {
+        if ct.range().is_empty() {
+            if let Some((fid, x, top, foot)) = crate::celltext::caret_line(doc, lay, &ct, ct.focus)
+                && let Some(m) = slot_of(doc, cv, fid).map(|s| s * doc.world_xf(fid))
+            {
+                out["caret"] = seg(m * Point::new(x, top), m * Point::new(x, foot));
+            }
+        } else if let Some((fid, qs)) = crate::celltext::quads(doc, lay, &ct)
+            && let Some(m) = slot_of(doc, cv, fid).map(|s| s * doc.world_xf(fid))
+        {
+            out["quads"] = json!(qs.into_iter().map(|(x0, x1, t, f)| quad(m, x0, x1, t, f)).collect::<Vec<_>>());
+        }
+        return out;
+    }
     if let Some(c) = st.selection.cells
         && let Some(sl) = lay.stories.get(&c.story)
         && let Some((para, _)) = sl.flow.para_byte(c.at)

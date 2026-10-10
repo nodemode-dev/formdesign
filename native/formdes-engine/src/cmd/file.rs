@@ -418,7 +418,7 @@ fn page_png(c: &mut Ctx, page: usize, scale: f64) -> Result<(Vec<u8>, String)> {
     let lay = c.layout()?;
     let renderer = c.session.renderer.clone();
     let doc = c.doc()?;
-    let scene = page_scene(doc, &lay, page, &SceneOpts { printing: true, bleed: false }).ok_or_else(|| EngineError::new(format!("no page {page}")))?;
+    let scene = page_scene(doc, &lay, page, &SceneOpts { printing: true, bleed: false, overprint: false }).ok_or_else(|| EngineError::new(format!("no page {page}")))?;
     let r = formdes_render::rasterize(&scene, doc, &renderer.outlines, &renderer.images, &formdes_render::RasterOpts { scale, ..Default::default() });
     let png = formdes_render::encode_png(&r).ok_or_else(|| EngineError::new("could not encode a page image"))?;
     let text = page_text(doc, &lay, page);
@@ -616,7 +616,7 @@ fn print_booklet(c: &mut Ctx, p: &Value) -> Result<Value> {
     }
     let w = doc.settings.page_width;
     let h = doc.settings.page_height;
-    let scene = |abs: Option<usize>| abs.and_then(|a| page_scene(doc, &lay, a, &SceneOpts { printing: true, bleed: false }));
+    let scene = |abs: Option<usize>| abs.and_then(|a| page_scene(doc, &lay, a, &SceneOpts { printing: true, bleed: false, overprint: false }));
     let mut sheets = Vec::new();
     let sheets_total = (n / 4).max(1) as f64;
     for (i, (l, r, sheet)) in pairs.iter().enumerate() {

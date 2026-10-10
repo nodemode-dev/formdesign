@@ -67,6 +67,7 @@ pub enum Op {
 pub struct SceneOpts {
     pub printing: bool,
     pub bleed: bool,
+    pub overprint: bool,
 }
 
 pub struct PageScene {
@@ -155,7 +156,14 @@ impl Ctx<'_> {
                     && let Some(b) = brush_of(self.doc, &it.fill, 1.0, bbox, xf)
                 {
                     let even_odd = it.extra.get("fillRule").and_then(|v| v.as_str()) == Some("evenodd");
+                    let over = self.opts.overprint && it.extra.get("overprintFill").and_then(|v| v.as_bool()).unwrap_or(false);
+                    if over {
+                        self.ops.push(Op::PushBlend("multiply".into()));
+                    }
                     self.ops.push(Op::Fill { path: path.clone(), brush: b, even_odd });
+                    if over {
+                        self.ops.push(Op::Pop);
+                    }
                 }
                 match &it.kind {
                     ItemKind::Graphic(g) => {
@@ -171,7 +179,14 @@ impl Ctx<'_> {
                     ItemKind::Text(_) => self.text(id, xf),
                     _ => {}
                 }
+                let over = self.opts.overprint && it.extra.get("overprintStroke").and_then(|v| v.as_bool()).unwrap_or(false);
+                if over {
+                    self.ops.push(Op::PushBlend("multiply".into()));
+                }
                 self.stroke(it, &path, xf);
+                if over {
+                    self.ops.push(Op::Pop);
+                }
                 self.link_item(id, &path);
             }
         }

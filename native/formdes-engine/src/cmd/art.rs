@@ -285,7 +285,7 @@ fn create_outlines(c: &mut Ctx, p: &Value) -> Result<Value> {
             it.opacity = 1.0;
         }
         let lay = formdes_text::layout::layout_doc(&tmp, &renderer.fonts);
-        let opsv = formdes_render::scene::spread_ops(&tmp, &lay, formdes_render::scene::Target::Spread(*si), &formdes_render::SceneOpts { printing: true, bleed: false });
+        let opsv = formdes_render::scene::spread_ops(&tmp, &lay, formdes_render::scene::Target::Spread(*si), &formdes_render::SceneOpts { printing: true, bleed: false, overprint: false });
         let mut by: Vec<(String, Paint, BezPath)> = Vec::new();
         for op in &opsv {
             let formdes_render::Op::Glyphs(g) = op else { continue };

@@ -1,8 +1,10 @@
 pub mod args;
 pub mod assets;
 pub mod canvas;
+pub mod celltext;
 pub mod cmd;
 pub mod input;
+pub mod marks;
 pub mod ops;
 pub mod overlays;
 pub mod registry;

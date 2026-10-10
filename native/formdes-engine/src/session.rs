@@ -50,6 +50,8 @@ pub struct Selection {
     pub content: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub anchors: Vec<(ItemId, usize, usize)>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cell_text: Option<crate::celltext::CellText>,
 }
 
 impl Selection {
@@ -127,15 +129,15 @@ impl DocState {
         crate::canvas::canvas(&self.doc, self.editing_parents, &self.rotations)
     }
 
-    pub fn ops(&mut self, r: &Renderer, target: formdes_render::scene::Target, printing: bool) -> Arc<Vec<formdes_render::Op>> {
-        let key_rev = self.revision * 2 + u64::from(printing);
+    pub fn ops(&mut self, r: &Renderer, target: formdes_render::scene::Target, printing: bool, overprint: bool) -> Arc<Vec<formdes_render::Op>> {
+        let key_rev = self.revision * 4 + u64::from(printing) + 2 * u64::from(overprint);
         if let Some((rev, ops)) = self.ops.get(&target)
             && *rev == key_rev
         {
             return ops.clone();
         }
         let lay = self.layout(r);
-        let ops = Arc::new(formdes_render::scene::spread_ops(&self.doc, &lay, target, &formdes_render::SceneOpts { printing, bleed: false }));
+        let ops = Arc::new(formdes_render::scene::spread_ops(&self.doc, &lay, target, &formdes_render::SceneOpts { printing, bleed: false, overprint }));
         self.ops.insert(target, (key_rev, ops.clone()));
         ops
     }
@@ -437,6 +439,9 @@ impl Session {
         if let Some(c) = sel.cells {
             out["cells"] = json!({"story": c.story, "table": c.at, "r0": c.r0, "c0": c.c0, "r1": c.r1, "c1": c.c1});
         }
+        if let Some(t) = sel.cell_text {
+            out["cellText"] = json!({"story": t.story, "table": t.at, "row": t.row, "col": t.col, "anchor": t.anchor, "focus": t.focus});
+        }
         out
     }
 
@@ -454,7 +459,7 @@ impl Session {
                 })
             })
             .collect();
-        let wants = self.active().is_some_and(|s| s.selection.text.is_some());
+        let wants = self.active().is_some_and(|s| s.selection.text.is_some() || s.selection.cell_text.is_some());
         json!({
             "rev": self.active().map(|s| s.revision).unwrap_or(0), "selRev": self.sel_rev, "active": self.active, "docs": docs,
             "selection": self.selection_json(), "tool": self.tool, "wantsText": wants, "busy": false,

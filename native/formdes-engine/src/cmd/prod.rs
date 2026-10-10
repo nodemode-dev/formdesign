@@ -473,7 +473,7 @@ fn export_svg(c: &mut Ctx, p: &Value) -> Result<Value> {
         Some(n) => n as usize - 1,
         None => 0,
     };
-    let scene = formdes_render::page_scene(doc, &lay, page, &formdes_render::SceneOpts { printing: true, bleed: false }).ok_or_else(|| EngineError::new(format!("no page {}", page + 1)))?;
+    let scene = formdes_render::page_scene(doc, &lay, page, &formdes_render::SceneOpts { printing: true, bleed: false, overprint: false }).ok_or_else(|| EngineError::new(format!("no page {}", page + 1)))?;
     let mut body = String::new();
     let mut defs = String::new();
     let mut n = 0usize;

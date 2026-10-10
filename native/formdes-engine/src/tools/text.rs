@@ -27,6 +27,14 @@ pub fn type_tool(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
             let Some(h) = here(ses, ev.pos) else { return Ok(()) };
             let tol = view.tol(3.0);
             if let Some(id) = text_frame_at(ses, h.slot, h.p, tol) {
+                let r = ses.renderer.clone();
+                if let Some(st) = ses.active_mut() {
+                    let lay = st.layout(&r);
+                    if let Some(ct) = crate::celltext::hit(&st.doc, &lay, id, h.p) {
+                        ses.select(ct.selection());
+                        return Ok(());
+                    }
+                }
                 let Some((sid, pos)) = pos_at(ses, id, h.p) else { return Ok(()) };
                 let cur = ses.active().and_then(|s| s.selection.text);
                 let anchor = match cur {
@@ -185,6 +193,9 @@ fn word_step(text: &[char], pos: usize, forward: bool) -> usize {
 }
 
 pub fn key(ses: &mut Session, key: Key, mods: Mods, _view: View) -> Result<bool> {
+    if let Some(ct) = ses.active().and_then(|s| s.selection.cell_text) {
+        return crate::celltext::key(ses, ct, key, mods);
+    }
     let Some(t) = ses.active().and_then(|s| s.selection.text) else { return Ok(false) };
     let Some(story) = ses.active().and_then(|s| s.doc.story(t.story)).cloned() else { return Ok(false) };
     let len = story.len();

@@ -158,6 +158,9 @@ pub fn tiles(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
     let opts = view_opts(p);
     let proof = proof_of(p)?;
     let ink_limit = p.get("inkLimit").and_then(Value::as_f64).filter(|v| *v > 0.0).map(|v| (v / 100.0) as f32);
+    let overprint = p.get("overprint").and_then(Value::as_bool).unwrap_or(false);
+    let notes = p.get("notes").and_then(Value::as_bool).unwrap_or(false) && !opts.printing_only;
+    let changes = p.get("changes").and_then(Value::as_bool).unwrap_or(false) && !opts.printing_only;
     let renderer = ses.renderer.clone();
     let st = ses.active_mut().ok_or_else(|| EngineError::new("no document open"))?;
     let cv = st.canvas();
@@ -173,7 +176,18 @@ pub fn tiles(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
                 (Target::Parent(i), (0..pa.pages.len()).map(|k| Rect::new(pa.page_x(k), 0.0, pa.page_x(k) + pa.pages[k].width, pa.pages[k].height)).collect())
             }
         };
-        let ops = st.ops(&renderer, target, opts.printing_only);
+        let mut ops = st.ops(&renderer, target, opts.printing_only, overprint);
+        if (notes || changes)
+            && let Target::Spread(si) = target
+        {
+            let lay = st.layout(&renderer);
+            let extra = crate::marks::spread_marks(&st.doc, &lay, si, notes, changes);
+            if !extra.is_empty() {
+                let mut v = (*ops).clone();
+                v.extend(extra);
+                ops = std::sync::Arc::new(v);
+            }
+        }
         placed.push(Placed { xf: s.xf, pages, ops });
     }
     let doc = st.doc.clone();
@@ -226,7 +240,7 @@ pub fn page_image(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
         _ => p.get("scale").and_then(Value::as_f64).unwrap_or(1.0).clamp(0.02, 16.0),
     };
     let lay = st.layout(&renderer);
-    let scene = page_scene(&st.doc, &lay, page, &SceneOpts { printing: true, bleed }).ok_or_else(|| EngineError::new(format!("no page {page}")))?;
+    let scene = page_scene(&st.doc, &lay, page, &SceneOpts { printing: true, bleed, overprint: false }).ok_or_else(|| EngineError::new(format!("no page {page}")))?;
     let r = rasterize(&scene, &st.doc, &renderer.outlines, &renderer.images, &RasterOpts { scale, ..RasterOpts::default() });
     let jpeg = matches!(p.get("format").and_then(Value::as_str), Some("jpeg" | "jpg"));
     let bytes = if jpeg { encode_jpeg(&r, p.get("quality").and_then(Value::as_u64).unwrap_or(86).clamp(10, 100) as u8) } else { encode_png(&r) }.ok_or_else(|| EngineError::new("could not encode the page image"))?;

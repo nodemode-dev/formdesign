@@ -125,7 +125,7 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         let lay = renderer.layout(doc);
         for page in 0..doc.page_count() {
-            if let Some(mut s) = page_scene(doc, &lay, page, &SceneOpts { printing: true, bleed: false }) {
+            if let Some(mut s) = page_scene(doc, &lay, page, &SceneOpts { printing: true, bleed: false, overprint: false }) {
                 for op in s.ops.iter_mut() {
                     if let Op::Image { asset, .. } = op {
                         *asset = AssetId(base + asset.0);

@@ -211,7 +211,7 @@ impl Session {
     }
 
     pub fn wants_text(&self) -> bool {
-        self.active().is_some_and(|s| s.selection.text.is_some())
+        self.active().is_some_and(|s| s.selection.text.is_some() || s.selection.cell_text.is_some())
     }
 
     pub fn set_tool(&mut self, id: &str) {
