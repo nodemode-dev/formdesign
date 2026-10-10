@@ -13,19 +13,20 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 
 | Package | License | Notes |
 | --- | --- | --- |
-| Source Sans 3, Source Serif 4, Inter, JetBrains Mono (embedded in formdes-core) | SIL OFL 1.1 | |
-| vello_cpu, kurbo, skrifa, harfrust, krilla, hayro, image, resvg, quick-xml, zip and their dependencies | MIT, Apache-2.0, BSD, ISC, Zlib | per `cargo metadata` |
+| Source Serif 4, Source Sans 3 (Adobe, https://github.com/adobe-fonts), Inter (https://github.com/rsms/inter), JetBrains Mono (https://github.com/JetBrains/JetBrainsMono) | SIL OFL 1.1 | embedded in `formdes-core`; each licence is in `native/formdes-core/fonts/` |
+| SCOWL en_US Hunspell dictionary (Kevin Atkinson and the word-list authors it credits) | permissive SCOWL licence, with the Ispell, UKACD and WordNet notices it carries | embedded in `formdes-core` for US English spelling; the full notice is `native/formdes-core/dict/en_US.COPYRIGHT.txt` |
 | fancy-regex 0.19 (with regex-automata, regex-syntax, bit-set) | MIT (fancy-regex), MIT OR Apache-2.0 (the rest) | GREP in Find/Change: lookahead, lookbehind and backreferences |
-| spellbook 0.4 (helix-editor/spellbook, https://github.com/helix-editor/spellbook), with foldhash and hashbrown | MPL-2.0 (spellbook, used unmodified; its source is available at that address), Zlib (foldhash), MIT OR Apache-2.0 (hashbrown) | Hunspell dictionaries for spelling in languages other than US English |
+| spellbook 0.4 (helix-editor/spellbook, https://github.com/helix-editor/spellbook), with foldhash and hashbrown | MPL-2.0 (spellbook, used unmodified; its source is available at that address), Zlib (foldhash), MIT OR Apache-2.0 (hashbrown) | Hunspell spelling in every language |
 
-## Built into formdes's own engine (in progress, not yet wired into the app)
+## Built into formdes's own engine
 
 | Package | License | Notes |
 | --- | --- | --- |
 | fontdb, harfrust, skrifa (read-fonts, font-types) | MIT (fontdb, harfrust), MIT OR Apache-2.0 (skrifa) | font discovery, OpenType shaping and font metrics in `native/formdes-text` |
 | unicode-linebreak, unicode-bidi, unicode-segmentation | Apache-2.0 (unicode-linebreak), MIT OR Apache-2.0 (the rest) | line-break opportunities (UAX 14) and bidirectional text (UAX 9) |
 | vello_cpu, kurbo, peniko, krilla, hayro, image and their dependencies | MIT OR Apache-2.0 (vello_cpu, kurbo, peniko, krilla, hayro, image), MIT, BSD, Zlib (dependencies, per `cargo metadata`) | page rendering, PDF writing, placed PDFs and image decoding in `native/formdes-render` |
-| hypher 0.1 (https://github.com/typst/hypher) | MIT OR Apache-2.0 (code); the embedded hyphenation patterns keep their own licences (LPPL, MPL, MIT, BSD-3-Clause, per pattern file in the crate's source) | hyphenation; the pattern licences are under review before formdes's own engine ships |
+| hypher 0.1 (https://github.com/typst/hypher) | MIT OR Apache-2.0 (code); the embedded hyphenation patterns keep their own licences (LPPL, MPL, MIT, BSD-3-Clause, per pattern file in the crate's source) | hyphenation; the pattern licences are still under review |
+| quick-xml, zip | MIT, MIT | IDML and EPUB in `native/formdes-interchange` |
 
 ## Downloaded at your request, not distributed
 
@@ -42,7 +43,7 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | @tauri-apps/api, tauri | Apache-2.0 or MIT | desktop shell |
 | fastapi, uvicorn, python-multipart | MIT, BSD-3-Clause, Apache-2.0 | engine |
 | Pillow | MIT-CMU | engine, image intake |
-| pypdfium2 (with PDFium) | Apache-2.0 or BSD-3-Clause (PDFium: BSD-3-Clause and Apache-2.0) | engine, the PDF reader and extractor |
+| pypdfium2 (with PDFium) | Apache-2.0 or BSD-3-Clause (PDFium: BSD-3-Clause and Apache-2.0) | engine, reading PDFs into content packs |
 | python-docx, openpyxl | MIT | engine, Word and Excel intake |
 | markdown-it-py, mdit-py-plugins | MIT | engine, Markdown intake |
 | striprtf | BSD-3-Clause | engine, RTF intake |

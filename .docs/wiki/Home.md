@@ -2,13 +2,13 @@
 
 formdes is the form family's page-layout application, an alternative to InDesign for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. You (or an agent) drop in Markdown, PDFs, Word files, images and a brief in plain words; formdes picks one of its 71 templates, fills it, threads the article across pages, fits the copy and reports what is still sample text. The result is a real layout document you finish with InDesign-class tools in the window, or that an agent finishes over MCP.
 
-Version 0.16.0 · Rust layout core (formdes-core over formdes's own layout crates), Python and FastAPI engine, vanilla TypeScript and Vite window, Tauri 2 desktop shell · Apache-2.0.
+Version 0.17.0 · Rust layout core (formdes-core over formdes's own layout crates), Python and FastAPI engine, vanilla TypeScript and Vite window, Tauri 2 desktop shell · Apache-2.0.
 
 ## Status at a glance
 
 | Area | State |
 | --- | --- |
-| Layout core: 432 commands, tiles, overlays, slots, threads, fonts | Stable |
+| Layout core: 212 commands, 36 tools, tiles, overlays, slots, threads, fonts | Stable |
 | Intake (Markdown, Word, RTF, text, HTML, CSV, spreadsheets, PDF, images, briefs) | Stable |
 | Templates (71), brand kits, the template checker | Stable |
 | The Make pass (rank, fill, continue, fit, report) | Stable; swept across all 71 templates every release |
@@ -20,7 +20,7 @@ Version 0.16.0 · Rust layout core (formdes-core over formdes's own layout crate
 | Object States, Buttons and Forms, media options, Page Transitions, XML Tags and Structure, Libraries | Working; new at 0.10.0, verified once each and under throttling |
 | Workspaces, the movable dock, keyboard shortcut sets, soft proofing, spelling in twenty more languages | Working; new at 0.11.0, verified once each, the dock and workspaces under throttling |
 | Website export (articles, pages or one page; the edition; sitemap and feed) and Publish Online | Working; new at 0.12.0, checked across eight templates at desktop and phone widths, the publish list under throttling |
-| PDF Reader | Working |
+| PDF viewing and editing | Moved to FormPDF, a separate app; formdes still makes layouts from PDFs, places them and exports them |
 | Desktop app | Linux built and launched; macOS and Windows built only by CI so far |
 | Publishing to a hosted service, hyphenation in languages other than English, cloud documents, animation | Not built |
 

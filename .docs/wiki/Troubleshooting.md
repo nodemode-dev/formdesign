@@ -12,8 +12,6 @@
 | The macOS app will not open | it is unsigned | right-click the app, Open, then Open again |
 | The desktop app shows "The formdes engine failed to start" | the frozen engine crashed before it reported a port | run `src-tauri/binaries/formdes-engine-[triple] --selfcheck`; a `false` means a missing `--add-data` in the freeze |
 | The first letters typed into a new frame go missing | fixed in 0.6.1 | update |
-| Drop caps or small caps do not show | the composer does not render them yet | use a larger first character style, or real small-cap fonts |
-| Text beside a wrapped object sets its last line wrongly | a known text wrap issue | nudge the object or the frame |
 | A chapter will not number or sync in a book | it is open with unsaved changes | save it (the message names it), then run again |
 | Before 0.11.0: panels or tools went blank after a window closed in the middle of a call, and answers looked like the previous request's | the engine read the closed request's reply as the next one's | fixed in 0.11.0 (replies are matched by id); restart the engine on older versions |
 | A language is not checked for spelling | no dictionary for it in `Dictionaries/` | Edit > Language Dictionaries > Get, or add a Hunspell `.aff` and `.dic` pair |

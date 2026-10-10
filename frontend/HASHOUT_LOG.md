@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.11.0
-Last updated: 2026-10-08 · the dock, workspaces, keyboard shortcut sets, soft proofing, language dictionaries
+Current build version: v0.17.0
+Last updated: 2026-10-10 · the PDF Reader removed (PDF viewing moves to FormPDF); `.fdoc` in the Open dialog
 
 ---
 
@@ -32,7 +32,7 @@ frontend/
     │   ├── viewport.ts           512 px tiles, damage invalidation, overlays, zoom and pan
     │   └── input.ts              pointer and key routing to the core (wantsText from each pointer reply)
     ├── features/                 one module per feature, registered through ui/workspace.ts (index.ts lists them)
-    │   ├── make*, properties*, pages*, document*, reader*   Make, Properties and text panels, Pages, Layers, Links, dialogs, Reader
+    │   ├── make*, properties*, pages*, document*   Make, Properties and text panels, Pages, Layers, Links, dialogs
     │   ├── properties/hub.ts     the Styles tab: paragraph, character and object styles behind one switch
     │   ├── rulers.ts             canvas rulers and drag-out guides (guide.add)
     │   ├── glyphs.ts, tabs.ts    the Glyphs and Tabs panels (fonts load from /api/core/font)
@@ -317,7 +317,7 @@ The setup (target, intent, paper) is remembered on this device; Proof Colors put
 - kind: explainer
 - logged: v0.11.0 · 2026-10-08
 
-Check Spelling asks the core's `spellCheck` (not the engine's `spelling.check`) so each word comes with its language; the window shows the language and asks `spellSuggest` with it. The dialog shows each language's state from the engine's listing: built in, installed, using another region's dictionary, or not installed; Get, Remove and the licence link follow from the same listing, and every action redraws from the listing it returns. Add Hunspell Files installs a picked pair for the language picked in the list.
+Check Spelling asks the core's `spellCheck` (not the `spelling.check` command) so each word comes with its language; the window shows the language and asks `spellSuggest` with it. The dialog shows each language's state from the engine's listing: built in, installed, using another region's dictionary, or not installed; Get, Remove and the licence link follow from the same listing, and every action redraws from the listing it returns. Add Hunspell Files installs a picked pair for the language picked in the list.
 
 ## src/features/document: websites {#web0120}
 

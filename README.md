@@ -2,7 +2,7 @@
 <h1 align="center">formdes</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.16.0-f97316" alt="version 0.16.0">
+<img src="https://img.shields.io/badge/version-0.17.0-f97316" alt="version 0.17.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -12,11 +12,11 @@
 
 ## What it is
 
-formdes is the form family's page-layout application: an alternative to InDesign for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. Its layout core is formdes's own engine (InDesign-class commands: spreads and parent pages, threaded stories, a Knuth-Plass paragraph composer, styles, tables, PDF, IDML and EPUB), wrapped by formdes's own interface in formvis's Studio Dark language and by an engine service built for agents: drop in Markdown, PDFs, Word files, images and a brief, pick a template, and formdes lays it out.
+formdes is the form family's page-layout application: an alternative to InDesign for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. Its layout core is formdes's own engine (212 InDesign-class commands and 36 tools: spreads and parent pages, threaded stories, a Knuth-Plass paragraph composer, styles, tables, footnotes, PDF, IDML and EPUB), wrapped by formdes's own interface in formvis's Studio Dark language and by an engine service built for agents: drop in Markdown, PDFs, Word files, images and a brief, pick a template, and formdes lays it out.
 
 **Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
 
-## Status at 0.16.0
+## Status at 0.17.0
 
 Working end to end:
 
@@ -25,17 +25,16 @@ Working end to end:
 - **The Make pass.** Ranks templates for your content, fills them (titles, decks, bylines, stats, features, captions, contact fields), threads the article through continuation pages, matches images to frames, fits copy, and reports what is still sample text.
 - **Websites.** Any layout as a responsive multi-page site in its own type and colours: an article per page with a home page of cards, a web template's rows and columns that stack on a phone, a page-by-page edition, sitemap and feed (File > Export > Website), and File > Publish Online for a link served from this computer.
 - **Agents.** An MCP server with 29 tools (`./formdes mcp`, `./formdes agents install` for Claude Code, Codex and Cursor), a CLI (`./formdes make FILES --brief "..." --out layout.pdf`, `./formdes export FILE --out site.zip`), and three skills in `.claude/skills` (mirrored to `.agents/skills`): `formdes-harness` (eight sub-skills from intake to publishing), `formdes-template-creator` and `formdes-skillset`.
-- **The PDF Reader.** Page thumbnails, selectable text, search, the outline, plain-text view and an Extract that hands the PDF's structure to the Make pass (Alt+Ctrl+O, or Cmd on macOS).
-- **The editor.** Tiled rendering of the layout core with overlays, the 37 InDesign tools, menus built from the core's 432 commands, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
+- **The editor.** Tiled rendering of the layout core with overlays, the 36 InDesign tools, menus built from the core's 212 commands, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
 - **Desktop.** A Tauri 2 app for macOS, Windows and Linux with the engine and the layout core as sidecars; CI builds the bundles on each `v*.*.*` tag.
 
 - **InDesign workspace pieces.** Rulers with drag-out guides (Ctrl+R), the Glyphs panel, the Tabs ruler, one Styles tab for paragraph, character and object styles, the Table panel (options, alternating rows, cell and table styles), Books (File > Book: chapters, numbering, style sync, one PDF) and the Story Editor (Ctrl+Y) with a style-name column and the overset line.
-- **Review and output.** Track Changes, Notes and Conditional Text panels; Separations Preview with the ink limit (Shift+F6), Overprint Preview and soft proofing (View > Proof Setup and Proof Colors, against any CMYK profile with paper simulation); Object Style Options, Redefine and Delete; preflight profiles (Commercial print, PDF/X-1a, booklets, digital, your own) with bleed, trim, type size, resolution, spot ink, transparency and page count checks.
+- **Review and output.** Track Changes, Notes and Conditional Text panels; Separations Preview with the ink limit (Shift+F6) and soft proofing (View > Proof Setup and Proof Colors: an approximate CMYK proof with paper simulation, and colour-blindness views; profile-accurate proofing and Overprint Preview return with a colour engine); Object Style Options, Redefine and Delete; preflight profiles (Commercial print, PDF/X-1a, booklets, digital, your own) with bleed, trim, type size, resolution, spot ink, transparency and page count checks.
 - **Editing text at scale.** Find/Change (Ctrl+F) with Text, GREP, Glyph and Object tabs, formats, scopes and saved queries, also as the `find_change` MCP tool; Check Spelling (Ctrl+I) and Dynamic Spelling in the text's own language (US English built in, twenty more from Edit > Language Dictionaries) and a dictionary per document; Type on a Path Options.
 - **Interactive, structure and reuse.** Object States, Buttons and Forms (with media options) and Page Transitions panels; the XML Tags and Structure panels (Alt+Ctrl+1) with style mapping, DTD validation, import and export; Libraries of saved pieces with thumbnails, dragged onto the page, also as the `library` MCP tool.
 - **Your workspace.** Seven built-in workspaces and your own (Window > Workspace or the title-bar switcher); panel groups that move between columns, split, size and close; keyboard shortcut sets with every command and tool rebindable (Alt+Shift+Ctrl+K).
 
-Measured against InDesign, Affinity and Acrobat in 170 traced rows (full 1, partial 0.5, none 0), formdes scores 93 (55 percent) at 0.12.0: 66 percent of what InDesign documents, 68 of Affinity and 39 of Acrobat. The earlier 53-row count of 48.0 credited menu entries that fail or run without parameters in the window (hyperlinks, Data Merge, table of contents, cross-references, QR codes, Print Booklet) and did not count work on existing PDFs, where the Reader only views and searches. A capability reachable only through a raw parameters box or MCP `run_commands` now counts as partial. Next: formdes's own layout engine (the document model, the text engine, page drawing, IDML, the command layer and the tool layer are in `native/`; wiring it into the app comes next), then dialogs for every command that needs one.
+Measured against InDesign and Affinity in 133 traced rows (full 1, partial 0.5, none 0), formdes scored 88 (66 percent) when last traced at 0.12.0: 66 percent of what InDesign documents and 68 of Affinity; it has not been re-traced on its own engine yet, which drops Overprint Preview, canvas markers and typing in table cells for now. Work on existing PDFs is not scored: it belongs to FormPDF, a separate app. The earlier 53-row count of 48.0 credited menu entries that fail or run without parameters in the window (hyperlinks, Data Merge, table of contents, cross-references, QR codes, Print Booklet); a capability reachable only through a raw parameters box or MCP `run_commands` now counts as partial. Next: the engine commands still to come (clipboard, hyperlinks, cross-references, table of contents, data merge, indexes), then dialogs for every command that needs one.
 
 **Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
 
@@ -113,7 +112,7 @@ formdes/
 ├── formdes_oc_install(.bat)       one-command install
 ├── setup/                         one script per task, each with a .bat twin; lib.sh holds shared helpers
 ├── assets/                        repo art (README logo, desktop icon source)
-├── native/                        Rust workspace: formdes-core over formdes's own layout crates
+├── native/                        Rust workspace: formdes-core over formdes-model, -text, -render, -interchange and -engine
 ├── backend/                       FastAPI engine: the core process, intake, templates, the Make pass, MCP
 ├── frontend/                      Vite app, vanilla TypeScript: the shell, the canvas, panels and dialogs
 ├── src-tauri/                     Tauri 2 desktop shell; the engine and the core ride along as sidecars
@@ -131,4 +130,4 @@ Branch model: `main` plus short-lived work branches. Contributions follow the de
 
 ## Licensing
 
-Apache License 2.0. Copyright 2026 nodemode-ai. See `LICENSE` and `NOTICE.md`.
+Apache License 2.0. Copyright 2026 nodemode-ai. See `LICENSE` and `NOTICE.md` for the fonts, dictionaries and libraries formdes includes.

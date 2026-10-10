@@ -16,7 +16,7 @@ The document to deliver is active (`list_documents`, then `switch_document {inde
 ## Procedure
 
 1. **Preflight against the destination.** `preflight {profile}` with the profile that matches where the file is going: `Commercial print` for a press (300 ppi, 9 pt of bleed, text inside the trim, CMYK), `PDF/X-1a, no transparency` when the printer asks for X-1a, `Saddle-stitched booklet` for stapled booklets (page count in fours), `Digital and screen` for PDFs, EPUB and the web. Fix the errors (missing bleed: extend the background frames past the trim; page count: add or remove pages) and tell the person about warnings you leave.
-2. **Save the editable original.** `save_document {path: "/abs/folder/name.fdes"}`. A .fdes keeps the layout, its slots and the content pack it was made from, so it can be re-made or edited later. `.idml` hands it to InDesign; `.fdoc` is the core's native file.
+2. **Save the editable original.** `save_document {path: "/abs/folder/name.fdes"}`. A .fdes keeps the layout, its slots and the content pack it was made from, so it can be re-made or edited later. `.idml` hands it to InDesign; `.fdoc` is the bare layout file, without slots or the content pack.
 3. **Export by purpose.**
    - Print: `export_document {format: "pdf", path}`; `options` can carry `pages` ("1-3,5"), and the exporter's print options (bleed and marks when the exporter supports them).
    - Screen and social: `png` or `jpg`, one page each: `options: {page: 0, scale: 2}` (page counts from 0); repeat per page.

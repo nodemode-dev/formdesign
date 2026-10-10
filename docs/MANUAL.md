@@ -21,7 +21,7 @@ This manual is for people laying out documents with formdes. If you are changing
 15. [Interactive documents](#interactive-documents)
 16. [XML](#xml)
 17. [Libraries](#libraries)
-18. [The PDF Reader](#the-pdf-reader)
+18. [Layouts from a PDF](#layouts-from-a-pdf)
 19. [Working with an agent](#working-with-an-agent)
 20. [Files, saving and recovery](#files-saving-and-recovery)
 
@@ -37,8 +37,7 @@ Open http://localhost:5196 after `./formdes boot`, or open the desktop app. With
 | --- | --- |
 | Make a layout (Ctrl+M) | opens the Make panel to build a layout from files and a brief |
 | New from template | the template gallery: pick one, then Create empty or Create with sample content |
-| Open (Ctrl+O) | a `.fdes`, `.fdoc` or `.idml` document, or a PDF (it opens in the Reader) |
-| Open a PDF in the Reader | reads a PDF without converting it |
+| Open (Ctrl+O) | a `.fdes`, `.fdoc` or `.idml` document |
 
 Recent documents are listed underneath. File > New Document (Ctrl+N) starts a blank document with print, web or mobile presets, margins, columns and bleed. Dropping files anywhere on the window starts a Make with them.
 
@@ -160,9 +159,9 @@ The Tags and Structure panels (Window > XML Structure, Alt+Ctrl+1) give a docume
 
 A library keeps pieces you use again (a logo lockup, a footer, a pull-quote box) with their styles and colours. Window > Library opens the panel: choose a library or make a new one, select objects on the page and choose Add, and the piece is stored with a thumbnail. Drag a thumbnail onto the page to place a copy where you drop it, or pick it and choose Place to put it back where it was taken from. Double-click to rename; search finds pieces by name. Libraries are `.fdlib` files in `~/Formdes/Libraries`; set `FORMDES_LIBRARIES_DIR` to keep them in a shared folder instead.
 
-## The PDF Reader
+## Layouts from a PDF
 
-Open a PDF (Alt+Ctrl+O) to read it without converting it: page thumbnails, selectable text you can copy, search with every hit highlighted, the outline, and a plain-text view. Extract sends the PDF's structure (title, sections, images) to the Make panel, so a report or brochure in PDF can be laid out again in a template.
+Drop a PDF on the Make panel or the canvas to lay it out again in a template: formdes reads its structure (title, sections, text) and its images and makes a layout from them, as with any other file. File > Place puts a PDF's pages on the page as graphics, and File > Export writes PDF. formdes does not view or edit PDFs themselves; that is FormPDF, a separate app.
 
 ## Working with an agent
 
@@ -170,4 +169,4 @@ Claude Code, Codex and Cursor can make and finish layouts for you through formde
 
 ## Files, saving and recovery
 
-Save (Ctrl+S) writes a `.fdes` file to `~/Formdes/Projects` unless you choose another place. A `.fdes` keeps the layout, the slot names, and the content it was made from, so it can be made again in another template. Save As can also write `.idml` for InDesign or `.fdoc`. Every minute formdes keeps a recovery copy of documents with unsaved changes; after a crash, File > Recover Unsaved Documents reopens them.
+Save (Ctrl+S) writes a `.fdes` file to `~/Formdes/Projects` unless you choose another place. A `.fdes` keeps the layout, the slot names, and the content it was made from, so it can be made again in another template. Save As can also write `.idml` for InDesign or a bare `.fdoc` layout. Documents saved by formdes before 0.17.0 no longer open; open an IDML export of them instead. Every minute formdes keeps a recovery copy of documents with unsaved changes; after a crash, File > Recover Unsaved Documents reopens them.

@@ -2,8 +2,8 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.11.0
-Last updated: 2026-10-08 · late core replies skipped; workspaces, shortcut sets and ICC profiles under /api/prefs; language dictionaries
+Current build version: v0.17.0
+Last updated: 2026-10-10 · `.fdes` stores `document.fdoc`; the PDF Reader routes removed
 
 ---
 
@@ -30,13 +30,13 @@ backend/
     │   ├── core.py               the formdes-core child process: calls, binary replies, events, restart
     │   └── documents.py          .fdes packages, open, save, adopt, recent
     ├── intake/                   files and a brief into one content pack (brief.py reads the brief)
-    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files); userprefs (workspaces, shortcut sets, ICC profiles); dictionaries (Hunspell); website (web export, Publish Online)
+    ├── services/                 pdfread (pypdfium2: pages, text, outline, structure, images for intake and the MCP PDF tools); books (.fdbook chapters through a temporary core book); queries (Find/Change); profiles (preflight); libraries (.fdlib files); userprefs (workspaces, shortcut sets, ICC profiles); dictionaries (Hunspell); website (web export, Publish Online)
     ├── templates/                spec, compile, registry, brands, library/ (71 JSON templates)
     ├── autolayout/               content, rank, make, fill, tagged, slots: the Make pass
     └── routers/
         ├── system.py             version, health, capabilities
         ├── core_api.py           /api/core/* REST, /api/core/font and the /api/ws window socket
-        ├── documents.py, intake.py, templates.py, make.py, reader.py, books.py
+        ├── documents.py, intake.py, templates.py, make.py, books.py
         ├── find.py, preflight.py /api/find/queries and /api/preflight/profiles
         ├── libraries.py          /api/libraries, its items and place
         ├── userprefs.py          /api/prefs/workspaces, /api/prefs/shortcuts, /api/prefs/profiles
@@ -111,6 +111,13 @@ When the coroutine waiting for a reply is cancelled (its window closed, an HTTP 
 - logged: v0.11.0 · 2026-10-08
 
 The core is started with `FORMDES_DICT_DIRS` (the data folder's `Dictionaries/` and any folders the person names in the same variable) beside `FORMDES_FONT_DIRS`. The core checks the folders when a dictionary is first wanted, so a folder created later still counts.
+
+### documents.py · the layout inside .fdes
+- refers-to: backend/app/engine/documents.py :: INNER, Documents.open_bytes, Documents.serialize_fdes, Documents.save; backend/app/services/books.py :: _inner, _write_back, run
+- kind: rationale
+- logged: v0.17.0 · 2026-10-10
+
+From 0.17.0 the layout inside a `.fdes` is the core's own `.fdoc` file, stored as `document.fdoc` (`INNER`), and a bare layout is saved and opened as `.fdoc`. A `.fdes` written before 0.17.0 holds the previous engine's file, which the core can no longer read; opening one fails with a message pointing at its IDML export rather than a parse error. A zip is recognised as `.fdes` by its `formdes.json`. Books copy each chapter's `document.fdoc` into a temporary book (`book.fdbook`) and write changed bytes back into the same entry.
 
 ---
 
@@ -243,7 +250,7 @@ Workspaces and shortcut sets are the person's, not a document's, so they live as
 - kind: rationale
 - logged: v0.11.0 · 2026-10-08
 
-The core keeps loaded ICC profiles for the life of the process, so a proof set against a printer's profile came back empty after a restart. A profile is loaded into the core first (so one the core cannot use is refused before it is kept), then copied into `Profiles/` under a slug of its name; the engine loads every file there after the core starts. A core restarted after a crash does not reload them yet.
+The core keeps loaded ICC profiles only for the life of its process, so a proof set against a printer's profile came back empty after a restart. A profile is loaded into the core first (so one the core cannot read is refused before it is kept), then copied into `Profiles/` under a slug of its name; the engine loads every file there after the core starts. A core restarted after a crash does not reload them yet.
 
 ## app/services/dictionaries.py {#dictionaries}
 

@@ -1,6 +1,6 @@
 # Layout Core
 
-`formdes-core` is a Rust binary that owns every open document. It is a thin shell over formdes's own crates in `native/` behind a JSON-lines protocol on standard input and output. The engine service starts it, restarts it if it dies, and is its only client.
+`formdes-core` is a Rust binary that owns every open document. It is a thin shell over formdes's own crates in `native/` behind a JSON-lines protocol on standard input and output: formdes-model (the document model and the `.fdoc` file), formdes-text (shaping, the Knuth and Plass composer, hyphenation, flow through frames, tables, footnotes, drop caps, small caps), formdes-render (raster and PDF output), formdes-interchange (IDML in and out, text import, HTML and EPUB) and formdes-engine (the session with undo and batches, 212 commands, the 36 tools, overlays, tiles). There are no git dependencies; the first build compiles these crates, which takes a few minutes. Source Serif 4, Source Sans 3, Inter and JetBrains Mono are embedded (`native/formdes-core/fonts`, SIL OFL 1.1), as is a SCOWL en_US Hunspell dictionary (`native/formdes-core/dict`). The engine service starts it, restarts it if it dies, and is its only client.
 
 ## Source
 
@@ -8,16 +8,16 @@
 | --- | --- |
 | `native/formdes-core/src/main.rs` | entry: `--version`, `--selfcheck`, font folders from the environment, then the serve loop |
 | `native/formdes-core/src/proto.rs` | the wire format, panics caught per request, binary replies |
-| `native/formdes-core/src/core.rs` | method dispatch, documents, undo for formdes's own edits, change metadata, fonts |
-| `native/formdes-core/src/view.rs` | `tiles` (RGBA tiles of the canvas, with plates, the ink limit or a proof condition) and `page.png` |
-| `native/formdes-core/src/overlays.rs` | frame edges, handles, ports, threads, guides, caret and selection geometry |
-| `native/formdes-core/src/input.rs` | `pointer` and `key`: tools, snapping, text input |
+| `native/formdes-core/src/core.rs` | method dispatch, documents, `rev` and `selRev`, requests, fonts |
+| `native/formdes-core/src/damage.rs` | damage rectangles from which items and stories changed, by `Arc` identity; structural changes repaint everything |
 | `native/formdes-core/src/slots.rs` | `slots`: frames labelled `slot:NAME` or `flow:NAME` with their content |
-| `native/formdes-core/src/find.rs` | `findChange`: text, GREP, glyph and object find and change for the Find/Change window and the `find_change` MCP tool |
-| `native/formdes-core/src/spell.rs` | `spellMarks`, `spellCheck`, `spellSuggest`, `spellLanguages`, `spellReload`: spelling in each text's language, US English built in and the rest from Hunspell dictionaries through spellbook |
-| `native/formdes-core/src/preflight.rs` | `preflight`: the engine's checks filtered and extended by a profile |
+| `native/formdes-core/src/find.rs` | `findChange`: text, GREP, glyph and object modes over story, table cell and footnote text, for the Find/Change window and the `find_change` MCP tool |
+| `native/formdes-core/src/spell.rs` | `spellMarks`, `spellCheck`, `spellSuggest`, `spellLanguages`, `spellReload`: spelling in each text's language, built-in US English from the bundled dictionary and the rest from Hunspell dictionaries through spellbook |
+| `native/formdes-core/src/textloc.rs` | addressing story, table cell and footnote text; line spans for find and spelling |
+| `native/formdes-core/src/preflight.rs` | `preflight`: formdes-engine's `preflight.run` filtered and extended by a profile |
 | `native/formdes-core/src/thumb.rs` | `snippetThumb`: a library item's PNG thumbnail, rendered on its own |
 | `native/formdes-core/src/web.rs` | `web` and `web.asset`: the document as structured content for the engine's website export |
+| `native/formdes-engine/src/view.rs`, `input.rs`, `overlays.rs`, `tools/` | `layout`, `tiles`, `page.png`, `overlays`, `pointer`, `key`, `text`, `cursor`, `tool` and `tools`, answered by formdes-engine |
 
 ## The wire format
 
@@ -30,8 +30,8 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | Method | Purpose |
 | --- | --- |
 | `ping`, `hello` | liveness and version |
-| `exec`, `batch` | run one command, or a list of `{command, params}` through the engine's batches, where a later step can refer to an earlier result as `$N`; a failing batch rolls the document back unless `atomic` is false |
-| `commands` | the catalogue of 432 commands with menu paths, labels, shortcuts and parameter summaries |
+| `exec`, `batch` | run one command, or a list of `{command, params}` through formdes-engine's `Session::batch` (one undo step), where a later step can refer to an earlier result as `$N`; a failing batch rolls the document back unless `atomic` is false |
+| `commands` | the catalogue of 212 commands with menu paths, labels, shortcuts and parameter summaries |
 | `inspect`, `state`, `layout` | the document as data, the session (documents, selection, tool, `wantsText`), spreads and pages in canvas coordinates |
 | `tiles`, `page.png`, `overlays`, `cursor` | pixels and overlay geometry for the window |
 | `pointer`, `key`, `text`, `tool`, `tools` | input and the tool catalogue |
@@ -42,7 +42,7 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | `findChange` | `{mode: text, grep, glyph or object, op: all, next, change, changeAll, changeFind or select, find, change, findFormat, changeFormat, scope, within, include, glyph, toGlyph, object, objectChange}`; GREP runs on fancy-regex with InDesign's codes translated |
 | `spellMarks`, `spellSuggest` | misspelled words in the visible frames as underline segments (cached per document revision); suggestions for one word, from the dictionary of `lang` when given |
 | `spellCheck`, `spellLanguages`, `spellReload` | `{story?}` to `[{story, start, end, word, lang}]`; the languages with a dictionary found in `FORMDES_DICT_DIRS`; forget loaded dictionaries after one is added or removed |
-| `tiles` `proof` | `{target: workingCmyk, cmyk:NAME, srgb, legacyMacRgb, monitorRgb, protanopia or deuteranopia, intent, simulatePaper}` runs the tile through the proof table |
+| `tiles` `proof` | `{target: workingCmyk, cmyk:NAME, srgb, legacyMacRgb, monitorRgb, protanopia or deuteranopia, intent, simulatePaper}` is approximated in formdes-engine's `view.rs`: a CMYK round trip with a 300 percent ink limit and a perceptual squeeze, paper simulation, legacy Mac gamma, and protanopia or deuteranopia simulation; there is no ICC transform yet |
 | `preflight` | `{profile: {overset, fonts, links, emptyFrames, rgb, transparency, minPpi, maxPpi, bleed, safety, minType, spotMax, pageMultiple}}` to `{errors, warnings, issues}` |
 | `snippetThumb` | `{base64, size}` (a snippet from `snippet.export`) to a PNG with a transparent background, longest side `size`; the engine calls it when a library item is added |
 | `web` | `{}` to `{title, intent, facing, pageWidth, pageHeight, language, pages, blocks, articles, hotspots, styles, swatches}`: placed stories and graphics in reading order (page, then top, then left), each with its page, bounds and slot; stories as paragraphs of runs carrying only what differs from the paragraph (bold, italic, colour, size, position, character style, link); pages with their spread; exported Articles; item hyperlinks as hotspots; paragraph and character styles resolved to plain values |
@@ -59,8 +59,8 @@ Warnings and errors go to standard error prefixed `[formdes-core]`; the engine f
 
 ## Contract
 
-- Anything that changes a document goes through the engine's session or `edit_undoable`, so undo covers it and the change event carries damage.
+- Anything that changes a document goes through formdes-engine's session, so undo covers it and the change event carries damage.
 - New methods answer in milliseconds or move their work into a command; the engine serialises calls, so a slow method blocks every window.
 - A method that returns bytes uses `Reply { bin }`, and the engine adds it to `BINARY_METHODS` in `backend/app/routers/core_api.py`; a JSON method is added to `JSON_METHODS` there before any client can reach it.
-- formdes-specific behaviour belongs in the engine unless it needs the document model directly. Engine changes go into `native/formdes-*` directly.
+- formdes-specific behaviour belongs in the engine unless it needs the document model directly. Changes to the layout engine itself go into `native/formdes-*` directly.
 - Read `native/HASHOUT_LOG.md` before editing.

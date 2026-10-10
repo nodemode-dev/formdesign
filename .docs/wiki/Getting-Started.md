@@ -7,6 +7,7 @@
 | Node | 20.19 or newer (22 recommended) | the Vite window |
 | Python | 3.12 or newer | the engine |
 | Rust | stable (1.90 or newer) | the layout core; without it `install-core` downloads a prebuilt core from a published release |
+| git | any | cloning the repository; the core has no git dependencies |
 
 Linux desktop builds also need the webview packages: `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf`.
 
@@ -19,7 +20,7 @@ cd formdes
 ./formdes boot         # engine on 8196 and the window on 5196 together
 ```
 
-On Windows use `formdes.bat install` and `formdes.bat boot`; every command below has the same name there. The first install compiles the layout engine, which takes a few minutes. `./formdes doctor` checks the toolchain, the installs and the ports.
+On Windows use `formdes.bat install` and `formdes.bat boot`; every command below has the same name there. The first install compiles formdes's own layout crates in `native/`, which takes a few minutes. `./formdes doctor` checks the toolchain, the installs and the ports.
 
 ## Every command
 
@@ -64,8 +65,8 @@ Everything a person makes lives in `~/Formdes` (or `FORMDES_DATA_DIR`):
 | `Libraries/` | your libraries as `.fdlib` files (or `FORMDES_LIBRARIES_DIR`, to share a folder with others) |
 | `Workspaces/`, `Shortcuts/` | your saved workspaces and keyboard shortcut sets |
 | `Profiles/` | ICC profiles you loaded for proofing |
-| `Dictionaries/` | Hunspell dictionaries for spelling in other languages (`FORMDES_DICT_DIRS` adds more folders) |
-| `Intake/` | content packs, uploads, PDFs opened in the Reader |
+| `Dictionaries/` | Hunspell dictionaries for spelling in languages other than US English, which is built into the core (`FORMDES_DICT_DIRS` adds more folders) |
+| `Intake/` | content packs, uploads, PDFs a layout was made from |
 | `Exports/` | exported files, book PDFs |
 | `Fonts/` | fonts you add |
 | `.cache/` | thumbnails, placeholder art, recovery copies |

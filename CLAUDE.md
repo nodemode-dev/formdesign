@@ -1,6 +1,6 @@
 # formdes
 
-Page layout and publishing (an InDesign alternative) for the web and the desktop in the form family's design language: a Rust layout core (formdes-core over formdes's own layout crates), a Python and FastAPI engine, a vanilla TypeScript and Vite window, a Tauri 2 shell.
+Page layout and publishing (an InDesign alternative) for the web and the desktop in the form family's design language: a Rust layout core (formdes-core over formdes's own layout crates in `native/`), a Python and FastAPI engine, a vanilla TypeScript and Vite window, a Tauri 2 shell.
 
 ## Making layouts
 

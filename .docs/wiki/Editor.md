@@ -24,7 +24,6 @@ The window is a thin client in vanilla TypeScript and Vite. It draws pixels the 
 | `properties.ts`, `properties/` | Properties, Character, Paragraph, Swatches, the Styles tab (paragraph, character, object), the control bar |
 | `pages.ts`, `pages/` | Pages, Layers, Links |
 | `document.ts`, `document/` | New Document, Document Setup, Export, Package, Preferences, Preflight, Info |
-| `reader.ts`, `reader/` | the PDF Reader |
 | `rulers.ts`, `glyphs.ts`, `tabs.ts`, `table.ts`, `book.ts`, `story.ts` | rulers and guides, Glyphs, Tabs, the Table panel, Books, the Story Editor (style column from `story.paras`, overset line) |
 | `object-styles.ts`, `properties/hub.ts` | the Object view of the Styles tab: apply, New from selection, Options, Redefine, Delete over the core's `objectStyles` |
 | `review.ts` | the Review group: Changes, Notes, Conditions |

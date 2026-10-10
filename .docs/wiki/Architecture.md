@@ -8,19 +8,19 @@ formdes is three processes with one owner of the truth. The layout core owns eve
         └────────────────────────────┬─────────────┴──────────────────────────────────────┘
                                      ▼
                       engine (backend/app, FastAPI on 8196)
-          documents · intake · templates · Make pass · books · reader · MCP
+          documents · intake · templates · Make pass · books · MCP
                                      │  JSON lines on standard input and output
                                      ▼
-               layout core (native/formdes-core over formdes-engine, -text, -render, ...)
-          432 commands · composer · renderer · tiles · overlays · slots · fonts
+          layout core (native/formdes-core over formdes-engine, -text, -render, ...)
+          212 commands · composer · renderer · tiles · overlays · slots · fonts
 ```
 
 ## The three layers
 
 | Layer | Source | Owns |
 | --- | --- | --- |
-| Layout core | `native/formdes-core/src/` | Documents, selection, tools, text composition (Knuth-Plass), rendering, PDF, IDML and EPUB export, undo |
-| Engine | `backend/app/` | The core process, `.fdes` packages, intake, templates and brand kits, the Make pass, books, the PDF Reader, MCP, the CLI |
+| Layout core | `native/formdes-core/src/` over `native/formdes-*` | Documents, selection, tools, text composition (Knuth-Plass), rendering, PDF, IDML and EPUB export, undo |
+| Engine | `backend/app/` | The core process, `.fdes` packages, intake (including layouts made from PDFs), templates and brand kits, the Make pass, books, MCP, the CLI |
 | Window | `frontend/src/` | Drawing tiles and overlays, sending pointer and key events, panels and dialogs; never layout logic |
 
 ## How a change travels
@@ -35,7 +35,7 @@ An agent's `run_commands` call takes the same route from step 2, so its edits ap
 ## Why it is split this way
 
 - **One engine, many clients.** The window, the CLI and MCP act on the same documents, so an agent can lay out while a person watches, and a person can fix what the agent left.
-- **The core is a thin shell.** formdes-core adds only a protocol and a few methods over formdes's own engine crates (`slots`, `frame.thread`, `fonts.face`, `fonts.data`); everything formdes-specific lives in the engine.
+- **The layout engine is formdes's own.** formdes-core is a thin JSON-lines shell over the crates in `native/`: formdes-model (the document model and the `.fdoc` file), formdes-text (shaping, the Knuth and Plass composer, hyphenation, frames, tables, footnotes), formdes-render (raster and PDF), formdes-interchange (IDML, text import, HTML and EPUB) and formdes-engine (the session, undo, 212 commands, 36 tools, overlays, tiles). Engine changes go into `native/formdes-*` directly; everything that is not layout lives in the Python engine.
 - **The window is thin.** It renders pixels the core made, so what you see is what exports.
 - **Templates are data.** JSON specs compiled to core commands can be written by agents (`formdes-template-creator`) and re-skinned by brand kits without code.
 

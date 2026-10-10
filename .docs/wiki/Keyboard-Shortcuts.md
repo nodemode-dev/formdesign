@@ -29,7 +29,6 @@ Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow
 | New from Template | Shift+Ctrl+N |
 | Make a Layout | Ctrl+M |
 | Open | Ctrl+O |
-| Open PDF in Reader | Alt+Ctrl+O |
 | Save, Save As | Ctrl+S, Shift+Ctrl+S |
 | Close | Ctrl+W |
 | Place | Ctrl+D |

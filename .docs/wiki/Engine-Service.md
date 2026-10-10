@@ -1,6 +1,6 @@
 # Engine Service
 
-The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout core, keeps formdes's own metadata beside each core document, and adds everything a layout program needs that is not layout: reading files, templates, the Make pass, books, the PDF Reader, MCP and the command line. The window, agents and the CLI all go through it.
+The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout core, keeps formdes's own metadata beside each core document, and adds everything a layout program needs that is not layout: reading files (PDFs included), templates, the Make pass, books, MCP and the command line. The window, agents and the CLI all go through it.
 
 ## Source
 
@@ -13,7 +13,7 @@ The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout 
 | `backend/app/intake/` | files and a brief into one content pack: `markdown.py`, `office.py`, `images.py`, `blocks.py`, `brief.py`, `pack.py`, `store.py` |
 | `backend/app/templates/` | the template spec (`spec.py`), its compiler to core commands (`compile.py`), the registry, brand kits, the checker, the 71-file `library/` |
 | `backend/app/autolayout/` | the Make pass: `content.py`, `rank.py`, `make.py`, `fill.py`, `slots.py`, `tagged.py` |
-| `backend/app/services/pdfread.py` | the Reader: pages, text with boxes, search, outline, structure, extraction (pypdfium2) |
+| `backend/app/services/pdfread.py` | a PDF's pages, text with boxes, search, outline, structure and images (pypdfium2), for intake and the MCP PDF tools |
 | `backend/app/services/books.py` | `.fdbook` books over the core's book commands |
 | `backend/app/services/website.py` | website export over the core's `web` method: roles from slots and style names, the split into web pages, XY cuts for rows and columns, figures, stats, the edition, embedded fonts with licences, sitemap and feed; published sites in `Published/` |
 | `backend/app/routers/` | the HTTP surface, one module per area, and `mcp.py` |
@@ -30,7 +30,6 @@ The engine is a FastAPI application on 127.0.0.1:8196. It supervises the layout 
 | Intake | `POST /api/intake`, `/api/intake/paths`; `GET /api/intake`, `/api/intake/{pack}`, `/api/intake/{pack}/image/{ref}` |
 | Templates and brands | `GET /api/templates`, `/api/templates/rank`, `/api/templates/{id}`, its `thumb.png`; `POST /api/templates/{id}/new`, `/api/templates/validate`, `/api/templates`; `GET` and `POST /api/brands` |
 | Make and slots | `POST /api/make`, `/api/make/quick`, `/api/make/preview`; `GET` and `POST /api/slots` |
-| Reader | `POST /api/reader/open`, `upload`; `GET /api/reader/{doc}` with `page/{n}.png`, `text/{n}`, `plain/{n}`, `search`, `structure`; `POST /api/reader/{doc}/extract` |
 | Books | `GET /api/books`, `/api/books/info`, `/api/books/export.pdf`; `POST /api/books`, `/api/books/edit`, `/api/books/paginate`, `/api/books/sync` |
 | Find/Change queries | `GET`, `POST` and `DELETE /api/find/queries` (twelve built in, the rest one file each in `Queries/`) |
 | Preflight profiles | `GET`, `POST` and `DELETE /api/preflight/profiles` (five built in, the rest one file each in `Preflight/`) |
