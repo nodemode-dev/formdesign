@@ -76,7 +76,7 @@ pub fn insert_at_selection(c: &mut Ctx, text: &str, raw: bool) -> Result<usize> 
     Ok(n)
 }
 
-fn text_delete(c: &mut Ctx, p: &Value) -> Result<Value> {
+pub fn text_delete(c: &mut Ctx, p: &Value) -> Result<Value> {
     let st = c.state()?;
     let sel = st.selection.text.ok_or_else(|| EngineError::new("needs a text cursor: click into text with the Type tool"))?;
     let tracking = st.track_changes;

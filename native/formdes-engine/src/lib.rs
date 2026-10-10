@@ -9,6 +9,7 @@ pub mod registry;
 pub mod session;
 pub mod target;
 pub mod tools;
+pub mod transplant;
 pub mod view;
 pub mod walk;
 pub mod wire;

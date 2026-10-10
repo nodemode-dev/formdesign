@@ -176,6 +176,7 @@ pub struct Session {
     pub book: Option<crate::cmd::book::Book>,
     pub place_gun: Vec<Value>,
     pub tools: crate::tools::ToolState,
+    pub clipboard: Option<crate::cmd::clip::Clip>,
     next_uid: u64,
 }
 
@@ -265,6 +266,7 @@ impl Session {
             book: None,
             place_gun: Vec::new(),
             tools: crate::tools::ToolState::default(),
+            clipboard: None,
             next_uid: 1,
         }
     }

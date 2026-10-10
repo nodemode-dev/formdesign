@@ -1,5 +1,9 @@
 pub mod book;
+pub mod clip;
 pub mod edit;
+pub mod guides;
+pub mod paths;
+pub mod refs;
 pub mod file;
 pub mod find;
 pub mod layout;
@@ -25,5 +29,9 @@ pub fn registry() -> Registry {
     table::register(&mut r);
     find::register(&mut r);
     book::register(&mut r);
+    clip::register(&mut r);
+    guides::register(&mut r);
+    paths::register(&mut r);
+    refs::register(&mut r);
     r
 }
