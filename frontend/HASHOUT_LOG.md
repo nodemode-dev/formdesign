@@ -87,6 +87,7 @@ frontend/
 - [src/ui/dock.ts and the 0.11.0 features](#dock0110)
 - [src/features/document: websites](#web0120)
 - [src/features/clipboard.ts](#clip0180)
+- [src/ui/command-form.ts](#cmdform0190)
 
 ---
 
@@ -345,3 +346,26 @@ The engine says which site belongs to the open document (`active`), because an u
 - logged: v0.18.0 · 2026-10-10
 
 The layout core keeps the real clipboard (objects with their stories and pictures, formatted text); the window only mirrors its plain text onto the system clipboard after Copy and Cut, and hands the system clipboard's text to Paste so text copied in another app pastes in. Reading the system clipboard can prompt or hang in some browsers, so the read gives up after 600 ms and the paste goes ahead with formdes's own clipboard. With no text cursor, Paste sends the spread of the page in view and the view's centre in that spread's coordinates (the inverse of the slot transform from the layout), so pasted objects land where the person is looking. Mod+V reaches the command layer before the browser's paste event, which is why the old paste listener in shell.ts no longer sees canvas pastes.
+
+## src/ui/command-form.ts {#cmdform0190}
+
+### command-form.ts · dialogs from command signatures
+- refers-to: frontend/src/ui/command-form.ts :: parseSig, kindOf, needsForm, openCommandForm, DYNAMIC
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+Every engine command carries a signature string (`{name?: a|b, n: pt, ...}`), so one form covers all of them instead of a dialog per command. `parseSig` splits the top level by commas and alternatives by `|` (a field after `|` starts a new alternative group, a bare word continues a choice list), and `kindOf` picks the control: a choice list, a JSON box for a value described as a list or object, then check boxes and numbers by name or unit word, file pickers for paths, and two special fields (TOC entries with style and level, OpenType feature check boxes). Choices that depend on the document (styles, swatches, anchors, variables, fonts, inks, lists, printers, profiles, hyperlinks, bookmarks, data fields) load from query commands through `DYNAMIC`, keyed `command.field`. A collapsed Parameters as JSON box is merged over the fields, so anything the form does not model can still be sent. A result carrying base64 is downloaded and a result message shows as a toast.
+
+### shell.ts · menu shape
+- refers-to: frontend/src/ui/shell.ts :: menuShape, prefixCache
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+Engine menu paths end with the item's own text (`["Object", "Pathfinder"]`), so the last element is the leaf label, unless that whole path is a prefix of another command's path, in which case it is a submenu and the command's own label is the leaf inside it. Without this, single commands showed as one-item submenus. Open menus refresh their enabled states when the core answers, because enablement depends on the selection the core reports.
+
+### text-options.ts · Paragraph and Character Options
+- refers-to: frontend/src/features/text-options.ts :: installTextOptions
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+The two dialogs are built from `type.attrsCatalog` (each model attribute's name, level, kind, description and the current value at the cursor) and send only the changed values through `type.attrs`, so the panels and the dialogs never disagree and a new attribute in the model appears here without window code. Attributes are grouped in collapsible sections, and list- or object-valued ones (tabs, nested and GREP styles, rules, shading) are JSON boxes.

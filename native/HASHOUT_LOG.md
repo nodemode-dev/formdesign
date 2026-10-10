@@ -531,3 +531,66 @@ Page numbers come from the laid-out text: `page_of_pos` finds the line holding a
 
 Pathfinder flattens each shape in page coordinates (0.05 point tolerance), normalises an even-odd item through i_overlay first, and combines them in paint order (back to front); the result replaces the back object for Subtract, the front one otherwise, and is written back in that object's own coordinates. Results are straight segments, which is why the tolerance is fine. A QR code is one path of module runs (a rectangle per run of dark modules in a row), centred and square in the box, with the text kept in `extra.qr` so running the command on it again re-encodes in place; an empty selected frame is replaced, any other selected frame is covered. Create Outlines renders the frame alone in a copy of the document (its spread holding only the frame, parent pages off, its own fill and stroke cleared) and turns the glyph runs into paths with the renderer's own glyph transform, one item per text colour, grouped when there are several, keeping the frame's place in the stacking order. Releasing an anchored object puts it on its frame's spread where the text placed it, using the same placement the scene draws with.
 
+### formdes-model · joined pages
+- refers-to: native/formdes-model/src/page.rs :: Page.joined; doc.rs :: arrange
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+A page with `joined` stays in the spread of the page before it, so `arrange` closes a spread only when the next page is not joined. That is how Add Page to Spread builds gatefolds of up to ten pages without a separate spread list to keep in step with page moves, inserts and deletes; Allow Spread to Shuffle off is the same flag set on every page after the first in the spread.
+
+### formdes-engine · production commands
+- refers-to: native/formdes-engine/src/cmd/prod.rs :: ink_options, type_open_type, change_case, attrs_catalog, type_attrs, font_replace, style_load, file_print, export_svg, list_define, page_rule, liquid_object, create_alternate, adapt_page
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+Ink settings live in `prefs.inks` (`toProcess`, `alias`) and `$allToProcess`, which preflight and the separations read, so the document's swatches never change. `type.attrs` sets any character or paragraph attribute by its model name and `type.attrsCatalog` lists the names, kinds and current values; the Paragraph and Character Options dialogs are built from it, so a new model attribute appears in them without window code. Load Styles reads a .fdes, .fdoc or .idml into a scratch document and copies the chosen kinds through the same `Mapper` paste uses. Print hands the exported PDF to `lp` or `lpr` when either exists and otherwise reports where the PDF was written. `adapt_page` moves and resizes a page's items when its size or margins change: `scale` scales everything, `recenter` keeps sizes and centres, `guide` maps positions from the old margin box to the new one, and `object` follows each item's pins (`liquid.object`); Document Setup, Margins and Columns with adjustLayout, Resize Pages and Create Alternate Layout all call it.
+
+### formdes-engine · canvas marks and Overprint Preview
+- refers-to: native/formdes-engine/src/marks.rs :: spread_marks; view.rs :: tiles; formdes-render/src/scene.rs :: SceneOpts.overprint
+- kind: explainer
+- logged: v0.19.0 · 2026-10-10
+
+Note flags, inserted-text highlights and deleted-text carets are drawn as extra ops after the spread's own, from the laid-out lines, so they follow the text and never print. Overprint Preview wraps overprinting fills and strokes in a multiply blend, which is how ink on ink looks; the session's op cache keys on the overprint flag so turning it off redraws.
+
+### formdes-engine · ICC soft proofing
+- refers-to: native/formdes-engine/src/view.rs :: IccProof, proof_of
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+A proof is two moxcms transforms (working RGB to the output CMYK profile and back) built once per profile and intent and cached for the session, applied to the rendered tile's pixels. `cmyk:<name>` resolves through the profiles the session found; without one the working CMYK from Color Settings is used. Paper simulation maps white to the profile's paper white, so the proof greys as the press sheet would.
+
+### formdes-engine · typing in table cells
+- refers-to: native/formdes-engine/src/celltext.rs :: CellText, hit, edit, key
+- kind: explainer
+- logged: v0.19.0 · 2026-10-10
+
+The cell cursor is a `CellText` on the selection (story, table position, row, column, anchor and focus as offsets in the cell's own paragraph text). The Type tool's click hits a cell before the frame's text; typing, deleting and pasting edit the cell text; arrows move inside it, Tab and Shift+Tab move between cells and Tab in the last cell adds a row, Escape returns to the table's anchor in the story.
+
+### formdes-engine · Smart Text Reflow
+- refers-to: native/formdes-engine/src/reflow.rs :: smart_reflow; session.rs :: execute
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+After typing, pasting, placing, placeholder text or Replace Text, a story still overset whose last frame fills at least 60 percent of its page's margin box gets new pages, each with a copy of that frame threaded on, until it fits or forty pages are added. The pages join the same undo step as the edit, so one Undo takes both away. Smaller frames (captions, pull quotes) are left overset, as in InDesign, where reflow follows the primary text frame.
+
+### formdes-engine · tables, endnotes and selection
+- refers-to: native/formdes-engine/src/cmd/more.rs :: text_to_table, table_to_text, select_container, endnote_insert, renumber_endnotes
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+Endnotes are cross-reference inlines with format `endnote`, numbered in page order and gathered into one endnote frame with Endnote Title and Endnote styles; `xref.update` leaves them alone so a cross-reference update never renumbers them. Convert Text to Table splits the selected paragraphs by tab, comma or semicolon; Convert Table to Text joins cells with tabs and rows with paragraph breaks.
+
+### formdes-render · tagged PDF and the standards
+- refers-to: native/formdes-render/src/pdf.rs :: PdfOpts, configuration, TagTree; scene.rs :: Op::Tag, heading_level
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+The scene marks paragraphs and pictures with `Op::Tag` (a style named Title is level 1, a heading style with a digit takes that level, any other heading style level 2), and the PDF writer builds krilla's tag tree from them, with alt text on figures and links. krilla validates PDF/A-2a, 2b, 2u, 3b, 4 and PDF/UA-1; it has no PDF/X, so an X standard exports a plain PDF with a warning and the window no longer offers one. PDF/A needs an output intent, so CMYK goes out with the Color Settings profile or is converted to RGB when there is none; PDF/UA needs a title, an outline (the bookmarks, or the headings when there are none) and alt text on every link.
+
+### formdes-interchange · tables from CSV and Excel
+- refers-to: native/formdes-interchange/src/text.rs :: table_of, csv_rows, xlsx
+- kind: explainer
+- logged: v0.19.0 · 2026-10-10
+
+A .csv or the first sheet of an .xlsx (shared strings, inline strings, and a formula's cached value; nothing is recalculated) places as a table with a header row; the engine scales its column widths to the frame column. `csv_as_tabs` keeps the old tab-separated paragraphs for callers that want text.
+

@@ -236,6 +236,13 @@ Add selects the given ids when an agent passes them (the window passes none and 
 
 One tool with an `action` rather than seven, because the actions share the library name and an agent reaches for them together. `items` leaves out the thumbnails: a data URL per item would spend tokens on pixels the agent cannot use, and `preview` after `place` shows the result anyway. Library errors come back as tool failures with the message, never as an exception.
 
+### mcp.py · the agent access switch
+- refers-to: backend/app/routers/mcp.py :: agents_enabled, call_tool, settings; frontend/src/features/document/prefs.ts
+- kind: rationale
+- logged: v0.19.0 · 2026-10-10
+
+The switch is a file (`agents.json` in the data folder), read on every call, so it holds across restarts and covers the stdio server too, which forwards to `/mcp`. A missing or unreadable file means on, as before the switch existed. When off, `tools/list` still answers so a client can show what it would get, and every tool call fails with a message that names Preferences > Agents; the status endpoint reports `enabled` for the window.
+
 ## app/services/userprefs.py {#userprefs}
 
 ### userprefs.py · workspaces and shortcut sets
