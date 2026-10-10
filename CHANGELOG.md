@@ -2,6 +2,16 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.18.0 · 2026-10-10
+
+- Copy, Cut, Paste, Paste without Formatting, Paste in Place and Paste Into (a copied picture into a frame), across documents, with the system clipboard's text; objects pasted into text become anchored objects. Step and Repeat, including grids.
+- Guides: delete one or all on a spread, move, lock and recolour them, and Layout > Create Guides with rows, columns and gutters.
+- Paths: Join, Open, Close and Reverse Path, Make and Release Compound Path (holes show), Convert Shape, and Pathfinder (Add, Subtract, Intersect, Exclude Overlap, Minus Back).
+- Hyperlinks on text or objects to web and email addresses, pages and text anchors; PDF bookmarks; text variables you define and insert; footnotes inserted and edited; alt text; static captions; Fill with Placeholder Text; Rotate Spread.
+- Layout > Table of Contents and Update Table of Contents, index page references and Generate Index, text anchors and cross-references with Update Cross-References, and data merge from CSV or tab-separated data into a new document, with pictures from file paths.
+- Generate QR Code, Create Outlines, and anchored objects: anchor at the text cursor, options and release.
+- 270 commands. Still to come: alternate and liquid layouts, ink manager, lists and endnotes, OpenType feature commands, and dialogs for the commands that open a raw parameters box today.
+
 ## 0.17.0 · 2026-10-10
 
 - formdes now runs on its own layout engine. The layout core answers the window, the engine service, the templates, the Make pass and agents from `native/formdes-engine` and its model, text, render and interchange crates; the engine crates it used before are no longer used or built. All 71 templates build and render; a layout made from Markdown threads onto its continuation pages.
