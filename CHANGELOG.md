@@ -2,6 +2,18 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.19.0 · 2026-10-10
+
+- Every menu command that needs settings opens a dialog built from what the command accepts, with the document's styles, swatches, anchors, variables, fonts, inks and printers to pick from, and Parameters as JSON for the rest. Single commands no longer show as one-item submenus, and menus update which items are available as the selection changes.
+- Type > Paragraph Options and Character Options: the composer and justification spacing, hyphenation zone and limits, keeps and start positions, drop caps, rules and shading, span and split columns, optical margin alignment, balanced ragged lines, direction, lists, nested and GREP styles. Type > OpenType, Change Case, Clear Overrides, Find/Replace Font, Load Styles, New Style Group and Define Lists.
+- Drop caps, synthesised small caps, text inside ellipses and polygons, contour text wrap and Invert, balanced columns and table header rows that repeat across frames all compose and draw.
+- Layout: Liquid Layout rules and object pins, Create Alternate Layout, Adjust layout in Margins and Columns, Add Page to Spread and Allow Selected Spread to Shuffle for gatefolds, Smart Text Reflow that adds pages as a story overflows (one Undo removes them with the edit).
+- Colour: Window > Output > Ink Manager (spots to process, ink aliases), New Tint Swatch, New Gradient Swatch and New Color Group; View > Overprint Preview is back; Proof Colors proofs through the chosen ICC profile with paper simulation.
+- Text and tables: typing inside table cells with Tab between cells; Convert Text to Table and Table to Text; Table and Cell Style Options; endnotes numbered through the document into an endnote frame; CSV and Excel files place as tables; Object > Select Container, Content and Next Object; note flags and tracked changes marked on the canvas again; Object > Effects > Transparency with blend modes.
+- Output: tagged PDF with headings, reading order and alt text; PDF/A-2a, PDF/A-2b and PDF/UA-1; buttons as PDF links; File > Export > SVG; File > Print with a printer list through lp or lpr; Print Booklet downloads its PDF. PDF/X is no longer offered, because the PDF writer cannot produce it.
+- Preferences > Agents has an agent access switch; with it off, every MCP tool call is refused.
+- 311 commands. Parity against InDesign and Affinity re-traced: 104 of 133 rows (78 percent), up from 66 percent. Not yet: PDF/X, form fields, media and page transitions in exported PDF, graphic cells, and layer visibility for placed PDFs.
+
 ## 0.18.0 · 2026-10-10
 
 - Copy, Cut, Paste, Paste without Formatting, Paste in Place and Paste Into (a copied picture into a frame), across documents, with the system clipboard's text; objects pasted into text become anchored objects. Step and Repeat, including grids.

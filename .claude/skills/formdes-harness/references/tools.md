@@ -151,7 +151,7 @@ Runs layout commands on the active document as one undoable batch (all or nothin
 
 ## find_commands
 
-Searches the 270 layout commands by id, label or menu: each with its parameters.
+Searches the 311 layout commands by id, label or menu: each with its parameters.
 
 - `query`: string; required
 - `limit`: integer; default 20
