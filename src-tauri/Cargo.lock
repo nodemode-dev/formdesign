@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "formdes"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "regex",
  "serde_json",
