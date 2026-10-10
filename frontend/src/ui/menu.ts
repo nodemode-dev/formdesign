@@ -121,6 +121,12 @@ export class PopupMenu {
     this.panel.style.visibility = '';
   }
 
+  update(): void {
+    if (this.panel.hidden) return;
+    this.refresh();
+    this.openSub?.update();
+  }
+
   private refresh(): void {
     for (const r of this.rows) {
       const cmd = this.commands.get(r.id);
@@ -173,6 +179,10 @@ export class MenuBar {
 
   get isOpen(): boolean { return this.openIndex >= 0; }
   onBeforeOpen: (() => void) | null = null;
+
+  refreshOpen(): void {
+    if (this.openIndex >= 0) this.menus[this.openIndex].menu.update();
+  }
 
   open(i: number): void {
     this.close();

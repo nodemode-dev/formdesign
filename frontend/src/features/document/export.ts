@@ -9,7 +9,7 @@ import { capabilities, join, safeName, stem } from './paths';
 import { formatBytes } from './units';
 import { WebOptions } from './web-options';
 
-export type ExportFormat = 'pdf' | 'idml' | 'epub' | 'epub-fixed' | 'html' | 'web' | 'png' | 'jpg' | 'txt' | 'xml';
+export type ExportFormat = 'pdf' | 'idml' | 'epub' | 'epub-fixed' | 'html' | 'web' | 'png' | 'jpg' | 'svg' | 'txt' | 'xml';
 
 interface FormatInfo { id: ExportFormat; label: string; sub: string; icon: string; ext: string }
 
@@ -22,13 +22,14 @@ const FORMATS: FormatInfo[] = [
   { id: 'web', label: 'Website', sub: 'Pages that fit any screen', icon: 'web', ext: '.zip' },
   { id: 'png', label: 'PNG', sub: 'A page as an image', icon: 'image', ext: '.png' },
   { id: 'jpg', label: 'JPEG', sub: 'A page as a photo', icon: 'image', ext: '.jpg' },
+  { id: 'svg', label: 'SVG', sub: 'A page as vector graphics', icon: 'image', ext: '.svg' },
   { id: 'txt', label: 'Text', sub: 'The selected story', icon: 'text', ext: '.txt' },
   { id: 'xml', label: 'XML', sub: 'Tagged content', icon: 'xml', ext: '.xml' },
 ];
 
 export const CORE_EXPORTS: Record<string, ExportFormat> = {
   'file.exportPdf': 'pdf', 'file.exportIdml': 'idml', 'file.exportEpub': 'epub', 'file.exportFixedEpub': 'epub-fixed',
-  'file.exportHtml': 'html', 'file.exportText': 'txt', 'file.exportXml': 'xml',
+  'file.exportHtml': 'html', 'file.exportText': 'txt', 'file.exportXml': 'xml', 'file.exportSvg': 'svg',
 };
 
 type Dest = 'download' | 'folder';
@@ -202,7 +203,7 @@ export class ExportDialog {
     for (const n of Array.from(q(this.fmtTitle, '.fd-ex-ticon').children) as HTMLElement[]) setHidden(n, n.dataset.icon !== f.icon);
     setText(q(this.fmtTitle, '.fd-ex-tname'), f.label);
     setText(q(this.fmtTitle, '.fd-ex-tsub'), f.sub);
-    const show = new Set<string>([fmt === 'png' || fmt === 'jpg' ? 'image' : fmt]);
+    const show = new Set<string>([fmt === 'png' || fmt === 'jpg' || fmt === 'svg' ? 'image' : fmt]);
     if (fmt === 'epub' || fmt === 'epub-fixed' || fmt === 'html') show.add('meta');
     for (const [id, g] of this.groups) setHidden(g, !show.has(id));
     setHidden(this.result, true);
@@ -260,12 +261,12 @@ export class ExportDialog {
     const base = stem(editor.doc?.title);
     let name = base;
     if (this.fmt === 'web') name += ' site';
-    if (this.fmt === 'png' || this.fmt === 'jpg') {
+    if (this.fmt === 'png' || this.fmt === 'jpg' || this.fmt === 'svg') {
       const p = editor.layout?.pages.find((x) => x.abs === Number(this.imgPage.value));
       if ((editor.layout?.pages.length ?? 0) > 1 && p) name += ` p${p.name}`;
     }
     if (this.nameTouched) {
-      const cur = this.fileName.value.trim().replace(/\.(pdf|idml|epub|html|zip|png|jpg|txt|rtf|xml)$/i, '');
+      const cur = this.fileName.value.trim().replace(/\.(pdf|idml|epub|html|zip|png|jpg|svg|txt|rtf|xml)$/i, '');
       this.fileName.value = `${cur || name}${this.ext()}`;
     } else this.fileName.value = `${name}${this.ext()}`;
     this.syncDest();
@@ -317,6 +318,9 @@ export class ExportDialog {
       case 'png': case 'jpg':
         o.page = Number(this.imgPage.value); o.scale = Number(this.imgScale.value); o.bleed = this.imgBleed.value;
         return { format: fmt, options: o };
+      case 'svg':
+        o.page = Number(this.imgPage.value) + 1;
+        return { format: 'svg', options: o };
       case 'txt':
         if (this.txtFormat.value === 'rtf') return { format: 'rtf', options: o };
         if (this.txtFormat.value === 'tagged') o.format = 'tagged';

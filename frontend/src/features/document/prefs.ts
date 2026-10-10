@@ -1,6 +1,6 @@
 import { api } from '../../engine/client';
 import { Dialog } from '../../ui/dialogs';
-import { el, escapeHtml, q, setClass, setText, setTitle, setValue } from '../../ui/dom';
+import { el, escapeHtml, q, setChecked, setClass, setText, setTitle, setValue } from '../../ui/dom';
 import { readChoice, setAccent, setIntensity, setTheme, THEMES } from '../../ui/themes';
 import { toast } from '../../ui/toast';
 import { copyText, Seg } from './form';
@@ -36,6 +36,7 @@ export class PreferencesDialog {
   private readonly unitName = el('<p class="fd-f-note"></p>');
   private readonly endpoint = el('<code class="fd-pr-code"></code>');
   private readonly mcpState = el('<span class="fd-pr-state"></span>');
+  private readonly agentsOn = el<HTMLInputElement>('<input type="checkbox" checked>');
   private readonly lines = new Map<string, HTMLElement>();
   private readonly refs = el('<div class="fd-pr-refs"></div>');
   private readonly done: HTMLButtonElement;
@@ -160,7 +161,14 @@ export class PreferencesDialog {
     const ep = el(`<div class="fd-pr-line"></div>`);
     ep.append(this.endpoint, this.copyBtn(() => this.endpoint.textContent ?? ''));
     mcp.append(ep, this.mcpState);
-    pg.appendChild(mcp);
+    const access = this.section('Agent access', 'When this is off, agents connected over MCP can still list their tools but every call is refused, until you turn it back on.');
+    const toggle = el('<label class="cv-opt"><span>Let agents read and change documents</span></label>');
+    toggle.prepend(this.agentsOn);
+    this.agentsOn.addEventListener('change', () => void api('/mcp/settings', { json: { enabled: this.agentsOn.checked } })
+      .then(() => toast(this.agentsOn.checked ? 'Agents can work in formdes' : 'Agent access is off'))
+      .catch((e) => { toast((e as Error).message, 'error'); this.agentsOn.checked = !this.agentsOn.checked; }));
+    access.appendChild(toggle);
+    pg.append(access, mcp);
     const rows: Array<{ id: string; title: string; note: string }> = [
       { id: 'claude', title: 'Claude Code', note: 'Adds formdes as an MCP server over stdio.' },
       { id: 'codex', title: 'Codex', note: 'Run in the formdes folder: installs the MCP server and the skill.' },
@@ -215,7 +223,8 @@ export class PreferencesDialog {
     setText(this.lines.get('codex') ?? null, `cd ${repo} && ./formdes agents install`);
     setText(this.lines.get('cursor') ?? null, `cd ${repo} && ./formdes agents install`);
     try {
-      const s = await api<{ tools?: number; calls?: number }>('/mcp/status');
+      const s = await api<{ tools?: number; calls?: number; enabled?: boolean }>('/mcp/status');
+      setChecked(this.agentsOn, s.enabled !== false);
       setText(this.mcpState, `${s.tools ?? 0} tools · ${s.calls ?? 0} calls this session`);
       setClass(this.mcpState, 'is-live', true);
     } catch {

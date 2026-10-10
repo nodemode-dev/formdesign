@@ -4,6 +4,7 @@ import { Input } from '../editor/input';
 import { Viewport } from '../editor/viewport';
 import { Commands, comboOf, type Command } from './commands';
 import { askSaveChanges, Dialog } from './dialogs';
+import { needsForm, openCommandForm } from './command-form';
 import { el, escapeHtml, isMac, patchList, q, setClass, setHidden, setText, setTitle } from './dom';
 import { HomeScreen } from './home';
 import { icon } from './icons';
@@ -186,24 +187,7 @@ export class Shell implements Workspace {
   }
 
   private paramsDialog(cmd: CoreCommand, why: string, params: Record<string, unknown>): void {
-    const d = new Dialog(cmd.label.replace(/…$/, ''), 520);
-    d.body.append(el(`<div class="fd-cmd-dialog"><p class="fd-cmd-why"></p><p class="fd-cmd-doc"></p><label class="fd-field"><span>Parameters (JSON)</span><textarea class="cv-search-input fd-cmd-json" rows="6" spellcheck="false"></textarea></label></div>`));
-    setText(q(d.body, '.fd-cmd-why'), why);
-    setText(q(d.body, '.fd-cmd-doc'), `${cmd.id}  ${cmd.params}`);
-    const ta = q<HTMLTextAreaElement>(d.body, '.fd-cmd-json');
-    ta.value = JSON.stringify(params, null, 1);
-    const run = el<HTMLButtonElement>('<button class="cv-btn cv-btn-primary" type="button">Run</button>');
-    const cancel = el<HTMLButtonElement>('<button class="cv-btn" type="button">Cancel</button>');
-    cancel.addEventListener('click', () => d.close());
-    run.addEventListener('click', () => {
-      let p: Record<string, unknown>;
-      try { p = JSON.parse(ta.value || '{}'); } catch { toast('The parameters are not valid JSON', 'error'); return; }
-      d.close();
-      void this.runCore(cmd.id, p);
-    });
-    d.foot.append(cancel, run);
-    d.onClose = () => d.scrim.remove();
-    d.open(ta);
+    openCommandForm(this, cmd, why, params);
   }
 
   private uiCommands(): void {
@@ -270,10 +254,10 @@ export class Shell implements Workspace {
       for (const k of keys) taken.add(k);
       this.commands.add({
         id: c.id,
-        label: c.label,
+        label: this.menuShape(c).label,
         keys,
         enabled: () => (editor.command(c.id)?.enabled ?? true),
-        run: () => { const o = this.overrides.get(c.id); if (o) o(); else void this.runCore(c.id); },
+        run: () => { const o = this.overrides.get(c.id); if (o) o(); else if (needsForm(c)) this.paramsDialog(c, '', {}); else void this.runCore(c.id); },
       });
     }
   }
@@ -306,6 +290,20 @@ export class Shell implements Workspace {
     }
   }
 
+  private prefixCache: Set<string> | null = null;
+
+  private menuShape(c: CoreCommand): { subs: string[]; label: string } {
+    const rest = (c.menu ?? []).slice(1);
+    if (!rest.length) return { subs: [], label: c.label };
+    if (!this.prefixCache) {
+      const s = new Set<string>();
+      for (const k of editor.commands) for (let i = 2; i < (k.menu?.length ?? 0); i++) s.add(k.menu.slice(0, i).join('>'));
+      this.prefixCache = s;
+    }
+    if (this.prefixCache.has(c.menu.join('>'))) return { subs: rest, label: c.label };
+    return { subs: rest.slice(0, -1), label: rest[rest.length - 1].replace(/\.\.\.$/, '…') };
+  }
+
   private coreTree(name: MenuName): MenuItem[] {
     const skip = new Set(['file.open', 'file.save', 'file.saveAs', 'file.close', 'edit.undo', 'edit.redo', 'file.place']);
     const root: MenuItem[] = [];
@@ -313,7 +311,7 @@ export class Shell implements Workspace {
     for (const c of editor.commands) {
       if (!c.menu?.length || c.menu[0] !== name || skip.has(c.id)) continue;
       if (c.menu.length === 1) { root.push(c.id); continue; }
-      const path = c.menu.slice(1);
+      const path = this.menuShape(c).subs;
       let items = root;
       let key = name;
       for (const part of path) {
@@ -334,7 +332,7 @@ export class Shell implements Workspace {
     }
     const defs: MenuDef[] = MENUS.map((m) => ({ label: m, items: () => this.menuItems(m) }));
     this.menubar = new MenuBar(q(this.root, '.cv-menubar'), this.commands, defs);
-    this.menubar.onBeforeOpen = () => void this.refreshEnabled();
+    this.menubar.onBeforeOpen = () => void this.refreshEnabled().then(() => this.menubar?.refreshOpen());
   }
 
   private enabling: Promise<void> | null = null;
@@ -526,11 +524,12 @@ export class Shell implements Workspace {
   }
 
   private async place(): Promise<void> {
-    const files = await this.pickFiles('image/*,.pdf,.txt,.md,.docx,.rtf,.csv,.xlsx,.idml,.html', false);
+    const files = await this.pickFiles('image/*,video/*,audio/*,.pdf,.svg,.eps,.txt,.md,.docx,.rtf,.csv,.xlsx,.idml,.html', true);
     if (!files.length) return;
     try {
-      const [path] = await this.upload(files);
-      await this.runCore('file.place', { path });
+      const paths = await this.upload(files);
+      if (paths.length > 1) await this.runCore('place.load', { paths });
+      else await this.runCore('file.place', { path: paths[0] });
       this.setHint('Click or drag to place the loaded content');
     } catch (err) { toast(friendly((err as Error).message), 'error'); }
   }
