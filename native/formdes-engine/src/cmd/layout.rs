@@ -209,7 +209,7 @@ fn parent_id(doc: &Doc, v: Option<&Value>, fallback: Option<ParentId>) -> Result
     }
 }
 
-fn insert_pages(doc: &mut Doc, at: usize, count: usize, parent: Option<ParentId>) {
+pub fn insert_pages(doc: &mut Doc, at: usize, count: usize, parent: Option<ParentId>) {
     doc.repaginate(|pages, carried, d| {
         let at = at.min(pages.len());
         let mut fresh = Vec::new();

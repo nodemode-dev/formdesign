@@ -441,7 +441,9 @@ fn xref_update(c: &mut Ctx, _: &Value) -> Result<Value> {
     let mut changes: Vec<(StoryId, usize, String)> = Vec::new();
     for (sid, st) in &doc.stories {
         for (at, inl) in st.inlines() {
-            if let Inline::Xref { anchor, format, text } = inl {
+            if let Inline::Xref { anchor, format, text } = inl
+                && format != "endnote"
+            {
                 let now = xref_text(doc, &lay, anchor, format);
                 if &now != text {
                     changes.push((*sid, at, now));

@@ -367,6 +367,12 @@ pub fn deliver(p: &Value, bytes: Vec<u8>, mut extra: Value) -> Result<Value> {
     Ok(extra)
 }
 
+fn cmyk_profile(c: &Ctx) -> Option<Vec<u8>> {
+    let name = c.doc().ok()?.prefs.get("colorSettings")?.get("cmykProfile")?.as_str()?.to_string();
+    let path = c.session.profiles.iter().find(|x| x.get("name").and_then(Value::as_str) == Some(name.as_str()))?.get("path")?.as_str()?.to_string();
+    std::fs::read(path).ok()
+}
+
 fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
     let lay = c.layout()?;
     let renderer = c.session.renderer.clone();
@@ -377,12 +383,15 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
     if p.get("marks").is_some_and(|m| m.as_bool() != Some(false) && !m.is_null()) {
         warnings.push("printer's marks are not drawn yet; the PDF has trim and bleed boxes".into());
     }
-    if let Some(s) = args::opt_str(p, "standard").filter(|s| *s != "none") {
-        warnings.push(format!("PDF standard {s} is not enforced yet; the file is a plain PDF 1.7"));
+    let mut standard = args::opt_str(p, "standard").filter(|s| *s != "none").map(str::to_string);
+    if let Some(s) = standard.clone()
+        && s.to_ascii_lowercase().contains('x')
+    {
+        warnings.push(format!("{s} is not checked yet: the file is a PDF 1.7 with trim and bleed boxes and CMYK kept as CMYK, the parts of PDF/X a printer reads first"));
+        standard = None;
     }
-    if args::opt_bool(p, "tagged") == Some(true) {
-        warnings.push("tagged PDF structure is not written yet".into());
-    }
+    let tagged = args::opt_bool(p, "tagged").unwrap_or(false) || standard.as_deref().is_some_and(|s| s.contains("ua") || s.contains("UA") || s.ends_with('a'));
+    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: cmyk_profile(c) };
     if args::opt_bool(p, "spreads") == Some(true) {
         warnings.push("spreads are exported as single pages for now".into());
     }
@@ -396,8 +405,8 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
     if overset > 0 {
         warnings.push(format!("{overset} {} overset text", if overset == 1 { "story has" } else { "stories have" }));
     }
-    let bytes = renderer.pdf(doc, &lay, Some(pages.clone()), bleed).map_err(|e| EngineError::new(format!("PDF export: {e}")))?;
-    deliver(p, bytes, json!({"pages": pages.len(), "warnings": warnings}))
+    let bytes = renderer.pdf_with(doc, &lay, Some(pages.clone()), bleed, &popts).map_err(|e| EngineError::new(format!("PDF export: {e}")))?;
+    deliver(p, bytes, json!({"pages": pages.len(), "warnings": warnings, "tagged": popts.tagged, "standard": popts.standard}))
 }
 
 fn export_idml(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -632,7 +641,7 @@ fn print_booklet(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         sheets.push(PageScene { page: i, width: w * 2.0 + gap, height: h, bleed: Edges::default(), ops });
     }
-    let bytes = formdes_render::pdf::export(&sheets, doc, &renderer.images, &formdes_render::pdf::PdfOpts { title: doc.title.clone() }).map_err(|e| EngineError::new(format!("booklet PDF: {e}")))?;
+    let bytes = formdes_render::pdf::export(&sheets, doc, &renderer.images, &formdes_render::pdf::PdfOpts { title: doc.title.clone(), ..Default::default() }).map_err(|e| EngineError::new(format!("booklet PDF: {e}")))?;
     deliver(p, bytes, json!({"pages": sheets.len(), "warnings": []}))
 }
 

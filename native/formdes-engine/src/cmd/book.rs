@@ -137,7 +137,7 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
     }
     merged.title = p.get("title").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| b.path.file_stem().and_then(|s| s.to_str()).unwrap_or("Book").to_string());
-    let bytes = formdes_render::pdf::export(&scenes, &merged, &renderer.images, &formdes_render::pdf::PdfOpts { title: merged.title.clone() }).map_err(|e| EngineError::new(format!("book PDF: {e}")))?;
+    let bytes = formdes_render::pdf::export(&scenes, &merged, &renderer.images, &formdes_render::pdf::PdfOpts { title: merged.title.clone(), ..Default::default() }).map_err(|e| EngineError::new(format!("book PDF: {e}")))?;
     std::fs::write(&out, &bytes).map_err(|e| EngineError::new(format!("book PDF: cannot write {}: {e}", out.display())))?;
     Ok(json!({"path": out.display().to_string(), "pages": scenes.len(), "bytes": bytes.len()}))
 }

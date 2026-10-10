@@ -129,7 +129,9 @@ pub fn caret_line(doc: &Doc, lay: &DocLayout, ct: &CellText, pos: usize) -> Opti
     }
 }
 
-pub fn quads(doc: &Doc, lay: &DocLayout, ct: &CellText) -> Option<(ItemId, Vec<(f64, f64, f64, f64)>)> {
+pub type Quad = (f64, f64, f64, f64);
+
+pub fn quads(doc: &Doc, lay: &DocLayout, ct: &CellText) -> Option<(ItemId, Vec<Quad>)> {
     let (fid, cell) = cell_out(lay, ct)?;
     let ps = paras(doc, ct)?;
     let st = scratch(ct.story, ps.clone());

@@ -7,6 +7,7 @@ pub mod input;
 pub mod marks;
 pub mod ops;
 pub mod overlays;
+pub mod reflow;
 pub mod registry;
 pub mod session;
 pub mod target;

@@ -5,6 +5,7 @@ pub mod edit;
 pub mod generate;
 pub mod guides;
 pub mod paths;
+pub mod more;
 pub mod prod;
 pub mod refs;
 pub mod file;
@@ -39,5 +40,6 @@ pub fn registry() -> Registry {
     generate::register(&mut r);
     art::register(&mut r);
     prod::register(&mut r);
+    more::register(&mut r);
     r
 }

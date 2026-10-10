@@ -315,6 +315,7 @@ impl Session {
         match out {
             Ok(v) => {
                 let typing = label == "Typing";
+                let reflow = changed && matches!(label.as_str(), "Typing" | "Paste" | "Paste without Formatting" | "Place" | "Fill with Placeholder Text" | "Replace Text");
                 if changed
                     && spec.undoable
                     && let Some((uid, doc, sel, rev0)) = before
@@ -334,6 +335,19 @@ impl Session {
                 if changed && let Some(st) = self.active_mut() {
                     st.revision += 1;
                     st.coalesce = if typing { Some(st.revision) } else { None };
+                }
+                if reflow {
+                    let r = self.renderer.clone();
+                    if let Some(st) = self.active_mut()
+                        && st.doc.settings.smart_reflow
+                    {
+                        let mut doc = (*st.doc).clone();
+                        if crate::reflow::smart_reflow(&mut doc, &r) > 0 {
+                            st.doc = Arc::new(doc);
+                            st.revision += 1;
+                            st.coalesce = None;
+                        }
+                    }
                 }
                 Ok(v)
             }
