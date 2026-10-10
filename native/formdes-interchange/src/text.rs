@@ -466,7 +466,138 @@ pub fn docx(bytes: &[u8]) -> Result<Imported, String> {
     Ok(out)
 }
 
+fn table_of(rows: Vec<Vec<String>>) -> Imported {
+    let rows: Vec<Vec<String>> = rows.into_iter().filter(|r| r.iter().any(|c| !c.trim().is_empty())).collect();
+    let cols = rows.iter().map(Vec::len).max().unwrap_or(1).max(1);
+    let mut table = formdes_model::story::Table::new(rows.len().max(1), cols, 432.0);
+    table.header_rows = usize::from(rows.len() > 1);
+    for (r, row) in rows.iter().enumerate() {
+        for (k, text) in row.iter().enumerate() {
+            if let Some(cell) = table.cell_mut(r, k) {
+                cell.paras = vec![Para::from_text("", text.trim())];
+            }
+        }
+    }
+    let para = Para { style: String::new(), over: Attrs::new(), segs: vec![Seg::Inline { inline: formdes_model::story::Inline::Table { table: Box::new(table) }, style: None, over: Attrs::new() }] };
+    Imported { paras: vec![para], para_styles: Vec::new(), char_styles: Vec::new() }
+}
+
+fn csv_rows(text: &str) -> Vec<Vec<String>> {
+    let text = text.trim_start_matches('\u{FEFF}');
+    let first = text.lines().next().unwrap_or("");
+    let sep = if first.matches(';').count() > first.matches(',').count() { ';' } else if first.matches('\t').count() > first.matches(',').count() { '\t' } else { ',' };
+    let mut rows = Vec::new();
+    let mut row = Vec::new();
+    let mut cur = String::new();
+    let mut quoted = false;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' if quoted && chars.peek() == Some(&'"') => {
+                cur.push('"');
+                chars.next();
+            }
+            '"' if quoted => quoted = false,
+            '"' if cur.is_empty() => quoted = true,
+            c if c == sep && !quoted => row.push(std::mem::take(&mut cur)),
+            '\r' if !quoted => {}
+            '\n' if !quoted => {
+                row.push(std::mem::take(&mut cur));
+                rows.push(std::mem::take(&mut row));
+            }
+            c => cur.push(c),
+        }
+    }
+    if !cur.is_empty() || !row.is_empty() {
+        row.push(cur);
+        rows.push(row);
+    }
+    rows
+}
+
+fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
+    let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("spreadsheet: {e}"))?;
+    let mut read = |name: &str| -> Option<String> {
+        let mut f = z.by_name(name).ok()?;
+        let mut s = String::new();
+        f.read_to_string(&mut s).ok()?;
+        Some(s)
+    };
+    let shared_xml = read("xl/sharedStrings.xml").unwrap_or_default();
+    let sheet = read("xl/worksheets/sheet1.xml").ok_or("spreadsheet: no first worksheet (xl/worksheets/sheet1.xml)")?;
+    let mut shared: Vec<String> = Vec::new();
+    let mut r = Reader::from_str(&shared_xml);
+    let mut cur: Option<String> = None;
+    let mut in_t = false;
+    loop {
+        match r.read_event() {
+            Ok(Event::Start(e)) if e.name().as_ref() == b"si" => cur = Some(String::new()),
+            Ok(Event::Start(e)) if e.name().as_ref() == b"t" => in_t = true,
+            Ok(Event::End(e)) if e.name().as_ref() == b"t" => in_t = false,
+            Ok(Event::Text(t)) if in_t => {
+                if let Some(c) = cur.as_mut() {
+                    c.push_str(&t.decode().map(|x| x.into_owned()).unwrap_or_default());
+                }
+            }
+            Ok(Event::GeneralRef(g)) if in_t => {
+                if let Some(c) = cur.as_mut() {
+                    c.push_str(&entity(&format!("&{};", g.decode().map(|x| x.into_owned()).unwrap_or_default())));
+                }
+            }
+            Ok(Event::End(e)) if e.name().as_ref() == b"si" => shared.push(cur.take().unwrap_or_default()),
+            Ok(Event::Eof) | Err(_) => break,
+            _ => {}
+        }
+    }
+    let col_of = |re: &str| -> usize {
+        let letters: String = re.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+        letters.chars().fold(0usize, |acc, c| acc * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize + 1)).saturating_sub(1)
+    };
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut r = Reader::from_str(&sheet);
+    let (mut col, mut kind, mut val, mut in_v) = (0usize, String::new(), String::new(), false);
+    loop {
+        match r.read_event() {
+            Ok(Event::Start(e)) if e.name().as_ref() == b"row" => rows.push(Vec::new()),
+            Ok(Event::Start(e)) if e.name().as_ref() == b"c" => {
+                col = 0;
+                kind.clear();
+                val.clear();
+                for a in e.attributes().flatten() {
+                    let v = String::from_utf8_lossy(&a.value).to_string();
+                    match a.key.as_ref() {
+                        b"r" => col = col_of(&v),
+                        b"t" => kind = v,
+                        _ => {}
+                    }
+                }
+            }
+            Ok(Event::Start(e)) if e.name().as_ref() == b"v" || e.name().as_ref() == b"t" => in_v = true,
+            Ok(Event::End(e)) if e.name().as_ref() == b"v" || e.name().as_ref() == b"t" => in_v = false,
+            Ok(Event::Text(t)) if in_v => val.push_str(&t.decode().map(|x| x.into_owned()).unwrap_or_default()),
+            Ok(Event::GeneralRef(g)) if in_v => val.push_str(&entity(&format!("&{};", g.decode().map(|x| x.into_owned()).unwrap_or_default()))),
+            Ok(Event::End(e)) if e.name().as_ref() == b"c" => {
+                let text = if kind == "s" { val.trim().parse::<usize>().ok().and_then(|i| shared.get(i).cloned()).unwrap_or_default() } else { val.clone() };
+                if let Some(row) = rows.last_mut() {
+                    if row.len() <= col {
+                        row.resize(col + 1, String::new());
+                    }
+                    row[col] = text;
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(format!("spreadsheet: {e}")),
+            _ => {}
+        }
+    }
+    Ok(table_of(rows))
+}
+
 pub fn csv(text: &str) -> Imported {
+    table_of(csv_rows(text))
+}
+
+pub fn csv_as_tabs(text: &str) -> Imported {
     let rows: Vec<String> = text
         .replace("\r\n", "\n")
         .split('\n')
@@ -502,6 +633,7 @@ pub fn import(name: &str, bytes: &[u8]) -> Result<Imported, String> {
         "html" | "htm" | "xhtml" => html(&as_text()),
         "md" | "markdown" => markdown(&as_text()),
         "csv" => csv(&as_text()),
+        "xlsx" => xlsx(bytes)?,
         "txt" | "text" | "tag" | "tagged" => {
             let t = as_text();
             if is_tagged(&t) { tagged(&t) } else { plain(&t) }
@@ -511,5 +643,5 @@ pub fn import(name: &str, bytes: &[u8]) -> Result<Imported, String> {
 }
 
 pub fn is_text_name(name: &str) -> bool {
-    matches!(name.rsplit('.').next().unwrap_or("").to_ascii_lowercase().as_str(), "docx" | "rtf" | "html" | "htm" | "xhtml" | "md" | "markdown" | "csv" | "txt" | "text" | "tag" | "tagged")
+    matches!(name.rsplit('.').next().unwrap_or("").to_ascii_lowercase().as_str(), "docx" | "rtf" | "html" | "htm" | "xhtml" | "md" | "markdown" | "csv" | "xlsx" | "txt" | "text" | "tag" | "tagged")
 }

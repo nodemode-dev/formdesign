@@ -228,6 +228,13 @@ pub fn place_text(doc: &mut Doc, frame: ItemId, imp: timport::Imported) -> Resul
         }
     };
     ensure_styles(doc, &imp);
+    let width = {
+        let tf = it.text();
+        let w = it.shape.bbox().width() - tf.map(|t| t.insets.inside + t.insets.outside).unwrap_or(0.0);
+        let cols = tf.map(|t| t.columns.max(1) as f64).unwrap_or(1.0);
+        let gutter = tf.map(|t| t.gutter).unwrap_or(0.0);
+        ((w - gutter * (cols - 1.0)) / cols).max(36.0)
+    };
     let st = doc.story_mut(sid).ok_or_else(|| EngineError::new("no such story"))?;
     let default = st.paras.first().map(|p| p.style.clone()).unwrap_or_else(|| BASIC_PARA.into());
     let paras: Vec<Para> = imp
@@ -236,6 +243,22 @@ pub fn place_text(doc: &mut Doc, frame: ItemId, imp: timport::Imported) -> Resul
         .map(|mut p| {
             p.style = if p.style.is_empty() { default.clone() } else { style_key(&p.style) };
             for s in p.segs.iter_mut() {
+                if let Seg::Inline { inline: formdes_model::story::Inline::Table { table }, .. } = s {
+                    let total = table.width();
+                    if total > 0.0 {
+                        let k = width / total;
+                        for w in table.widths.iter_mut() {
+                            *w *= k;
+                        }
+                    }
+                    for cell in table.cells.iter_mut() {
+                        for q in cell.paras.iter_mut() {
+                            if q.style.is_empty() {
+                                q.style = default.clone();
+                            }
+                        }
+                    }
+                }
                 let (cs, _) = s.format_mut();
                 if let Some(x) = cs.as_mut() {
                     *x = style_key(x);
