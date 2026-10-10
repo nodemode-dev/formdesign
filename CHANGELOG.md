@@ -2,6 +2,15 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.17.0 · 2026-10-10
+
+- formdes now runs on its own layout engine. The layout core answers the window, the engine service, the templates, the Make pass and agents from `native/formdes-engine` and its model, text, render and interchange crates; the engine crates it used before are no longer used or built. All 71 templates build and render; a layout made from Markdown threads onto its continuation pages.
+- The layout inside a `.fdes` is now formdes's own `.fdoc` file, and a bare layout saves and opens as `.fdoc`. Documents saved by earlier versions do not open; open their IDML export instead.
+- Source Serif 4, Source Sans 3, Inter and JetBrains Mono and a US English spelling dictionary are built into the layout core.
+- New Line (`line.create`) for rules in templates; a document whose start page number is even begins with a left page.
+- The PDF Reader is gone: viewing and editing existing PDFs moves to FormPDF, a separate app. formdes still makes layouts from PDFs, places them and exports PDF.
+- Not carried over yet: Overprint Preview, note and change markers and the highlight views on the canvas, profile-accurate soft proofing (the proof is an approximation), and typing inside table cells.
+
 ## 0.16.0 · 2026-10-10
 
 - formdes's own engine has its toolbox: Selection, Direct Selection, Page, Gap, Content Collector and Placer, Type, Type on a Path, Line, Pen with its anchor tools, Pencil, Smooth, Erase, frame and shape tools, Scissors, Free Transform, Rotate, Scale, Shear, Gradient Swatch and Feather, Note, Color Theme, Eyedropper and Measure, each with InDesign's shortcut. A drag previews live and lands as one undo step; Escape cancels it.
