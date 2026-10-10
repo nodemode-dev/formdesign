@@ -248,7 +248,7 @@ impl Doc {
     pub fn blank_page(&mut self) -> Page {
         let id = PageId(self.alloc());
         let s = &self.settings;
-        Page { id, width: s.page_width, height: s.page_height, margins: s.margins, columns: s.columns, gutter: s.gutter, parent: None, detached: Vec::new(), layout_rule: None }
+        Page { id, width: s.page_width, height: s.page_height, margins: s.margins, columns: s.columns, gutter: s.gutter, parent: None, detached: Vec::new(), layout_rule: None, joined: false }
     }
 
     pub fn arrange(&mut self, pages: Vec<Page>, carried: Vec<(ItemId, usize, Affine)>) {
@@ -256,9 +256,15 @@ impl Doc {
         let facing = self.settings.facing;
         let mut cur: Vec<Page> = Vec::new();
         let first_alone = facing && !self.settings.start_left;
+        let joins: Vec<bool> = pages.iter().map(|p| p.joined).collect();
+        let mut natural = 0usize;
         for (i, p) in pages.into_iter().enumerate() {
+            if !p.joined {
+                natural += 1;
+            }
             cur.push(p);
-            let close = !facing || (first_alone && i == 0) || cur.len() == 2;
+            let next_joined = joins.get(i + 1).copied().unwrap_or(false);
+            let close = !next_joined && (!facing || (first_alone && natural == 1) || cur.iter().filter(|q| !q.joined).count() >= 2 || cur.len() >= 2 && cur.iter().any(|q| q.joined));
             if close {
                 spreads.push(std::mem::take(&mut cur));
             }

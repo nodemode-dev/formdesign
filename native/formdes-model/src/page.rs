@@ -18,11 +18,13 @@ pub struct Page {
     pub detached: Vec<ItemId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub layout_rule: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub joined: bool,
 }
 
 impl Page {
     pub fn new(id: PageId, width: f64, height: f64) -> Page {
-        Page { id, width, height, margins: Edges::all(36.0), columns: 1, gutter: 12.0, parent: None, detached: Vec::new(), layout_rule: None }
+        Page { id, width, height, margins: Edges::all(36.0), columns: 1, gutter: 12.0, parent: None, detached: Vec::new(), layout_rule: None, joined: false }
     }
 }
 
