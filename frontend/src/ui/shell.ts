@@ -69,7 +69,6 @@ export class Shell implements Workspace {
       { label: 'Make a layout…', command: 'ui.make', icon: 'sparkle', key: 'M' },
       { label: 'New from template…', command: 'ui.templates', icon: 'newFile' },
       { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
-      { label: 'Open a PDF in the Reader…', command: 'ui.reader', icon: 'fileImage' },
     ]);
     this.uiCommands();
     this.wire();
@@ -477,11 +476,8 @@ export class Shell implements Workspace {
   }
 
   private async openDialog(): Promise<void> {
-    const files = await this.pickFiles('.fdes,.fdoc,.idml,.pdf', true);
-    for (const f of files) {
-      if (/\.pdf$/i.test(f.name)) { this.commands.run('ui.reader.file') || toast('The Reader is not available'); continue; }
-      await this.openFile(f);
-    }
+    const files = await this.pickFiles('.fdes,.fdoc,.idml', true);
+    for (const f of files) await this.openFile(f);
   }
 
   private async save(as: boolean): Promise<void> {
@@ -490,7 +486,7 @@ export class Shell implements Workspace {
     let path: string | undefined;
     if (as || !doc.path || !/\.fdes$/i.test(doc.path)) {
       const d = new Dialog(as ? 'Save As' : 'Save', 460);
-      d.body.append(el('<label class="fd-field"><span>Save to</span><input class="cv-search-input fd-save-path" type="text" spellcheck="false"></label><p class="fd-note">A .fdes file keeps the layout, its slots and the content it was made from. End the name with .idml for InDesign or .fdoc.</p>'));
+      d.body.append(el('<label class="fd-field"><span>Save to</span><input class="cv-search-input fd-save-path" type="text" spellcheck="false"></label><p class="fd-note">A .fdes file keeps the layout, its slots and the content it was made from. End the name with .idml for InDesign or .fdoc for the bare layout.</p>'));
       const inp = q<HTMLInputElement>(d.body, '.fd-save-path');
       let dir = '';
       try { dir = ((await api<{ paths: { projects: string } }>('/capabilities')).paths?.projects) ?? ''; } catch { }

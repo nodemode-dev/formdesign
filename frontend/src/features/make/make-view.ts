@@ -184,7 +184,7 @@ export class MakeView {
   private renderFiles(): void {
     type Row = { key: string; name: string; kind: string; meta: string; title: string };
     const rows: Row[] = [];
-    if (this.source) rows.push({ key: 'source', name: this.source.title || 'Extracted PDF', kind: 'pdf', meta: 'from the Reader', title: 'Content extracted in the PDF Reader' });
+    if (this.source) rows.push({ key: 'source', name: this.source.title || 'Content pack', kind: 'pdf', meta: 'content pack', title: 'Content read earlier into a content pack' });
     for (const f of this.files) rows.push({ key: fileKey(f), name: f.name, kind: fileKind(f.name), meta: bytes(f.size), title: f.name });
     patchList<Row>(q(this.root, '.mk-files'), rows, {
       key: (r) => r.key,

@@ -42,7 +42,6 @@ export const TOOL_ICONS: Record<string, string> = {
   'make': S('<path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/>'),
   'template': S('<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>'),
   'pages': S('<rect x="3.5" y="5" width="8" height="12" rx="1"/><rect x="12.5" y="5" width="8" height="12" rx="1"/><path d="M8 20h8"/>'),
-  'reader': S('<path d="M4 5.5C6.5 4 9.5 4 12 6c2.5-2 5.5-2 8-.5V19c-2.5-1.5-5.5-1.5-8 .5-2.5-2-5.5-2-8-.5z"/><path d="M12 6v13.5"/>'),
   'pdf': S('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M8.5 16v-4h1.6a1.2 1.2 0 0 1 0 2.4H8.5M12.5 16v-4h1a2 2 0 0 1 0 4zM17 12h-1.7v4M15.3 14h1.5"/>'),
   'brand': S('<circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="9.5" r="1.5" fill="currentColor"/><circle cx="14.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="16" cy="13.5" r="1.5" fill="currentColor"/><path d="M11 19.5c-1.5-1.5-.5-4 1.5-4"/>'),
   'export': S('<path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/>'),

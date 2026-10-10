@@ -90,12 +90,6 @@ def _spans(pdf: pdfium.PdfDocument, i: int) -> tuple[float, float, list[dict]]:
     return w, h, out
 
 
-def text_layer(path: str, page: int) -> dict:
-    with _lock:
-        w, h, spans = _spans(_doc(path), page)
-    return {"width": w, "height": h, "spans": [{k: (round(v, 2) if isinstance(v, float) else v) for k, v in s.items()} for s in spans]}
-
-
 def search(path: str, query: str, limit: int = 200) -> list[dict]:
     hits = []
     with _lock:
