@@ -2,6 +2,13 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.15.0 · 2026-10-10
+
+- formdes's own engine has its command layer: `native/formdes-engine` holds open documents, the selection, undo and redo, and batches that run as one undo step with `$N` references between steps. It answers the 210 commands the window, the backend, the template compiler and agents send, from frames, objects, transforms, text, styles, swatches and tables to pages, parents, layers, links, review, XML, books, packaging and export, in the shapes they expect today.
+- `native/formdes-interchange` reads IDML packages (pages, parents, layers, swatches, styles, frames, threaded stories, tables, footnotes, images) and writes them; places tagged text, plain text, Markdown, HTML, RTF, Word and CSV into frames; and exports HTML and EPUB, reflowable or fixed layout.
+- The page drawing now numbers folios on parent pages per page, draws table cell fills, alternating rows and border weights, hides tracked deletions and hidden conditional text, honours hyphenation exceptions and gradient stop opacity.
+- Still not wired into the app; the window keeps running on the engine crates it used before.
+
 ## 0.14.0 · 2026-10-10
 
 - formdes's own engine can draw and export pages. `native/formdes-render` turns a page into one list of drawing operations and draws it to PNG or JPEG, or writes it as a PDF with embedded subset fonts, CMYK kept as CMYK, selectable and searchable text, trim and bleed boxes, placed PDFs as vector pages and working links. Layers, parent pages, gradients, dashed strokes, drop shadows, images clipped to their frames, paragraph rules and shading, underlines, tab leaders, drop caps, footnotes and tables are drawn.
