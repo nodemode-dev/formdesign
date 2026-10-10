@@ -2,6 +2,12 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.14.0 · 2026-10-10
+
+- formdes's own engine can draw and export pages. `native/formdes-render` turns a page into one list of drawing operations and draws it to PNG or JPEG, or writes it as a PDF with embedded subset fonts, CMYK kept as CMYK, selectable and searchable text, trim and bleed boxes, placed PDFs as vector pages and working links. Layers, parent pages, gradients, dashed strokes, drop shadows, images clipped to their frames, paragraph rules and shading, underlines, tab leaders, drop caps, footnotes and tables are drawn.
+- The text engine gained paragraphs that span or split columns, contour and inverted text wrap, text inside ellipses and polygons, optical margin alignment, glyph scaling in justification, balanced ragged lines, carets and hit-testing, and type on a path.
+- Still not wired into the app; the window keeps running on the engine crates it used before.
+
 ## 0.13.0 · 2026-10-10
 
 - formdes's own layout engine has begun, to replace the engine crates the core builds on today. `native/formdes-model` is the document model and the `.fdes` file format: pages, spreads, parents, sections, layers, items, stories, styles, swatches. `native/formdes-text` is the text engine: font matching with fallback, OpenType shaping, hyphenation, a Knuth and Plass paragraph composer, justification, tabs, drop caps, small caps, bidirectional text, lists, nested and GREP styles, and flow through threaded frames and columns with wrap, keep options, widow control, breaks, footnotes, tables and vertical justification. Neither is wired into the app yet; nothing you see changes in this release.
