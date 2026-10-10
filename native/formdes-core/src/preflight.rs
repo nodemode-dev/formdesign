@@ -166,7 +166,9 @@ fn type_size(d: &Doc, p: &Profile, out: &mut Vec<Value>) {
 }
 
 fn spot_names(d: &Doc) -> BTreeSet<String> {
-    d.swatches.iter().filter(|s| s.spot).map(|s| s.name.clone()).collect()
+    let inks = d.prefs.get("inks");
+    let all = inks.and_then(|i| i.get("$allToProcess")).and_then(Value::as_bool).unwrap_or(false);
+    d.swatches.iter().filter(|s| s.spot && !all && !inks.and_then(|i| i.get(&s.name)).and_then(|o| o.get("toProcess")).and_then(Value::as_bool).unwrap_or(false)).map(|s| s.name.clone()).collect()
 }
 
 fn colours(d: &Doc, p: &Profile, out: &mut Vec<Value>) {

@@ -105,7 +105,7 @@ fn file_new(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"index": i, "uid": uid}))
 }
 
-fn is_idml(bytes: &[u8]) -> bool {
+pub fn is_idml(bytes: &[u8]) -> bool {
     bytes.starts_with(b"PK") && zip::ZipArchive::new(std::io::Cursor::new(bytes)).map(|z| z.file_names().any(|n| n == "designmap.xml")).unwrap_or(false)
 }
 
@@ -352,7 +352,7 @@ pub fn page_list(doc: &Doc, spec: Option<&str>) -> Result<Vec<usize>> {
     Ok(out)
 }
 
-fn deliver(p: &Value, bytes: Vec<u8>, mut extra: Value) -> Result<Value> {
+pub fn deliver(p: &Value, bytes: Vec<u8>, mut extra: Value) -> Result<Value> {
     match args::opt_str(p, "path") {
         Some(path) => {
             write_file(path, &bytes)?;

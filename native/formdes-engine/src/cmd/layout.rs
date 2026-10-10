@@ -343,12 +343,13 @@ fn document_setup(c: &mut Ctx, p: &Value) -> Result<Value> {
                     pg.margins = Edges { top: pg.margins.top * sy, bottom: pg.margins.bottom * sy, inside: pg.margins.inside * sx, outside: pg.margins.outside * sx };
                 }
             }
-            if adjust {
-                for c in carried.iter_mut() {
-                    c.2 = Affine::scale_non_uniform(sx, sy) * c.2;
-                }
-            }
+            let _ = carried;
         });
+        if adjust {
+            for abs in 0..doc.page_count() {
+                crate::cmd::prod::adapt_page(doc, abs, (ow, oh), "guide");
+            }
+        }
     }
     if let Some(f) = args::opt_bool(p, "facingPages")
         && f != doc.settings.facing
@@ -394,7 +395,9 @@ fn margins_columns(c: &mut Ctx, p: &Value) -> Result<Value> {
         )));
     }
     let only: Option<BTreeSet<usize>> = p.get("pages").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_u64).map(|n| n as usize).collect());
+    let adjust = args::opt_bool(p, "adjustLayout").unwrap_or(false) && margins.is_some();
     let doc = c.doc_mut()?;
+    let before: Vec<Option<formdes_model::geom::Rect>> = (0..doc.page_count()).map(|abs| crate::cmd::object::margin_rect(doc, abs)).collect();
     if only.is_none() {
         if let Some(m) = margins {
             doc.settings.margins = m;
@@ -434,6 +437,22 @@ fn margins_columns(c: &mut Ctx, p: &Value) -> Result<Value> {
                 if let Some(g) = gutter {
                     pg.gutter = g;
                 }
+            }
+        }
+    }
+    if adjust {
+        for (abs, old) in before.iter().enumerate() {
+            let (Some(old), Some(new)) = (*old, crate::cmd::object::margin_rect(doc, abs)) else { continue };
+            if old == new {
+                continue;
+            }
+            let Some((si, _)) = doc.page_slot(abs) else { continue };
+            let ids: Vec<ItemId> = doc.spreads[si].items.iter().copied().filter(|i| doc.page_of(*i) == Some(abs)).collect();
+            let m = formdes_model::item::map_rect(old, new);
+            for id in ids {
+                let Some(b) = doc.bounds(id) else { continue };
+                let nb = m.transform_rect_bbox(b);
+                crate::cmd::object::resize_items(doc, &[id], formdes_model::item::map_rect(b, nb), true);
             }
         }
     }
@@ -977,7 +996,7 @@ pub fn register(r: &mut Registry) {
     cmd("document.inspect", "Inspect Document").query().sig("{}").reg(r, inspect);
     cmd("document.preferences", "Document Preferences").menu(&["Edit", "Preferences", "Units & Grids..."]).sig("{horizontalUnits?, verticalUnits?, baselineGrid?: {start, increment}}").reg(r, preferences);
     cmd("layout.documentSetup", "Document Setup...").menu(&["File", "Document Setup..."]).key("Mod+Alt+P").sig("{width?, height?, pages?, startPage?, facingPages?, intent?, bleed?, slug?, adjustLayout?}").reg(r, document_setup);
-    cmd("layout.marginsAndColumns", "Margins and Columns...").menu(&["Layout", "Margins and Columns..."]).sig("{margins?: pt | {top, bottom, inside, outside}, columns?, gutter?, pages?: [0-based]}").reg(r, margins_columns);
+    cmd("layout.marginsAndColumns", "Margins and Columns...").menu(&["Layout", "Margins and Columns..."]).sig("{margins?: pt | {top, bottom, inside, outside}, columns?, gutter?, pages?: [0-based], adjustLayout?}").reg(r, margins_columns);
     cmd("layout.pageSize", "Page Size").sig("{pages: [1-based], width, height}").reg(r, page_size);
     cmd("layout.pages.insert", "Insert Pages...").menu(&["Layout", "Pages", "Insert Pages..."]).sig("{count, after?: 0-based, parent?: prefix | null}").reg(r, pages_insert);
     cmd("layout.pages.delete", "Delete Pages").menu(&["Layout", "Pages", "Delete Pages"]).sig("{pages: [0-based]}").reg(r, pages_delete);
