@@ -18,6 +18,14 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | fancy-regex 0.19 (with regex-automata, regex-syntax, bit-set) | MIT (fancy-regex), MIT OR Apache-2.0 (the rest) | GREP in Find/Change: lookahead, lookbehind and backreferences |
 | spellbook 0.4 (helix-editor/spellbook, https://github.com/helix-editor/spellbook), with foldhash and hashbrown | MPL-2.0 (spellbook, used unmodified; its source is available at that address), Zlib (foldhash), MIT OR Apache-2.0 (hashbrown) | Hunspell dictionaries for spelling in languages other than US English |
 
+## Built into formdes's own engine (in progress, not yet wired into the app)
+
+| Package | License | Notes |
+| --- | --- | --- |
+| fontdb, harfrust, skrifa (read-fonts, font-types) | MIT (fontdb, harfrust), MIT OR Apache-2.0 (skrifa) | font discovery, OpenType shaping and font metrics in `native/formdes-text` |
+| unicode-linebreak, unicode-bidi, unicode-segmentation | Apache-2.0 (unicode-linebreak), MIT OR Apache-2.0 (the rest) | line-break opportunities (UAX 14) and bidirectional text (UAX 9) |
+| hypher 0.1 (https://github.com/typst/hypher) | MIT OR Apache-2.0 (code); the embedded hyphenation patterns keep their own licences (LPPL, MPL, MIT, BSD-3-Clause, per pattern file in the crate's source) | hyphenation; the pattern licences are under review before formdes's own engine ships |
+
 ## Downloaded at your request, not distributed
 
 | Work | License | Notes |
