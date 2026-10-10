@@ -1187,8 +1187,8 @@ pub fn register(r: &mut Registry) {
     cmd("object.rename", "Rename").needs(Needs::Items).sig("{id, name}").reg(r, rename);
     cmd("object.setFlags", "Object Flags").needs(Needs::Items).sig("{hidden? | locked?, ids?}").reg(r, set_flags);
     cmd("object.setLayer", "Move to Layer").needs(Needs::Items).sig("{layer: layer id, ids?}").reg(r, set_layer);
-    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, ids?}").reg(r, text_frame_options);
-    cmd("object.textWrap", "Text Wrap").menu(&["Object", "Text Wrap..."]).needs(Needs::Items).sig("{mode: none|boundingBox|contour|jumpObject|jumpToNextColumn, offset?: pt, ids?}").reg(r, text_wrap);
+    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, ids?}").reg(r, text_frame_options);
+    cmd("object.textWrap", "Text Wrap").menu(&["Object", "Text Wrap..."]).needs(Needs::Items).sig("{mode: none|boundingBox|contour|jumpObject|jumpToNextColumn, offset?: pt, invert?, ids?}").reg(r, text_wrap);
     cmd("object.duplicate", "Duplicate").menu(&["Edit", "Duplicate"]).key("Mod+Alt+Shift+D").needs(Needs::Items).sig("{dx?, dy?, ids?}").reg(r, duplicate);
     cmd("transform.flip", "Flip").menu(&["Object", "Transform"]).needs(Needs::Items).sig("{axis: horizontal|vertical, ids?}").reg(r, flip);
     cmd("transform.info", "Transform Info").needs(Needs::Items).query().sig("{}").reg(r, info);
