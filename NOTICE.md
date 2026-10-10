@@ -24,6 +24,7 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | --- | --- | --- |
 | fontdb, harfrust, skrifa (read-fonts, font-types) | MIT (fontdb, harfrust), MIT OR Apache-2.0 (skrifa) | font discovery, OpenType shaping and font metrics in `native/formdes-text` |
 | unicode-linebreak, unicode-bidi, unicode-segmentation | Apache-2.0 (unicode-linebreak), MIT OR Apache-2.0 (the rest) | line-break opportunities (UAX 14) and bidirectional text (UAX 9) |
+| vello_cpu, kurbo, peniko, krilla, hayro, image and their dependencies | MIT OR Apache-2.0 (vello_cpu, kurbo, peniko, krilla, hayro, image), MIT, BSD, Zlib (dependencies, per `cargo metadata`) | page rendering, PDF writing, placed PDFs and image decoding in `native/formdes-render` |
 | hypher 0.1 (https://github.com/typst/hypher) | MIT OR Apache-2.0 (code); the embedded hyphenation patterns keep their own licences (LPPL, MPL, MIT, BSD-3-Clause, per pattern file in the crate's source) | hyphenation; the pattern licences are under review before formdes's own engine ships |
 
 ## Downloaded at your request, not distributed
