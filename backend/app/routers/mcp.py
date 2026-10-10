@@ -125,6 +125,14 @@ TOOLS = [
 ]
 NAMES = {t["name"] for t in TOOLS}
 _status = {"calls": 0, "last": None, "at": 0.0}
+_SETTINGS = config.DATA_DIR / "agents.json"
+
+
+def agents_enabled() -> bool:
+    try:
+        return bool(json.loads(_SETTINGS.read_text()).get("enabled", True))
+    except (OSError, ValueError, AttributeError):
+        return True
 
 
 def _local_origin(origin: str | None) -> bool:
@@ -456,6 +464,8 @@ async def _book(a: dict) -> dict:
 
 
 async def call_tool(name: str, args: dict) -> dict:
+    if not agents_enabled():
+        return _fail("Agent access to formdes is turned off. Turn it on in formdes under Preferences > Agents.")
     _status["calls"] += 1
     _status["last"] = name
     _status["at"] = time.time()
@@ -509,4 +519,14 @@ async def mcp(request: Request) -> Response:
 
 @router.get("/api/mcp/status")
 def status() -> dict:
-    return {"endpoint": "http://127.0.0.1:8196/mcp", "tools": len(TOOLS), **_status}
+    return {"endpoint": "http://127.0.0.1:8196/mcp", "tools": len(TOOLS), "enabled": agents_enabled(), **_status}
+
+
+@router.post("/api/mcp/settings")
+async def settings(request: Request) -> dict:
+    body = json.loads(await request.body() or b"{}")
+    if not isinstance(body, dict) or not isinstance(body.get("enabled"), bool):
+        return {"ok": False, "error": "expected {enabled: true or false}"}
+    _SETTINGS.parent.mkdir(parents=True, exist_ok=True)
+    _SETTINGS.write_text(json.dumps({"enabled": body["enabled"]}))
+    return {"ok": True, "enabled": body["enabled"]}

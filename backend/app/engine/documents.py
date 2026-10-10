@@ -25,6 +25,7 @@ EXPORTS = {
     "txt": ("file.exportText", ".txt", "text/plain"),
     "rtf": ("file.exportText", ".rtf", "application/rtf"),
     "xml": ("file.exportXml", ".xml", "application/xml"),
+    "svg": ("file.exportSvg", ".svg", "image/svg+xml"),
     "booklet": ("file.printBooklet", ".pdf", "application/pdf"),
 }
 
