@@ -1082,9 +1082,9 @@ pub fn register(r: &mut Registry) {
     cmd("font.list", "Fonts in Use").query().sig("{}").reg(r, font_list);
     cmd("font.replace", "Find/Replace Font").menu(&["Type", "Find/Replace Font..."]).sig("{from, to, style?, styles?: true}").reg(r, font_replace);
     cmd("style.load", "Load Styles").menu(&["Type", "Load Styles..."]).sig("{path | base64 + name, kinds?: [paragraph, character, object, table, cell], overwrite?: true, swatches?: true}").reg(r, style_load);
-    cmd("style.group", "Style Group").sig("{kind?, styles: [names], group}").reg(r, style_group);
-    cmd("style.table.edit", "Table Style Options").sig("{name, attrs?: {border, altRows, ...}, rename?}").reg(r, table_style_edit);
-    cmd("style.cell.edit", "Cell Style Options").sig("{kind: cell, name, attrs?, rename?}").reg(r, table_style_edit);
+    cmd("style.group", "Style Group").menu(&["Type", "New Style Group..."]).sig("{kind?: paragraph|character|object|table|cell, styles: [names], group}").reg(r, style_group);
+    cmd("style.table.edit", "Table Style Options").menu(&["Table", "Table Style Options..."]).sig("{name, attrs?: {border, altRows, ...}, rename?}").reg(r, table_style_edit);
+    cmd("style.cell.edit", "Cell Style Options").menu(&["Table", "Cell Style Options..."]).sig("{kind: cell, name, attrs?, rename?}").reg(r, table_style_edit);
     cmd("place.load", "Load Place Cursor").sig("{paths: [files]}").reg(r, place_load);
     cmd("file.print", "Print").menu(&["File", "Print..."]).key("Mod+P").query().sig("{printer?, copies?, pages?, bleed?}").reg(r, file_print);
     cmd("file.printers", "Printers").query().sig("{}").reg(r, printers);
@@ -1093,13 +1093,13 @@ pub fn register(r: &mut Registry) {
     cmd("list.list", "Lists").query().sig("{}").reg(r, list_list);
     cmd("list.delete", "Delete List").sig("{name}").reg(r, list_delete);
     cmd("liquid.pageRule", "Liquid Page Rule").menu(&["Layout", "Liquid Layout..."]).sig("{rule: off|scale|recenter|guide|object, pages?: [1-based]}").reg(r, page_rule);
-    cmd("liquid.object", "Liquid Layout Object").needs(Needs::Items).sig("{pinTop?, pinBottom?, pinLeft?, pinRight?, resizeWidth?, resizeHeight?, ids?}").reg(r, liquid_object);
+    cmd("liquid.object", "Liquid Layout Object").menu(&["Object", "Liquid Layout Options..."]).needs(Needs::Items).sig("{pinTop?, pinBottom?, pinLeft?, pinRight?, resizeWidth?, resizeHeight?, ids?}").reg(r, liquid_object);
     cmd("liquid.pageSize", "Resize Pages").sig("{width, height, pages?: [1-based], rule?}").help("Changes the size of pages and moves and resizes their objects by each page's liquid rule (or `rule`).").reg(r, page_size_liquid);
     cmd("layout.createAlternate", "Create Alternate Layout").menu(&["Layout", "Create Alternate Layout..."]).sig("{name?, width, height, rule?: scale|recenter|guide|object|off}").reg(r, create_alternate);
     cmd("layout.pages.toSpread", "Add Page to Spread").menu(&["Layout", "Pages", "Add Page to Spread"]).sig("{page: 1-based, join?: true}").reg(r, to_spread);
     cmd("layout.spreadShuffle", "Allow Spread to Shuffle").menu(&["Layout", "Pages", "Allow Selected Spread to Shuffle"]).sig("{allow, spread?}").reg(r, shuffle);
     cmd("object.primaryTextFrame", "Primary Text Frame").needs(Needs::Items).sig("{ids?}").reg(r, primary_frame);
-    cmd("swatch.createGradient", "New Gradient Swatch").sig("{name, type?: linear|radial, stops: [{color, at, opacity?}]}").reg(r, gradient_swatch);
-    cmd("swatch.createTint", "New Tint Swatch").sig("{base, tint: percent, name?}").reg(r, tint_swatch);
-    cmd("swatch.group", "New Colour Group").sig("{swatches: [names], group}").reg(r, swatch_group);
+    cmd("swatch.createGradient", "New Gradient Swatch").menu(&["Window", "Color", "New Gradient Swatch..."]).sig("{name, type?: linear|radial, stops: [{color, at, opacity?}]}").reg(r, gradient_swatch);
+    cmd("swatch.createTint", "New Tint Swatch").menu(&["Window", "Color", "New Tint Swatch..."]).sig("{base, tint: percent, name?}").reg(r, tint_swatch);
+    cmd("swatch.group", "New Colour Group").menu(&["Window", "Color", "New Color Group..."]).sig("{swatches: [names], group}").reg(r, swatch_group);
 }
