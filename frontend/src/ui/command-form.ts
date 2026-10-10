@@ -3,7 +3,31 @@ import { Dialog } from './dialogs';
 import { el, q, setText } from './dom';
 import { toast } from './toast';
 
-export type FieldKind = 'choice' | 'number' | 'bool' | 'json' | 'text' | 'path' | 'paths' | 'entries';
+export type FieldKind = 'choice' | 'number' | 'bool' | 'json' | 'text' | 'path' | 'paths' | 'entries' | 'features';
+
+const FEATURES: Array<[string, string]> = [
+  ['liga', 'Standard ligatures'], ['dlig', 'Discretionary ligatures'], ['swsh', 'Swash'], ['salt', 'Stylistic alternates'], ['titl', 'Titling alternates'],
+  ['smcp', 'Small caps'], ['c2sc', 'Capitals to small caps'], ['frac', 'Fractions'], ['ordn', 'Ordinals'], ['sups', 'Superscript'], ['subs', 'Subscript'],
+  ['onum', 'Oldstyle figures'], ['lnum', 'Lining figures'], ['tnum', 'Tabular figures'], ['pnum', 'Proportional figures'], ['zero', 'Slashed zero'],
+  ['ss01', 'Stylistic set 1'], ['ss02', 'Stylistic set 2'], ['ss03', 'Stylistic set 3'], ['ss04', 'Stylistic set 4'], ['ss05', 'Stylistic set 5'], ['ss06', 'Stylistic set 6'], ['ss07', 'Stylistic set 7'],
+];
+
+const EXT: Array<[RegExp, string, string]> = [[/Svg$/, '.svg', 'image/svg+xml'], [/Idml$/, '.idml', 'application/vnd.adobe.indesign-idml-package'], [/(Pdf|Booklet|print)$/, '.pdf', 'application/pdf']];
+
+function download(cmdId: string, b64: string): void {
+  const [, ext, mime] = EXT.find(([re]) => re.test(cmdId)) ?? [/./, '.bin', 'application/octet-stream'];
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(editor.doc?.title ?? 'formdes').replace(/[\\/:*?"<>|]+/g, '-')}${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
 
 export interface Field { name: string; optional: boolean; desc: string; kind: FieldKind; choices: string[]; group: number }
 
@@ -42,7 +66,8 @@ const HEAD = /^([A-Za-z][\w]*)(\?)?\s*(?::\s*([\s\S]*))?$/;
 
 function kindOf(cmd: string, name: string, desc: string): [FieldKind, string[]] {
   if (cmd === 'toc.generate' && name === 'entries') return ['entries', []];
-  if (name === 'path') return ['path', []];
+  if (cmd === 'type.openType' && name === 'features') return ['features', []];
+  if (name === 'path') return [/^(file\.(export|print)|snippet\.export|book\.export)/.test(cmd) ? 'text' : 'path', []];
   if (name === 'paths') return ['paths', []];
   const d = desc.trim();
   if (/^[\w$-]+(\s*\|\s*[\w$-]+)+$/.test(d)) return ['choice', d.split('|').map((x) => x.trim())];
@@ -211,6 +236,25 @@ export function openCommandForm(host: FormHost, cmd: CoreCommand, why: string, p
         }
       });
       bound.push({ field: f, read: () => { const v = picks.filter((p) => p.on.checked).map((p) => ({ style: p.style, level: Number(p.level.value) })); return v.length ? v : undefined; } });
+    } else if (f.kind === 'features') {
+      const box = el('<div class="fd-cmd-entries"></div>');
+      row.appendChild(box);
+      const checks = new Map<string, HTMLInputElement>();
+      const start = new Set<string>();
+      for (const [tag, name] of FEATURES) {
+        const r = el('<label class="fd-cmd-feature"><input type="checkbox"><span></span></label>');
+        setText(q(r, 'span'), `${name} (${tag})`);
+        checks.set(tag, q<HTMLInputElement>(r, 'input'));
+        box.appendChild(r);
+      }
+      void query<{ chars?: { otfFeatures?: string[] } }>('type.selectionAttrs').then((a) => {
+        for (const t of a?.chars?.otfFeatures ?? []) { start.add(t); const c = checks.get(t); if (c) c.checked = true; }
+      });
+      bound.push({ field: f, read: () => {
+        const out: Record<string, boolean> = {};
+        for (const [tag, c] of checks) if (c.checked !== start.has(tag)) out[tag] = c.checked;
+        return Object.keys(out).length ? out : undefined;
+      } });
     } else if (f.kind === 'path' || f.kind === 'paths') {
       const wrap = el('<span class="fd-cmd-path"><input type="text" spellcheck="false"><button class="cv-btn" type="button">Choose…</button></span>');
       const inp = q<HTMLInputElement>(wrap, 'input');
@@ -262,8 +306,9 @@ export function openCommandForm(host: FormHost, cmd: CoreCommand, why: string, p
     if (!p) return;
     d.close();
     void host.runCore(cmd.id, p).then((r) => {
-      const m = (r as { message?: unknown } | undefined)?.message;
-      if (typeof m === 'string' && m) toast(m, 'info');
+      const res = r as { message?: unknown; base64?: unknown } | undefined;
+      if (typeof res?.message === 'string' && res.message) toast(res.message, 'info');
+      if (typeof res?.base64 === 'string' && res.base64) download(cmd.id, res.base64);
     });
   });
   form.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); ok.click(); } });
