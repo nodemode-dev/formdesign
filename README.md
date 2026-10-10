@@ -2,7 +2,7 @@
 <h1 align="center">formdes</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.14.0-f97316" alt="version 0.14.0">
+<img src="https://img.shields.io/badge/version-0.15.0-f97316" alt="version 0.15.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -16,7 +16,7 @@ formdes is the form family's page-layout application: an alternative to InDesign
 
 **Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
 
-## Status at 0.14.0
+## Status at 0.15.0
 
 Working end to end:
 
@@ -35,7 +35,7 @@ Working end to end:
 - **Interactive, structure and reuse.** Object States, Buttons and Forms (with media options) and Page Transitions panels; the XML Tags and Structure panels (Alt+Ctrl+1) with style mapping, DTD validation, import and export; Libraries of saved pieces with thumbnails, dragged onto the page, also as the `library` MCP tool.
 - **Your workspace.** Seven built-in workspaces and your own (Window > Workspace or the title-bar switcher); panel groups that move between columns, split, size and close; keyboard shortcut sets with every command and tool rebindable (Alt+Shift+Ctrl+K).
 
-Measured against InDesign, Affinity and Acrobat in 170 traced rows (full 1, partial 0.5, none 0), formdes scores 93 (55 percent) at 0.12.0: 66 percent of what InDesign documents, 68 of Affinity and 39 of Acrobat. The earlier 53-row count of 48.0 credited menu entries that fail or run without parameters in the window (hyperlinks, Data Merge, table of contents, cross-references, QR codes, Print Booklet) and did not count work on existing PDFs, where the Reader only views and searches. A capability reachable only through a raw parameters box or MCP `run_commands` now counts as partial. Next: formdes's own layout engine (the document model and the text engine are in `native/`), then dialogs for every command that needs one.
+Measured against InDesign, Affinity and Acrobat in 170 traced rows (full 1, partial 0.5, none 0), formdes scores 93 (55 percent) at 0.12.0: 66 percent of what InDesign documents, 68 of Affinity and 39 of Acrobat. The earlier 53-row count of 48.0 credited menu entries that fail or run without parameters in the window (hyperlinks, Data Merge, table of contents, cross-references, QR codes, Print Booklet) and did not count work on existing PDFs, where the Reader only views and searches. A capability reachable only through a raw parameters box or MCP `run_commands` now counts as partial. Next: formdes's own layout engine (the document model, the text engine, page drawing, IDML and the command layer are in `native/`; the tool layer and wiring it into the app come next), then dialogs for every command that needs one.
 
 **Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
 
