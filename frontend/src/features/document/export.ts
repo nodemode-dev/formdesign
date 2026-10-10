@@ -51,7 +51,7 @@ export class ExportDialog {
   private readonly pdfBleed = new Check('Include bleed', true);
   private readonly pdfMarks = new Check('Crop marks');
   private readonly pdfFlatten = new Pick<string>([{ value: '', label: 'Off' }, { value: 'high', label: 'High resolution' }, { value: 'medium', label: 'Medium resolution' }, { value: 'low', label: 'Low resolution' }], '', 'Transparency flattener');
-  private readonly pdfStandard = new Pick<string>([{ value: 'none', label: 'None' }, { value: 'x4', label: 'PDF/X-4' }, { value: 'a2b', label: 'PDF/A-2b' }, { value: 'a2a', label: 'PDF/A-2a' }, { value: 'ua1', label: 'PDF/UA-1' }], 'none', 'Standard');
+  private readonly pdfStandard = new Pick<string>([{ value: 'none', label: 'None' }, { value: 'a2b', label: 'PDF/A-2b' }, { value: 'a2a', label: 'PDF/A-2a' }, { value: 'ua1', label: 'PDF/UA-1' }], 'none', 'Standard');
   private readonly pdfLayout = new Pick<string>([{ value: 'single', label: 'Single page' }, { value: 'continuous', label: 'Continuous' }, { value: 'twoUp', label: 'Two-up' }, { value: 'twoUpCover', label: 'Two-up with cover' }, { value: 'twoUpContinuous', label: 'Two-up continuous' }], 'single', 'Page layout');
   private readonly pdfView = new Pick<string>([{ value: 'fitPage', label: 'Fit page' }, { value: 'fitWidth', label: 'Fit width' }, { value: 'actual', label: 'Actual size' }], 'fitPage', 'Opening view');
   private readonly pdfFull = new Check('Open in full screen');

@@ -71,8 +71,8 @@ function kindOf(cmd: string, name: string, desc: string): [FieldKind, string[]] 
   if (name === 'paths') return ['paths', []];
   const d = desc.trim();
   if (/^[\w$-]+(\s*\|\s*[\w$-]+)+$/.test(d)) return ['choice', d.split('|').map((x) => x.trim())];
-  if (BOOLS.has(name) || /^(true|false)$/.test(d)) return ['bool', []];
   if (/^[[{]/.test(d)) return ['json', []];
+  if (BOOLS.has(name) || /^(true|false)$/.test(d)) return ['bool', []];
   if (/[[{]/.test(d)) return ['text', []];
   if (NUMERIC.has(name) || /\b(pt|points|deg|degrees|percent|1-based|0-based|modules|0\.\.\d|0 to)\b/.test(d)) return ['number', []];
   return ['text', []];
