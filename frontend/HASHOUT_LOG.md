@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.17.0
-Last updated: 2026-10-10 · the PDF Reader removed (PDF viewing moves to FormPDF); `.fdoc` in the Open dialog
+Current build version: v0.18.0
+Last updated: 2026-10-10 · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -52,6 +52,7 @@ frontend/
     │   ├── proof.ts              View > Proof Setup and Proof Colors (the tiles' proof option)
     │   ├── dictionaries.ts       Edit > Language Dictionaries (/api/dictionaries)
     │   ├── book.ts               the Book window over /api/books
+    │   ├── clipboard.ts          the system clipboard around edit.copy, cut, paste and Paste without Formatting
     │   └── story.ts              the Story Editor (story.replaceRange of the changed span only; style column from story.paras)
     ├── styles/
     │   ├── tokens.css            family tokens (vendored, verbatim from formvis 1.65.0)
@@ -85,6 +86,7 @@ frontend/
 - [src/features (0.10.0 panels)](#panels0100)
 - [src/ui/dock.ts and the 0.11.0 features](#dock0110)
 - [src/features/document: websites](#web0120)
+- [src/features/clipboard.ts](#clip0180)
 
 ---
 
@@ -334,3 +336,12 @@ One `WebOptions` block serves both Export and Publish Online, so the two never d
 - logged: v0.12.0 · 2026-10-08
 
 The engine says which site belongs to the open document (`active`), because an unsaved document has no path the window could match. Rows are keyed by slug and patched in place, so a republish changes only the size and time text (checked under 4x CPU and a slow network: no rows added or removed). Unpublish needs a second click within three seconds rather than a confirm dialog, which would block the window. Links open through the engine (`/api/system/open`), which works the same in the browser and the desktop shell, and fall back to `window.open`.
+
+## src/features/clipboard.ts {#clip0180}
+
+### clipboard.ts · installClipboard
+- refers-to: frontend/src/features/clipboard.ts :: writeSystem, readSystem, viewTarget, installClipboard
+- kind: rationale
+- logged: v0.18.0 · 2026-10-10
+
+The layout core keeps the real clipboard (objects with their stories and pictures, formatted text); the window only mirrors its plain text onto the system clipboard after Copy and Cut, and hands the system clipboard's text to Paste so text copied in another app pastes in. Reading the system clipboard can prompt or hang in some browsers, so the read gives up after 600 ms and the paste goes ahead with formdes's own clipboard. With no text cursor, Paste sends the spread of the page in view and the view's centre in that spread's coordinates (the inverse of the slot transform from the layout), so pasted objects land where the person is looking. Mod+V reaches the command layer before the browser's paste event, which is why the old paste listener in shell.ts no longer sees canvas pastes.

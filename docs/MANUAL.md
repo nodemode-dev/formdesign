@@ -11,19 +11,20 @@ This manual is for people laying out documents with formdes. If you are changing
 5. [Pages and parents](#pages-and-parents)
 6. [Text](#text)
 7. [Frames, images and links](#frames-images-and-links)
-8. [Colour, swatches and brands](#colour-swatches-and-brands)
-9. [Tables](#tables)
-10. [Rulers and guides](#rulers-and-guides)
-11. [Checking your work](#checking-your-work)
-12. [Exporting and printing](#exporting-and-printing)
-13. [Websites and Publish Online](#websites-and-publish-online)
-14. [Books](#books)
-15. [Interactive documents](#interactive-documents)
-16. [XML](#xml)
-17. [Libraries](#libraries)
-18. [Layouts from a PDF](#layouts-from-a-pdf)
-19. [Working with an agent](#working-with-an-agent)
-20. [Files, saving and recovery](#files-saving-and-recovery)
+8. [Long documents](#long-documents)
+9. [Colour, swatches and brands](#colour-swatches-and-brands)
+10. [Tables](#tables)
+11. [Rulers and guides](#rulers-and-guides)
+12. [Checking your work](#checking-your-work)
+13. [Exporting and printing](#exporting-and-printing)
+14. [Websites and Publish Online](#websites-and-publish-online)
+15. [Books](#books)
+16. [Interactive documents](#interactive-documents)
+17. [XML](#xml)
+18. [Libraries](#libraries)
+19. [Layouts from a PDF](#layouts-from-a-pdf)
+20. [Working with an agent](#working-with-an-agent)
+21. [Files, saving and recovery](#files-saving-and-recovery)
 
 ## What formdes does
 
@@ -98,6 +99,12 @@ Known limits: drop caps and synthesised small caps are set but do not draw yet; 
 
 File > Place (Ctrl+D) places an image or text into the selected frame or a new one. Object > Fitting fits content to the frame, the frame to the content, or fills proportionally; Auto-Fit keeps it fitted as the frame changes. The Links panel lists every placed file with its page and effective resolution, and relinks, updates or embeds it. Effects (shadows, glows, feathers, bevels, blend modes, opacity) are in the Object menu and Properties.
 
+Edit > Copy, Cut and Paste work across documents and carry stories, pictures, swatches and styles with the objects; pasting objects into text anchors them there, and text copied in another app pastes in. Paste in Place keeps the position; Paste Into puts a copied picture inside the selected frame. Edit > Step and Repeat (Ctrl+Alt+U) makes rows, columns or a run of copies. Object > Paths joins, opens, closes and reverses paths and makes or releases compound paths; Object > Convert Shape turns a frame into another shape; Object > Pathfinder adds, subtracts, intersects or excludes shapes. Object > Generate QR Code draws a QR code into the selected frame, and running it on a QR code changes its text. Type > Create Outlines (Ctrl+Shift+O) turns a text frame into shapes. Object > Captions > Generate Static Caption puts the picture's alt text, name or file name under it.
+
+## Long documents
+
+Type > Hyperlinks & Cross-References links selected text or an object to a web or email address, a page or a text anchor (New Hyperlink Destination), and inserts cross-references that read the anchor's page or paragraph; Update Cross-Reference refreshes them after the pages change. Bookmarks become the PDF's outline. Type > Text Variables defines and inserts running values (a custom text, the chapter number, a running header from a paragraph style, dates, the file name). Type > Insert Footnote adds a numbered note at the cursor. Layout > Table of Contents collects the paragraphs in the styles you choose, with page numbers after a dotted leader, into the selected frame or a new frame on the last page; Update Table of Contents rebuilds it. Index page references (Ctrl+U) mark a topic at the cursor, and Generate Index writes the index with letter headings. Data merge loads a CSV or tab-separated file, inserts `<<Field>>` placeholders at the cursor, and creates a new document with the pages repeated for each record; label a frame `<<@Photo>>` to fill it with the picture whose path is in the Photo field.
+
 ## Colour, swatches and brands
 
 The Swatches panel holds the document's colours, tints, gradients and colour groups; print templates use CMYK swatches converted through the working colour space so blacks print rich. A brand kit (palette, fonts, logo) re-skins any template: make one in the Make panel's Style step, or let a brief's colour words make a one-off kit.
@@ -108,7 +115,7 @@ Click into text and use the Table panel (Shift+F9) to insert a table, or Table >
 
 ## Rulers and guides
 
-Rulers count from the top-left of the spread in your units (Preferences, Units). Drag from a ruler onto a page to place a guide there; drop it on the pasteboard, or hold Ctrl while dropping, for a guide across the whole spread. View > Rulers (Ctrl+R) hides them; View > Guides and Margins (Ctrl+;) hides the guides. Layout > Create Guides makes rows and columns of guides.
+Rulers count from the top-left of the spread in your units (Preferences, Units). Drag from a ruler onto a page to place a guide there; drop it on the pasteboard, or hold Ctrl while dropping, for a guide across the whole spread. View > Rulers (Ctrl+R) hides them; View > Guides and Margins (Ctrl+;) hides the guides. Layout > Create Guides makes rows and columns of guides, within the margins or the page; View > Grids & Guides > Delete All Guides on Spread clears them.
 
 ## Checking your work
 

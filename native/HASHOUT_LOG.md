@@ -2,8 +2,8 @@
 
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
-Current build version: v0.17.0
-Last updated: 2026-10-10 · formdes-core moved onto formdes-engine; the previous engine removed
+Current build version: v0.18.0
+Last updated: 2026-10-10 · 58 engine commands: clipboard, guides, paths, references, contents, index, data merge, Pathfinder, QR, outlines
 
 ---
 
@@ -95,6 +95,7 @@ native/
         ├── view.rs               layout JSON, tiles and page images for the window
         ├── input.rs              pointer, key, text, cursor, tool and tools entry points; key routing; shortcut parsing
         ├── overlays.rs           guides, margins, columns, bleed, baseline grid, frame edges, selection, text and tool feedback
+        ├── transplant.rs         copying items and paragraphs between documents with what they depend on
         ├── tools/                the toolbox: one gesture at a time over the session
         │   ├── mod.rs            tool list and shortcuts, gestures, live preview and commit, dispatch by tool
         │   ├── geo.rs            hit testing, handles, anchors, snapping, page and column geometry
@@ -114,7 +115,13 @@ native/
             ├── table.rs          tables, rows, columns, cells, table and cell styles
             ├── find.rs           find and change in text and objects
             ├── xml.rs            tags, structure, DTD, XML export and import
-            └── book.rs           books: chapters, numbering, synchronised styles, one PDF
+            ├── book.rs           books: chapters, numbering, synchronised styles, one PDF
+            ├── clip.rs           copy, cut, paste, paste in place, paste into, step and repeat
+            ├── guides.rs         guide list, delete, move, lock and colour; Create Guides
+            ├── paths.rs          join, open, close, reverse, compound paths, Convert Shape
+            ├── refs.rs           hyperlinks, bookmarks, text variables, footnotes, alt text, captions, placeholder text, rotate spread
+            ├── generate.rs       table of contents, index, text anchors and cross-references, data merge
+            └── art.rs            Pathfinder, QR codes, Create Outlines, anchored objects
 ```
 
 ---
@@ -481,4 +488,46 @@ In a facing document an even start page number makes the first page a left page,
 - logged: v0.17.0 · 2026-10-10
 
 `{spread?, a, b, weight?}` draws a graphic line between two spread points with a 1 point black stroke (or `weight`) on the target layer, selects it and answers its id; the template compiler draws rules with it and styles the stroke next.
+
+### formdes-engine · the clipboard and transplant
+- refers-to: native/formdes-engine/src/cmd/clip.rs :: Clip, take, do_paste, paste_items, paste_into_text, paste_into; transplant.rs :: Mapper
+- kind: rationale
+- logged: v0.18.0 · 2026-10-10
+
+The clipboard lives on the Session, not a document, so it survives switching documents, and it holds an `Arc` of the source document as it was at copy time plus the ids (or the sliced paragraphs): copying is free and later edits to the source never change what pastes. One `Mapper` copies items and paragraphs into any document, the same one or another, bringing their stories, anchored objects, pictures (shared when the same asset data is already there), swatches, styles with their based-on chain and text variables; copying within a document goes through the same path so there is one behaviour to reason about. A selected child of a group pastes at its place on the page (its world transform), and a group whose child is also selected is copied once. Objects pasted onto the spread they came from move 12 points so the copy is visible; `at` centres them on a point (the window sends the view's centre); Paste in Place never moves them. Objects pasted into text become inline anchored objects. `text` is the system clipboard's text: it wins only when it differs from what formdes copied last, so formatting survives a round trip through the system clipboard. Paste Into is the picture case only: the frame takes the copied picture's asset at the same place on the page; arbitrary objects inside a frame need a clipping container the model does not have.
+
+### formdes-engine · guides and Create Guides
+- refers-to: native/formdes-engine/src/cmd/guides.rs :: where_of, create
+- kind: explainer
+- logged: v0.18.0 · 2026-10-10
+
+Guides are addressed by index on a spread or parent spread (`guide.list` gives the indices). Delete without `index` clears the spread, as View > Grids & Guides > Delete All Guides on Spread does. Create Guides divides each page's margin box (or the page) into rows and columns with gutters, one guide at each side of a gutter, a single guide when the gutter is 0, all limited to their page.
+
+### formdes-engine · paths and Convert Shape
+- refers-to: native/formdes-engine/src/cmd/paths.rs :: subpaths, join, compound, release, convert; formdes-render/src/scene.rs :: emit (fillRule)
+- kind: rationale
+- logged: v0.18.0 · 2026-10-10
+
+Every shape kind turns into a `Shape::Path` through `to_path` before a path edit, so rectangles, ellipses and polygons can be opened, reversed and joined like drawn paths. Join takes exactly two open single-run paths, picks the pair of end points closest together, reverses either path to suit, and adds a straight segment when the ends are more than half a point apart. A compound path is one `Path` whose sub-paths keep their own winding and whose `extra.fillRule` is `evenodd`, which the scene passes to the fill so holes show however the parts were drawn; Release splits the sub-paths back into copies of the item. Convert Shape keeps the bounding box and maps the corner shapes onto the model's corner kinds (rounded, bevel, inset, inverse).
+
+### formdes-engine · references
+- refers-to: native/formdes-engine/src/cmd/refs.rs; formdes-render/src/pdf.rs :: export (outline)
+- kind: explainer
+- logged: v0.18.0 · 2026-10-10
+
+Hyperlinks use the model's `hyperlinks` (text ranges in story positions, or an object) and are drawn as PDF links by the scene; a bare web address gets `https://`. Bookmarks live in `prefs.bookmarks` as `{name, page, level, y}` sorted by page; PDF export turns them into the outline, a level-2 bookmark nesting under the one before it. Text variables, footnotes and their editing use the model's `Inline::Variable` and `Inline::Footnote`; a date variable defined without a date takes today's. Fill with Placeholder Text lays the document out with more and more sentences (doubling, then a binary search) and keeps the most that fit without overset. Rotate Spread is a view setting on the document state (`rotations`), not a document change, so it bumps the revision without an undo step.
+
+### formdes-engine · contents, index, cross-references and data merge
+- refers-to: native/formdes-engine/src/cmd/generate.rs :: page_of_pos, toc_build, collect_index, xref_text, data_merge, fill_record; formdes-model/src/story.rs :: Inline::Index, Anchor, Xref
+- kind: rationale
+- logged: v0.18.0 · 2026-10-10
+
+Page numbers come from the laid-out text: `page_of_pos` finds the line holding a story position and the page of that line's frame. The table of contents and the index remember their settings and target story in `prefs.toc` and `prefs.index`, so Update rebuilds the same frame and the generated stories are never collected into themselves. Entries sort by page, then reading order (page, top, left of each story's first frame). TOC entry styles get a right tab at the column width with the leader, so page numbers align right. Index markers and text anchors are inlines that take no room, so they move with the text they mark through every edit; a cross-reference stores its text, shown like a variable, and `xref.update` recomputes it after the layout changes (the same model as InDesign's out-of-date cross-references). Data merge builds a new document: the first record fills the original pages, and for each further record the pages are appended and the items copied onto them through `Mapper` and moved by `repaginate`'s carried page index; `<<Field>>` in text and frames labelled or named `<<@Field>>` (a picture path) are filled. Threaded stories are copied per frame, so a story threaded across pages does not stay threaded in the merged document.
+
+### formdes-engine · Pathfinder, QR codes, outlines and anchored objects
+- refers-to: native/formdes-engine/src/cmd/art.rs :: pathfinder, qr_path, qr_code, create_outlines, anchored_insert, anchored_release
+- kind: rationale
+- logged: v0.18.0 · 2026-10-10
+
+Pathfinder flattens each shape in page coordinates (0.05 point tolerance), normalises an even-odd item through i_overlay first, and combines them in paint order (back to front); the result replaces the back object for Subtract, the front one otherwise, and is written back in that object's own coordinates. Results are straight segments, which is why the tolerance is fine. A QR code is one path of module runs (a rectangle per run of dark modules in a row), centred and square in the box, with the text kept in `extra.qr` so running the command on it again re-encodes in place; an empty selected frame is replaced, any other selected frame is covered. Create Outlines renders the frame alone in a copy of the document (its spread holding only the frame, parent pages off, its own fill and stroke cleared) and turns the glyph runs into paths with the renderer's own glyph transform, one item per text colour, grouped when there are several, keeping the frame's place in the stacking order. Releasing an anchored object puts it on its frame's spread where the text placed it, using the same placement the scene draws with.
 

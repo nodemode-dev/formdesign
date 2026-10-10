@@ -27,6 +27,8 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | vello_cpu, kurbo, peniko, krilla, hayro, image and their dependencies | MIT OR Apache-2.0 (vello_cpu, kurbo, peniko, krilla, hayro, image), MIT, BSD, Zlib (dependencies, per `cargo metadata`) | page rendering, PDF writing, placed PDFs and image decoding in `native/formdes-render` |
 | hypher 0.1 (https://github.com/typst/hypher) | MIT OR Apache-2.0 (code); the embedded hyphenation patterns keep their own licences (LPPL, MPL, MIT, BSD-3-Clause, per pattern file in the crate's source) | hyphenation; the pattern licences are still under review |
 | quick-xml, zip | MIT, MIT | IDML and EPUB in `native/formdes-interchange` |
+| i_overlay 2.2 (with i_float, i_shape, i_tree, i_key_sort; https://github.com/iShape-Rust/iOverlay) | MIT | Pathfinder: union, difference, intersection and exclusion of shapes in `native/formdes-engine` |
+| qrcodegen 1.8 (Project Nayuki, https://www.nayuki.io/page/qr-code-generator-library) | MIT | QR code encoding in `native/formdes-engine` |
 
 ## Downloaded at your request, not distributed
 
