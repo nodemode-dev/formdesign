@@ -23,7 +23,7 @@ VERSIONS = ["2026-07-28", "2025-11-25"]
 INSTRUCTIONS = ("formdes is a page-layout app (an InDesign alternative) running on this computer; these tools lay out and edit the documents "
                 "open in its engine, and the formdes window shows every change live. The fast path: intake (files and a brief become a content pack), "
                 "make_layout (a template filled with that content, about 80 percent of the way there), preview to look, set_slots to fix what the report "
-                "lists, export_document. run_commands reaches all 432 layout commands for anything else; find_commands looks them up. Every change is "
+                "lists, export_document. run_commands reaches all 212 layout commands for anything else; find_commands looks them up. Every change is "
                 "undoable (undo). Paths are absolute. For the decision tree, get the layout_strategy prompt.")
 STRATEGY = """How to make a layout in formdes with these tools.
 
@@ -85,7 +85,7 @@ TOOLS = [
           {"action": {"type": "string", "enum": ["publish", "list", "unpublish"]}, "slug": {"type": "string"}, "options": _OBJ}, ["action"], destructive=True),
     _tool("run_commands", "Runs layout commands on the active document as one undoable batch (all or nothing): [{command, params}]. Later steps can use earlier results as $N.id. find_commands lists commands and their parameters.",
           {"commands": {"type": "array", "items": _OBJ, "minItems": 1, "maxItems": 400}}, ["commands"]),
-    _tool("find_commands", "Searches the 432 layout commands by id, label or menu: each with its parameters.", {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 60, "default": 20}}, ["query"], read=True, idempotent=True),
+    _tool("find_commands", "Searches the 212 layout commands by id, label or menu: each with its parameters.", {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 60, "default": 20}}, ["query"], read=True, idempotent=True),
     _tool("undo", "Steps back through the active document's history.", {"steps": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1}}),
     _tool("redo", "Steps forward through the active document's history.", {"steps": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1}}),
     _tool("preflight", "Checks the active document for output problems: overset text, missing fonts or links, low resolution images, RGB in print. profile names a preflight profile "

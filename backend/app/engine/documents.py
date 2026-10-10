@@ -15,6 +15,7 @@ from app.engine.core import CoreError, core
 log = logging.getLogger("formdes.documents")
 
 LAYOUT_EXTS = {".fdes", ".fdoc", ".idml"}
+INNER = "document.fdoc"
 EXPORTS = {
     "pdf": ("file.exportPdf", ".pdf", "application/pdf"),
     "idml": ("file.exportIdml", ".idml", "application/vnd.adobe.indesign-idml-package"),
@@ -98,13 +99,15 @@ class Documents:
         meta_json: dict = {}
         if ext == ".fdes" or (data[:2] == b"PK" and _is_fdes(data)):
             with zipfile.ZipFile(io.BytesIO(data)) as z:
-                inner = z.read("document.fdoc")
+                if INNER not in z.namelist():
+                    raise CoreError(f"{name} was saved by a formdes older than 0.17.0, whose layout engine is gone; open its IDML export instead")
+                inner = z.read(INNER)
                 if "formdes.json" in z.namelist():
                     meta_json = json.loads(z.read("formdes.json"))
             await core.call("exec", {"command": "file.openBytes", "params": {"name": Path(name).stem + ".fdoc", "base64": base64.b64encode(inner).decode()}}, source=source)
         elif ext == ".idml":
             await core.call("exec", {"command": "file.openIdml", "params": {"base64": base64.b64encode(data).decode(), "name": name}}, source=source)
-        elif ext == ".fdoc" or data[:2] == b"PK" or data[:1] == b"{":
+        elif ext == ".fdoc" or data[:2] == b"PK":
             await core.call("exec", {"command": "file.openBytes", "params": {"name": name, "base64": base64.b64encode(data).decode()}}, source=source)
         else:
             raise CoreError(f"{name} is not a layout document (.fdes, .fdoc or .idml); place it or make a layout from it instead")
@@ -138,7 +141,7 @@ class Documents:
         with zipfile.ZipFile(buf, "w") as z:
             z.writestr(zipfile.ZipInfo("mimetype"), config.FDES_MIME, compress_type=zipfile.ZIP_STORED)
             z.writestr("formdes.json", json.dumps(meta, indent=2), compress_type=zipfile.ZIP_DEFLATED)
-            z.writestr("document.fdoc", r.bin or b"", compress_type=zipfile.ZIP_STORED)
+            z.writestr(INNER, r.bin or b"", compress_type=zipfile.ZIP_STORED)
             if pack is not None:
                 z.writestr("content/pack.json", json.dumps(pack), compress_type=zipfile.ZIP_DEFLATED)
             if thumb:
@@ -244,7 +247,7 @@ class Documents:
 def _is_fdes(data: bytes) -> bool:
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as z:
-            return "formdes.json" in z.namelist() and "document.fdoc" in z.namelist()
+            return "formdes.json" in z.namelist()
     except zipfile.BadZipFile:
         return False
 

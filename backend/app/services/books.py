@@ -7,7 +7,7 @@ from pathlib import Path
 
 from app.core import config
 from app.engine.core import CoreError, core
-from app.engine.documents import documents
+from app.engine.documents import INNER, documents
 
 BOOK_EXT = ".fdbook"
 BOOKS_DIR = config.PROJECTS_DIR / "Books"
@@ -113,7 +113,7 @@ def _inner(p: Path) -> bytes:
     data = p.read_bytes()
     if p.suffix.lower() == config.FDES_EXT:
         with zipfile.ZipFile(io.BytesIO(data)) as z:
-            return z.read("document.fdoc")
+            return z.read(INNER)
     return data
 
 
@@ -125,12 +125,12 @@ def _write_back(p: Path, inner: bytes) -> bool:
         return True
     data = p.read_bytes()
     with zipfile.ZipFile(io.BytesIO(data)) as z:
-        if z.read("document.fdoc") == inner:
+        if z.read(INNER) == inner:
             return False
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as out:
             for info in z.infolist():
-                body = inner if info.filename == "document.fdoc" else z.read(info.filename)
+                body = inner if info.filename == INNER else z.read(info.filename)
                 out.writestr(info, body, compress_type=info.compress_type)
     p.write_bytes(buf.getvalue())
     return True
@@ -164,7 +164,7 @@ async def run(path: str, steps: list[tuple[str, dict]], write_back: bool) -> dic
             temps.append(t)
         results = []
         try:
-            await _exec("book.new", {"path": str(Path(td) / "book.dcbook")})
+            await _exec("book.new", {"path": str(Path(td) / "book.fdbook")})
             for t in temps:
                 await _exec("book.add", {"path": str(t)})
             if temps:
