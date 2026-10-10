@@ -2,6 +2,11 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.13.0 · 2026-10-10
+
+- formdes's own layout engine has begun, to replace the engine crates the core builds on today. `native/formdes-model` is the document model and the `.fdes` file format: pages, spreads, parents, sections, layers, items, stories, styles, swatches. `native/formdes-text` is the text engine: font matching with fallback, OpenType shaping, hyphenation, a Knuth and Plass paragraph composer, justification, tabs, drop caps, small caps, bidirectional text, lists, nested and GREP styles, and flow through threaded frames and columns with wrap, keep options, widow control, breaks, footnotes, tables and vertical justification. Neither is wired into the app yet; nothing you see changes in this release.
+- Parity re-measured in 170 traced rows against InDesign, Affinity and Acrobat: 93 (55 percent). The earlier 48.0 of 53 credited menu entries that fail or run without parameters in the window and left out work on existing PDFs.
+
 ## 0.12.0 · 2026-10-08
 
 - Websites from any layout: File > Export > Website makes a folder (or a .zip) of web pages that reflow for phones, in the document's own type, colours and embedded fonts. A magazine or report with several articles becomes a home page with a card for each article and a page per article, figures placed among the paragraphs; a web template keeps its rows and columns (hero, feature columns, card grids, stats) and stacks them on a phone; one-page pieces become one page.

@@ -24,7 +24,7 @@ Version 0.12.0 · Rust layout core (formdes-core over formdes's own layout crate
 | Desktop app | Linux built and launched; macOS and Windows built only by CI so far |
 | Publishing to a hosted service, hyphenation in languages other than English, cloud documents, animation | Not built |
 
-The measured parity with InDesign (53 rows, full 1, partial 0.5, none 0) is 48.0 at 0.12.0.
+The measured parity with InDesign, Affinity and Acrobat (170 scored rows, full 1, partial 0.5, none 0) is 93 (55 percent) at 0.12.0, with the window's command-only features counted as partial; the earlier 53-row count was 48.0.
 
 ## Where to go
 
