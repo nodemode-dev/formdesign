@@ -2,6 +2,14 @@
 
 Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.16.0 · 2026-10-10
+
+- formdes's own engine has its toolbox: Selection, Direct Selection, Page, Gap, Content Collector and Placer, Type, Type on a Path, Line, Pen with its anchor tools, Pencil, Smooth, Erase, frame and shape tools, Scissors, Free Transform, Rotate, Scale, Shear, Gradient Swatch and Feather, Note, Color Theme, Eyedropper and Measure, each with InDesign's shortcut. A drag previews live and lands as one undo step; Escape cancels it.
+- Click the out port of a text frame to load its text and click or drag to thread it on; the place gun fills a frame, places at natural size or into a dragged frame.
+- Typing, caret and word movement, line-aware Up and Down, selection with Shift, Backspace and Delete respecting tracked changes, and nudging with the arrow keys; command and tool shortcuts are routed as the window expects.
+- The engine draws the canvas furniture the window shows: margins, columns, guides, bleed, baseline grid, frame edges, parent items, selection outlines, handles, ports and threads, path anchors, text highlights and the caret, and live tool feedback.
+- Still not wired into the app; the window keeps running on the engine crates it used before.
+
 ## 0.15.0 · 2026-10-10
 
 - formdes's own engine has its command layer: `native/formdes-engine` holds open documents, the selection, undo and redo, and batches that run as one undo step with `$N` references between steps. It answers the 210 commands the window, the backend, the template compiler and agents send, from frames, objects, transforms, text, styles, swatches and tables to pages, parents, layers, links, review, XML, books, packaging and export, in the shapes they expect today.
