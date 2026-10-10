@@ -74,9 +74,72 @@ pub struct Proof {
     target: ProofTarget,
     paper: bool,
     squeeze: f32,
+    icc: Option<std::sync::Arc<IccProof>>,
 }
 
-fn proof_of(p: &Value) -> Result<Option<Proof>> {
+pub struct IccProof {
+    to: std::sync::Arc<moxcms::Transform8BitExecutor>,
+    back: std::sync::Arc<moxcms::Transform8BitExecutor>,
+    ch: usize,
+}
+
+type IccCache = std::sync::Mutex<std::collections::HashMap<(String, String, bool), std::sync::Arc<IccProof>>>;
+
+fn icc_cache() -> &'static IccCache {
+    static CACHE: std::sync::OnceLock<IccCache> = std::sync::OnceLock::new();
+    CACHE.get_or_init(Default::default)
+}
+
+fn icc_proof(path: &str, intent: &str, paper: bool) -> Result<std::sync::Arc<IccProof>> {
+    let key = (path.to_string(), intent.to_string(), paper);
+    if let Some(hit) = icc_cache().lock().ok().and_then(|m| m.get(&key).cloned()) {
+        return Ok(hit);
+    }
+    let data = std::fs::read(path).map_err(|e| EngineError::new(format!("proof profile: cannot read {path}: {e}")))?;
+    let out = moxcms::ColorProfile::new_from_slice(&data).map_err(|e| EngineError::new(format!("proof profile {path}: {e:?}")))?;
+    let srgb = moxcms::ColorProfile::new_srgb();
+    let ri = match intent {
+        "perceptual" => moxcms::RenderingIntent::Perceptual,
+        "saturation" => moxcms::RenderingIntent::Saturation,
+        "absolute" => moxcms::RenderingIntent::AbsoluteColorimetric,
+        _ => moxcms::RenderingIntent::RelativeColorimetric,
+    };
+    let opts = |i| moxcms::TransformOptions { rendering_intent: i, ..Default::default() };
+    let four = matches!(out.color_space, moxcms::DataColorSpace::Cmyk);
+    let mid = if four { moxcms::Layout::Rgba } else { moxcms::Layout::Rgb };
+    let to = srgb.create_transform_8bit(moxcms::Layout::Rgb, &out, mid, opts(ri)).map_err(|e| EngineError::new(format!("proof profile {path}: {e:?}")))?;
+    let back_intent = if paper { moxcms::RenderingIntent::AbsoluteColorimetric } else { moxcms::RenderingIntent::RelativeColorimetric };
+    let back = out.create_transform_8bit(mid, &srgb, moxcms::Layout::Rgb, opts(back_intent)).map_err(|e| EngineError::new(format!("proof profile {path}: {e:?}")))?;
+    let p = std::sync::Arc::new(IccProof { to, back, ch: if four { 4 } else { 3 } });
+    if let Ok(mut m) = icc_cache().lock() {
+        m.insert(key, p.clone());
+    }
+    Ok(p)
+}
+
+fn profile_path(ses: &Session, name: &str) -> Option<String> {
+    ses.profiles.iter().find(|x| x.get("name").and_then(Value::as_str) == Some(name)).and_then(|x| x.get("path")).and_then(Value::as_str).map(str::to_string)
+}
+
+fn proof_of(ses: &Session, p: &Value) -> Result<Option<Proof>> {
+    let Some(mut proof) = proof_base(p)? else { return Ok(None) };
+    let pr = p.get("proof").cloned().unwrap_or(Value::Null);
+    let name = pr.get("target").and_then(Value::as_str).unwrap_or("workingCmyk");
+    let intent = pr.get("intent").and_then(Value::as_str).unwrap_or("relative");
+    let profile = match name.strip_prefix("cmyk:") {
+        Some(n) => Some(n.to_string()),
+        None if name == "workingCmyk" => ses.active().and_then(|s| s.doc.prefs.get("colorSettings")).and_then(|c| c.get("cmykProfile")).and_then(Value::as_str).map(str::to_string),
+        None => None,
+    };
+    if let Some(n) = profile
+        && let Some(path) = profile_path(ses, &n)
+    {
+        proof.icc = Some(icc_proof(&path, intent, proof.paper)?);
+    }
+    Ok(Some(proof))
+}
+
+fn proof_base(p: &Value) -> Result<Option<Proof>> {
     let Some(pr) = p.get("proof").filter(|v| v.is_object()) else { return Ok(None) };
     let name = pr.get("target").and_then(Value::as_str).unwrap_or("workingCmyk");
     let target = match name {
@@ -95,7 +158,7 @@ fn proof_of(p: &Value) -> Result<Option<Proof>> {
         other => return Err(EngineError::new(format!("unknown rendering intent `{other}`: use perceptual, relative, saturation or absolute"))),
     };
     let paper = pr.get("simulatePaper").and_then(Value::as_bool).unwrap_or(false) || intent == "absolute";
-    Ok(Some(Proof { target, paper, squeeze }))
+    Ok(Some(Proof { target, paper, squeeze, icc: None }))
 }
 
 fn lin(v: f32) -> f32 {
@@ -142,6 +205,31 @@ fn proof_px(rgb: [f32; 3], pr: &Proof) -> [f32; 3] {
 }
 
 fn proof_pixels(rgba: &mut [u8], pr: &Proof, bg: [u8; 4]) {
+    if let Some(icc) = &pr.icc {
+        let rgb: Vec<u8> = rgba.chunks_exact(4).flat_map(|p| [p[0], p[1], p[2]]).collect();
+        let n = rgb.len() / 3;
+        let mut mid = vec![0u8; n * icc.ch];
+        let mid_ok = icc.to.transform(&rgb, &mut mid).is_ok();
+        let mut back = vec![0u8; n * 3];
+        if mid_ok && icc.back.transform(&mid, &mut back).is_ok() {
+            let mut paper = [255u8; 3];
+            if pr.paper {
+                let blank = if icc.ch == 4 { vec![0u8; 4] } else { vec![255u8; 3] };
+                let _ = icc.back.transform(&blank, &mut paper);
+                if paper == [255, 255, 255] {
+                    paper = [246, 243, 236];
+                }
+            }
+            for (px, o) in rgba.chunks_exact_mut(4).zip(back.chunks_exact(3)) {
+                if px[..3] != bg[..3] {
+                    for i in 0..3 {
+                        px[i] = ((o[i] as u32 * paper[i] as u32) / 255) as u8;
+                    }
+                }
+            }
+            return;
+        }
+    }
     for px in rgba.chunks_exact_mut(4) {
         if px[..3] == bg[..3] {
             continue;
@@ -156,7 +244,7 @@ fn proof_pixels(rgba: &mut [u8], pr: &Proof, bg: [u8; 4]) {
 pub fn tiles(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
     let list = p.get("tiles").and_then(Value::as_array).ok_or_else(|| EngineError::new("missing `tiles`"))?;
     let opts = view_opts(p);
-    let proof = proof_of(p)?;
+    let proof = proof_of(ses, p)?;
     let ink_limit = p.get("inkLimit").and_then(Value::as_f64).filter(|v| *v > 0.0).map(|v| (v / 100.0) as f32);
     let overprint = p.get("overprint").and_then(Value::as_bool).unwrap_or(false);
     let notes = p.get("notes").and_then(Value::as_bool).unwrap_or(false) && !opts.printing_only;

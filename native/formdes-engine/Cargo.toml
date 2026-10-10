@@ -20,6 +20,7 @@ zip = { workspace = true }
 quick-xml = "0.38"
 i_overlay = { version = "2.2", default-features = false }
 qrcodegen = "1.8"
+moxcms = "0.8"
 
 [lints.rust]
 unsafe_code = "forbid"

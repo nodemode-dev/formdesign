@@ -342,6 +342,7 @@ dependencies = [
  "formdes-text",
  "i_overlay",
  "kurbo",
+ "moxcms",
  "qrcodegen",
  "quick-xml",
  "serde",
