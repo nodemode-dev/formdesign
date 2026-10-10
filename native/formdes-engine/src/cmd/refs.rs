@@ -291,7 +291,7 @@ fn variables_insert(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 fn footnote_insert(c: &mut Ctx, p: &Value) -> Result<Value> {
     let text = args::opt_str(p, "text").unwrap_or("");
-    let style = args::opt_str(p, "style").unwrap_or(formdes_model::style::BASIC_PARA).to_string();
+    let style = formdes_model::style::style_key(args::opt_str(p, "style").unwrap_or(formdes_model::style::BASIC_PARA));
     let paras: Vec<Para> = if text.is_empty() { vec![Para::empty(&style)] } else { text.split('\n').map(|l| Para::from_text(&style, l)).collect() };
     let at = insert_inline(c, Inline::Footnote { paras }, "Insert Footnote")?;
     Ok(json!({"at": at}))
@@ -368,7 +368,7 @@ fn caption(c: &mut Ctx, p: &Value) -> Result<Value> {
     let position = args::opt_str(p, "position").unwrap_or("below").to_string();
     let offset = args::opt_f64(p, "offset").unwrap_or(6.0);
     let height = args::opt_f64(p, "height").unwrap_or(24.0).max(6.0);
-    let style = args::opt_str(p, "style").unwrap_or(formdes_model::style::BASIC_PARA).to_string();
+    let style = formdes_model::style::style_key(args::opt_str(p, "style").unwrap_or(formdes_model::style::BASIC_PARA));
     let prefix = args::opt_str(p, "prefix").unwrap_or("").to_string();
     let doc = c.doc()?;
     let mut plan: Vec<(ItemId, Rect, String, formdes_model::doc::Home, formdes_model::ids::LayerId)> = Vec::new();

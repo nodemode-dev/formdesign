@@ -122,8 +122,8 @@ fn entries_of(p: &Value, doc: &Doc) -> Result<Vec<(String, usize)>> {
     if let Some(Value::Array(a)) = p.get("entries") {
         for (i, e) in a.iter().enumerate() {
             let (style, level) = match e {
-                Value::String(s) => (s.clone(), i + 1),
-                v => (v.get("style").and_then(Value::as_str).unwrap_or("").to_string(), v.get("level").and_then(Value::as_u64).map(|n| n as usize).unwrap_or(i + 1)),
+                Value::String(s) => (formdes_model::style::style_key(s), i + 1),
+                v => (formdes_model::style::style_key(v.get("style").and_then(Value::as_str).unwrap_or("")), v.get("level").and_then(Value::as_u64).map(|n| n as usize).unwrap_or(i + 1)),
             };
             if !style.is_empty() {
                 out.push((style, level.clamp(1, 9)));

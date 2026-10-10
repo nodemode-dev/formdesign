@@ -926,6 +926,48 @@ fn attrs_catalog(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"keys": keys}))
 }
 
+fn type_attrs(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let chars = p.get("char").and_then(Value::as_object).cloned().unwrap_or_default();
+    let para = p.get("para").and_then(Value::as_object).cloned().unwrap_or_default();
+    if chars.is_empty() && para.is_empty() {
+        return Err(EngineError::new("missing `char` or `para` (attributes by their model names, from type.attrsCatalog)"));
+    }
+    let mut probe = Attrs::new();
+    formdes_model::attrs::set_checked(&mut probe, &chars.iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| (k.clone(), v.clone())).collect(), Some(Level::Char))?;
+    formdes_model::attrs::set_checked(&mut probe, &para.iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| (k.clone(), v.clone())).collect(), Some(Level::Para))?;
+    if let Some(name) = args::opt_str(p, "style") {
+        let kind = if args::opt_str(p, "kind") == Some("character") { StyleKind::Character } else { StyleKind::Paragraph };
+        let key = formdes_model::style::style_key(name);
+        let doc = c.doc_mut()?;
+        let st = doc.styles.list_mut(kind).iter_mut().find(|s| s.name == key).ok_or_else(|| EngineError::new(format!("no style named {name}")))?;
+        let mut all = chars.clone();
+        all.extend(para.clone());
+        formdes_model::attrs::set_checked(&mut st.attrs, &all, None)?;
+        c.label(if kind == StyleKind::Character { "Character Style Options" } else { "Paragraph Style Options" });
+        return Ok(json!({"style": key}));
+    }
+    let targets = text_targets(c)?;
+    if !chars.is_empty() && targets.len() == 1 && targets[0].1.is_empty() && c.selection().text.is_some() {
+        let st = c.state_mut()?;
+        for (k, v) in &chars {
+            st.pending.insert(k.clone(), v.clone());
+        }
+    }
+    let doc = c.doc_mut()?;
+    for (sid, range) in targets {
+        let Some(st) = doc.story_mut(sid) else { continue };
+        if !chars.is_empty() && !range.is_empty() {
+            st.set_char_attrs(range.clone(), &chars)?;
+        }
+        if !para.is_empty() {
+            let ps = st.paras_in(range);
+            st.set_para_attrs(ps, &para)?;
+        }
+    }
+    c.label(if para.is_empty() { "Character Formatting" } else { "Paragraph Formatting" });
+    Ok(json!({}))
+}
+
 fn gradient_swatch(c: &mut Ctx, p: &Value) -> Result<Value> {
     let name = args::str_(p, "name", "the gradient swatch's name")?.trim().to_string();
     let kind = args::opt_str(p, "type").unwrap_or("linear").to_string();
@@ -1035,6 +1077,7 @@ pub fn register(r: &mut Registry) {
     cmd("type.clearOverrides", "Clear Overrides").menu(&["Type", "Clear Overrides"]).needs(Needs::Text).sig("{level?: all|character|paragraph}").reg(r, clear_overrides);
     cmd("type.onPath", "Type on a Path").menu(&["Type", "Type on a Path", "Add Type to Path"]).needs(Needs::Items).sig("{text?, start?, flip?, align?: baseline|ascender|descender|center, ids?}").reg(r, on_path);
     cmd("type.attrsCatalog", "Text Attributes").query().sig("{level?: character|paragraph, style?}").help("Every character or paragraph attribute with its kind, choices and description, and its value at the text selection (or in `style`).").reg(r, attrs_catalog);
+    cmd("type.attrs", "Text Attributes").sig("{char?: {model attrs}, para?: {model attrs}, style?, kind?: paragraph|character}").help("Sets character and paragraph attributes by their model names (see type.attrsCatalog) on the selected text, or on a style; null removes an attribute.").reg(r, type_attrs);
     cmd("font.list", "Fonts in Use").query().sig("{}").reg(r, font_list);
     cmd("font.replace", "Find/Replace Font").menu(&["Type", "Find/Replace Font..."]).sig("{from, to, style?, styles?: true}").reg(r, font_replace);
     cmd("style.load", "Load Styles").menu(&["Type", "Load Styles..."]).sig("{path | base64 + name, kinds?: [paragraph, character, object, table, cell], overwrite?: true, swatches?: true}").reg(r, style_load);
