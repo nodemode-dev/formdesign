@@ -72,7 +72,7 @@ fn marker_char(i: &Inline) -> char {
         Inline::Table { .. } => TABLE_ANCHOR,
         Inline::Anchored { .. } => '\u{E00E}',
         Inline::Note { .. } => NOTE_MARK,
-        Inline::Variable { .. } => '\u{E010}',
+        Inline::Variable { .. } | Inline::Index { .. } | Inline::Anchor { .. } | Inline::Xref { .. } => '\u{E010}',
     }
 }
 

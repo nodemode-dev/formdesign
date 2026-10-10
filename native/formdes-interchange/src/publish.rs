@@ -133,6 +133,10 @@ fn para_html(doc: &Doc, p: &Para, out: &mut String, notes: &mut Vec<String>) {
                     let _ = write!(out, "<sup><a href=\"#fn{n}\" id=\"fr{n}\">{n}</a></sup>");
                 }
                 Inline::Variable { name } => out.push_str(&esc(&doc.variable_text(name, None))),
+                Inline::Xref { text, .. } => out.push_str(&esc(text)),
+                Inline::Anchor { name } => {
+                    let _ = write!(out, "<a id=\"{}\"></a>", slug(name));
+                }
                 Inline::RightTab => out.push(' '),
                 Inline::Table { table } => {
                     out.push_str("</p><table>");

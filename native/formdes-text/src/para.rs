@@ -190,7 +190,13 @@ pub fn build(styles: &Styles, para: &Para, list_number: Option<i64>, footnote_ba
                     }
                     Inline::IndentHere => text.push('\u{200B}'),
                     Inline::RightTab => text.push('\t'),
-                    Inline::Note { .. } => {}
+                    Inline::Note { .. } | Inline::Index { .. } | Inline::Anchor { .. } => {}
+                    Inline::Xref { text: v, .. } => {
+                        text.push_str(v);
+                        for _ in 1..v.chars().count() {
+                            chars.push(start);
+                        }
+                    }
                 }
             }
         }

@@ -641,6 +641,10 @@ impl W<'_> {
             Inline::Note { author, text, .. } => {
                 let _ = write!(out, "<Note UserName=\"{}\"><ParagraphStyleRange><CharacterStyleRange><Content>{}</Content></CharacterStyleRange></ParagraphStyleRange></Note>", esc(author), esc(text));
             }
+            Inline::Xref { text, .. } if !text.is_empty() => {
+                let _ = write!(out, "<Content>{}</Content>", esc(text));
+            }
+            Inline::Index { .. } | Inline::Anchor { .. } | Inline::Xref { .. } => {}
         }
     }
 

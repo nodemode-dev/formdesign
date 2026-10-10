@@ -116,6 +116,23 @@ pub enum Inline {
         author: String,
         text: String,
     },
+    Index {
+        topic: String,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        sub: String,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        see: String,
+    },
+    Anchor {
+        name: String,
+    },
+    Xref {
+        anchor: String,
+        #[serde(default)]
+        format: String,
+        #[serde(default)]
+        text: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -226,6 +243,7 @@ impl Para {
                 Seg::Inline { inline: Inline::Variable { name }, .. } => s.push_str(&format!("<{name}>")),
                 Seg::Inline { inline: Inline::Marker { .. }, .. } => s.push('#'),
                 Seg::Inline { inline: Inline::RightTab, .. } => s.push('\t'),
+                Seg::Inline { inline: Inline::Xref { text, .. }, .. } => s.push_str(text),
                 Seg::Inline { .. } => {}
             }
         }
