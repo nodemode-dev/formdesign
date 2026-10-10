@@ -357,8 +357,9 @@ impl Ctx<'_> {
                     let path = xf * c.rect.to_path(0.1);
                     self.ops.push(Op::Stroke { path, brush: Brush::Solid(bcol, 1.0), style: StrokeStyle { width: bw, cap: "butt".into(), join: "miter".into(), dash: Vec::new() } });
                 }
+                let cell_texts: Vec<String> = table.and_then(|tb| tb.cell(c.row, c.col)).map(|cell| cell.paras.iter().map(|p| p.text()).collect()).unwrap_or_default();
                 for l in &c.lines {
-                    self.line(&l.line, l.baseline, xf, flow.para_texts.get(l.para).map(String::as_str).unwrap_or(""));
+                    self.line(&l.line, l.baseline, xf, cell_texts.get(l.para).map(String::as_str).unwrap_or(""));
                 }
             }
         }
@@ -582,7 +583,11 @@ impl Ctx<'_> {
 }
 
 fn next_char(text: &str, at: usize) -> usize {
-    text[at.min(text.len())..].chars().next().map(|c| at + c.len_utf8()).unwrap_or(at)
+    let at = at.min(text.len());
+    if !text.is_char_boundary(at) {
+        return (at + 1..=text.len()).find(|i| text.is_char_boundary(*i)).unwrap_or(text.len());
+    }
+    text[at..].chars().next().map(|c| at + c.len_utf8()).unwrap_or(at)
 }
 
 fn link_target(d: &LinkDest) -> Option<LinkTarget> {
