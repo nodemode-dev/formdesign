@@ -26,6 +26,7 @@ if /i "%CMD%"=="export" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="cmd" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="commands" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="tools" ( call setup\cli.bat %* & goto :eof )
+if /i "%CMD%"=="actions" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="tool" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py & goto :eof )
 if /i "%CMD%"=="agents" (
@@ -42,6 +43,6 @@ exit /b 2
 :usage
 echo formdes.bat [command]
 echo   boot ^| install [--lite] ^| install-core ^| install-fonts ^| install-desktop ^| backend ^| frontend
-echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| cmd ^| commands ^| tools ^| tool ^| mcp ^| agents
+echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| cmd ^| commands ^| actions ^| tools ^| tool ^| mcp ^| agents
 echo   doctor ^| counts ^| clean [--all] ^| help
 exit /b 0

@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 ENGINE = os.environ.get("FORMDES_ENGINE_URL", "http://127.0.0.1:8196").rstrip("/")
@@ -64,6 +65,22 @@ def cmd_commands(a) -> int:
     return 0
 
 
+def cmd_actions(a) -> int:
+    q = urllib.parse.quote(a.q or "")
+    try:
+        with urllib.request.urlopen(f"{ENGINE}/api/actions?q={q}", timeout=60) as r:
+            data = json.loads(r.read())
+    except urllib.error.URLError:
+        raise SystemExit(f"formdes: no engine at {ENGINE}. Start one with ./formdes or ./formdes backend.")
+    if a.json:
+        print(json.dumps(data, indent=1, ensure_ascii=False))
+        return 0
+    for o in data["actions"]:
+        print(f"{o['kind']:<8} {o['id']:<34} {str(o.get('label') or ''):<34} {o.get('menu') or ''}".rstrip())
+    print(" · ".join(f"{v} {k}" for k, v in data["counts"].items()), file=sys.stderr)
+    return 0
+
+
 def _rpc(method: str, params: dict) -> dict:
     r = _post("/mcp", {"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
     if "error" in r:
@@ -101,10 +118,13 @@ def add_parsers(sub) -> dict:
     l = sub.add_parser("commands", help="list the engine's commands with their menus and parameters")
     l.add_argument("--q", help="filter by id, label or menu")
     l.add_argument("--json", action="store_true")
+    x = sub.add_parser("actions", help="everything FormDesign can do in one list: engine commands, tools, window actions and MCP tools")
+    x.add_argument("--q", help="filter by id, label or menu")
+    x.add_argument("--json", action="store_true")
     t = sub.add_parser("tools", help="list the MCP tools agents get")
     t.add_argument("--json", action="store_true")
     o = sub.add_parser("tool", help="call one MCP tool on the running engine, e.g. formdes tool preview '{\"page\": 1}'")
     o.add_argument("name")
     o.add_argument("args", nargs="?")
     o.add_argument("--json", action="store_true")
-    return {"cmd": cmd_run, "commands": cmd_commands, "tools": cmd_tools, "tool": cmd_tool}
+    return {"cmd": cmd_run, "commands": cmd_commands, "actions": cmd_actions, "tools": cmd_tools, "tool": cmd_tool}

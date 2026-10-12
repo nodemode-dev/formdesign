@@ -24,6 +24,7 @@ usage: ./formdes [command] [options]
   templates [ID]      list the templates, or show one
   cmd ID [k=v...]     run one engine command on the running engine's open document (what the window shows)
   commands [--q T]    list the engine's commands with their menus and parameters
+  actions [--q T]     every action in one list: engine commands, tools, window actions, MCP tools
   tools | tool NAME   list the MCP tools, or call one: ./formdes tool preview '{"page": 1}'
   mcp                formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
   agents install|sync set up Claude Code, Codex and Cursor (install), or refresh the harness skill's tool reference (sync)
@@ -57,7 +58,7 @@ case "$cmd" in
   make) exec setup/cli make "$@" ;;
   export) exec setup/cli export "$@" ;;
   templates) exec setup/cli templates "$@" ;;
-  cmd|commands|tools|tool) exec setup/cli "$cmd" "$@" ;;
+  cmd|commands|actions|tools|tool) exec setup/cli "$cmd" "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   agents) if [ -x backend/venv/bin/python ]; then exec backend/venv/bin/python setup/agents.py "$@"; else exec python3 setup/agents.py "$@"; fi ;;
   doctor) exec setup/doctor "$@" ;;
