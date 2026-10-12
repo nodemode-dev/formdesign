@@ -102,6 +102,15 @@ TOOLS = [
           "publish (options as export_document's web options; publishing the same document again updates its site). list: the published sites with their links. "
           "unpublish (slug). To put a site on the public web, export_document web to a folder or .zip and upload that to a static host.",
           {"action": {"type": "string", "enum": ["publish", "list", "unpublish"]}, "slug": {"type": "string"}, "options": _OBJ}, ["action"], destructive=True),
+    _tool("review", "Review the active document. import_pdf_comments (path of a PDF this document exported, annotated in Acrobat or Preview): comments, highlights, strike-outs and insert-text marks become Notes at "
+          "the text under them, returning what was imported and what could not be placed. share: publishes a review site (Share for Review) on this computer and returns its link; reviewers click a page to pin a comment, "
+          "and each arrives as a Note at that position. comments: the shared review's comments with replies and state. reply (id, text, name) and resolve (id, resolved) answer them. stop: takes the review site down.",
+          {"action": {"type": "string", "enum": ["import_pdf_comments", "share", "comments", "reply", "resolve", "stop"]}, "path": _PATH, "id": {"type": "integer", "minimum": 1},
+           "text": {"type": "string", "maxLength": 2000}, "name": {"type": "string", "maxLength": 60}, "resolved": {"type": "boolean", "default": True}}, ["action"], destructive=True),
+    _tool("place_word", "Places a .docx with Microsoft Word Import Options. scan (path): the Word paragraph and character styles in the file (with counts), the document's styles and the mapping used last time. "
+          "place (path): styleMap {paragraph: {'Heading 1': {mode: existing|new|word, name}}, character: {...}} maps each Word style to a document style, a new style or keeps Word's (use word); "
+          "options removeStyles, preserveOverrides, footnotes, quotes (booleans). Places into frame (or the selected frame), otherwise loads the Place cursor. The mapping is remembered per document.",
+          {"action": {"type": "string", "enum": ["scan", "place"]}, "path": _PATH, "styleMap": _OBJ, "options": _OBJ, "frame": {"type": "integer"}}, ["action", "path"], destructive=True),
     _tool("run_commands", "Runs layout commands on the active document as one undoable batch (all or nothing): [{command, params}]. Later steps can use earlier results as $N.id. find_commands lists commands and their parameters.",
           {"commands": {"type": "array", "items": _OBJ, "minItems": 1, "maxItems": 400}}, ["commands"]),
     _tool("find_commands", "Searches the layout commands by id, label or menu, or lists a domain (type, layout, object, table, swatch, style, file...): one line each with its parameters, and how many match. With no match it suggests close ids and lists the domains.",
@@ -579,7 +588,42 @@ async def _run(name: str, a: dict) -> dict:
         return await _library(a)
     if name == "publish_website":
         return await _publish(a)
+    if name == "review":
+        return await _review(a)
+    if name == "place_word":
+        from app.services import wordimport
+        if a.get("action") == "scan":
+            return _text({**wordimport.scan(str(a["path"])), "document": {k: sorted(v) for k, v in (await wordimport.known_styles()).items()}, "remembered": await wordimport.recall()})
+        return _text(await wordimport.place(str(a["path"]), a.get("styleMap") or {}, a.get("options") or {}, a.get("frame")))
     return _fail(f"no tool {name}")
+
+
+async def _review(a: dict) -> dict:
+    from app.services import pdfcomments
+    from app.services.review import clean, reviews
+    base = f"http://127.0.0.1:{config.PORT}"
+    act = a.get("action")
+    if act == "import_pdf_comments":
+        return _text(await pdfcomments.import_comments(str(a.get("path") or "")))
+    if act == "share":
+        rec = await reviews.share()
+        return _text({"url": reviews.url(base, rec), "pages": rec.get("pages"), "comments": len(rec["comments"]), "note": "loopback only: reviewers must be on this computer"})
+    rec = await reviews.for_active()
+    if rec is None:
+        return _fail("this document is not shared for review: use action share")
+    if act == "stop":
+        return _text({"stopped": await reviews.stop()})
+    if act == "comments":
+        return _text({"shared": bool(rec.get("open")), "url": reviews.url(base, rec), "comments": [reviews.public(c) for c in rec["comments"]]})
+    cid = int(a.get("id") or 0)
+    if act == "reply":
+        text = clean(a.get("text"), 2000)
+        if not text:
+            return _fail("reply needs text")
+        return _text(reviews.public(await reviews.reply(rec, cid, clean(a.get("name"), 60) or "Agent", text, True)))
+    if act == "resolve":
+        return _text(reviews.public(await reviews.resolve(rec, cid, bool(a.get("resolved", True)))))
+    return _fail(f"unknown action {act}")
 
 
 async def _publish(a: dict) -> dict:

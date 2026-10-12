@@ -113,6 +113,8 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
 def gate_reason(name: str, args: dict) -> str | None:
     if name == "publish_website" and args.get("action", "publish") != "list":
         return "publishes a website" if args.get("action", "publish") == "publish" else "takes a published website down"
+    if name == "review" and args.get("action") in ("share", "stop"):
+        return "shares the document for review" if args.get("action") == "share" else "takes the review site down"
     if name in ("save_document", "export_document") and args.get("path"):
         try:
             if Path(str(args["path"])).expanduser().exists():

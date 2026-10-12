@@ -355,3 +355,33 @@ One list of everything FormDesign can do, built on request from the core's `comm
 
 Agents spend most of their tokens finding things and recovering from errors, so the tools now answer those two needs directly. `_hint` appends what to do to an engine error (nearest ids by difflib, the failing step's signature, the next call); the command list is cached once per engine run. `outline` is the find-things view: one line per item with the slot, story, text start and OVERSET flag, so an agent rarely needs `get_document` or `preview`. `inspect` projects fields so a measurement costs tens of tokens. `look` pairs the picture with a text list of visible problems, so the agent knows what to look at; an item that covers the whole page (a background or bleed panel) is not reported as off the page. `use_tool` takes the spread points outline and inspect report and maps them to canvas points through the layout's spread transform (pages sit at different canvas offsets), and refuses unknown tool ids, which the engine would otherwise ignore silently. The four task prompts are short procedures written against these tools.
 
+## app/services: notes, pdfcomments, review, wordimport (parity pass 4c) {#review0250}
+
+### notes.py · a page point to a Note
+- refers-to: backend/app/services/notes.py :: locate, caret_at, add_note, restore
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+The core has no command from a page point to a story offset, but its Type tool does exactly that on a click, so a point is mapped by clicking with the Type tool at the page's canvas origin plus the point and reading the caret from the reply; a click outside every frame leaves the selection alone, so the nearest text frame on that page is clicked at the clamped point instead. The person's tool and selection are put back each time (shifted by one when a note landed before their caret). Offsets are characters in the pointer reply and bytes in `text.select`; `_byte` converts, and a Note counts as one character (U+FFFC, three bytes).
+
+### pdfcomments.py · Import PDF Comments
+- refers-to: backend/app/services/pdfcomments.py :: read_annotations, import_comments, fingerprint
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+pypdf (pinned 5.9.0) reads annotations; pypdfium2 cannot. Page n of the PDF is page n of the document, scaled by the page size ratio and flipped because PDF counts up. Highlight, underline, strike-out and squiggly click the first and last quad to find the marked text and quote it from the story; if the two ends do not land in one story the text under the quad is read from the PDF instead. Replies (`/IRT`) fold into their parent's Note. A Note takes room on its line and moves the text after it, so every position is found before any note is added, and notes are inserted from the end of each story backwards. A second import skips marks already imported by a fingerprint of author, kind and comment without the quote, because the quote changes once notes exist. A Note has no date field, so the date is a line of its text.
+
+### review.py · Share for Review
+- refers-to: backend/app/services/review.py :: Reviews.share, post, same_origin, throttle; backend/app/routers/review.py :: public_post
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+The review site is a folder under Published/ (so `/sites/{slug}/` serves it) holding page JPEGs and plain HTML, CSS and JS under a strict CSP; it is not listed in `index.json`, so Publish Online's list does not show it. Publish Online has no LAN option, so neither does this: the engine binds loopback, the public routes refuse a Host that is not loopback and an Origin that is not the page's own, answer 30 posts a minute per review, and cap sizes and counts. The token is in the link, which is the access model. Comments live in Reviews/{token}.json; each is also a Note at the clicked spot (the document is activated for the moment if it is not the active one), and replies and resolve rewrite that Note's text. Positions use the live layout, where earlier Notes widen their lines, while the page image the reviewer clicked has none; a comment may land a few characters off in a line that already carries notes.
+
+### wordimport.py · Word Import Options
+- refers-to: backend/app/services/wordimport.py :: build, apply_jobs, place, finish
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+The core reads a .docx's paragraph styles by `w:name`, bold and italic, and file.place takes no map. So the .docx is rewritten (style names in styles.xml changed to the target names, so existing and new styles map by name; Normal made explicit when mapped; direct formatting, tab stops and styles stripped as asked; quotes curled), saved under .cache/word-import and placed. Character styles and footnotes are applied afterwards by `style.character.apply` and `footnote.insert` in one batch, at offsets computed from the rewritten file and applied only if the placed story's text equals it. With no frame the text loads into the Place cursor; the jobs wait in memory and `/place/word/finish`, called by the window after each change, applies them when a story with that text appears. The last mapping and options are kept per document (path, or session and uid while unsaved) in word-import.json. .rtf is not offered: the core reads RTF as plain text, with no styles to map.
+

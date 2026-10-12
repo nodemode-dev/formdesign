@@ -38,6 +38,8 @@ export interface Workspace {
   upload(files: File[]): Promise<string[]>;
   showHome(): void;
   onDropFiles(handler: (files: File[]) => boolean): void;
+  /** A single placed file may be taken over by a feature (Word Import Options): return true once handled. */
+  onPlaceFile(handler: (path: string) => Promise<boolean>): void;
   layout(): PanelLayout;
   applyLayout(layout: PanelLayout): void;
   menuAreas(): Map<string, string>;

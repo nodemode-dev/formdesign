@@ -47,6 +47,7 @@ export class Shell implements Workspace {
   private readonly overrides = new Map<string, (params?: Record<string, unknown>) => void>();
   private readonly controls = new Map<string, { node: HTMLElement; priority: number }>();
   private readonly dropHandlers: Array<(files: File[]) => boolean> = [];
+  private readonly placeHandlers: Array<(path: string) => Promise<boolean>> = [];
   private menubar: MenuBar | null = null;
   private home: HomeScreen;
   private flyout: HTMLElement | null = null;
@@ -136,6 +137,7 @@ export class Shell implements Workspace {
   addMenuItems(add: MenuAddition): void { this.additions.push(add); }
   override(coreId: string, run: (params?: Record<string, unknown>) => void): void { this.overrides.set(coreId, run); }
   onDropFiles(handler: (files: File[]) => boolean): void { this.dropHandlers.push(handler); }
+  onPlaceFile(handler: (path: string) => Promise<boolean>): void { this.placeHandlers.push(handler); }
   setHint(text: string): void { setText(q(this.root, '.fd-st-hint'), text); }
   showHome(): void { this.home.show(); }
 
@@ -555,6 +557,9 @@ export class Shell implements Workspace {
     if (!files.length) return;
     try {
       const paths = await this.upload(files);
+      let taken = false;
+      if (paths.length === 1) for (const h of this.placeHandlers) if (await h(paths[0])) { taken = true; break; }
+      if (taken) return;
       if (paths.length > 1) await this.runCore('place.load', { paths });
       else await this.runCore('file.place', { path: paths[0] });
       this.setHint('Click or drag to place the loaded content');

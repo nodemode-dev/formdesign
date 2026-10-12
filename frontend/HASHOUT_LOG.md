@@ -433,3 +433,19 @@ The parity trace kept GREP styles, nested styles, rules, shading and gradients p
 - logged: v0.23.0 · 2026-10-12
 
 New Gradient Swatch is overridden with a stop list. Colour Theme from Image uploads the picture, asks the engine service for its palette (the same median-cut palette intake uses) and adds the ticked colours plus their colour group through `script.run`, one undo step. Autocorrect's list is the person's, kept in the browser and pushed to the engine on each `hello`, because the engine's settings are per session; the core's `edit.autocorrect` menu entry opens the dialog and a separate Enable Autocorrect entry toggles it.
+
+## src/features: pdf-comments, review-share, word-import (parity pass 4c) {#review0250}
+
+### pdf-comments.ts and review-share.ts
+- refers-to: frontend/src/features/pdf-comments.ts :: PdfCommentsDialog; frontend/src/features/review-share.ts :: ShareDialog, ReviewPanel
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+Each dialog is built once and its lists are patched by key (imported notes by story and id, comments by id, replies by position), so a second import or a poll never rebuilds a row, and a reply being typed survives the three second refresh. The Review panel polls `/api/review` only while it is visible; a reviewer's comment also changes the document, so the Notes panel updates through its normal change event. The panel shows who and where; Go to selects the comment's Note through `note.list` (byte offsets, as `text.select` takes).
+
+### word-import.ts
+- refers-to: frontend/src/features/word-import.ts :: WordImportDialog, syncOptions; frontend/src/ui/shell.ts :: onPlaceFile
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+File > Place with one .docx offers it to `onPlaceFile` handlers before the plain Place; cancelling the dialog counts as handled. The two style tables are keyed rows whose select options are patched, not rebuilt; a Word style with the same name as a document style defaults to that style, otherwise to Use Word style, and a remembered pick wins. After a Place into the cursor the window asks the engine to finish the pending character styles and footnotes on each change for up to 30 minutes.
