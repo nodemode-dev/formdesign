@@ -1,5 +1,7 @@
 import base64
+import difflib
 import json
+import re
 import time
 import urllib.parse
 from pathlib import Path
@@ -21,11 +23,13 @@ from app.templates import brands, registry, spec
 
 router = APIRouter()
 VERSIONS = ["2026-07-28", "2025-11-25"]
-INSTRUCTIONS = ("formdes is a page-layout app (an InDesign alternative) running on this computer; these tools lay out and edit the documents "
-                "open in its engine, and the formdes window shows every change live. The fast path: intake (files and a brief become a content pack), "
+INSTRUCTIONS = ("FormDesign (the formdes server) is a page-layout app, an InDesign alternative, running on this computer; these tools lay out and edit the "
+                "documents open in its engine, and the FormDesign window shows every change live. The fast path: intake (files and a brief become a content pack), "
                 "make_layout (a template filled with that content, about 80 percent of the way there), preview to look, set_slots to fix what the report "
-                "lists, export_document. run_commands reaches all 311 layout commands for anything else; find_commands looks them up. Every change is "
-                "undoable (undo). Paths are absolute. For the decision tree, get the layout_strategy prompt.")
+                "lists, export_document. run_commands reaches every layout command for anything else; find_commands looks them up by word or domain and its "
+                "errors name the fix. show moves the person's view so they can follow. Every change is undoable (undo). The person may have to approve risky "
+                "steps (publishing, overwriting files, deleting pages) in Agent Connect; if a call says it was not approved, ask them. Paths are absolute. "
+                "For the decision tree, get the layout_strategy prompt.")
 STRATEGY = """How to make a layout in formdes with these tools.
 
 1. Gather. intake with the absolute paths of everything the person gave you (markdown, docx, pdf, txt, html, csv, images, gifs) and their brief in their words. It returns a compact content pack summary and the best templates for it. Do not read the files yourself first: intake is cheaper.
@@ -45,8 +49,9 @@ PROMPTS = [{"name": "layout_strategy", "title": "How to lay out in formdes", "de
 
 
 def _tool(name: str, description: str, props: dict, required: list[str] | None = None, **hints: bool) -> dict:
-    return {"name": name, "description": description, "inputSchema": {"type": "object", "properties": props, "required": required or [], "additionalProperties": False},
-            "annotations": {"readOnlyHint": hints.get("read", False), "destructiveHint": hints.get("destructive", False), "idempotentHint": hints.get("idempotent", False), "openWorldHint": False}}
+    title = name.replace("_", " ").capitalize()
+    return {"name": name, "title": title, "description": description, "inputSchema": {"type": "object", "properties": props, "required": required or [], "additionalProperties": False},
+            "annotations": {"title": title, "readOnlyHint": hints.get("read", False), "destructiveHint": hints.get("destructive", False), "idempotentHint": hints.get("idempotent", False), "openWorldHint": False}}
 
 
 _PATH = {"type": "string", "description": "Absolute path (~ is expanded)."}
@@ -86,7 +91,8 @@ TOOLS = [
           {"action": {"type": "string", "enum": ["publish", "list", "unpublish"]}, "slug": {"type": "string"}, "options": _OBJ}, ["action"], destructive=True),
     _tool("run_commands", "Runs layout commands on the active document as one undoable batch (all or nothing): [{command, params}]. Later steps can use earlier results as $N.id. find_commands lists commands and their parameters.",
           {"commands": {"type": "array", "items": _OBJ, "minItems": 1, "maxItems": 400}}, ["commands"]),
-    _tool("find_commands", "Searches the 311 layout commands by id, label or menu: each with its parameters.", {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 60, "default": 20}}, ["query"], read=True, idempotent=True),
+    _tool("find_commands", "Searches the layout commands by id, label or menu, or lists a domain (type, layout, object, table, swatch, style, file...): one line each with its parameters, and how many match. With no match it suggests close ids and lists the domains.",
+          {"query": {"type": "string"}, "domain": {"type": "string", "description": "Command id prefix, e.g. table or swatch."}, "limit": {"type": "integer", "minimum": 1, "maximum": 120, "default": 20}}, [], read=True, idempotent=True),
     _tool("undo", "Steps back through the active document's history.", {"steps": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1}}),
     _tool("redo", "Steps forward through the active document's history.", {"steps": {"type": "integer", "minimum": 1, "maximum": 100, "default": 1}}),
     _tool("preflight", "Checks the active document for output problems: overset text, missing fonts or links, low resolution images, RGB in print. profile names a preflight profile "
@@ -204,6 +210,41 @@ async def _document(detail: str) -> dict:
     return out
 
 
+_CMDS: list = []
+
+
+async def _all_commands() -> list:
+    if not _CMDS:
+        r = await core.call("commands", {"enabledOnly": False}, source="mcp")
+        _CMDS.extend(r.result if isinstance(r.result, list) else (r.result or {}).get("commands", []))
+    return _CMDS
+
+
+async def _hint(msg: str, commands: list) -> str:
+    """The engine's error plus what to do about it: the step that failed, its signature, or the nearest command ids."""
+    cmds = await _all_commands()
+    by_id = {c["id"]: c for c in cmds}
+    out = [msg]
+    ids = [c.get("command") for c in commands if isinstance(c, dict)]
+    unknown = [i for i in ids if i and i not in by_id]
+    for i in unknown[:3]:
+        near = difflib.get_close_matches(i, list(by_id), n=4, cutoff=0.45)
+        out.append(f"`{i}` is not a command" + (f"; did you mean {', '.join(near)}?" if near else "; find_commands with a word from it lists real ids."))
+    if not unknown:
+        m = re.search(r"step (\d+)", msg)
+        step = int(m.group(1)) - 1 if m else (0 if len(ids) == 1 else None)
+        if step is not None and 0 <= step < len(ids) and ids[step] in by_id:
+            c = by_id[ids[step]]
+            out.append(f"{c['id']} takes {c.get('params') or '{}'}")
+        elif len(ids) == 1 and ids[0] in by_id:
+            out.append(f"{ids[0]} takes {by_id[ids[0]].get('params') or '{}'}")
+    if "no document" in msg.lower():
+        out.append("Open or make a document first: new_document, open_document or make_layout.")
+    if re.search(r"select|selection", msg, re.I):
+        out.append("Pass ids explicitly (get_document lists them) or select with show {select: [ids]}.")
+    return " ".join(out)
+
+
 async def _run(name: str, a: dict) -> dict:
     if name == "show":
         if a.get("select"):
@@ -281,14 +322,24 @@ async def _run(name: str, a: dict) -> dict:
         res, _, _ = await documents.export(a["format"], str(p), a.get("options") or {})
         return _text({"path": str(p), **({k: v for k, v in res.items() if k != "path"} if isinstance(res, dict) else {})})
     if name == "run_commands":
-        res = await core.batch(a["commands"], source="mcp")
+        try:
+            res = await core.batch(a["commands"], source="mcp")
+        except CoreError as exc:
+            return _fail(await _hint(str(exc), a["commands"]))
         results = res.get("results", []) if isinstance(res, dict) else res
         return _text({"completed": len(results), "results": results[-20:]})
     if name == "find_commands":
-        r = await core.call("commands", {"filter": a.get("query", ""), "enabledOnly": False}, source="mcp")
-        cmds = r.result if isinstance(r.result, list) else (r.result or {}).get("commands", [])
-        rows = [f"{c.get('id')} | {c.get('label')} | {c.get('params') or ''}"[:300] for c in cmds[: int(a.get("limit", 20))]]
-        return _text("\n".join(rows) or "no commands match")
+        cmds = await _all_commands()
+        q, dom = str(a.get("query") or "").lower().strip(), str(a.get("domain") or "").lower().strip()
+        hits = [c for c in cmds if (not dom or c["id"].lower().startswith(dom + ".")) and (not q or q in c["id"].lower() or q in str(c.get("label", "")).lower() or q in " ".join(c.get("menu") or []).lower())]
+        lim = int(a.get("limit", 20))
+        rows = [f"{c.get('id')} | {c.get('label')} | {c.get('params') or '{}'}"[:300] for c in hits[:lim]]
+        head = f"{len(hits)} of {len(cmds)} commands match" + (f"; showing {lim}, raise limit or narrow the query for the rest" if len(hits) > lim else "")
+        if not hits:
+            near = difflib.get_close_matches(q, [c["id"] for c in cmds], n=5, cutoff=0.4) if q else []
+            doms = sorted({c["id"].split(".")[0] for c in cmds})
+            return _text(f"no commands match{'; close ids: ' + ', '.join(near) if near else ''}. Domains: {', '.join(doms)}")
+        return _text("\n".join([head, "id | label | params", *rows]))
     if name in ("undo", "redo"):
         for _ in range(int(a.get("steps", 1))):
             await core.exec(f"edit.{name}", {}, source="mcp")

@@ -151,9 +151,10 @@ Runs layout commands on the active document as one undoable batch (all or nothin
 
 ## find_commands
 
-Searches the 311 layout commands by id, label or menu: each with its parameters.
+Searches the layout commands by id, label or menu, or lists a domain (type, layout, object, table, swatch, style, file...): one line each with its parameters, and how many match. With no match it suggests close ids and lists the domains.
 
-- `query`: string; required
+- `query`: string
+- `domain`: string; Command id prefix, e.g. table or swatch.
 - `limit`: integer; default 20
 
 Note: read-only.
