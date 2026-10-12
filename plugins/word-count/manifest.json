@@ -1,0 +1,15 @@
+{
+  "id": "com.formdes.word-count",
+  "name": "Word Count",
+  "version": "1.0.0",
+  "author": "FormDesign",
+  "description": "A panel with words, characters, sentences, paragraphs and reading time for the selected text, the selected frames' stories, or the story you are typing in.",
+  "minAppVersion": "0.25.0",
+  "entry": "main.js",
+  "permissions": { "document.read": true, "panel": true, "menu": true, "commands": true },
+  "contributes": {
+    "panel": { "title": "Word Count" },
+    "commands": [{ "id": "refresh", "label": "Count Words" }],
+    "menu": ["refresh"]
+  }
+}

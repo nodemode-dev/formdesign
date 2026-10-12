@@ -1,0 +1,14 @@
+{
+  "id": "com.formdes.lorem-fill",
+  "name": "Lorem Fill",
+  "version": "1.0.0",
+  "author": "FormDesign",
+  "description": "Adds Window > Plug-ins > Fill Empty Frames with Placeholder Text: every selected text frame that has no text receives placeholder text.",
+  "minAppVersion": "0.25.0",
+  "entry": "main.js",
+  "permissions": { "document.read": true, "document.write": true, "commands": true, "menu": true },
+  "contributes": {
+    "commands": [{ "id": "fill", "label": "Fill Empty Frames with Placeholder Text" }],
+    "menu": ["fill"]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "FormDesign bundled catalogue",
+  "plugins": [
+    {
+      "id": "com.formdes.word-count",
+      "name": "Word Count",
+      "version": "1.0.0",
+      "author": "FormDesign",
+      "description": "A panel with words, characters, sentences, paragraphs and reading time for the selection or story. Read only.",
+      "minAppVersion": "0.25.0",
+      "permissions": { "document.read": true, "panel": true, "menu": true, "commands": true },
+      "download": "dist/word-count.fdplugin",
+      "sha256": "98a8afcb800aa03dd967d85e27a4a4c792a72449ed1b101f7808da7ef6758d0c"
+    },
+    {
+      "id": "com.formdes.lorem-fill",
+      "name": "Lorem Fill",
+      "version": "1.0.0",
+      "author": "FormDesign",
+      "description": "A command that fills the selected empty text frames with placeholder text.",
+      "minAppVersion": "0.25.0",
+      "permissions": { "document.read": true, "document.write": true, "menu": true, "commands": true },
+      "download": "dist/lorem-fill.fdplugin",
+      "sha256": "351bece2f6e674e4fe05106475378c63a69a6e1d6e768aaa7c8d8fb7fb504ee3"
+    }
+  ]
+}
