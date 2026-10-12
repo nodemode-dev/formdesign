@@ -37,6 +37,7 @@ export const feature: Feature = {
       { id: 'ui.exportWeb', label: 'Export Website…', enabled: has, run: () => void exporter().open('web') },
       { id: 'ui.publish', label: 'Publish Online…', enabled: has, run: () => void publisher().open() },
       { id: 'ui.prefs', label: 'Preferences…', keys: ['Mod+,'], run: () => prefs().open() },
+      { id: 'ui.prefsAi', label: 'AI Preferences…', run: () => prefs().open('ai') },
       { id: 'ui.recover', label: 'Recover Unsaved Documents', run: () => void recover() },
     );
     const recover = async () => {

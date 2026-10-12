@@ -12,3 +12,4 @@ striprtf
 fonttools
 brotli
 keyring
+httpx

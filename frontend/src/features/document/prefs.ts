@@ -1,4 +1,5 @@
 import { api } from '../../engine/client';
+import { AiPage } from '../ai-settings';
 import { Dialog } from '../../ui/dialogs';
 import { el, escapeHtml, q, setChecked, setClass, setText, setTitle, setValue } from '../../ui/dom';
 import { readChoice, setAccent, setIntensity, setTheme, THEMES } from '../../ui/themes';
@@ -13,7 +14,7 @@ const REFS: Array<[string, number, number]> = [
   ['Half-inch margin', 36, 0], ['Standard bleed', 9, 0], ['Body text size', 10, 0],
 ];
 
-type Page = 'appearance' | 'units' | 'agents';
+type Page = 'appearance' | 'units' | 'agents' | 'ai';
 
 const ACCENTS: Array<{ hex: string; name: string }> = [
   { hex: '#f97316', name: 'Orange' }, { hex: '#aba0d3', name: 'Lavender' }, { hex: '#3b82f6', name: 'Blue' },
@@ -39,6 +40,7 @@ export class PreferencesDialog {
   private readonly agentsOn = el<HTMLInputElement>('<input type="checkbox" checked>');
   private readonly lines = new Map<string, HTMLElement>();
   private readonly refs = el('<div class="fd-pr-refs"></div>');
+  private readonly ai = new AiPage();
   private readonly done: HTMLButtonElement;
 
   constructor() {
@@ -51,6 +53,7 @@ export class PreferencesDialog {
       { id: 'appearance', label: 'Appearance', icon: 'palette' },
       { id: 'units', label: 'Units', icon: 'ruler' },
       { id: 'agents', label: 'Agents', icon: 'terminal' },
+      { id: 'ai', label: 'AI', icon: 'info' },
     ];
     for (const t of tabs) {
       const b = el<HTMLButtonElement>(`<button class="cv-prefs-tab fd-pr-tab" type="button">${docIcon(t.icon, 15)}<span class="fd-pr-tabname"></span></button>`);
@@ -59,7 +62,7 @@ export class PreferencesDialog {
       b.addEventListener('click', () => this.show(t.id));
       this.nav.appendChild(b);
     }
-    this.pages.append(this.appearancePage(), this.unitsPage(), this.agentsPage());
+    this.pages.append(this.appearancePage(), this.unitsPage(), this.agentsPage(), this.ai.root);
     this.done = this.d.button('Done', 'primary', () => this.d.close());
     document.addEventListener('nm:ui-settings-changed', () => { if (this.d.isOpen) this.sync(); });
   }
@@ -69,6 +72,7 @@ export class PreferencesDialog {
     this.sync();
     this.d.open(this.done);
     void this.loadAgents();
+    void this.ai.load();
   }
 
   private show(p: Page): void {

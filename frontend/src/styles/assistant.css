@@ -1,0 +1,59 @@
+/* Assistant panel, AI preferences and the AI dialogs. Messages are appended to a per-document list and never rebuilt; no scrollbar is drawn. */
+.fa-assist { display: flex; flex-direction: column; height: 100%; min-height: 260px; font-size: var(--fs-12); color: var(--text-secondary); }
+.fa-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line-0); }
+.fa-status { flex: 1 1 110px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-muted); font-size: 11px; }
+.fa-head-btns { display: flex; gap: var(--space-1); flex: none; }
+.fa-setup { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); padding: var(--space-3); border-bottom: 1px solid var(--line-0); }
+.fa-setup[hidden] { display: none; }
+.fa-setup p { margin: 0; color: var(--text-secondary); }
+.fa-lanes { position: relative; flex: 1 1 auto; min-height: 90px; }
+.fa-list { position: absolute; inset: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); overflow-y: auto; overscroll-behavior: contain; }
+.fa-list[hidden] { display: none; }
+.fa-hint { display: flex; flex-direction: column; gap: var(--space-2); color: var(--text-muted); }
+.fa-hint p { margin: 0; line-height: 1.5; }
+.fa-chips { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+.fa-msg { display: flex; }
+.fa-msg.fa-user { justify-content: flex-end; }
+.fa-bubble { max-width: 92%; padding: 6px 10px; border-radius: var(--radius); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
+.fa-user .fa-bubble { background: var(--accent-color-dim); color: var(--text-primary); }
+.fa-assistant .fa-bubble { background: transparent; padding-left: 0; color: var(--text-primary); max-width: 100%; }
+.fa-note .fa-bubble { padding-left: 0; color: var(--text-muted); font-style: italic; }
+.fa-tool { border: 1px solid var(--line-0); border-radius: var(--radius); background: var(--bg-secondary); }
+.fa-tool > summary { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: 4px 8px; cursor: pointer; list-style: none; min-height: 26px; }
+.fa-tool > summary::-webkit-details-marker { display: none; }
+.fa-tname { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-primary); font-family: var(--font-mono); font-size: 11px; }
+.fa-tstate { color: var(--text-muted); font-size: 11px; }
+.fa-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok, #4ade80); }
+.fa-tool.is-run .fa-dot { background: var(--accent-color); animation: fa-pulse 1s ease-in-out infinite; }
+.fa-tool.is-bad .fa-dot { background: var(--danger-text); }
+@keyframes fa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .fa-tool.is-run .fa-dot { animation: none; } }
+.fa-tbody { display: flex; flex-direction: column; gap: 4px; padding: 4px 8px 8px; border-top: 1px solid var(--line-0); }
+.fa-tbody code { display: block; max-height: 140px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); user-select: text; -webkit-user-select: text; }
+.fa-approval { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--accent-color); border-radius: var(--radius); background: var(--accent-color-dim); }
+.fa-approval.is-decided { border-color: var(--line-0); background: transparent; }
+.fa-approval-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--text-primary); }
+.fa-approval-text code { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.fa-approval-btns { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.fa-compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); padding: var(--space-2) var(--space-3) var(--space-3); border-top: 1px solid var(--line-0); }
+.fa-input { height: auto; min-height: 44px; max-height: 140px; padding: 6px 8px; resize: none; line-height: 1.4; font-family: var(--font-ui); }
+.fa-send.is-stop { background: var(--danger-fill); border-color: var(--danger-fill); color: #fff; }
+/* Preferences > AI */
+.fa-row { display: grid; grid-template-columns: 90px minmax(0, 1fr); align-items: center; gap: var(--space-2); }
+.fa-row > span:first-child { color: var(--text-muted); }
+.fa-keywrap { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.fa-keywrap .cv-input { flex: 1 1 auto; }
+.fa-keystate, .fa-ikeystate { flex: none; color: var(--text-muted); font-size: 11px; }
+.fa-keystate.is-set, .fa-ikeystate.is-set { color: var(--ok, #4ade80); }
+.fa-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.fa-result { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
+/* AI dialogs */
+.fa-dnote { margin: 0 0 var(--space-2); color: var(--text-muted); line-height: 1.5; }
+.fa-prompt { height: auto; padding: 6px 8px; resize: vertical; font-family: var(--font-ui); line-height: 1.4; }
+.fa-alts { display: flex; flex-direction: column; gap: var(--space-2); max-height: 52vh; overflow-y: auto; }
+.fa-alt { display: grid; grid-template-columns: auto 72px minmax(0, 1fr); align-items: start; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--line-0); border-radius: var(--radius); }
+.fa-alt-img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius-sm); background: var(--bg-tertiary); }
+.fa-alt-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fa-alt-name { color: var(--text-muted); font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fa-alt-text { height: auto; padding: 6px 8px; resize: vertical; font-family: var(--font-ui); line-height: 1.4; }
+.fa-alt-err { color: var(--danger-text); font-size: 11px; }

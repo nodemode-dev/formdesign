@@ -12,4 +12,5 @@ striprtf==0.0.33
 fonttools==4.66.1
 brotli==1.2.0
 keyring==25.7.0
+httpx==0.28.1
 pywinpty==3.0.5; sys_platform == "win32"

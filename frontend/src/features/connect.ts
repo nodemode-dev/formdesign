@@ -65,7 +65,7 @@ class ConnectPanel {
       inst.appendChild(b);
     }
     engine.on('agents', (e: { what: string; client?: string; tool?: string; reason?: string }) => {
-      if (e.what === 'approval') toast(`${e.client} asks to run ${e.tool}: it ${e.reason}. Approve or decline in Agent Connect.`);
+      if (e.what === 'approval' && e.client !== 'assistant') toast(`${e.client} asks to run ${e.tool}: it ${e.reason}. Approve or decline in Agent Connect.`);
       void this.load();
     });
     engine.on('changed', (e: ChangeEvent) => this.followChange(e));
@@ -182,5 +182,5 @@ export function installConnect(ws: Workspace): void {
   let panel: ConnectPanel | null = null;
   const make = (): ConnectPanel => (panel ??= new ConnectPanel(ws));
   ws.registerPanel({ id: 'connect', label: 'Agent Connect', group: 'connect', column: 'left', order: 10, create: () => make().root, onShow: () => panel?.onShow() });
-  engine.on('agents', (e: { what: string }) => { if (e.what === 'approval') { make(); ws.showPanel('connect'); } });
+  engine.on('agents', (e: { what: string; client?: string }) => { if (e.what === 'approval' && e.client !== 'assistant') { make(); ws.showPanel('connect'); } });
 }
