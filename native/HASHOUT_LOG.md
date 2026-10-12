@@ -610,3 +610,26 @@ Package writes each used face into `Document fonts/` from the bytes the renderer
 
 Correction happens in the engine's typing path, not the window, so typing from any client (the window, MCP `text`, the CLI) behaves the same. It runs only when one separator character is typed (space, tab, return, closing punctuation and quotes) with a collapsed caret and `raw` off, reads the word before the caret in character offsets (the same offsets the selection uses), selects it and inserts the replacement through `text.insert`, so it joins the typing undo step and tracked changes record it like typing. An exact key wins; otherwise a lower-case key is matched and the typed word's case (Capitalised or ALL CAPS) is applied to the correction. Settings live in `Session.prefs.autocorrect` (session scope, set by `edit.autocorrect`); the window keeps the person's list and sends it on every engine connection.
 
+## Decorations, list levels and parent options (0.24.0) {#parity0240}
+
+### attrs.rs and scene.rs · underline and strikethrough options
+- refers-to: native/formdes-model/src/attrs.rs :: Deco, CharProps.underline_style, strike_style; native/formdes-render/src/scene.rs :: decorations in the run painter
+- kind: rationale
+- logged: v0.24.0 · 2026-10-12
+
+InDesign's Underline Options and Strikethrough Options set weight, offset and colour with tint. The model keeps them as optional keys so existing documents read unchanged: an empty weight or offset falls back to the face's own underline and strikeout metrics scaled to the run size, an empty colour to the run's fill brush. The renderer now draws a decoration even when the text itself has no fill (InDesign allows an underline under paper-coloured text). Offsets are entered as positive distances (below the baseline for underline, above for strike) and signed in the renderer. IDML does not carry the new keys yet.
+
+### flow.rs and para.rs · list levels
+- refers-to: native/formdes-text/src/flow.rs :: list counters; native/formdes-text/src/para.rs :: ListNo, build
+- kind: rationale
+- logged: v0.24.0 · 2026-10-12
+
+Counters are keyed by list (its name, or the paragraph style when unnamed) and level; numbering a paragraph at level L clears the counters of every deeper level, which is InDesign's restart-after-higher-level default, and collects the current numbers of the levels above for `^1` to `^9`. `build` takes a `ListNo` (number and ancestors) instead of a bare number; callers that never numbered still pass None.
+
+### layout.rs · Parent Page Options
+- refers-to: native/formdes-engine/src/cmd/layout.rs :: parents_options
+- kind: rationale
+- logged: v0.24.0 · 2026-10-12
+
+Based-on parents were already in the model, the layout and the renderer; what was missing was a way to set one after creation. The cycle check walks the proposed base's chain (16 steps at most) and refuses any chain that reaches the parent being edited.
+

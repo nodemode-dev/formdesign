@@ -2,6 +2,15 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.24.0 · 2026-10-12
+
+- The repository is now called formdesign (folder, clone address, zips, updater and core downloads); the `formdes` command and MCP server keep their names.
+- Underline and strikethrough options: weight, offset, colour and tint, in Character Options.
+- Multilevel lists: a list level per paragraph, each level counting on its own and restarting under a higher level, with ^1 to ^9 for the higher levels' numbers (1, 1.1, 1.2, 2, 2.1, 2.1.1).
+- Layout > Pages > Parent Page Options: rename a parent and base it on another parent.
+- Agents: `outline` (the document in one line per item), `inspect` (fields by id), `look` (a page or region with its problems listed) and `use_tool` (any of the 36 tools by click or drag); prompts for fixing overset text, re-branding, print and web export. 34 tools.
+- Parity: 107 to 108.5 of 133 (Underline options, Multilevel lists and Based-on parents closed).
+
 ## 0.23.0 · 2026-10-12
 
 - File > Package copies the document's fonts into Document fonts (fonts whose licence forbids embedding are left out and named in the report).

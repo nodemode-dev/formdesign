@@ -346,3 +346,12 @@ The plan's risky steps are the ones a person cannot take back with Undo: publish
 
 One list of everything FormDesign can do, built on request from the core's `commands` and `tools`, the window's own actions (posted by the window once its menus exist, kept in memory) and the MCP tool list, each with where it is reachable. Menus and Search already read the same sources; this is the list agents, the CLI and the skills read, so a new command shows up everywhere without a hand-written reference.
 
+## app/routers/mcp.py: reading, seeing and drawing (0.23.0 and 0.24.0) {#mcp0240}
+
+### mcp.py · errors, outline, inspect, look, use_tool, prompts
+- refers-to: backend/app/routers/mcp.py :: _hint, _all_commands, _outline, _inspect, _look, _use_tool, PROMPT_TEXT
+- kind: rationale
+- logged: v0.24.0 · 2026-10-12
+
+Agents spend most of their tokens finding things and recovering from errors, so the tools now answer those two needs directly. `_hint` appends what to do to an engine error (nearest ids by difflib, the failing step's signature, the next call); the command list is cached once per engine run. `outline` is the find-things view: one line per item with the slot, story, text start and OVERSET flag, so an agent rarely needs `get_document` or `preview`. `inspect` projects fields so a measurement costs tens of tokens. `look` pairs the picture with a text list of visible problems, so the agent knows what to look at; an item that covers the whole page (a background or bleed panel) is not reported as off the page. `use_tool` takes the spread points outline and inspect report and maps them to canvas points through the layout's spread transform (pages sit at different canvas offsets), and refuses unknown tool ids, which the engine would otherwise ignore silently. The four task prompts are short procedures written against these tools.
+

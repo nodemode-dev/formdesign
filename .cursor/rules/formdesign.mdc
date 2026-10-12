@@ -10,6 +10,7 @@ FormDesign is a page-layout app (an InDesign alternative). Its MCP server is `fo
 
 - To make or change a layout from files and a brief, follow `.agents/skills/formdes-harness/SKILL.md`: intake, make_layout, preview, set_slots, export_document. Do not read the source files into context first; intake is cheaper.
 - For anything the fast path does not cover, `find_commands` (by word or by domain such as table, swatch, type) and then `run_commands` with `[{command, params}]` as one undoable batch. Error replies name the fix: the nearest command id or the parameters the command takes.
+- Read cheaply with `outline` and `inspect`, see a page or region with `look` (it lists overset text, empty frames and objects off the page), and draw what only a tool draws with `use_tool`.
 - `show` moves the person's view to a page, zoom, panel or tool so they can follow.
 - Risky steps (publishing a website, overwriting a file, packaging, printing, deleting several pages) may wait for the person to approve them in Window > Agent Connect. When a call says it was not approved, ask the person; do not retry in a loop.
 - In a terminal, `./formdes cmd ID key=value` runs one engine command on the open document, `./formdes actions` lists everything FormDesign can do, and `./formdes tool NAME '{json}'` calls an MCP tool.
