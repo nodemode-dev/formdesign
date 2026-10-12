@@ -9,7 +9,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Paragraph Options has no JSON left: GREP styles, nested styles and tab stops are rows, rules and shading are forms, spacing is minimum, desired and maximum.
 - New Gradient Swatch has a stop list (colour, location, opacity). Window > Colour Theme from Image adds an image's colours as a swatch group.
 - Agents: errors from run_commands name the nearest command or the parameters it takes; find_commands lists a domain and counts matches; tools have titles; a Cursor rule ships in `.cursor/rules`.
-- Parity: 104 to 107.5 of 133 (Package, Autocorrect, GREP styles, Swatches and Colour themes closed).
+- Parity: 104 to 107 of 133, 80 percent of InDesign and 86 of Affinity (Package, Autocorrect, GREP styles, Swatches and Colour themes closed).
 
 ## 0.22.0 · 2026-10-12
 
