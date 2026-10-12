@@ -3,7 +3,7 @@ set -e
 export FORMDES_CWD="${FORMDES_CWD:-$PWD}"
 cd "$(dirname "$0")"
 usage() {
-  printf 'formdes %s · page layout and publishing\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
+  printf 'FormDesign %s · page layout and publishing\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
   cat << 'EOF'
 
 usage: ./formdes [command] [options]
@@ -22,7 +22,10 @@ usage: ./formdes [command] [options]
   make [args]         lay out from the command line: ./formdes make --template ID --brief TEXT FILES... --out FILE
   export FILE --out F export a document: .pdf .idml .epub .html .png, or .zip for a website
   templates [ID]      list the templates, or show one
-  mcp                 formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
+  cmd ID [k=v...]     run one engine command on the running engine's open document (what the window shows)
+  commands [--q T]    list the engine's commands with their menus and parameters
+  tools | tool NAME   list the MCP tools, or call one: ./formdes tool preview '{"page": 1}'
+  mcp                formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
   agents install|sync set up Claude Code, Codex and Cursor (install), or refresh the harness skill's tool reference (sync)
   doctor              check the toolchain, installs and ports
   counts [--check]    the README's code sizes and template count
@@ -54,6 +57,7 @@ case "$cmd" in
   make) exec setup/cli make "$@" ;;
   export) exec setup/cli export "$@" ;;
   templates) exec setup/cli templates "$@" ;;
+  cmd|commands|tools|tool) exec setup/cli "$cmd" "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   agents) if [ -x backend/venv/bin/python ]; then exec backend/venv/bin/python setup/agents.py "$@"; else exec python3 setup/agents.py "$@"; fi ;;
   doctor) exec setup/doctor "$@" ;;

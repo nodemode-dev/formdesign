@@ -13,6 +13,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
+from app.live_cli import add_parsers
 from app.templates import brands, registry, spec
 
 CWD = Path(os.environ.get("FORMDES_CWD") or os.getcwd())
@@ -190,7 +191,10 @@ def main() -> int:
     c.add_argument("--renders")
     c.add_argument("--size", type=int, default=800)
     c.add_argument("--json", action="store_true")
+    live = add_parsers(sub)
     a = ap.parse_args()
+    if a.cmd in live:
+        return live[a.cmd](a)
     config.ensure_dirs()
     if a.cmd == "templates":
         return cmd_templates(a)
