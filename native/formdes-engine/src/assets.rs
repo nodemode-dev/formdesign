@@ -95,7 +95,7 @@ pub fn make(name: &str, data: Vec<u8>, link: Option<String>, page: u32) -> Resul
         (Some((w.round() as u32, h.round() as u32)), None)
     } else if mime.starts_with("image/") {
         let dims = formdes_render::images::image_size(&data).ok_or_else(|| EngineError::new(format!("{name}: cannot read this image (supported: JPEG, PNG, GIF, WebP, BMP, TIFF and PDF)")))?;
-        (Some(dims), density(&data))
+        (Some(dims), density(&data).or_else(|| formdes_render::psd::density(&data)))
     } else if mime.starts_with("video/") || mime.starts_with("audio/") {
         (Some((640, 360)), None)
     } else {

@@ -488,6 +488,22 @@ impl Item {
         }
     }
 
+    pub fn image_path(&self, key: &str) -> Option<BezPath> {
+        let g = self.graphic()?;
+        let d = self.extra.get(key)?.get("d")?.as_str()?;
+        let path = BezPath::from_svg(d).ok()?;
+        Some(g.content * path)
+    }
+
+    pub fn contour_path(&self) -> Option<BezPath> {
+        let kind = self.extra.get("wrapContour").and_then(|v| v.get("type")).and_then(|v| v.as_str()).unwrap_or("graphicFrame");
+        match kind {
+            "sameAsClipping" => self.image_path("clipping"),
+            "detectEdges" | "alphaChannel" | "photoshopPath" => self.image_path("wrapContour"),
+            _ => None,
+        }
+    }
+
     pub fn children(&self) -> Vec<ItemId> {
         match &self.kind {
             ItemKind::Group { children } => children.clone(),

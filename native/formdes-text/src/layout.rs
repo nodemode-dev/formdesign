@@ -128,7 +128,8 @@ fn exclusions(doc: &Doc, frame: ItemId, inv: Affine) -> Vec<Exclusion> {
             continue;
         }
         let xf = inv * doc.world_xf(id);
-        let path = xf * it.shape.to_path(&it.corner);
+        let local = if w.mode == WrapMode::Contour { it.contour_path().unwrap_or_else(|| it.shape.to_path(&it.corner)) } else { it.shape.to_path(&it.corner) };
+        let path = xf * local;
         let b = path.bounding_box();
         let o = &w.offsets;
         let rect = Rect::new(b.x0 - o.inside, b.y0 - o.top, b.x1 + o.outside, b.y1 + o.bottom);

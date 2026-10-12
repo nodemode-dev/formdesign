@@ -484,7 +484,15 @@ impl Ctx<'_> {
                             let (w, h) = asset.natural_size();
                             self.ops.push(Op::Tag(Tagging::Figure(it.alt_text.clone())));
                             self.ops.push(Op::PushClip(path.clone()));
-                            self.ops.push(Op::Image { asset: aid, xf: xf * g.content, w, h });
+                            let cut = it.image_path("clipping").map(|p| xf * p);
+                            if let Some(cp) = &cut {
+                                self.ops.push(Op::PushClip(cp.clone()));
+                            }
+                            let shown = it.extra.get("layers").and_then(|l| l.get("view")).and_then(|v| v.as_u64()).map(formdes_model::ids::AssetId).filter(|a| self.doc.assets.contains_key(a)).unwrap_or(aid);
+                            self.ops.push(Op::Image { asset: shown, xf: xf * g.content, w, h });
+                            if cut.is_some() {
+                                self.ops.push(Op::Pop);
+                            }
                             self.ops.push(Op::Pop);
                             self.ops.push(Op::Tag(Tagging::End));
                         }

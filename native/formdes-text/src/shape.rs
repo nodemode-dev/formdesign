@@ -50,7 +50,7 @@ pub fn shape(req: &ShapeReq) -> Vec<Glyph> {
         return Vec::new();
     }
     let font = req.face.font();
-    let shaper = req.face.shaper_data().shaper(&font).build();
+    let shaper = req.face.shaper_data().shaper(&font).instance(req.face.instance()).build();
     let mut buf = UnicodeBuffer::new();
     buf.push_str(req.text);
     buf.set_direction(if req.rtl { Direction::RightToLeft } else { Direction::LeftToRight });

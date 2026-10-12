@@ -82,6 +82,7 @@ keys! {
     Char "noBreak" Kind::Bool, "keep the run on one line";
     Char "language" Kind::Text, "language tag for hyphenation and spelling (en-US, de-DE)";
     Char "features" Kind::List, "OpenType features, e.g. [\"onum\", \"ss01\"]";
+    Char "fontVariations" Kind::Object, "variable font axis values by tag, e.g. {\"wght\": 650, \"wdth\": 90}; they override the named style's coordinates";
     Char "conditions" Kind::List, "conditional text conditions applied";
     Char "change" Kind::Choice(CHANGE), "tracked change mark";
     Char "xmlTag" Kind::Text, "XML element of this text";
@@ -224,6 +225,12 @@ pub fn validate(name: &str, v: &Value) -> Result<Value> {
             _ => return bad(),
         },
         Kind::Object => match v {
+            Value::Object(o) if name == "fontVariations" => {
+                if let Some((t, _)) = o.iter().find(|(t, x)| t.len() != 4 || !t.is_ascii() || !x.as_f64().is_some_and(f64::is_finite)) {
+                    return err(format!("`fontVariations` maps four-letter axis tags to numbers, not `{t}`"));
+                }
+                v.clone()
+            }
             Value::Object(_) | Value::Null => v.clone(),
             _ => return bad(),
         },
@@ -353,6 +360,7 @@ pub struct CharProps {
     pub no_break: bool,
     pub language: String,
     pub features: Vec<String>,
+    pub variations: Vec<(String, f32)>,
     pub conditions: Vec<String>,
     pub change: Option<String>,
     pub xml_tag: String,
@@ -421,6 +429,11 @@ impl CharProps {
             no_break: stack.bool("noBreak"),
             language: stack.text("language"),
             features: stack.strings("features"),
+            variations: stack
+                .get("fontVariations")
+                .as_object()
+                .map(|o| o.iter().filter(|(t, _)| t.len() == 4).filter_map(|(t, v)| v.as_f64().filter(|f| f.is_finite()).map(|f| (t.clone(), f as f32))).collect())
+                .unwrap_or_default(),
             conditions: stack.strings("conditions"),
             change: Some(stack.text("change")).filter(|c| c != "none" && !c.is_empty()),
             xml_tag: stack.text("xmlTag"),

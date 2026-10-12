@@ -42,6 +42,8 @@ pub struct PdfOpts {
     pub mark_font: Option<MarkFont>,
     /// Write one separation plate (an index into `Doc::plate_names`) as a grey page instead of the colours.
     pub plate: Option<u8>,
+    /// PDF/X-1a: every colour is written as CMYK or grey (RGB and Lab are converted with the plain formula).
+    pub cmyk_only: bool,
 }
 
 fn kpath(p: &BezPath) -> Option<Path> {
@@ -216,7 +218,12 @@ impl Fonts {
             .entry(op.face.id)
             .or_insert_with(|| {
                 let data: Arc<dyn AsRef<[u8]> + Send + Sync> = op.face.data.clone();
-                Font::new(data.into(), op.face.index)
+                if op.face.variations.is_empty() {
+                    Font::new(data.into(), op.face.index)
+                } else {
+                    let coords: Vec<(krilla::text::Tag, f32)> = op.face.variations.iter().filter_map(|(t, v)| krilla::text::Tag::try_from_str(t).map(|t| (t, *v))).collect();
+                    Font::new_variable(data.into(), op.face.index, &coords)
+                }
             })
             .clone()
     }
@@ -327,6 +334,44 @@ fn rgb_ops(ops: &[Op]) -> Vec<Op> {
         .collect()
 }
 
+fn cmyk_color(c: Color) -> Color {
+    match c {
+        Color::Cmyk(_) | Color::Gray(_) | Color::Ink { cmyk: Some(_), .. } => c,
+        other => {
+            let [r, g, b] = other.to_rgb();
+            let k = 1.0 - r.max(g).max(b);
+            if k >= 1.0 {
+                return Color::Cmyk([0.0, 0.0, 0.0, 1.0]);
+            }
+            Color::Cmyk([(1.0 - r - k) / (1.0 - k), (1.0 - g - k) / (1.0 - k), (1.0 - b - k) / (1.0 - k), k])
+        }
+    }
+}
+
+fn cmyk_brush(b: &Brush) -> Brush {
+    match b {
+        Brush::Solid(c, a) => Brush::Solid(cmyk_color(*c), *a),
+        Brush::Linear { start, end, stops, alpha } => Brush::Linear { start: *start, end: *end, stops: stops.iter().map(|(t, c, a)| (*t, cmyk_color(*c), *a)).collect(), alpha: *alpha },
+        Brush::Radial { center, radius, stops, alpha } => Brush::Radial { center: *center, radius: *radius, stops: stops.iter().map(|(t, c, a)| (*t, cmyk_color(*c), *a)).collect(), alpha: *alpha },
+    }
+}
+
+fn cmyk_ops(ops: &[Op]) -> Vec<Op> {
+    ops.iter()
+        .map(|op| match op {
+            Op::Fill { path, brush, even_odd } => Op::Fill { path: path.clone(), brush: cmyk_brush(brush), even_odd: *even_odd },
+            Op::Stroke { path, brush, style } => Op::Stroke { path: path.clone(), brush: cmyk_brush(brush), style: style.clone() },
+            Op::Glyphs(g) => {
+                let mut g = g.clone();
+                g.fill = g.fill.as_ref().map(cmyk_brush);
+                g.stroke = g.stroke.as_ref().map(|(b, w)| (cmyk_brush(b), *w));
+                Op::Glyphs(g)
+            }
+            other => other.clone(),
+        })
+        .collect()
+}
+
 fn today() -> krilla::metadata::DateTime {
     let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
     let z = secs.div_euclid(86_400) + 719_468;
@@ -347,7 +392,10 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
     let ua = opts.standard.as_deref().is_some_and(|s| s.to_ascii_lowercase().contains("ua"));
     let profile = opts.cmyk_profile.as_deref().and_then(krilla::icc::ICCProfile::<4>::new);
     let converted: Vec<PageScene>;
-    let scenes: &[PageScene] = if (archival || ua) && profile.is_none() {
+    let scenes: &[PageScene] = if opts.cmyk_only {
+        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: cmyk_ops(&s.ops) }).collect();
+        &converted
+    } else if (archival || ua) && profile.is_none() {
         converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: rgb_ops(&s.ops) }).collect();
         &converted
     } else {
@@ -430,7 +478,7 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
                         } else if is_pdf(a) {
                             let pdf = pdf_cache
                                 .entry(*asset)
-                                .or_insert_with(|| krilla::pdf::Pdf::new(a.data.clone()).ok().map(|p| krilla::pdf::PdfDocument::new(Arc::new(p))))
+                                .or_insert_with(|| krilla::pdf::Pdf::new(crate::pdflayers::for_export(&a.data, a.page)).ok().map(|p| krilla::pdf::PdfDocument::new(Arc::new(p))))
                                 .clone();
                             if let Some(pdf) = pdf {
                                 surface.draw_pdf_page(&pdf, sz, a.page as usize);

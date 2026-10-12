@@ -355,9 +355,11 @@ fn links_list(c: &mut Ctx, _: &Value) -> Result<Value> {
             uses.entry(a).or_default().push(json!({"id": it.id, "page": page, "ppi": effective_ppi(doc, it.id)}));
         }
     }
+    let views: Vec<u64> = doc.items.values().filter_map(|i| i.extra.get("layers").and_then(|l| l.get("view")).and_then(Value::as_u64)).collect();
     Ok(Value::Array(
         doc.assets
             .values()
+            .filter(|a| !views.contains(&a.id.0))
             .map(|a| json!({"asset": a.id, "name": a.name, "path": a.link, "status": status(a), "pixels": a.pixels.map(|(w, h)| json!([w, h])), "mime": a.mime, "uses": uses.remove(&a.id).unwrap_or_default()}))
             .collect(),
     ))
@@ -386,6 +388,7 @@ fn refresh_asset(c: &mut Ctx, a: AssetId, path: &str) -> Result<()> {
     let doc = c.doc_mut()?;
     doc.assets.insert(a, fresh);
     c.session.renderer.images.forget(a);
+    crate::cmd::imaging::relinked(c, a)?;
     Ok(())
 }
 

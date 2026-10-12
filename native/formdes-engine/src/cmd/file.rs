@@ -405,14 +405,41 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
     let mut warnings: Vec<String> = Vec::new();
     let marks = crate::cmd::inks::marks_from(p);
     let mut standard = args::opt_str(p, "standard").filter(|s| *s != "none").map(str::to_string);
-    if let Some(s) = standard.clone()
-        && s.to_ascii_lowercase().contains('x')
-    {
-        warnings.push(format!("{s} is not checked yet: the file is a PDF 1.7 with trim and bleed boxes and CMYK kept as CMYK, the parts of PDF/X a printer reads first"));
+    // PDF/X has no krilla validator: the core checks what it can (transparency, colour), writes CMYK and the trim and bleed
+    // boxes, and the backend adds the output intent, GTS_PDFXVersion, Trapped and the XMP packet to the finished file.
+    let pdfx = standard.as_deref().and_then(pdfx_level);
+    if standard.is_some() && pdfx.is_none() && standard.as_deref().is_some_and(|s| s.to_ascii_lowercase().contains("pdfx") || s.to_ascii_lowercase().starts_with('x')) {
+        return Err(EngineError::new(format!("the PDF/X standard {} is not supported: use PDF/X-1a:2001, PDF/X-3:2002 or PDF/X-4", standard.unwrap_or_default())));
+    }
+    if pdfx.is_some() {
         standard = None;
     }
     let tagged = args::opt_bool(p, "tagged").unwrap_or(false) || standard.as_deref().is_some_and(|s| s.contains("ua") || s.contains("UA") || s.ends_with('a'));
-    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: cmyk_profile(c), marks, mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), plate: None };
+    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: if pdfx.is_some() { None } else { cmyk_profile(c) }, marks, mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), plate: None, cmyk_only: pdfx == Some("x1a") };
+    if let Some(level) = pdfx
+        && level != "x4"
+    {
+        let opts = SceneOpts { printing: true, bleed, overprint: false };
+        let mut bad: Vec<String> = Vec::new();
+        for pg in &pages {
+            let Some(scene) = page_scene(doc, &lay, *pg, &opts) else { continue };
+            let mut what: Vec<&str> = Vec::new();
+            for op in &scene.ops {
+                match op {
+                    Op::PushOpacity(o) if *o < 1.0 && !what.contains(&"opacity") => what.push("opacity"),
+                    Op::PushBlend(m) if m != "normal" && !what.contains(&"a blend mode") => what.push("a blend mode"),
+                    Op::PushMask(_) if !what.contains(&"a soft mask (shadow, feather or glow)") => what.push("a soft mask (shadow, feather or glow)"),
+                    _ => {}
+                }
+            }
+            if !what.is_empty() {
+                bad.push(format!("page {} uses {}", doc.page_name(*pg), what.join(", ")));
+            }
+        }
+        if !bad.is_empty() {
+            return Err(EngineError::new(format!("PDF/X-{} allows no transparency, and {}. Remove it (Object > Effects > Clear Effects, set opacity to 100 percent and blending to Normal) or export PDF/X-4", if level == "x1a" { "1a:2001" } else { "3:2002" }, bad.join("; "))));
+        }
+    }
     if args::opt_bool(p, "spreads") == Some(true) {
         warnings.push("spreads are exported as single pages for now".into());
     }
@@ -427,7 +454,64 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
         warnings.push(format!("{overset} {} overset text", if overset == 1 { "story has" } else { "stories have" }));
     }
     let bytes = renderer.pdf_with(doc, &lay, Some(pages.clone()), bleed, &popts).map_err(|e| EngineError::new(format!("PDF export: {e}")))?;
-    deliver(p, bytes, json!({"pages": pages.len(), "warnings": warnings, "tagged": popts.tagged, "standard": popts.standard}))
+    deliver(p, bytes, json!({"pages": pages.len(), "warnings": warnings, "tagged": popts.tagged, "standard": popts.standard, "pdfx": pdfx}))
+}
+
+/// The PDF/X level a `standard` names: x1a, x3 or x4 (None for anything else).
+fn pdfx_level(s: &str) -> Option<&'static str> {
+    let k: String = s.chars().filter(|c| c.is_ascii_alphanumeric()).collect::<String>().to_ascii_lowercase();
+    let k = k.strip_prefix("pdf").unwrap_or(&k);
+    match k {
+        k if k.starts_with("x1a") => Some("x1a"),
+        k if k.starts_with("x3") => Some("x3"),
+        k if k.starts_with("x4") => Some("x4"),
+        _ => None,
+    }
+}
+
+/// What the interactive PDF needs from the document: per exported page its transition, the form fields, buttons and
+/// media with their rectangles (page points from the top left of the trim box), and each media file written to `mediaDir`.
+fn interactive_info(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let doc = c.doc()?;
+    let pages = page_list(doc, args::opt_str(p, "pages"))?;
+    let dir = args::opt_str(p, "mediaDir").map(PathBuf::from);
+    let mut files: std::collections::HashMap<formdes_model::ids::AssetId, String> = std::collections::HashMap::new();
+    let mut out = Vec::new();
+    for abs in &pages {
+        let (Some(rect), Some((si, _))) = (doc.page_rect(*abs), doc.page_slot(*abs)) else { continue };
+        let mut items = Vec::new();
+        for id in doc.walk(&doc.spreads[si].items) {
+            let Some(it) = doc.item(id) else { continue };
+            if it.hidden || it.nonprinting || doc.page_of(id) != Some(*abs) {
+                continue;
+            }
+            let Some(b) = doc.bounds(id) else { continue };
+            let r = json!([b.x0 - rect.x0, b.y0 - rect.y0, b.x1 - rect.x0, b.y1 - rect.y0]);
+            let name = if it.name.is_empty() { it.display_name() } else { it.name.clone() };
+            if let Some(f) = it.extra.get("form") {
+                items.push(json!({"type": "form", "id": id, "rect": r, "form": f}));
+            }
+            if let Some(bt) = it.extra.get("button") {
+                items.push(json!({"type": "button", "id": id, "rect": r, "button": bt, "name": name}));
+            }
+            let asset = it.graphic().and_then(|g| g.asset).and_then(|a| doc.assets.get(&a)).filter(|a| a.is_media());
+            if let (Some(a), Some(dir)) = (asset, dir.as_ref()) {
+                let file = match files.get(&a.id) {
+                    Some(f) => f.clone(),
+                    None => {
+                        let ext = Path::new(&a.name).extension().and_then(|e| e.to_str()).unwrap_or(if a.mime.starts_with("audio/") { "mp3" } else { "mp4" });
+                        let f = format!("media{}.{}", files.len(), ext);
+                        write_file(&dir.join(&f).to_string_lossy(), &a.data)?;
+                        files.insert(a.id, f.clone());
+                        f
+                    }
+                };
+                items.push(json!({"type": "media", "id": id, "rect": r, "name": name, "mime": a.mime, "assetName": a.name, "file": file, "options": it.extra.get("media").cloned().unwrap_or(Value::Null)}));
+            }
+        }
+        out.push(json!({"page": abs, "width": rect.width(), "height": rect.height(), "transition": doc.spreads[si].transition, "items": items}));
+    }
+    Ok(json!({"pages": out}))
 }
 
 fn export_idml(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -897,6 +981,7 @@ pub fn register(r: &mut Registry) {
     cmd("file.close", "Close").menu(&["File", "Close"]).key("Mod+W").query().sig("{}").reg(r, file_close);
     cmd("file.place", "Place...").menu(&["File", "Place..."]).key("Mod+D").sig("{path} | {path, frame, page?} | {base64, name, frame}").reg(r, file_place);
     cmd("file.exportPdf", "Export PDF...").menu(&["File", "Export", "Adobe PDF..."]).query().sig("{pages?, bleed?, marks?: bool | {crop, bleed, registration, colorBars, pageInfo, type, weight, offset}, cropMarks?, bleedMarks?, registrationMarks?, colorBars?, pageInformation?, markType?: default|japanese, markWeight?: pt, markOffset?: pt, standard?, tagged?, spreads?, path?}").reg(r, export_pdf);
+    cmd("file.interactiveInfo", "Interactive PDF Contents").query().sig("{pages?, mediaDir?}").reg(r, interactive_info);
     cmd("file.exportIdml", "Export IDML...").menu(&["File", "Export", "InDesign Markup (IDML)..."]).query().sig("{path?, embedImages?}").reg(r, export_idml);
     cmd("file.exportEpub", "Export EPUB (Reflowable)...").menu(&["File", "Export", "EPUB (Reflowable)..."]).query().sig("{title?, author?, language?, cover?, path?}").reg(r, export_epub);
     cmd("file.exportFixedEpub", "Export EPUB (Fixed Layout)...").menu(&["File", "Export", "EPUB (Fixed Layout)..."]).query().sig("{title?, author?, language?, path?}").reg(r, export_fixed_epub);

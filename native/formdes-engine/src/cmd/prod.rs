@@ -259,6 +259,55 @@ fn font_list(c: &mut Ctx, _: &Value) -> Result<Value> {
     Ok(json!({"fonts": out, "families": fams}))
 }
 
+fn font_axes(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let mut family = args::opt_str(p, "font").map(str::to_string);
+    let mut style = args::opt_str(p, "style").map(str::to_string);
+    let mut set: BTreeMap<String, f32> = BTreeMap::new();
+    if family.is_none()
+        && let Ok(t) = text_targets(c)
+        && let Some((sid, range)) = t.first().cloned()
+        && let Ok(doc) = c.doc()
+        && let Some(st) = doc.story(sid)
+    {
+        let (pi, off) = st.locate(range.start);
+        let para = &st.paras[pi];
+        let (cs, over) = para.format_at(if range.is_empty() { off } else { off + 1 });
+        let stack = doc.styles.char_stack(&para.style, &para.over, cs.as_deref(), &over);
+        family = Some(stack.text("font"));
+        style = Some(stack.text("fontStyle"));
+        if let Some(o) = stack.get("fontVariations").as_object() {
+            for (k, v) in o {
+                if let Some(f) = v.as_f64() {
+                    set.insert(k.clone(), f as f32);
+                }
+            }
+        }
+    }
+    if let Some(o) = p.get("variations").and_then(Value::as_object) {
+        for (k, v) in o {
+            if let Some(f) = v.as_f64() {
+                set.insert(k.clone(), f as f32);
+            }
+        }
+    }
+    let family = family.ok_or_else(|| EngineError::new("missing `font` (a family name) and nothing is selected"))?;
+    let style = style.unwrap_or_else(|| "Regular".into());
+    let fonts = &c.session.renderer.fonts;
+    let face = fonts.resolve(&family, &style).ok_or_else(|| EngineError::new(format!("no font named {family}")))?;
+    let root = fonts.face(face.root).unwrap_or_else(|| face.clone());
+    let settings: Vec<(String, f32)> = set.into_iter().collect();
+    let cur = fonts.varied(&face, &settings);
+    let axes = root.axes();
+    let value_of = |tag: &str, default: f32| cur.variations.iter().find(|(t, _)| t == tag).map(|(_, v)| *v).unwrap_or(default);
+    let out: Vec<Value> = axes
+        .iter()
+        .filter(|a| !a.hidden)
+        .map(|a| json!({"tag": a.tag, "name": a.name, "min": a.min, "default": a.default, "max": a.max, "value": value_of(&a.tag, a.default)}))
+        .collect();
+    let instances: Vec<Value> = root.named_instances().iter().map(|i| json!({"name": i.name, "coords": i.coords.iter().map(|(t, v)| (t.clone(), json!(v))).collect::<Map<String, Value>>()})).collect();
+    Ok(json!({"font": root.family, "style": cur.style, "variable": root.is_variable(), "axes": out, "instances": instances}))
+}
+
 fn font_replace(c: &mut Ctx, p: &Value) -> Result<Value> {
     let from = args::str_(p, "from", "the font family to replace")?.to_string();
     let to = args::str_(p, "to", "the font family to use instead")?.to_string();
@@ -1104,6 +1153,7 @@ pub fn register(r: &mut Registry) {
     cmd("type.onPath", "Type on a Path").menu(&["Type", "Type on a Path", "Add Type to Path"]).needs(Needs::Items).sig("{text?, start?, flip?, align?: baseline|ascender|descender|center, ids?}").reg(r, on_path);
     cmd("type.attrsCatalog", "Text Attributes").query().sig("{level?: character|paragraph, style?}").help("Every character or paragraph attribute with its kind, choices and description, and its value at the text selection (or in `style`).").reg(r, attrs_catalog);
     cmd("type.attrs", "Text Attributes").sig("{char?: {model attrs}, para?: {model attrs}, style?, kind?: paragraph|character}").help("Sets character and paragraph attributes by their model names (see type.attrsCatalog) on the selected text, or on a style; null removes an attribute.").reg(r, type_attrs);
+    cmd("type.fontAxes", "Font Variation Axes").query().sig("{font?: family, style?: style name, variations?: {tag: value}}").help("The variation axes (tag, name, min, default, max, current value) and named instances of a variable font: the selection's font, or `font` and `style`. Set the values with type.attrs char.fontVariations {wght: 650}.").reg(r, font_axes);
     cmd("font.list", "Fonts in Use").query().sig("{}").reg(r, font_list);
     cmd("font.replace", "Find/Replace Font").menu(&["Type", "Find/Replace Font..."]).sig("{from, to, style?, styles?: true}").reg(r, font_replace);
     cmd("style.load", "Load Styles").menu(&["Type", "Load Styles..."]).sig("{path | base64 + name, kinds?: [paragraph, character, object, table, cell], overwrite?: true, swatches?: true}").reg(r, style_load);

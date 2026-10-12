@@ -78,6 +78,9 @@ impl Images {
 }
 
 pub fn image_size(bytes: &[u8]) -> Option<(u32, u32)> {
+    if crate::psd::is_psd(bytes) {
+        return crate::psd::header_size(bytes);
+    }
     image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format().ok()?.into_dimensions().ok()
 }
 
@@ -91,6 +94,10 @@ pub fn pdf_page_size(data: Arc<Vec<u8>>, page: usize) -> Option<(f64, f64, usize
 }
 
 pub fn decode(bytes: &[u8]) -> Option<Decoded> {
+    if crate::psd::is_psd(bytes) {
+        let (width, height, rgba) = crate::psd::decode(bytes)?;
+        return Some(Decoded { width, height, rgba });
+    }
     let img = image::load_from_memory(bytes).ok()?;
     let rgba = img.to_rgba8();
     Some(Decoded { width: rgba.width(), height: rgba.height(), rgba: rgba.into_raw() })

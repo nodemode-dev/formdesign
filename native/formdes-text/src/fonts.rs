@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::{Arc, RwLock};
 
 use fontdb::{Database, Family, Query, Stretch, Style, Weight};
-use skrifa::instance::{LocationRef, Size};
+use skrifa::instance::{LocationRef, NormalizedCoord, Size};
 use skrifa::raw::FontRef;
 use skrifa::MetadataProvider;
 
@@ -103,11 +103,70 @@ pub struct Face {
     pub metrics: Metrics,
     pub synthetic_bold: bool,
     pub synthetic_italic: bool,
+    pub root: FaceId,
+    pub variations: Vec<(String, f32)>,
+    pub location: Vec<NormalizedCoord>,
+    instance: Option<harfrust::ShaperInstance>,
     shaper: harfrust::ShaperData,
     glyph_cache: RwLock<HashMap<char, Option<u32>>>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct AxisInfo {
+    pub tag: String,
+    pub name: String,
+    pub min: f32,
+    pub default: f32,
+    pub max: f32,
+    pub hidden: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct InstanceInfo {
+    pub name: String,
+    pub coords: Vec<(String, f32)>,
+}
+
+fn tag_str(t: skrifa::raw::types::Tag) -> String {
+    String::from_utf8_lossy(t.to_be_bytes().as_slice()).into_owned()
+}
+
 impl Face {
+    pub fn location_ref(&self) -> LocationRef<'_> {
+        LocationRef::new(&self.location)
+    }
+
+    pub fn instance(&self) -> Option<&harfrust::ShaperInstance> {
+        self.instance.as_ref()
+    }
+
+    pub fn axes(&self) -> Vec<AxisInfo> {
+        let font = self.font();
+        font.axes()
+            .iter()
+            .map(|a| AxisInfo {
+                tag: tag_str(a.tag()),
+                name: font.localized_strings(a.name_id()).english_or_first().map(|s| s.chars().collect::<String>()).unwrap_or_else(|| tag_str(a.tag())),
+                min: a.min_value(),
+                default: a.default_value(),
+                max: a.max_value(),
+                hidden: a.is_hidden(),
+            })
+            .collect()
+    }
+
+    pub fn named_instances(&self) -> Vec<InstanceInfo> {
+        let font = self.font();
+        let axes = font.axes();
+        font.named_instances()
+            .iter()
+            .map(|inst| InstanceInfo {
+                name: font.localized_strings(inst.subfamily_name_id()).english_or_first().map(|s| s.chars().collect::<String>()).unwrap_or_default(),
+                coords: axes.iter().zip(inst.user_coords()).map(|(a, v)| (tag_str(a.tag()), v)).collect(),
+            })
+            .collect()
+    }
+
     pub fn font(&self) -> FontRef<'_> {
         FontRef::from_index(&self.data, self.index).expect("face parsed on load")
     }
@@ -141,7 +200,7 @@ impl Face {
 
     pub fn advance(&self, gid: u32) -> f64 {
         let font = self.font();
-        font.glyph_metrics(Size::unscaled(), LocationRef::default())
+        font.glyph_metrics(Size::unscaled(), self.location_ref())
             .advance_width(skrifa::GlyphId::new(gid))
             .map(|a| a as f64)
             .unwrap_or(0.0)
@@ -157,8 +216,8 @@ impl Face {
     }
 }
 
-fn read_metrics(font: &FontRef) -> Metrics {
-    let m = font.metrics(Size::unscaled(), LocationRef::default());
+fn read_metrics(font: &FontRef, loc: LocationRef) -> Metrics {
+    let m = font.metrics(Size::unscaled(), loc);
     let upem = m.units_per_em.max(1) as f64;
     let ascent = m.ascent as f64;
     let descent = -(m.descent as f64);
@@ -185,6 +244,7 @@ pub struct FontBook {
     faces: RwLock<HashMap<FaceId, Arc<Face>>>,
     by_db: RwLock<HashMap<fontdb::ID, FaceId>>,
     resolved: RwLock<HashMap<(String, String), Option<FaceId>>>,
+    varied_cache: RwLock<HashMap<(FaceId, String), FaceId>>,
     fallback_for: RwLock<HashMap<(FaceId, char), Option<FaceId>>>,
     pub fallbacks: Vec<String>,
     next: RwLock<FaceId>,
@@ -222,6 +282,7 @@ impl FontBook {
             faces: RwLock::new(HashMap::new()),
             by_db: RwLock::new(HashMap::new()),
             resolved: RwLock::new(HashMap::new()),
+            varied_cache: RwLock::new(HashMap::new()),
             fallback_for: RwLock::new(HashMap::new()),
             fallbacks: DEFAULT_FALLBACKS.iter().map(|s| s.to_string()).collect(),
             next: RwLock::new(1),
@@ -283,7 +344,14 @@ impl FontBook {
             .read()
             .map(|d| d.faces().filter(|f| f.families.iter().any(|(n, _)| n.eq_ignore_ascii_case(family))).map(|f| f.id).collect())
             .unwrap_or_default();
-        let mut out: Vec<(u16, bool, String)> = ids.into_iter().filter_map(|i| self.open(i)).map(|f| (f.weight, f.italic, f.style.clone())).collect();
+        let mut out: Vec<(u16, bool, String)> = Vec::new();
+        for f in ids.into_iter().filter_map(|i| self.open(i)) {
+            out.push((f.weight, f.italic, f.style.clone()));
+            for inst in f.named_instances() {
+                let w = inst.coords.iter().find(|(t, _)| t == "wght").map(|(_, v)| v.round() as u16).unwrap_or(f.weight);
+                out.push((w, f.italic, inst.name));
+            }
+        }
         out.sort();
         out.dedup_by(|a, b| a.2 == b.2);
         out.into_iter().map(|t| t.2).collect()
@@ -307,7 +375,7 @@ impl FontBook {
         };
         let data = Arc::new(data);
         let font = FontRef::from_index(&data, index).ok()?;
-        let metrics = read_metrics(&font);
+        let metrics = read_metrics(&font, LocationRef::default());
         let style = style_name(&font).unwrap_or_else(|| default_style_name(weight, italic));
         let shaper = harfrust::ShaperData::new(&font);
         let mut next = self.next.write().ok()?;
@@ -325,12 +393,94 @@ impl FontBook {
             metrics,
             synthetic_bold: false,
             synthetic_italic: false,
+            root: id,
+            variations: Vec::new(),
+            location: Vec::new(),
+            instance: None,
             shaper,
             glyph_cache: RwLock::new(HashMap::new()),
         });
         self.faces.write().ok()?.insert(id, face.clone());
         self.by_db.write().ok()?.insert(dbid, id);
         Some(face)
+    }
+
+    pub fn varied(&self, base: &Arc<Face>, settings: &[(String, f32)]) -> Arc<Face> {
+        if settings.is_empty() || !base.is_variable() {
+            return base.clone();
+        }
+        let font = base.font();
+        let axes = font.axes();
+        let mut merged: Vec<(String, f32)> = axes
+            .iter()
+            .map(|a| {
+                let tag = tag_str(a.tag());
+                let v = base.variations.iter().find(|(t, _)| *t == tag).map(|(_, v)| *v).unwrap_or(a.default_value());
+                (tag, v)
+            })
+            .collect();
+        for (t, v) in settings {
+            if let Some(slot) = merged.iter_mut().find(|(mt, _)| mt == t)
+                && let Some(a) = axes.iter().find(|a| tag_str(a.tag()) == *t)
+            {
+                slot.1 = v.clamp(a.min_value(), a.max_value());
+            }
+        }
+        if merged.iter().zip(axes.iter()).all(|((_, v), a)| (*v - a.default_value()).abs() < 1e-4) {
+            return self.face(base.root).unwrap_or_else(|| base.clone());
+        }
+        let key = (base.root, merged.iter().map(|(t, v)| format!("{t}={v:.3}")).collect::<Vec<_>>().join(","));
+        if let Some(id) = self.varied_cache.read().ok().and_then(|m| m.get(&key).copied())
+            && let Some(f) = self.face(id)
+        {
+            return f;
+        }
+        let location = axes.location(merged.iter().map(|(t, v)| (t.as_str(), *v)));
+        let coords: Vec<NormalizedCoord> = location.coords().to_vec();
+        let inst = harfrust::ShaperInstance::from_variations(&font, merged.iter().map(|(t, v)| (t.as_str(), *v)));
+        let metrics = read_metrics(&font, LocationRef::new(&coords));
+        let get = |t: &str| merged.iter().find(|(mt, _)| mt == t).map(|(_, v)| *v);
+        let weight = get("wght").map(|w| w.round().clamp(1.0, 1000.0) as u16).unwrap_or(base.weight);
+        let italic = get("ital").map(|v| v > 0.5).unwrap_or(base.italic) || get("slnt").is_some_and(|s| s.abs() > 0.5);
+        let named = base.named_instances().into_iter().find(|i| i.coords.iter().all(|(t, v)| get(t).is_none_or(|g| (g - v).abs() < 0.01)));
+        let style = named.map(|i| i.name).unwrap_or_else(|| merged.iter().map(|(t, v)| format!("{t} {}", v.round())).collect::<Vec<_>>().join(" "));
+        let Ok(mut next) = self.next.write() else { return base.clone() };
+        let id = *next;
+        *next += 1;
+        let face = Arc::new(Face {
+            id,
+            data: base.data.clone(),
+            index: base.index,
+            family: base.family.clone(),
+            style,
+            postscript: base.postscript.clone(),
+            weight,
+            italic,
+            metrics,
+            synthetic_bold: false,
+            synthetic_italic: false,
+            root: base.root,
+            variations: merged,
+            location: coords,
+            instance: Some(inst),
+            shaper: harfrust::ShaperData::new(&font),
+            glyph_cache: RwLock::new(HashMap::new()),
+        });
+        if let Ok(mut f) = self.faces.write() {
+            f.insert(id, face.clone());
+        }
+        if let Ok(mut m) = self.varied_cache.write() {
+            m.insert(key, id);
+        }
+        face
+    }
+
+    fn instance_face(&self, face: &Arc<Face>, want: &str) -> Option<Arc<Face>> {
+        if !face.is_variable() {
+            return None;
+        }
+        let inst = face.named_instances().into_iter().find(|i| i.name.trim().eq_ignore_ascii_case(want))?;
+        Some(self.varied(face, &inst.coords))
     }
 
     pub fn resolve(&self, family: &str, style: &str) -> Option<Arc<Face>> {
@@ -362,6 +512,13 @@ impl FontBook {
                     && face.style.to_ascii_lowercase() == want
                 {
                     return Some(face);
+                }
+            }
+            for id in &exact {
+                if let Some(face) = self.open(*id)
+                    && let Some(inst) = self.instance_face(&face, &want)
+                {
+                    return Some(inst);
                 }
             }
         }

@@ -203,6 +203,7 @@ pub fn char_out(s: &Stack) -> Map<String, Value> {
     m.insert("xmlTag".into(), json!(s.text("xmlTag")));
     m.insert("conditions".into(), s.get("conditions"));
     m.insert("otfFeatures".into(), s.get("features"));
+    m.insert("fontVariations".into(), s.get("fontVariations"));
     m
 }
 

@@ -4,6 +4,7 @@ pub mod clip;
 pub mod edit;
 pub mod generate;
 pub mod guides;
+pub mod imaging;
 pub mod inks;
 pub mod paths;
 pub mod more;
@@ -43,5 +44,6 @@ pub fn registry() -> Registry {
     prod::register(&mut r);
     inks::register(&mut r);
     more::register(&mut r);
+    imaging::register(&mut r);
     r
 }

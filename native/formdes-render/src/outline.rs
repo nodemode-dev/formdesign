@@ -39,7 +39,7 @@ impl Outlines {
         if let Some(p) = self.cache.read().ok().and_then(|m| m.get(&(face.id, gid)).cloned()) {
             return p;
         }
-        let path = Arc::new(outline(&face.font(), gid));
+        let path = Arc::new(outline(&face.font(), gid, face.location_ref()));
         if let Ok(mut m) = self.cache.write() {
             m.insert((face.id, gid), path.clone());
         }
@@ -47,10 +47,10 @@ impl Outlines {
     }
 }
 
-fn outline(font: &FontRef, gid: u32) -> BezPath {
+fn outline(font: &FontRef, gid: u32, loc: LocationRef) -> BezPath {
     let mut pen = Pen(BezPath::new());
     if let Some(g) = font.outline_glyphs().get(GlyphId::new(gid)) {
-        let _ = g.draw(DrawSettings::unhinted(Size::unscaled(), LocationRef::default()), &mut pen);
+        let _ = g.draw(DrawSettings::unhinted(Size::unscaled(), loc), &mut pen);
     }
     pen.0
 }

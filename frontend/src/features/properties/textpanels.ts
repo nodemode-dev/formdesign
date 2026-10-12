@@ -1,6 +1,7 @@
 import { el, q, setHidden, setText } from '../../ui/dom';
 import { ctx, type Snap } from './ctx';
 import { grid, labelled, row } from './fields';
+import { VariationAxes } from './axes';
 import { CharFields, ParaFields, textTarget } from './type';
 
 function hint(s: Snap): string {
@@ -13,6 +14,7 @@ function hint(s: Snap): string {
 export class CharacterPanel {
   readonly root = el('<div class="fp-panel fp-typep"><div class="fp-type-body"></div><p class="fp-hint"></p></div>');
   private readonly f = new CharFields();
+  private readonly axes = new VariationAxes();
 
   constructor() {
     const f = this.f, body = q(this.root, '.fp-type-body');
@@ -29,12 +31,14 @@ export class CharacterPanel {
       labelled('Colour', f.fill().el),
       labelled('Style', f.charStyle().el),
       labelled('Language', f.language().el),
+      this.axes.el,
     );
     ctx.on((s) => this.update(s));
   }
 
   private update(s: Snap): void {
     this.f.update(s);
+    this.axes.update(s);
     const h = hint(s);
     setText(q(this.root, '.fp-hint'), h);
     setHidden(q(this.root, '.fp-hint'), !h);

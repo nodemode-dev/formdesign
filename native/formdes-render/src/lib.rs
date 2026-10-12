@@ -1,7 +1,10 @@
 pub mod cellgfx;
+pub mod clippath;
 pub mod images;
 pub mod outline;
 pub mod pdf;
+pub mod pdflayers;
+pub mod psd;
 pub mod raster;
 pub mod marks;
 pub mod scene;

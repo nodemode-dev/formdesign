@@ -138,6 +138,7 @@ pub fn shape_para(fonts: &FontBook, input: &ParaInput) -> Shaped {
         let Some(main) = fonts.resolve(&p.font, &p.font_style).or_else(|| fallback_face.clone()) else {
             continue;
         };
+        let main = fonts.varied(&main, &p.variations);
         let mut pieces: Vec<(Range<usize>, Arc<Face>, u8, bool)> = Vec::new();
         let slice = &text[run.range.clone()];
         let mut last_special = false;
