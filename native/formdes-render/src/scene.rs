@@ -532,13 +532,26 @@ impl Ctx<'_> {
         let line_xf = xf * Affine::translate((0.0, baseline));
         let m = &r.face.metrics;
         let k = r.size / m.upem;
-        if (r.props.underline || r.props.strike) && fill.is_some() {
-            let deco = |off: f64, th: f64| Rect::new(r.x0, -off * k - th * k / 2.0 - r.shift, r.x1, -off * k + th * k / 2.0 - r.shift);
-            if r.props.underline {
-                self.ops.push(Op::Fill { path: line_xf * deco(m.underline_offset, m.underline_thickness).to_path(0.1), brush: fill.clone().expect("fill"), even_odd: false });
-            }
-            if r.props.strike {
-                self.ops.push(Op::Fill { path: line_xf * deco(m.strike_offset, m.strike_thickness).to_path(0.1), brush: fill.clone().expect("fill"), even_odd: false });
+        if r.props.underline || r.props.strike {
+            let deco = |off: f64, th: f64| Rect::new(r.x0, -off - th / 2.0 - r.shift, r.x1, -off + th / 2.0 - r.shift);
+            let lines = [
+                (r.props.underline, &r.props.underline_style, m.underline_offset, m.underline_thickness, -1.0),
+                (r.props.strike, &r.props.strike_style, m.strike_offset, m.strike_thickness, 1.0),
+            ];
+            for (on, st, font_off, font_th, sign) in lines {
+                if !on {
+                    continue;
+                }
+                let th = st.weight.unwrap_or(font_th * k);
+                let off = st.offset.map(|o| o * sign).unwrap_or(font_off * k);
+                let rect = deco(off, th);
+                let brush = match &st.color {
+                    Some(p) => brush_of(self.doc, p, st.tint, rect, Affine::IDENTITY),
+                    None => fill.clone(),
+                };
+                if let Some(b) = brush {
+                    self.ops.push(Op::Fill { path: line_xf * rect.to_path(0.1), brush: b, even_odd: false });
+                }
             }
         }
         self.ops.push(Op::Glyphs(GlyphOp {

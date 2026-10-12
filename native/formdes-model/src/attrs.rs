@@ -69,7 +69,15 @@ keys! {
     Char "caps" Kind::Choice(CAPS), "case: normal, allCaps, smallCaps, allSmallCaps";
     Char "position" Kind::Choice(POSITION), "normal, superscript, subscript, numerator, denominator";
     Char "underline" Kind::Bool, "underline";
+    Char "underlineWeight" Kind::Num, "underline weight in points (empty = the font's)";
+    Char "underlineOffset" Kind::Num, "underline offset below the baseline in points (empty = the font's)";
+    Char "underlineColor" Kind::Paint, "underline colour (empty = the text colour)";
+    Char "underlineTint" Kind::Num, "underline tint, 0 to 1";
     Char "strike" Kind::Bool, "strikethrough";
+    Char "strikeWeight" Kind::Num, "strikethrough weight in points (empty = the font's)";
+    Char "strikeOffset" Kind::Num, "strikethrough offset above the baseline in points (empty = the font's)";
+    Char "strikeColor" Kind::Paint, "strikethrough colour (empty = the text colour)";
+    Char "strikeTint" Kind::Num, "strikethrough tint, 0 to 1";
     Char "ligatures" Kind::Bool, "standard ligatures";
     Char "noBreak" Kind::Bool, "keep the run on one line";
     Char "language" Kind::Text, "language tag for hyphenation and spelling (en-US, de-DE)";
@@ -114,6 +122,7 @@ keys! {
     Para "numberStyle" Kind::Text, "arabic, roman, ROMAN, alpha, ALPHA";
     Para "listName" Kind::Text, "named list numbering continues across stories";
     Para "startAt" Kind::Int, "first number of the list";
+    Para "listLevel" Kind::Int, "list level 1 to 9: each level counts on its own and restarts when a higher level moves; ^1 to ^9 in the number format show the higher levels' numbers";
     Para "spanColumns" Kind::Int, "columns this paragraph spans, 0 = one, -1 = all";
     Para "splitColumns" Kind::Int, "sub-columns this paragraph splits into inside its column, 0 = none";
     Para "splitGutter" Kind::Num, "gap between split sub-columns in points";
@@ -137,7 +146,7 @@ pub fn default_value(name: &str) -> Value {
         "leading" => json!("auto"),
         "kerning" => json!("metrics"),
         "kern" | "tracking" | "baselineShift" | "skew" => json!(0.0),
-        "hScale" | "vScale" | "fillTint" => json!(1.0),
+        "hScale" | "vScale" | "fillTint" | "underlineTint" | "strikeTint" => json!(1.0),
         "fill" => json!("Black"),
         "stroke" => json!("none"),
         "strokeWeight" => json!(1.0),
@@ -169,7 +178,7 @@ pub fn default_value(name: &str) -> Value {
         "bullet" => json!("\u{2022}"),
         "numberFormat" => json!("^#.^t"),
         "numberStyle" => json!("arabic"),
-        "startAt" => json!(1),
+        "startAt" | "listLevel" => json!(1),
         "direction" => json!("ltr"),
         _ => Value::Null,
     }
@@ -336,6 +345,8 @@ pub struct CharProps {
     pub position: Position,
     pub underline: bool,
     pub strike: bool,
+    pub underline_style: Deco,
+    pub strike_style: Deco,
     pub ligatures: bool,
     pub no_break: bool,
     pub language: String,
@@ -343,6 +354,26 @@ pub struct CharProps {
     pub conditions: Vec<String>,
     pub change: Option<String>,
     pub xml_tag: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct Deco {
+    pub weight: Option<f64>,
+    pub offset: Option<f64>,
+    pub color: Option<Paint>,
+    pub tint: f64,
+}
+
+impl Deco {
+    fn resolve(stack: &Stack, base: &str) -> Deco {
+        let opt = |k: &str| stack.get(&format!("{base}{k}")).as_f64().filter(|v| v.is_finite());
+        Deco {
+            weight: opt("Weight").filter(|w| *w > 0.0),
+            offset: opt("Offset"),
+            color: Paint::from_value(&stack.get(&format!("{base}Color"))),
+            tint: stack.num(&format!("{base}Tint")).clamp(0.0, 1.0),
+        }
+    }
 }
 
 impl CharProps {
@@ -382,6 +413,8 @@ impl CharProps {
             },
             underline: stack.bool("underline"),
             strike: stack.bool("strike"),
+            underline_style: Deco::resolve(stack, "underline"),
+            strike_style: Deco::resolve(stack, "strike"),
             ligatures: stack.bool("ligatures"),
             no_break: stack.bool("noBreak"),
             language: stack.text("language"),
@@ -569,6 +602,7 @@ pub struct ParaProps {
     pub number_style: String,
     pub list_name: String,
     pub start_at: i64,
+    pub list_level: u8,
     pub span_columns: u32,
     pub split_columns: u32,
     pub split_gutter: f64,
@@ -693,6 +727,7 @@ impl ParaProps {
             number_style: stack.text("numberStyle"),
             list_name: stack.text("listName"),
             start_at: stack.int("startAt"),
+            list_level: stack.int("listLevel").clamp(1, 9) as u8,
             span_columns: match stack.int("spanColumns") {
                 n if n < 0 => u32::MAX,
                 n => n as u32,

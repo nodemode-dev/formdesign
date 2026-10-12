@@ -103,7 +103,12 @@ fn nested_ranges(text: &str, prefix: usize, rules: &[formdes_model::attrs::Neste
     out
 }
 
-pub fn build(styles: &Styles, para: &Para, list_number: Option<i64>, footnote_base: usize, ctx: &dyn Context, frame: usize) -> Built {
+pub struct ListNo {
+    pub n: i64,
+    pub parents: Vec<i64>,
+}
+
+pub fn build(styles: &Styles, para: &Para, list_number: Option<&ListNo>, footnote_base: usize, ctx: &dyn Context, frame: usize) -> Built {
     let props: ParaProps = styles.para_props(&para.style, &para.over);
     let mut text = String::new();
     let mut chars = Vec::new();
@@ -118,9 +123,17 @@ pub fn build(styles: &Styles, para: &Para, list_number: Option<i64>, footnote_ba
         let marker = match props.list {
             ListKind::Bullet => props.bullet.replace("^t", "\t"),
             _ => {
-                let n = list_number.unwrap_or(props.start_at.max(1));
+                let n = list_number.map(|l| l.n).unwrap_or(props.start_at.max(1));
                 let shown = formdes_model::attrs::list_number(n, &props.number_style);
-                props.number_format.replace("^#", &shown).replace("^t", "\t")
+                let mut s = props.number_format.replace("^#", &shown).replace("^t", "\t");
+                for lvl in 1..=9usize {
+                    let tag = format!("^{lvl}");
+                    if s.contains(&tag) {
+                        let v = if lvl == props.list_level as usize { n } else { list_number.and_then(|l| l.parents.get(lvl - 1).copied()).unwrap_or(1) };
+                        s = s.replace(&tag, &formdes_model::attrs::list_number(v, &props.number_style));
+                    }
+                }
+                s
             }
         };
         let m = if marker.contains('\t') { marker } else { format!("{marker}\t") };

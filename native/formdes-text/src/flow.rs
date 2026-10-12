@@ -401,14 +401,22 @@ impl<'a> Flower<'a> {
             offset += para.len() + 1;
             let props = self.styles.para_props(&para.style, &para.over);
             let number = if props.list == ListKind::Number {
-                let key = if props.list_name.is_empty() { para.style.clone() } else { props.list_name.clone() };
+                let base = if props.list_name.is_empty() { para.style.clone() } else { props.list_name.clone() };
+                let level = props.list_level.max(1);
                 let restart = para.over.contains_key("startAt");
-                let n = counters.entry(key).or_insert(props.start_at - 1);
-                if restart {
-                    *n = props.start_at - 1;
+                let n = {
+                    let n = counters.entry(format!("{base}\u{1}{level}")).or_insert(props.start_at - 1);
+                    if restart {
+                        *n = props.start_at - 1;
+                    }
+                    *n += 1;
+                    *n
+                };
+                for deeper in level + 1..=9 {
+                    counters.remove(&format!("{base}\u{1}{deeper}"));
                 }
-                *n += 1;
-                Some(*n)
+                let parents = (1..level).map(|l| counters.get(&format!("{base}\u{1}{l}")).copied().unwrap_or(1)).collect();
+                Some(para::ListNo { n, parents })
             } else {
                 None
             };
@@ -434,7 +442,7 @@ impl<'a> Flower<'a> {
                 break;
             };
             cur = start;
-            let built = para::build(self.styles, para, number, notes, self.ctx, cur.frame);
+            let built = para::build(self.styles, para, number.as_ref(), notes, self.ctx, cur.frame);
             out.para_maps.push(built.chars.clone());
             out.para_texts.push(built.input.text.clone());
             notes += built.specials.iter().filter(|(_, s)| matches!(s, Special::Footnote { .. })).count();
