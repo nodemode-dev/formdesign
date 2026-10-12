@@ -2,6 +2,19 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.25.1 · 2026-10-12
+
+- Parity batch four, ten graded rows closed (109.5 to 116.5 of 133).
+- Tables: Split Cell fixed (spanning cells draw with the grown row heights); graphic cells (Table > Convert Cell to Graphic, Place in Cell).
+- Text Frame Options: fixed number, fixed width or flexible width columns, applied on resize and kept in IDML.
+- Live captions bound to the nearest image's metadata, updating on move and relink.
+- Drop Shadow with a real blur (size, spread); Gradient Feather drawn, linear or radial, on screen and in PDF.
+- Mixed Ink swatches and Mixed Ink Groups, seen by Separations Preview and the ink limit (written to PDF as their process equivalent).
+- Printer's marks (crop, bleed, registration, colour bars, page information) in export and print; File > Export Separations, one plate per ink; Print with separations.
+- File > Import PDF Comments turns annotations into Notes at the marked text.
+- File > Share for Review: a review site where reviewers pin comments that arrive as Notes, with a Review panel to reply and resolve.
+- Word Import Options when placing a .docx: map each Word style to a document style, a new style or keep it.
+
 ## 0.25.0 · 2026-10-12
 
 - Phase 5 begins: `native/formdes-gpu`, the canvas compositor on wgpu 30.0.1 (tile atlas with a memory budget, pasteboard, page shadows and tiles drawn through the view, white paper instead of a blank hole while a tile is missing, window display). The web display paths and the native canvas follow in 0.25.x.
