@@ -58,8 +58,8 @@ Requirements: Node 20.19 or newer (22 recommended), Python 3.12 or newer, Rust s
 ### macOS and Linux
 
 ```bash
-git clone https://github.com/nodemode-ai/formdes.git
-cd formdes
+git clone https://github.com/nodemode-ai/formdesign.git
+cd formdesign
 ./formdes install
 ./formdes boot
 ```
@@ -67,8 +67,8 @@ cd formdes
 ### Windows
 
 ```bat
-git clone https://github.com/nodemode-ai/formdes.git
-cd formdes
+git clone https://github.com/nodemode-ai/formdesign.git
+cd formdesign
 formdes.bat install
 formdes.bat boot
 ```

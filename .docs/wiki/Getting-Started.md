@@ -14,8 +14,8 @@ Linux desktop builds also need the webview packages: `sudo apt install libwebkit
 ## Install and boot
 
 ```bash
-git clone git@github.com:nodemode-ai/formdes.git
-cd formdes
+git clone git@github.com:nodemode-ai/formdesign.git
+cd formdesign
 ./formdes install      # engine venv, font library, layout core, frontend
 ./formdes boot         # engine on 8196 and the window on 5196 together
 ```

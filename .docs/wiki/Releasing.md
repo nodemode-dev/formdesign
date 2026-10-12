@@ -36,7 +36,7 @@ The updater stays off until `plugins.updater.pubkey` in `src-tauri/tauri.conf.js
 
 1. `npx tauri signer generate -w ~/.tauri/formdes.key` (from `frontend/`), once. Keep the private key out of the repository.
 2. Put the public key in `plugins.updater.pubkey` and the private key and its password in the two `TAURI_SIGNING_*` secrets.
-3. Release builds then pass `--config src-tauri/tauri.updater.conf.json`, sign the update archives, and the release job writes `latest.json`, which installed apps read from `https://github.com/nodemode-ai/formdes/releases/latest/download/latest.json`.
+3. Release builds then pass `--config src-tauri/tauri.updater.conf.json`, sign the update archives, and the release job writes `latest.json`, which installed apps read from `https://github.com/nodemode-ai/formdesign/releases/latest/download/latest.json`.
 
 ## Unsigned builds
 

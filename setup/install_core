@@ -20,7 +20,7 @@ if [ -z "$triple" ]; then
   esac
 fi
 version="$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" "$FORMDES_ROOT/frontend/src/version.ts")"
-url="https://github.com/nodemode-ai/formdes/releases/download/v${version}/formdes-core-${triple}${exe}"
+url="https://github.com/nodemode-ai/formdesign/releases/download/v${version}/formdes-core-${triple}${exe}"
 mkdir -p bin
 fd_say "no Rust toolchain: fetching the prebuilt core $url"
 curl -fL "$url" -o "bin/formdes-core$exe" || fd_die "download failed: install Rust from https://rustup.rs and rerun ./formdes install-core"
