@@ -12,6 +12,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.services import userprefs as userprefs_service
 from app.routers import agents as agents_api
+from app.routers import colour as colour_api
 from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, system, templates, terminal, userprefs, website
 from app.services.pty import terminals
 
@@ -50,6 +51,7 @@ app.include_router(dictionaries.router, prefix="/api")
 app.include_router(website.router, prefix="/api")
 app.include_router(terminal.router, prefix="/api")
 app.include_router(agents_api.router, prefix="/api")
+app.include_router(colour_api.router, prefix="/api")
 app.include_router(website.sites)
 app.include_router(mcp.router)
 

@@ -1,5 +1,7 @@
 import { editor } from '../editor/editor';
 import { Dialog } from '../ui/dialogs';
+import { structuredEditor, type Lists } from './attr-editors';
+import { swatchNames } from './colour-tools';
 import { el, q, setText } from '../ui/dom';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
@@ -27,6 +29,8 @@ async function open(level: 'character' | 'paragraph', ws: Workspace): Promise<vo
   const target = q<HTMLSelectElement>(head, '.fto-target');
   target.append(new Option(editor.wantsText ? 'The selected text' : 'The selected frames', ''));
   const styles = await editor.exec<Record<string, string[]>>('style.list', {}, true).catch(() => undefined);
+  const swl = await editor.exec<unknown>('swatch.list', {}, true).catch(() => undefined);
+  const lists: Lists = { charStyles: styles?.character ?? [], swatches: swatchNames(swl) };
   for (const s of styles?.[level] ?? []) if (!/No Paragraph Style|^\[None\]$/.test(s)) target.append(new Option(`Style: ${s.replace(/^\[(.*)\]$/, '$1')}`, s));
   const body = el('<div class="fto-body"></div>');
   d.body.append(head, body);
@@ -51,12 +55,16 @@ async function open(level: 'character' | 'paragraph', ws: Workspace): Promise<vo
         sections.set(g, sec);
         body.appendChild(sec);
       }
-      const row = el('<label class="fo-field"><span></span></label>');
+      const se = (k.kind === 'list' || k.kind === 'object') ? structuredEditor(k.name, k.value, lists) : null;
+      const row = el(se ? '<div class="fo-field fae-field"><span></span></div>' : '<label class="fo-field"><span></span></label>');
       setText(q(row, 'span'), title(k.name));
       row.title = k.about;
       const v = k.value;
       initial.set(k.name, JSON.stringify(v ?? null));
-      if (k.kind === 'boolean') {
+      if (se) {
+        row.appendChild(se.node);
+        readers.set(k.name, se.read);
+      } else if (k.kind === 'boolean') {
         const i = el<HTMLInputElement>('<input type="checkbox">');
         i.checked = v === true;
         row.appendChild(i);

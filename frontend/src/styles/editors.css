@@ -1,0 +1,19 @@
+/* Row editors that replace JSON boxes (nested and GREP styles, tab stops, gradient stops, autocorrect pairs), the
+   paragraph rule and shading editors, and the colour theme chips. */
+.fae-field { align-items: start; }
+.fae-list, .fac-rows { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.fae-rows { display: flex; flex-direction: column; gap: var(--space-1); }
+.fae-row { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.fae-row > input[type="text"], .fae-row > input[type="number"] { min-width: 0; flex: 1 1 80px; }
+.fae-row > select, .fae-row > .cv-dd-btn { flex: 1 1 120px; min-width: 0; }
+.fae-add, .fac-add { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-1); }
+.fae-rm { flex: none; }
+.fae-check { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; color: var(--text-secondary); font-size: var(--fs-12); }
+.fae-obj { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1) var(--space-3); }
+.fae-obj > .fae-check { grid-column: 1 / -1; }
+.fae-f { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: var(--space-2); font-size: var(--fs-12); }
+.fac { display: flex; flex-direction: column; gap: var(--space-2); }
+.fac-rows { max-height: 300px; overflow-y: auto; }
+.fct-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin-bottom: var(--space-3); }
+.fct-chip { display: grid; grid-template-columns: 16px 22px minmax(0, 1fr); align-items: center; gap: var(--space-2); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--text-secondary); }
+.fct-chip i { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--line-2); }
