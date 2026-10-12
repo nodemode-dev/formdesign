@@ -8,6 +8,9 @@
 .fd-app .cv-main > .fd-left-col { grid-area: left; }
 .fd-left-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg-secondary); border-right: 1px solid var(--line-0); }
 .fd-left-col[hidden] { display: none; }
+.fd-left-col { position: relative; }
+.fd-left-resize { position: absolute; top: 0; right: 0; bottom: 0; width: 5px; z-index: var(--z-raised); cursor: col-resize; background: transparent; }
+.fd-left-resize:hover, .fd-left-resize.is-dragging { background: var(--accent-color-dim); }
 .fd-left-col > section.cv-group { flex: none; }
 .fd-left-col > section.cv-group:not(.is-min):not(.is-sized) { flex: 1 1 0; min-height: 150px; overflow: hidden; display: flex; flex-direction: column; }
 .fd-left-col > section.cv-group > .cv-group-body:not([hidden]) { flex: 1; min-height: 0; overflow-y: auto; }

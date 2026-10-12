@@ -3,7 +3,7 @@ import { icon } from './icons';
 import { PanelGroup } from './panel-group';
 
 export type DockColumn = 'left' | 'side' | 'dock';
-export interface DockState { left: string[]; side: string[]; dock: string[]; hidden: string[]; heights: Record<string, number>; custom: Array<{ id: string; label: string }>; width: number | null; collapsed: DockColumn[] }
+export interface DockState { left: string[]; side: string[]; dock: string[]; hidden: string[]; heights: Record<string, number>; custom: Array<{ id: string; label: string }>; width: number | null; collapsed: DockColumn[]; leftWidth?: number | null }
 const COLS: DockColumn[] = ['left', 'side', 'dock'];
 const LEFT_W = 252;
 const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'sparkle', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder' };
@@ -35,6 +35,7 @@ export class Dock {
     for (const c of Array.isArray(raw.custom) ? raw.custom : []) if (c && CUSTOM_ID.test(String(c.id)) && typeof c.label === 'string' && !PanelGroup.all.has(c.id)) makeGroup(cols.dock, c.id, c.label);
     this.state = this.merge(raw);
     this.wireResizer();
+    this.wireLeftResizer();
     window.addEventListener('pointerup', () => { if (this.drag) this.drop(); });
     this.apply();
   }
@@ -54,7 +55,8 @@ export class Dock {
     const custom = (Array.isArray(raw.custom) ? raw.custom : []).filter((c) => c && has(c.id) && CUSTOM_ID.test(c.id)).map((c) => ({ id: c.id, label: String(c.label).slice(0, 80) }));
     const w = typeof raw.width === 'number' && raw.width >= W_MIN && raw.width <= W_MAX ? Math.round(raw.width) : null;
     const collapsed = strs(raw.collapsed).filter((c): c is DockColumn => (COLS as string[]).includes(c));
-    return { left, side, dock, hidden: strs(raw.hidden).filter(has), heights: nums(raw.heights), custom, width: w, collapsed };
+    const lw = typeof raw.leftWidth === 'number' && raw.leftWidth >= W_MIN && raw.leftWidth <= W_MAX ? Math.round(raw.leftWidth) : null;
+    return { left, side, dock, hidden: strs(raw.hidden).filter(has), heights: nums(raw.heights), custom, width: w, collapsed, leftWidth: lw };
   }
 
   get snapshot(): DockState { return JSON.parse(JSON.stringify(this.state)) as DockState; }
@@ -112,7 +114,7 @@ export class Dock {
     setClass(this.root, 'is-side-collapsed', this.isCollapsed('side'));
     setClass(this.root, 'is-dock-collapsed', this.isCollapsed('dock'));
     const leftOpen = this.shown('left').length > 0 && !this.isCollapsed('left');
-    setStyleVar(this.root, '--fd-left-w', leftOpen ? `${LEFT_W}px` : '0px');
+    setStyleVar(this.root, '--fd-left-w', leftOpen ? `${this.state.leftWidth ?? LEFT_W}px` : '0px');
     setHidden(this.cols.left, !leftOpen);
     this.renderStrips();
   }
@@ -277,6 +279,29 @@ export class Dock {
         this.persist();
       };
       this.resizer.addEventListener('pointermove', move); this.resizer.addEventListener('pointerup', up); this.resizer.addEventListener('pointercancel', up);
+    });
+  }
+
+  private wireLeftResizer(): void {
+    const h = el('<div class="fd-left-resize" role="separator" aria-orientation="vertical" aria-label="Resize the left panels"></div>');
+    this.cols.left.appendChild(h);
+    h.addEventListener('dblclick', () => { this.state.leftWidth = null; this.save(); });
+    h.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      h.setPointerCapture(e.pointerId);
+      setClass(h, 'is-dragging', true);
+      const left = this.cols.left.getBoundingClientRect().left;
+      const move = (ev: PointerEvent): void => {
+        this.state.leftWidth = Math.round(Math.max(W_MIN, Math.min(W_MAX, ev.clientX - left)));
+        setStyleVar(this.root, '--fd-left-w', `${this.state.leftWidth}px`);
+      };
+      const up = (): void => {
+        setClass(h, 'is-dragging', false);
+        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+        this.persist();
+      };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
     });
   }
 
