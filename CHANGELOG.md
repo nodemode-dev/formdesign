@@ -2,6 +2,16 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.25.3 · 2026-10-12
+
+- Parity batch six, eight graded rows close (121.5 to 127 of 133).
+- Asian and right-to-left text: vertical frames (right-to-left columns, upright CJK, rotated Latin), ruby, kenten, tate-chu-yoko and auto tcy, kinsoku and mojikumi; RTL alignment, indents and drop caps mirror.
+- Table styles: alternating columns, alternating strokes, header, footer, left, right and body cell styles, skip first and last; cell styles with paragraph style, rotation and diagonals; written to IDML.
+- Video and audio in HTML and EPUB exports with posters and playback options.
+- Animation and Timing panels: presets, events, duration, delay, repeat and easing, previewed in the window and exported to Website, HTML and fixed-layout EPUB.
+- Assignments, per-story check out and check in, and an Editor workspace (InCopy-style), enforced for the window and agents.
+- The Assistant panel (Preferences > AI; Anthropic, OpenAI-compatible or Ollama; off by default) runs the MCP tools under Agent Connect approvals; Generate Alt Text, Auto Style, Generate Image and Generative Expand.
+
 ## 0.25.2 · 2026-10-12
 
 - The canvas draws through the GPU: WebGPU first, then WebGL2, then Canvas 2D (View > Renderer), with no blank frame on a lost context; formdes-gpu's frame model on the web.
