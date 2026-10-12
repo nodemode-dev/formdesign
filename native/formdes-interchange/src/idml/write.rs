@@ -76,6 +76,8 @@ fn color_value(c: Color) -> (&'static str, String) {
         Color::Gray(g) => ("CMYK", format!("0 0 0 {}", pct(g))),
         Color::Lab([l, a, b]) => ("LAB", format!("{} {} {}", num(l), num(a), num(b))),
         Color::Rgb([r, g, b]) => ("RGB", format!("{} {} {}", num(r * 255.0), num(g * 255.0), num(b * 255.0))),
+        Color::Ink { cmyk: Some([a, b, cc, d]), .. } => ("CMYK", format!("{} {} {} {}", pct(a), pct(b), pct(cc), pct(d))),
+        Color::Ink { rgb: [r, g, b], .. } => ("RGB", format!("{} {} {}", num(r * 255.0), num(g * 255.0), num(b * 255.0))),
     }
 }
 
@@ -450,17 +452,21 @@ impl W<'_> {
                 let i = &tf.insets;
                 let _ = write!(
                     out,
-                    "<TextFrame{common} ParentStory=\"{}\" PreviousTextFrame=\"{prev}\" NextTextFrame=\"{next}\" ContentType=\"TextType\">{geo}{}<TextFramePreference TextColumnCount=\"{}\" TextColumnGutter=\"{}\" InsetSpacing=\"{} {} {} {}\" VerticalJustification=\"{vj}\" FirstBaselineOffset=\"{fb}\" MinimumFirstBaselineOffset=\"{}\" AutoSizingType=\"{auto}\" IgnoreWrap=\"{}\"/>",
+                    "<TextFrame{common} ParentStory=\"{}\" PreviousTextFrame=\"{prev}\" NextTextFrame=\"{next}\" ContentType=\"TextType\">{geo}{}<TextFramePreference TextColumnCount=\"{}\" TextColumnGutter=\"{}\" InsetSpacing=\"{} {} {} {}\" VerticalJustification=\"{vj}\" FirstBaselineOffset=\"{fb}\" MinimumFirstBaselineOffset=\"{}\" AutoSizingType=\"{auto}\" IgnoreWrap=\"{}\" UseFixedColumnWidth=\"{}\" UseFlexibleColumnWidth=\"{}\" TextColumnFixedWidth=\"{}\" TextColumnMaxWidth=\"{}\"/>",
                     uid(tf.story.0),
                     self.wrap(it),
-                    tf.columns,
+                    tf.column_plan((it.shape.bbox().width() - i.inside - i.outside).max(1.0)).0,
                     num(tf.gutter),
                     num(i.top),
                     num(i.inside),
                     num(i.bottom),
                     num(i.outside),
                     num(tf.first_baseline_min),
-                    tf.ignore_wrap
+                    tf.ignore_wrap,
+                    tf.column_rule == formdes_model::item::ColumnRule::Fixed,
+                    tf.column_rule == formdes_model::item::ColumnRule::Flexible,
+                    num(tf.fixed_column_width.unwrap_or(0.0)),
+                    num(tf.max_column_width)
                 );
                 if let Some(pt) = &tf.on_path {
                     let _ = write!(out, "<TextPath Self=\"{}tp\" ParentStory=\"{}\" StartBracket=\"{}\" FlipPathEffect=\"{}\" PathAlignment=\"{}\"/>", uid(id.0), uid(tf.story.0), num(pt.start), if pt.flip { "Flipped" } else { "NotFlipped" }, esc(&pt.align));
@@ -753,6 +759,13 @@ fn graphic_xml(doc: &Doc, colors: &Colors) -> String {
                 let (space, v) = color_value(*color);
                 let model = if sw.name == "Registration" { "Registration" } else if sw.spot { "Spot" } else { "Process" };
                 let _ = write!(s, "<Color Self=\"Color/{}\" Model=\"{model}\" Space=\"{space}\" ColorValue=\"{v}\" Name=\"{}\" ColorEditable=\"{}\" ColorRemovable=\"{}\"/>", esc(&sw.name), esc(&sw.name), !sw.locked, !sw.locked);
+            }
+            SwatchValue::Mixed { .. } => {
+                // IDML's mixed inks need the ink list of the target workflow; the process equivalent keeps the look.
+                if let Some(Color::Ink { cmyk: Some(v), .. }) = doc.swatch_ink_color(&sw.name, 1.0, 0) {
+                    let (space, val) = color_value(Color::Cmyk(v));
+                    let _ = write!(s, "<Color Self=\"Color/{}\" Model=\"Process\" Space=\"{space}\" ColorValue=\"{val}\" Name=\"{}\" ColorEditable=\"true\" ColorRemovable=\"true\"/>", esc(&sw.name), esc(&sw.name));
+                }
             }
             SwatchValue::Tint { base, tint } => {
                 let _ = write!(s, "<Tint Self=\"Tint/{}\" BaseColor=\"Color/{}\" TintValue=\"{}\" Name=\"{}\"/>", esc(&sw.name), esc(base), num(tint * 100.0), esc(&sw.name));

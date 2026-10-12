@@ -449,6 +449,17 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
         if let Some(g) = p.num("TextColumnGutter") {
             tf.gutter = g;
         }
+        if let Some(w) = p.num("TextColumnFixedWidth").filter(|w| *w > 0.0) {
+            tf.fixed_column_width = Some(w);
+        }
+        if let Some(w) = p.num("TextColumnMaxWidth").filter(|w| *w > 0.0) {
+            tf.max_column_width = w;
+        }
+        if p.flag("UseFixedColumnWidth") == Some(true) {
+            tf.column_rule = formdes_model::item::ColumnRule::Fixed;
+        } else if p.flag("UseFlexibleColumnWidth") == Some(true) {
+            tf.column_rule = formdes_model::item::ColumnRule::Flexible;
+        }
         let ins: Vec<f64> = p.attr("InsetSpacing").unwrap_or("").split_whitespace().filter_map(|v| v.parse().ok()).collect();
         if ins.len() == 4 {
             tf.insets = Edges { top: ins[0], inside: ins[1], bottom: ins[2], outside: ins[3] };

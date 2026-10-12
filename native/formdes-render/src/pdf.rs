@@ -20,6 +20,15 @@ use kurbo::{Affine, BezPath, PathEl};
 use crate::images::{Images, is_pdf};
 use crate::scene::{Brush, GlyphOp, LinkTarget, Op, PageScene, StrokeStyle};
 
+#[derive(Clone)]
+pub struct MarkFont(pub Arc<formdes_text::fonts::Face>);
+
+impl std::fmt::Debug for MarkFont {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MarkFont({})", self.0.family)
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct PdfOpts {
     pub title: String,
@@ -27,6 +36,12 @@ pub struct PdfOpts {
     pub standard: Option<String>,
     pub language: Option<String>,
     pub cmyk_profile: Option<Vec<u8>>,
+    /// Printer's marks drawn in a slug around each page, which grows the page to hold them.
+    pub marks: Option<crate::marks::Marks>,
+    /// The font the page information is set in.
+    pub mark_font: Option<MarkFont>,
+    /// Write one separation plate (an index into `Doc::plate_names`) as a grey page instead of the colours.
+    pub plate: Option<u8>,
 }
 
 fn kpath(p: &BezPath) -> Option<Path> {
@@ -53,6 +68,7 @@ fn kcolor(c: Color) -> krilla::color::Color {
     match c {
         Color::Cmyk([c0, m, y, k]) => cmyk::Color::new(u(c0), u(m), u(y), u(k)).into(),
         Color::Gray(g) => luma::Color::new(u(1.0 - g)).into(),
+        Color::Ink { cmyk: Some([c0, m, y, k]), .. } => cmyk::Color::new(u(c0), u(m), u(y), u(k)).into(),
         other => {
             let [r, g, b] = other.to_rgb();
             rgb::Color::new(u(r), u(g), u(b)).into()
@@ -279,7 +295,7 @@ fn configuration(standard: Option<&str>) -> Result<krilla::configure::Configurat
 
 fn rgb_color(c: Color) -> Color {
     match c {
-        Color::Cmyk(_) => {
+        Color::Cmyk(_) | Color::Ink { .. } => {
             let [r, g, b] = c.to_rgb();
             Color::Rgb([r, g, b])
         }
@@ -351,18 +367,36 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
         let b = &scene.bleed;
         let full_w = scene.width + b.inside + b.outside;
         let full_h = scene.height + b.top + b.bottom;
-        let size = Size::from_wh(full_w as f32, full_h as f32).ok_or("page has no size")?;
-        let trim = Rect::from_xywh(b.inside as f32, b.top as f32, scene.width as f32, scene.height as f32);
+        // Marks sit in a slug of equal width on every side of the bleed box, so the media box grows by twice that.
+        let marks = opts.marks.as_ref().filter(|m| m.any());
+        let doc_bleed = crate::marks::page_bleed(doc, scene.page);
+        let slug = marks.map(|m| m.slug(&doc_bleed)).unwrap_or(0.0);
+        let size = Size::from_wh((full_w + 2.0 * slug) as f32, (full_h + 2.0 * slug) as f32).ok_or("page has no size")?;
+        let trim = Rect::from_xywh((slug + b.inside) as f32, (slug + b.top) as f32, scene.width as f32, scene.height as f32);
         let mut settings = PageSettings::new(size).with_trim_box(trim);
-        if b.top + b.bottom + b.inside + b.outside > 0.0 {
-            settings = settings.with_bleed_box(Rect::from_xywh(0.0, 0.0, full_w as f32, full_h as f32));
+        if b.top + b.bottom + b.inside + b.outside > 0.0 || slug > 0.0 {
+            settings = settings.with_bleed_box(Rect::from_xywh(slug as f32, slug as f32, full_w as f32, full_h as f32));
+        }
+        let mut all_ops: Vec<Op> = scene.ops.clone();
+        if let Some(m) = marks {
+            let name = doc.page_name(scene.page);
+            let plate_name = opts.plate.and_then(|p| doc.plate_names().get(p as usize).cloned());
+            let left = format!("{}  {}", if opts.title.is_empty() { "Untitled" } else { opts.title.as_str() }, crate::marks::timestamp());
+            let right = match &plate_name {
+                Some(pn) => format!("{pn}  Page {name}"),
+                None => format!("Page {name}"),
+            };
+            all_ops.extend(m.ops(scene.width, scene.height, &doc_bleed, &left, &right, opts.mark_font.as_ref().map(|f| &f.0)));
+        }
+        if let Some(p) = opts.plate {
+            all_ops = crate::sep::plate_ops(doc, &all_ops, p);
         }
         let mut page = document.start_page_with(settings);
         let mut links = Vec::new();
         {
             let mut surface = page.surface();
-            surface.push_transform(&Transform::from_translate(b.inside as f32, b.top as f32));
-            for op in &scene.ops {
+            surface.push_transform(&Transform::from_translate((slug + b.inside) as f32, (slug + b.top) as f32));
+            for op in &all_ops {
                 match op {
                     Op::Fill { path, brush, even_odd } => {
                         if let Some(p) = kpath(path) {
@@ -387,7 +421,13 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
                         let Some(a) = doc.assets.get(asset) else { continue };
                         let Some(sz) = Size::from_wh(*w as f32, *h as f32) else { continue };
                         surface.push_transform(&kxf(*xf));
-                        if is_pdf(a) {
+                        if let Some(p) = opts.plate {
+                            // A plate has no colour pictures: the picture becomes its ink density as a grey image.
+                            let img = images.get(a, 2.0).filter(|d| d.width > 0 && d.height > 0).map(|d| krilla::image::Image::from_rgba8(crate::sep::plate_rgba(&d.rgba, p), d.width, d.height));
+                            if let Some(img) = img {
+                                surface.draw_image(img, sz);
+                            }
+                        } else if is_pdf(a) {
                             let pdf = pdf_cache
                                 .entry(*asset)
                                 .or_insert_with(|| krilla::pdf::Pdf::new(a.data.clone()).ok().map(|p| krilla::pdf::PdfDocument::new(Arc::new(p))))
@@ -464,7 +504,7 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
             surface.finish();
         }
         for (r, t) in links {
-            let Some(rect) = Rect::from_ltrb((r.x0 + b.inside) as f32, (r.y0 + b.top) as f32, (r.x1 + b.inside) as f32, (r.y1 + b.top) as f32) else { continue };
+            let Some(rect) = Rect::from_ltrb((r.x0 + b.inside + slug) as f32, (r.y0 + b.top + slug) as f32, (r.x1 + b.inside + slug) as f32, (r.y1 + b.top + slug) as f32) else { continue };
             let (target, alt) = match t {
                 LinkTarget::Url(u) => (Target::Action(LinkAction::new(u.clone()).into()), format!("Link to {u}")),
                 LinkTarget::Page(p) => match index_of.get(&p) {

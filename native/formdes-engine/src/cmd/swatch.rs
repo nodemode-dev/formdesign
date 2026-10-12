@@ -160,7 +160,7 @@ fn ase(doc: &Doc) -> Vec<u8> {
     for sw in &doc.swatches {
         let color = match &sw.value {
             SwatchValue::Color { color } => *color,
-            SwatchValue::Tint { .. } => match doc.swatch_color(&sw.name, 1.0, 0) {
+            SwatchValue::Tint { .. } | SwatchValue::Mixed { .. } => match doc.swatch_color(&sw.name, 1.0, 0) {
                 Some(c) => c,
                 None => continue,
             },
@@ -177,6 +177,7 @@ fn ase(doc: &Doc) -> Vec<u8> {
             Color::Rgb(v) => (b"RGB ", v.iter().map(|x| *x as f32).collect()),
             Color::Lab([l, a, bb]) => (b"LAB ", vec![(l / 100.0) as f32, a as f32, bb as f32]),
             Color::Gray(g) => (b"Gray", vec![g as f32]),
+            Color::Ink { rgb, .. } => (b"RGB ", rgb.iter().map(|x| *x as f32).collect()),
         };
         b.extend(model);
         for v in vals {
@@ -215,6 +216,7 @@ fn swatch_list(c: &mut Ctx, _: &Value) -> Result<Value> {
             SwatchValue::Color { color } => ("color", wire::color_out(*color)),
             SwatchValue::Tint { base, tint } => ("tint", json!({"base": wire::swatch_name(base), "tint": tint})),
             SwatchValue::Gradient { gradient } => ("gradient", serde_json::to_value(gradient).unwrap_or(Value::Null)),
+            SwatchValue::Mixed { parts } => ("mixed", json!(parts.iter().map(|p| json!({"ink": wire::swatch_name(&p.ink), "tint": p.tint})).collect::<Vec<_>>())),
         };
         let hex = doc.swatch_color(&s.name, 1.0, 0).map(|c| c.hex());
         out.push(json!({"name": wire::swatch_name(&s.name), "kind": kind, "value": value, "hex": hex, "spot": s.spot, "locked": s.locked}));

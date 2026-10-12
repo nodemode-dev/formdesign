@@ -8,6 +8,28 @@ pub enum Color {
     Cmyk([f64; 4]),
     Lab([f64; 3]),
     Gray(f64),
+    /// A spot or mixed ink swatch, kept as its ink so a separation can split it into plates. `sw` indexes the
+    /// document's swatches (only valid for the document that produced it, so it is never stored); `rgb` is the
+    /// display colour and `cmyk` the process equivalent when the ink has one.
+    Ink { sw: u32, tint: f64, rgb: [f64; 3], cmyk: Option<[f64; 4]> },
+}
+
+/// One component of a mixed ink: a process ink (Cyan, Magenta, Yellow, Black) or a spot ink swatch, at a tint.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MixPart {
+    pub ink: String,
+    pub tint: f64,
+}
+
+/// The plate index (0 to 3) of a process ink name, accepting the usual letters.
+pub fn process_plate(name: &str) -> Option<usize> {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "cyan" | "c" => Some(0),
+        "magenta" | "m" => Some(1),
+        "yellow" | "y" => Some(2),
+        "black" | "k" => Some(3),
+        _ => None,
+    }
 }
 
 impl Color {
@@ -76,12 +98,14 @@ impl Color {
                 rgb
             }
             Color::Lab([l, a, b]) => lab_to_srgb(l, a, b),
+            Color::Ink { rgb, .. } => rgb,
         }
     }
 
     pub fn tinted(self, tint: f64) -> Color {
         let t = tint.clamp(0.0, 1.0);
         match self {
+            Color::Ink { sw, tint: t0, rgb, cmyk } => Color::Ink { sw, tint: t0 * t, rgb: rgb.map(|v| 1.0 - (1.0 - v) * t), cmyk: cmyk.map(|c| c.map(|v| v * t)) },
             Color::Cmyk(c) => Color::Cmyk([c[0] * t, c[1] * t, c[2] * t, c[3] * t]),
             Color::Gray(g) => Color::Gray(g * t),
             other => {
@@ -145,6 +169,8 @@ pub enum SwatchValue {
     Color { color: Color },
     Tint { base: String, tint: f64 },
     Gradient { gradient: Gradient },
+    /// A mixed ink: process and spot inks at tints, printed together.
+    Mixed { parts: Vec<MixPart> },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -1,4 +1,5 @@
 pub mod attrs;
+pub mod captionmeta;
 pub mod color;
 pub mod doc;
 pub mod format;

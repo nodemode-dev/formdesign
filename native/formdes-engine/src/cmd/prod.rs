@@ -392,12 +392,25 @@ fn file_print(c: &mut Ctx, p: &Value) -> Result<Value> {
     let doc = c.doc()?;
     let pages = crate::cmd::file::page_list(doc, args::opt_str(p, "pages"))?;
     let bleed = args::opt_bool(p, "bleed").unwrap_or(false);
-    let bytes = renderer.pdf(doc, &lay, Some(pages.clone()), bleed).map_err(|e| EngineError::new(format!("print: {e}")))?;
+    let popts = formdes_render::pdf::PdfOpts { title: doc.title.clone(), marks: crate::cmd::inks::marks_from(p), mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), ..Default::default() };
+    let separations = args::opt_bool(p, "separations").unwrap_or(false);
+    // Separations spool one grey plate per ink (the same plates file.exportSeparations writes); otherwise one composite.
+    let jobs: Vec<(String, Vec<u8>)> = if separations {
+        crate::cmd::inks::plate_pdfs(c, p, &pages, bleed)?
+    } else {
+        vec![("composite".to_string(), renderer.pdf_with(doc, &lay, Some(pages.clone()), bleed, &popts).map_err(|e| EngineError::new(format!("print: {e}")))?)]
+    };
     let copies = args::opt_u64(p, "copies").unwrap_or(1).clamp(1, 999);
     let printer = args::opt_str(p, "printer").map(str::to_string);
-    let tmp = std::env::temp_dir().join(format!("formdes-print-{}.pdf", std::process::id()));
-    std::fs::write(&tmp, &bytes).map_err(|e| EngineError::new(format!("print: {e}")))?;
-    let (prog, mut argv): (std::path::PathBuf, Vec<String>) = if let Some(lp) = which("lp") {
+    let tmps: Vec<(String, std::path::PathBuf)> = jobs
+        .iter()
+        .enumerate()
+        .map(|(i, (ink, bytes))| {
+            let tmp = std::env::temp_dir().join(format!("formdes-print-{}-{i}.pdf", std::process::id()));
+            std::fs::write(&tmp, bytes).map(|_| (ink.clone(), tmp)).map_err(|e| EngineError::new(format!("print: {e}")))
+        })
+        .collect::<Result<_>>()?;
+    let (prog, argv): (std::path::PathBuf, Vec<String>) = if let Some(lp) = which("lp") {
         let mut a = vec!["-n".into(), copies.to_string()];
         if let Some(pr) = &printer {
             a.push("-d".into());
@@ -412,14 +425,22 @@ fn file_print(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         (lpr, a)
     } else {
-        return Ok(json!({"printed": false, "pdf": tmp.display().to_string(), "message": "no print system (lp or lpr) was found; the pages were written to a PDF to print from another app"}));
+        let files: Vec<Value> = tmps.iter().map(|(ink, t)| json!({"plate": ink, "pdf": t.display().to_string()})).collect();
+        let first = tmps.first().map(|(_, t)| t.display().to_string());
+        return Ok(json!({"printed": false, "pdf": first, "plates": files, "message": "no print system (lp or lpr) was found; the pages were written to PDF files to print from another app"}));
     };
-    argv.push(tmp.display().to_string());
-    let out = std::process::Command::new(&prog).args(&argv).output().map_err(|e| EngineError::new(format!("print: {e}")))?;
-    if !out.status.success() {
-        return Err(EngineError::new(format!("print: {}", String::from_utf8_lossy(&out.stderr).trim())));
+    let mut messages = Vec::new();
+    for (ink, tmp) in &tmps {
+        let mut a = argv.clone();
+        a.push(tmp.display().to_string());
+        let out = std::process::Command::new(&prog).args(&a).output().map_err(|e| EngineError::new(format!("print: {e}")))?;
+        if !out.status.success() {
+            return Err(EngineError::new(format!("print {ink}: {}", String::from_utf8_lossy(&out.stderr).trim())));
+        }
+        messages.push(String::from_utf8_lossy(&out.stdout).trim().to_string());
     }
-    Ok(json!({"printed": true, "pages": pages.len(), "copies": copies, "printer": printer, "message": String::from_utf8_lossy(&out.stdout).trim()}))
+    let plates: Vec<&str> = tmps.iter().map(|(i, _)| i.as_str()).collect();
+    Ok(json!({"printed": true, "pages": pages.len(), "copies": copies, "printer": printer, "separations": separations, "plates": if separations { json!(plates) } else { Value::Null }, "message": messages.join("; ")}))
 }
 
 fn printers(_: &mut Ctx, _: &Value) -> Result<Value> {
@@ -1090,7 +1111,7 @@ pub fn register(r: &mut Registry) {
     cmd("style.table.edit", "Table Style Options").menu(&["Table", "Table Style Options..."]).sig("{name, attrs?: {border, altRows, ...}, rename?}").reg(r, table_style_edit);
     cmd("style.cell.edit", "Cell Style Options").menu(&["Table", "Cell Style Options..."]).sig("{kind: cell, name, attrs?, rename?}").reg(r, table_style_edit);
     cmd("place.load", "Load Place Cursor").sig("{paths: [files]}").reg(r, place_load);
-    cmd("file.print", "Print").menu(&["File", "Print..."]).key("Mod+P").query().sig("{printer?, copies?, pages?, bleed?}").reg(r, file_print);
+    cmd("file.print", "Print").menu(&["File", "Print..."]).key("Mod+P").query().sig("{printer?, copies?, pages?, bleed?, separations?: bool, inks?: [plate names], marks?: bool | {crop, bleed, registration, colorBars, pageInfo, type, weight, offset}, cropMarks?, bleedMarks?, registrationMarks?, colorBars?, pageInformation?, markType?: default|japanese, markWeight?: pt, markOffset?: pt}").reg(r, file_print);
     cmd("file.printers", "Printers").query().sig("{}").reg(r, printers);
     cmd("file.exportSvg", "Export SVG").menu(&["File", "Export", "SVG..."]).query().sig("{page?: 1-based, path?}").reg(r, export_svg);
     cmd("list.define", "Define Lists").menu(&["Type", "Bulleted and Numbered Lists", "Define Lists..."]).sig("{name, acrossStories?, continueFromPrevious?}").reg(r, list_define);

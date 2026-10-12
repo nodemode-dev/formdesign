@@ -82,6 +82,7 @@ fn cell_value(c: &TableCell) -> Value {
         "fill": c.attrs.get("fill").and_then(formdes_model::color::Paint::from_value).map(|p| wire::paint_name(&p)).unwrap_or_else(|| "[None]".into()),
         "insets": ins, "vj": c.attrs.get("vj").cloned().unwrap_or(json!("top")),
         "style": wire::style_name(StyleKind::Cell, c.style.as_deref().unwrap_or("None")),
+        "graphic": c.attrs.get("graphic").cloned().unwrap_or(Value::Null),
         "text": c.paras.iter().map(|p| p.plain()).collect::<Vec<_>>().join("\n"),
     })
 }
@@ -592,6 +593,59 @@ fn split_cell(c: &mut Ctx, p: &Value) -> Result<Value> {
     ok()
 }
 
+fn fitting_of(p: &Value) -> Result<Option<String>> {
+    match args::opt_str(p, "fitting") {
+        None => Ok(None),
+        Some(f @ ("fill" | "fit" | "center")) => Ok(Some(f.to_string())),
+        Some(_) => Err(EngineError::new("`fitting` expected fill, fit or center")),
+    }
+}
+
+fn convert_cell(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let cs = current(c)?;
+    let to = args::opt_str(p, "to").unwrap_or("graphic").to_string();
+    if to != "graphic" && to != "text" {
+        return Err(EngineError::new("`to` expected graphic or text"));
+    }
+    let fitting = fitting_of(p)?;
+    edit(c, &cs, |t| {
+        let (r0, c0, r1, c1) = norm(&cs, t);
+        for cell in t.cells.iter_mut().filter(|x| x.row <= r1 && x.row + x.rows > r0 && x.col <= c1 && x.col + x.cols > c0) {
+            if to == "text" {
+                cell.attrs.remove("graphic");
+            } else if !cell.attrs.contains_key("graphic") {
+                cell.attrs.insert("graphic".into(), json!({"fitting": fitting.clone().unwrap_or_else(|| "fit".into())}));
+            } else if let Some(f) = &fitting
+                && let Some(g) = cell.attrs.get_mut("graphic").and_then(Value::as_object_mut)
+            {
+                g.insert("fitting".into(), json!(f));
+            }
+        }
+        Ok(())
+    })?;
+    c.label(if to == "text" { "Convert Cell to Text Cell" } else { "Convert Cell to Graphic Cell" });
+    ok()
+}
+
+fn place_in_cell(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let cs = current(c)?;
+    let path = args::str_(p, "path", "the image file to place")?.to_string();
+    let fitting = fitting_of(p)?.unwrap_or_else(|| "fit".into());
+    let alt = args::opt_str(p, "alt").unwrap_or("").to_string();
+    let asset = crate::assets::load(&path, args::opt_u64(p, "page").unwrap_or(0) as u32)?;
+    let aid = c.doc_mut()?.add_asset(asset);
+    let mut count = 0;
+    edit(c, &cs, |t| {
+        let (r0, c0, _, _) = norm(&cs, t);
+        let cell = t.cell_mut(r0, c0).ok_or_else(|| EngineError::new("no cell there"))?;
+        cell.attrs.insert("graphic".into(), json!({"asset": aid.0, "fitting": fitting, "alt": alt}));
+        count += 1;
+        Ok(())
+    })?;
+    c.label("Place in Cell");
+    Ok(json!({"asset": aid.0, "cells": count}))
+}
+
 const STROKE_SIDES: [&str; 6] = ["top", "bottom", "left", "right", "innerHorizontal", "innerVertical"];
 
 fn cell_strokes(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -852,6 +906,8 @@ pub fn register(r: &mut Registry) {
     cmd("table.merge", "Merge Cells").menu(&["Table", "Merge Cells"]).needs(Needs::Text).sig("{}").reg(r, merge);
     cmd("table.unmerge", "Unmerge Cells").menu(&["Table", "Unmerge Cells"]).needs(Needs::Text).sig("{}").reg(r, unmerge);
     cmd("table.splitCell", "Split Cell").menu(&["Table", "Split Cell"]).needs(Needs::Text).sig("{direction?: horizontal|vertical}").reg(r, split_cell);
+    cmd("table.convertCell", "Convert Cell Type").menu(&["Table", "Convert Cell Type"]).needs(Needs::Text).sig("{to: graphic|text, fitting?: fill|fit|center}").reg(r, convert_cell);
+    cmd("table.placeInCell", "Place Image in Cell...").menu(&["Table", "Place Image in Cell..."]).needs(Needs::Text).sig("{path, fitting?: fill|fit|center, alt?, page?}").reg(r, place_in_cell);
     cmd("table.cellStrokes", "Cell Strokes").menu(&["Table", "Cell Strokes..."]).needs(Needs::Text).sig("{sides?: [top|bottom|left|right|innerHorizontal|innerVertical|outside|inside|all], weight?: pt, color?: swatch, tint?: 0..100, type?: solid|dashed|dotted|none, clear?}").reg(r, cell_strokes);
     cmd("table.distributeColumns", "Distribute Columns Evenly").menu(&["Table", "Distribute Columns Evenly"]).needs(Needs::Text).sig("{}").reg(r, distribute);
     cmd("table.sortRows", "Sort").menu(&["Table", "Sort"]).needs(Needs::Text).sig("{column?, descending?}").reg(r, sort_rows);

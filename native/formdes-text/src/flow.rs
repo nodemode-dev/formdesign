@@ -905,13 +905,13 @@ impl<'a> Flower<'a> {
                 y = self.frames[c.frame].inner.y0;
                 if r >= headers.len() {
                     for hr in &headers {
-                        self.table_row(t, *hr, y, heights[*hr], &col_x, &cell_lines, c, &mut frag);
+                        self.table_row(t, &heights, *hr, y, heights[*hr], &col_x, &cell_lines, c, &mut frag);
                         y += heights[*hr];
                     }
                 }
                 continue;
             }
-            self.table_row(t, r, y, h, &col_x, &cell_lines, c, &mut frag);
+            self.table_row(t, &heights, r, y, h, &col_x, &cell_lines, c, &mut frag);
             y += h;
             r += 1;
         }
@@ -920,11 +920,11 @@ impl<'a> Flower<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn table_row(&self, t: &Table, r: usize, y: f64, h: f64, col_x: &[f64], cells: &HashMap<(usize, usize), (Vec<Line>, f64)>, c: Cursor, frag: &mut TableFrag) {
+    fn table_row(&self, t: &Table, eff: &[f64], r: usize, y: f64, h: f64, col_x: &[f64], cells: &HashMap<(usize, usize), (Vec<Line>, f64)>, c: Cursor, frag: &mut TableFrag) {
         let (x0, _) = self.column_x(c.frame, c.column);
         frag.rows.push((r, Rect::new(x0, y, x0 + col_x.last().copied().unwrap_or(0.0), y + h)));
         for cell in t.cells.iter().filter(|cl| cl.row == r) {
-            let span_h: f64 = h + (1..cell.rows).map(|k| t.heights.get(r + k).copied().unwrap_or(0.0)).sum::<f64>();
+            let span_h: f64 = h + (1..cell.rows).map(|k| eff.get(r + k).copied().unwrap_or(0.0)).sum::<f64>();
             let rect = Rect::new(x0 + col_x[cell.col], y, x0 + col_x[(cell.col + cell.cols).min(col_x.len() - 1)], y + span_h);
             let mut lines = Vec::new();
             let ins = cell_insets(cell);

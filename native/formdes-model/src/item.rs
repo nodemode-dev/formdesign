@@ -271,11 +271,41 @@ pub struct TextFrame {
     pub on_path: Option<PathText>,
     #[serde(default)]
     pub fixed_column_width: Option<f64>,
+    #[serde(default)]
+    pub column_rule: ColumnRule,
+    #[serde(default)]
+    pub max_column_width: f64,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ColumnRule {
+    #[default]
+    Number,
+    Fixed,
+    Flexible,
 }
 
 impl TextFrame {
     pub fn new(story: StoryId) -> TextFrame {
-        TextFrame { story, columns: 1, gutter: 12.0, insets: Edges::default(), vjust: VJust::Top, first_baseline: FirstBaseline::Ascent, first_baseline_min: 0.0, autosize: AutoSize::Off, balance: false, ignore_wrap: false, on_path: None, fixed_column_width: None }
+        TextFrame { story, columns: 1, gutter: 12.0, insets: Edges::default(), vjust: VJust::Top, first_baseline: FirstBaseline::Ascent, first_baseline_min: 0.0, autosize: AutoSize::Off, balance: false, ignore_wrap: false, on_path: None, fixed_column_width: None, column_rule: ColumnRule::Number, max_column_width: 0.0 }
+    }
+
+    pub fn column_plan(&self, inner_width: f64) -> (u32, Option<f64>) {
+        let g = self.gutter.max(0.0);
+        let w = inner_width.max(1.0);
+        match (self.column_rule, self.fixed_column_width.filter(|f| *f > 0.0)) {
+            (ColumnRule::Fixed, Some(cw)) => (((w + g) / (cw + g) + 1e-6).floor().max(1.0).min(216.0) as u32, Some(cw)),
+            (ColumnRule::Flexible, _) if self.max_column_width > 0.0 => ((((w + g) / (self.max_column_width + g) - 1e-6).ceil()).max(1.0).min(216.0) as u32, None),
+            (_, fixed) => (self.columns.max(1), fixed),
+        }
+    }
+
+    pub fn fitted_width(&self, columns: u32) -> Option<f64> {
+        match (self.column_rule, self.fixed_column_width.filter(|f| *f > 0.0)) {
+            (ColumnRule::Fixed, Some(cw)) => Some(cw * columns as f64 + self.gutter.max(0.0) * (columns as f64 - 1.0) + self.insets.inside + self.insets.outside),
+            _ => None,
+        }
     }
 }
 

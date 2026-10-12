@@ -57,7 +57,7 @@ pub fn view_opts(p: &Value) -> ViewOpts {
         shadow: !preview,
         printing_only: preview,
         greek_px: p.get("greek").and_then(Value::as_f64).unwrap_or(3.0),
-        plate: p.get("plate").and_then(Value::as_u64).map(|v| v.min(3) as u8),
+        plate: p.get("plate").and_then(Value::as_u64).map(|v| v.min(63) as u8),
     }
 }
 
@@ -291,7 +291,7 @@ pub fn tiles(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
         let mut img = render_view(&doc, &placed, w, h, view, &opts, &renderer.outlines, &renderer.images);
         if let Some(limit) = ink_limit {
             let mut sum = vec![0f32; img.rgba.len() / 4];
-            for plate in 0..4u8 {
+            for plate in 0..doc.plate_names().len().min(64) as u8 {
                 let po = ViewOpts { plate: Some(plate), ..opts.clone() };
                 let pi = render_view(&doc, &placed, w, h, view, &po, &renderer.outlines, &renderer.images);
                 for (s, px) in sum.iter_mut().zip(pi.rgba.chunks_exact(4)) {

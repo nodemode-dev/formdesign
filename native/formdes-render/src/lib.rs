@@ -1,8 +1,11 @@
+pub mod cellgfx;
 pub mod images;
 pub mod outline;
 pub mod pdf;
 pub mod raster;
+pub mod marks;
 pub mod scene;
+pub mod sep;
 pub mod view;
 
 use formdes_model::doc::Doc;

@@ -62,7 +62,15 @@ fn item_json(doc: &Doc, id: ItemId, overset: &dyn Fn(formdes_model::ids::StoryId
     match &it.kind {
         ItemKind::Text(t) => {
             o.insert("story".into(), json!(t.story));
-            o.insert("columns".into(), json!(t.columns));
+            let bb = it.shape.bbox();
+            o.insert("columns".into(), json!(t.column_plan((bb.width() - t.insets.inside - t.insets.outside).max(1.0)).0));
+            o.insert("columnRule".into(), json!(t.column_rule));
+            if let Some(w) = t.fixed_column_width {
+                o.insert("columnWidth".into(), json!(w));
+            }
+            if t.max_column_width > 0.0 {
+                o.insert("maxColumnWidth".into(), json!(t.max_column_width));
+            }
             o.insert("overset".into(), json!(overset(t.story)));
         }
         ItemKind::Graphic(g) => {

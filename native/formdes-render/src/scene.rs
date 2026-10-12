@@ -116,7 +116,7 @@ pub fn brush_of(doc: &Doc, paint: &Paint, tint: f64, local: Rect, xf: Affine) ->
     if let Some(g) = doc.gradient_of(paint) {
         return Some(gradient_brush(&g, local, xf));
     }
-    let c = doc.paint_color(paint)?;
+    let c = doc.paint_ink_color(paint)?;
     let c = if (tint - 1.0).abs() > 1e-6 { c.tinted(tint) } else { c };
     Some(Brush::Solid(c, 1.0))
 }
@@ -192,6 +192,10 @@ fn glow_profile(opacity: f64, core: f64, size: f64) -> impl Fn(f64) -> f64 {
 
 fn band_stroke(path: &BezPath, color: Color, alpha: f64, half: f64, join: &str) -> Op {
     Op::Stroke { path: path.clone(), brush: Brush::Solid(color, alpha), style: StrokeStyle { width: half * 2.0, cap: "butt".into(), join: join.into(), dash: Vec::new() } }
+}
+
+fn m_push_gradient_mask(ops: &mut Vec<Op>, area: Rect, brush: Brush) {
+    ops.push(Op::PushMask(vec![Op::Fill { path: area.to_path(0.1), brush, even_odd: false }]));
 }
 
 /// The per-cell stroke on one side of a table cell, if the cell (or the cell across that edge) overrides the table
@@ -384,6 +388,36 @@ impl Ctx<'_> {
                 opened += 1;
             }
         }
+        if let Some(s) = fx(it, "gradientFeather") {
+            // Opacity stops become grey stops of a gradient fill; the mask's luminance is the object's opacity.
+            let mut stops: Vec<(f64, Color, f64)> = s
+                .get("stops")
+                .and_then(|v| v.as_array())
+                .map(|a| {
+                    a.iter()
+                        .map(|st| {
+                            let o = st.get("opacity").and_then(|v| v.as_f64()).unwrap_or(1.0).clamp(0.0, 1.0);
+                            (st.get("location").and_then(|v| v.as_f64()).unwrap_or(0.0).clamp(0.0, 1.0), Color::Rgb([o, o, o]), 1.0)
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            if stops.len() < 2 {
+                stops = vec![(0.0, white, 1.0), (1.0, black, 1.0)];
+            }
+            stops.sort_by(|a, b| a.0.total_cmp(&b.0));
+            let radial = s.get("type").and_then(|v| v.as_str()) == Some("radial");
+            let g = Gradient {
+                radial,
+                angle: fnum(s, "angle", 0.0),
+                stops: stops.iter().map(|(at, c, o)| formdes_model::color::Stop { at: *at, color: *c, opacity: *o }).collect(),
+            };
+            let bb = path.bounding_box();
+            let brush = gradient_brush(&g, bb, Affine::IDENTITY);
+            let pad = it.stroke.weight * 2.0 + 4.0;
+            m_push_gradient_mask(&mut self.ops, bb.inflate(pad, pad), brush);
+            opened += 1;
+        }
         opened
     }
 
@@ -479,19 +513,53 @@ impl Ctx<'_> {
     }
 
     fn shadow(&mut self, it: &Item, path: &BezPath) {
-        let Some(s) = it.effects.get("dropShadow").and_then(|v| v.as_object()) else { return };
-        if s.get("on").and_then(|v| v.as_bool()) == Some(false) {
-            return;
-        }
-        let n = |k: &str, d: f64| s.get(k).and_then(|v| v.as_f64()).unwrap_or(d);
-        let color = s.get("color").and_then(Color::from_value).unwrap_or(Color::Cmyk([0.0, 0.0, 0.0, 1.0]));
-        let (dx, dy) = (n("x", 4.0), n("y", 4.0));
-        let alpha = n("opacity", 0.75);
+        let Some(s) = fx(it, "dropShadow") else { return };
+        let color = fcolor(s, Color::Cmyk([0.0, 0.0, 0.0, 1.0]));
+        let (dx, dy) = (fnum(s, "x", 4.0), fnum(s, "y", 4.0));
+        let alpha = fnum(s, "opacity", 0.75).clamp(0.0, 1.0);
         let shifted = Affine::translate((dx, dy)) * path.clone();
         if it.fill.is_none() && it.stroke.paint.is_none() {
             return;
         }
-        self.ops.push(Op::Fill { path: shifted, brush: Brush::Solid(color, alpha), even_odd: false });
+        let blended = self.blend_open(&fmode(s, "normal"));
+        // Size is the blur: the edge ramps from full to nothing across `size` points, centred on the edge; Spread
+        // moves the 50 percent point outward by that share of half the size. Built as a luminance mask of vector
+        // bands (white outside the edge, black inside) over one flat fill, so the PDF keeps a vector soft mask.
+        let size = fnum(s, "size", 0.0).max(0.0);
+        let h = size / 2.0;
+        let sp = fnum(s, "spread", 0.0).clamp(0.0, 1.0) * h;
+        if size < 0.05 || !it.shape.closed() {
+            if it.shape.closed() {
+                self.ops.push(Op::Fill { path: shifted, brush: Brush::Solid(color, alpha), even_odd: false });
+            } else if it.stroke.weight > 0.0 {
+                self.ops.push(Op::Stroke { path: shifted, brush: Brush::Solid(color, alpha), style: StrokeStyle { width: it.stroke.weight, cap: "butt".into(), join: "round".into(), dash: Vec::new() } });
+            }
+        } else {
+            let white = Color::Rgb([1.0, 1.0, 1.0]);
+            let black = Color::Rgb([0.0, 0.0, 0.0]);
+            let reach = h + sp;
+            let around = shifted.bounding_box().inflate(reach + 8.0, reach + 8.0);
+            // The outside bands straddle the edge and the opaque fill laid over them hides the inner halves, which
+            // leaves no seam where clipped edges would meet.
+            let mut m = Vec::new();
+            for (r, a) in bands(reach, 24, |d| 1.0 - smooth((d - sp + h) / (2.0 * h))) {
+                m.push(band_stroke(&shifted, white, a, r, "round"));
+            }
+            m.push(Op::Fill { path: shifted.clone(), brush: Brush::Solid(white, 1.0), even_odd: false });
+            if h - sp > 0.01 {
+                m.push(Op::PushClip(shifted.clone()));
+                for (r, a) in bands(h - sp, 24, |x| smooth((h - sp - x) / (2.0 * h))) {
+                    m.push(band_stroke(&shifted, black, a, r, "round"));
+                }
+                m.push(Op::Pop);
+            }
+            self.ops.push(Op::PushMask(m));
+            self.ops.push(Op::Fill { path: around.to_path(0.1), brush: Brush::Solid(color, alpha), even_odd: false });
+            self.ops.push(Op::Pop);
+        }
+        if blended {
+            self.ops.push(Op::Pop);
+        }
     }
 
     fn stroke(&mut self, it: &Item, path: &BezPath, xf: Affine) {
@@ -609,6 +677,11 @@ impl Ctx<'_> {
                         self.ops.push(Op::Fill { path: xf * c.rect.to_path(0.1), brush: Brush::Solid(col, 1.0), even_odd: false });
                     }
                 }
+                let graphic_cell = table.and_then(|tb| tb.cell(c.row, c.col)).filter(|cell| crate::cellgfx::cell_graphic(cell).is_some());
+                if let Some(cell) = graphic_cell {
+                    let ops = crate::cellgfx::cell_image_ops(self.doc, cell, c.rect, xf);
+                    self.ops.extend(ops);
+                }
                 let edges: [Option<(f64, Color, String)>; 4] = match table.and_then(|tb| tb.cell(c.row, c.col).map(|cell| (tb, cell))) {
                     Some((tb, cell)) => ["top", "bottom", "left", "right"].map(|s| cell_edge(self.doc, tb, cell, s, bw, bcol)),
                     None => [None, None, None, None],
@@ -638,7 +711,7 @@ impl Ctx<'_> {
                     }
                 }
                 let cell_texts: Vec<String> = table.and_then(|tb| tb.cell(c.row, c.col)).map(|cell| cell.paras.iter().map(|p| p.text()).collect()).unwrap_or_default();
-                for l in &c.lines {
+                for l in c.lines.iter().filter(|_| graphic_cell.is_none()) {
                     self.line(&l.line, l.baseline, xf, cell_texts.get(l.para).map(String::as_str).unwrap_or(""));
                 }
             }

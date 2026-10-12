@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::attrs::Attrs;
-use crate::color::{Color, Paint, Swatch, SwatchValue, swatch_key};
+use crate::color::{Color, MixPart, Paint, Swatch, SwatchValue, swatch_key};
 use crate::geom::Edges;
 use crate::ids::{AssetId, ItemId, LayerId, PageId, ParentId, SpreadId, StoryId};
 use crate::item::{Asset, Item, ItemKind};
@@ -16,6 +16,14 @@ use crate::style::Styles;
 use crate::{Result, err};
 
 pub const FORMAT_VERSION: u32 = 1;
+
+/// A mixed ink worked out: display RGB, process-equivalent CMYK and the inks (name, tint) it is made of.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MixEval {
+    pub rgb: [f64; 3],
+    pub cmyk: [f64; 4],
+    pub parts: Vec<(String, f64)>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -639,7 +647,155 @@ impl Doc {
             SwatchValue::Color { color } => Some(color.tinted(tint)),
             SwatchValue::Tint { base, tint: t } => self.swatch_color(base, t * tint, depth + 1),
             SwatchValue::Gradient { gradient } => gradient.stops.first().map(|s| s.color.tinted(tint)),
+            SwatchValue::Mixed { parts } => self.mix_eval(parts, tint).map(|e| Color::Rgb(e.rgb)),
         }
+    }
+
+    /// The process-equivalent CMYK of a colour that is an ink's alternate (spot swatches defined in RGB or Lab are
+    /// converted the way the plates convert them).
+    fn alt_cmyk(c: Color) -> [f64; 4] {
+        match c {
+            Color::Cmyk(v) => v,
+            Color::Gray(g) => [0.0, 0.0, 0.0, g],
+            Color::Ink { cmyk: Some(v), .. } => v,
+            other => {
+                let [r, g, b] = other.to_rgb();
+                let k = 1.0 - r.max(g).max(b);
+                let d = (1.0 - k).max(1e-6);
+                [(1.0 - r - k) / d, (1.0 - g - k) / d, (1.0 - b - k) / d, k]
+            }
+        }
+    }
+
+    /// Mixes a mixed ink's parts: display colour by multiplying each ink's transmittance (each component laid over
+    /// the others, as overprinting inks do), the process equivalent by the same union per channel, and the ink parts
+    /// (swatch key or process name, tint) the plates split it into.
+    pub fn mix_eval(&self, parts: &[MixPart], scale: f64) -> Option<MixEval> {
+        let mut rgb = [1.0f64; 3];
+        let mut cmyk = [0.0f64; 4];
+        let mut out = Vec::new();
+        for p in parts {
+            let t = (p.tint * scale).clamp(0.0, 1.0);
+            let (full_rgb, full_cmyk, key) = if let Some(i) = crate::color::process_plate(&p.ink) {
+                let mut u = [0.0; 4];
+                u[i] = 1.0;
+                (Color::Cmyk(u).to_rgb(), u, ["Cyan", "Magenta", "Yellow", "Black"][i].to_string())
+            } else {
+                let s = self.swatch(&p.ink)?;
+                let SwatchValue::Color { color } = &s.value else { return None };
+                (color.to_rgb(), Self::alt_cmyk(*color), s.name.clone())
+            };
+            for k in 0..3 {
+                rgb[k] *= 1.0 - (1.0 - full_rgb[k]) * t;
+            }
+            for k in 0..4 {
+                cmyk[k] = 1.0 - (1.0 - cmyk[k]) * (1.0 - full_cmyk[k] * t);
+            }
+            out.push((key, t));
+        }
+        if out.is_empty() {
+            return None;
+        }
+        Some(MixEval { rgb, cmyk, parts: out })
+    }
+
+    /// Like `swatch_color`, but a spot or mixed ink comes back as `Color::Ink` so plates and separations can see its inks.
+    pub fn swatch_ink_color(&self, name: &str, tint: f64, depth: u32) -> Option<Color> {
+        if depth > 16 {
+            return None;
+        }
+        let k = swatch_key(name);
+        let Some(i) = self.swatches.iter().position(|s| s.name == k || s.name.eq_ignore_ascii_case(&k)) else { return self.swatch_color(name, tint, depth) };
+        let s = &self.swatches[i];
+        match &s.value {
+            SwatchValue::Color { color } if s.spot => {
+                let c = color.tinted(tint);
+                Some(Color::Ink { sw: i as u32, tint, rgb: c.to_rgb(), cmyk: matches!(c, Color::Cmyk(_)).then(|| Self::alt_cmyk(c)) })
+            }
+            SwatchValue::Tint { base, tint: t } => self.swatch_ink_color(base, t * tint, depth + 1),
+            SwatchValue::Mixed { parts } => self.mix_eval(parts, tint).map(|e| Color::Ink { sw: i as u32, tint, rgb: e.rgb, cmyk: Some(e.cmyk) }),
+            _ => self.swatch_color(name, tint, depth),
+        }
+    }
+
+    /// `paint_color` with ink identity kept for spot and mixed ink swatches.
+    pub fn paint_ink_color(&self, paint: &Paint) -> Option<Color> {
+        match paint {
+            Paint::Swatch { name, tint } => self.swatch_ink_color(name, *tint, 0),
+            other => self.paint_color(other),
+        }
+    }
+
+    /// Whether a spot ink prints as process (Ink Manager "All Spots to Process" or its own setting), and the spot it
+    /// is an alias of, if any.
+    pub fn ink_setting(&self, ink: &str) -> (bool, Option<String>) {
+        let Some(inks) = self.prefs.get("inks").and_then(|v| v.as_object()) else { return (false, None) };
+        let all = inks.get("$allToProcess").and_then(|v| v.as_bool()).unwrap_or(false);
+        let o = inks.get(ink);
+        let process = all || o.and_then(|o| o.get("toProcess")).and_then(|v| v.as_bool()).unwrap_or(false);
+        let alias = o.and_then(|o| o.get("alias")).and_then(|v| v.as_str()).filter(|a| !a.is_empty()).map(str::to_string);
+        (process, alias)
+    }
+
+    /// The ink parts (ink name, tint) a colour is made of: an ink colour's components, empty for any other colour.
+    pub fn ink_parts(&self, c: &Color) -> Vec<(String, f64)> {
+        let Color::Ink { sw, tint, .. } = c else { return Vec::new() };
+        let Some(s) = self.swatches.get(*sw as usize) else { return Vec::new() };
+        match &s.value {
+            SwatchValue::Color { .. } => vec![(s.name.clone(), *tint)],
+            SwatchValue::Mixed { parts } => self.mix_eval(parts, *tint).map(|e| e.parts).unwrap_or_default(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// The plates a separation makes: Cyan, Magenta, Yellow, Black, then each spot ink that does not print as
+    /// process (an aliased spot shares its target's plate).
+    pub fn plate_names(&self) -> Vec<String> {
+        let mut out: Vec<String> = ["Cyan", "Magenta", "Yellow", "Black"].iter().map(|s| s.to_string()).collect();
+        for s in self.swatches.iter().filter(|s| s.spot && matches!(s.value, SwatchValue::Color { .. })) {
+            let (process, alias) = self.ink_setting(&s.name);
+            if !process && alias.is_none() {
+                out.push(s.name.clone());
+            }
+        }
+        out
+    }
+
+    /// How much of `plate` (an index into `plate_names`) a colour puts down, 0 to 1. Ink colours split into their
+    /// inks; any other colour is separated into process plates; registration colour is on every plate.
+    pub fn plate_density(&self, c: Color, plate: usize) -> f64 {
+        let names = self.plate_names();
+        let mut d = 0.0f64;
+        let mut add = |v: f64| d = 1.0 - (1.0 - d) * (1.0 - v.clamp(0.0, 1.0));
+        match c {
+            Color::Ink { .. } => {
+                for (ink, t) in self.ink_parts(&c) {
+                    if let Some(i) = crate::color::process_plate(&ink) {
+                        if i == plate {
+                            add(t);
+                        }
+                        continue;
+                    }
+                    let (process, alias) = self.ink_setting(&ink);
+                    if process {
+                        if plate < 4
+                            && let Some(SwatchValue::Color { color }) = self.swatch(&ink).map(|s| &s.value)
+                        {
+                            add(Self::alt_cmyk(*color)[plate] * t);
+                        }
+                        continue;
+                    }
+                    let target = alias.as_deref().and_then(|a| self.swatch(a)).map(|s| s.name.clone()).unwrap_or(ink);
+                    if names.get(plate) == Some(&target) {
+                        add(t);
+                    }
+                }
+            }
+            Color::Cmyk([1.0, 1.0, 1.0, 1.0]) => add(1.0),
+            other if plate < 4 => add(Self::alt_cmyk(other)[plate]),
+            _ => {}
+        }
+        d
     }
 
     pub fn paint_color(&self, paint: &Paint) -> Option<Color> {
@@ -680,6 +836,10 @@ impl Doc {
     }
 
     pub fn variable_text(&self, name: &str, page: Option<usize>) -> String {
+        self.variable_text_in(name, page, None)
+    }
+
+    pub fn variable_text_in(&self, name: &str, page: Option<usize>, frame: Option<ItemId>) -> String {
         let Some(v) = self.variables.iter().find(|v| v.name == name) else { return String::new() };
         let text = |k: &str| v.value.get(k).and_then(Value::as_str).unwrap_or("").to_string();
         match v.kind.as_str() {
@@ -688,6 +848,7 @@ impl Doc {
             "chapterNumber" => text("number"),
             "lastPageNumber" => self.page_name(self.page_count().saturating_sub(1)),
             "modificationDate" | "creationDate" | "outputDate" => text("date"),
+            "liveCaption" => self.live_caption_text(v, frame),
             "runningHeader" => page.map(|p| self.running_header(p, &text("style"))).unwrap_or_default(),
             _ => text("text"),
         }

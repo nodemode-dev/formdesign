@@ -200,7 +200,7 @@ fn today() -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
-const KINDS: &[&str] = &["custom", "runningHeader", "chapterNumber", "creationDate", "modificationDate", "outputDate", "fileName", "lastPageNumber"];
+const KINDS: &[&str] = &["custom", "runningHeader", "chapterNumber", "creationDate", "modificationDate", "outputDate", "fileName", "lastPageNumber", "liveCaption"];
 
 fn var_json(c: &Ctx, v: &Variable) -> Value {
     let sample = c.doc().map(|d| d.variable_text(&v.name, Some(0))).unwrap_or_default();
@@ -418,6 +418,73 @@ fn caption(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"ids": made}))
 }
 
+fn live_caption(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let field = args::opt_str(p, "field").unwrap_or("name").to_string();
+    if !formdes_model::captionmeta::FIELDS.contains(&field.as_str()) {
+        return Err(EngineError::new(format!("`field` expected {}, not {field}", formdes_model::captionmeta::FIELDS.join(", "))));
+    }
+    let position = args::opt_str(p, "position").unwrap_or("below").to_string();
+    let offset = args::opt_f64(p, "offset").unwrap_or(6.0);
+    let height = args::opt_f64(p, "height").unwrap_or(24.0).max(6.0);
+    let style = formdes_model::style::style_key(args::opt_str(p, "style").unwrap_or(formdes_model::style::BASIC_PARA));
+    let prefix = args::opt_str(p, "prefix").unwrap_or("").to_string();
+    let doc = c.doc()?;
+    let mut plan: Vec<(ItemId, Rect, formdes_model::doc::Home, formdes_model::ids::LayerId)> = Vec::new();
+    for id in &ids {
+        let Some(it) = doc.item(*id) else { continue };
+        if it.graphic().and_then(|g| g.asset).is_none() {
+            continue;
+        }
+        let Some(b) = doc.bounds(*id) else { continue };
+        let Some(home) = doc.home(doc.top_of(*id)) else { continue };
+        if !matches!(home, formdes_model::doc::Home::Spread(_) | formdes_model::doc::Home::Parent(_)) {
+            continue;
+        }
+        let r = match position.as_str() {
+            "above" => Rect::new(b.x0, b.y0 - offset - height, b.x1, b.y0 - offset),
+            "left" => Rect::new(b.x0 - offset - 144.0, b.y0, b.x0 - offset, b.y1),
+            "right" => Rect::new(b.x1 + offset, b.y0, b.x1 + offset + 144.0, b.y1),
+            _ => Rect::new(b.x0, b.y1 + offset, b.x1, b.y1 + offset + height),
+        };
+        plan.push((*id, r, home, it.layer));
+    }
+    if plan.is_empty() {
+        return Err(EngineError::new("needs one or more placed images on a spread to caption"));
+    }
+    let doc = c.doc_mut()?;
+    let mut made = Vec::new();
+    let mut names = Vec::new();
+    for (img, r, home, layer) in plan {
+        let mut n = 1;
+        while doc.variables.iter().any(|v| v.name == format!("Live Caption {n}")) {
+            n += 1;
+        }
+        let name = format!("Live Caption {n}");
+        let mut value = formdes_model::attrs::Attrs::new();
+        value.insert("field".into(), json!(field));
+        value.insert("image".into(), json!(img.0));
+        if !prefix.is_empty() {
+            value.insert("prefix".into(), json!(prefix));
+        }
+        doc.variables.push(Variable { name: name.clone(), kind: "liveCaption".into(), value });
+        let sid = doc.new_story(&style);
+        let mut it = Item::new(ItemId(0), ItemKind::Text(TextFrame::new(sid)), formdes_model::item::Shape::rect(r), layer);
+        it.style = Some(formdes_model::style::BASIC_TEXT.to_string());
+        it.name = "Live Caption".into();
+        let nid = doc.insert_item(it, home);
+        if let Some(st) = doc.story_mut(sid) {
+            st.frames = vec![nid];
+            st.insert_inline(0, Inline::Variable { name: name.clone() });
+        }
+        made.push(nid);
+        names.push(name);
+    }
+    c.set_selection(Selection::items(made.clone()));
+    c.label("Generate Live Caption");
+    Ok(json!({"ids": made, "variables": names}))
+}
+
 const LOREM: &[&str] = &[
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
@@ -523,13 +590,14 @@ pub fn register(r: &mut Registry) {
     cmd("bookmark.list", "Bookmarks").query().sig("{}").reg(r, bookmark_list);
     cmd("bookmark.delete", "Delete Bookmark").sig("{index}").reg(r, bookmark_delete);
     cmd("variables.list", "Text Variables").query().sig("{}").reg(r, variables_list);
-    cmd("variables.define", "Define Text Variables").menu(&["Type", "Text Variables", "Define..."]).sig("{name, kind?: custom|runningHeader|chapterNumber|creationDate|modificationDate|outputDate|fileName|lastPageNumber, text?, number?, style?, date?}").reg(r, variables_define);
+    cmd("variables.define", "Define Text Variables").menu(&["Type", "Text Variables", "Define..."]).sig("{name, kind?: custom|runningHeader|chapterNumber|creationDate|modificationDate|outputDate|fileName|lastPageNumber|liveCaption, text?, number?, style?, date?, value?: {field, image, prefix}}").reg(r, variables_define);
     cmd("variables.delete", "Delete Text Variable").sig("{name}").reg(r, variables_delete);
     cmd("variables.insert", "Insert Variable").menu(&["Type", "Text Variables", "Insert Variable"]).needs(Needs::Text).sig("{name}").reg(r, variables_insert);
     cmd("footnote.insert", "Insert Footnote").menu(&["Type", "Insert Footnote"]).needs(Needs::Text).sig("{text?, style?}").reg(r, footnote_insert);
     cmd("footnote.list", "Footnotes").query().sig("{story?}").reg(r, footnote_list);
     cmd("footnote.set", "Edit Footnote").sig("{story, at, text}").reg(r, footnote_set);
     cmd("object.altText", "Alt Text").menu(&["Object", "Object Export Options..."]).needs(Needs::Items).sig("{text? | source?: custom|name|label|fileName, ids?}").reg(r, alt_text);
+    cmd("object.liveCaption", "Generate Live Caption").menu(&["Object", "Captions", "Generate Live Caption"]).needs(Needs::Items).sig("{field?: name|path|title|description|creator|copyright|dimensions|ppi, position?: below|above|left|right, offset?, height?, style?, prefix?, ids?}").reg(r, live_caption);
     cmd("object.caption", "Generate Static Caption").menu(&["Object", "Captions", "Generate Static Caption"]).needs(Needs::Items).sig("{source?: altText|name|label|fileName|text, text?, position?: below|above|left|right, offset?, height?, style?, prefix?, ids?}").reg(r, caption);
     cmd("type.fillWithPlaceholder", "Fill with Placeholder Text").menu(&["Type", "Fill with Placeholder Text"]).needs(Needs::Selection).sig("{ids?}").reg(r, placeholder);
     cmd("layout.rotateSpreadView", "Rotate Spread").menu(&["View", "Rotate Spread"]).query().sig("{angle?: 90|180|270 (default 90), relative?: true, spread?}").reg(r, rotate_view);

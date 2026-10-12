@@ -52,6 +52,7 @@ impl DocLayout {
 struct DocCtx<'a> {
     doc: &'a Doc,
     pages: Vec<Option<usize>>,
+    frame_items: Vec<ItemId>,
     exc: crate::compose::Exceptions,
 }
 
@@ -63,7 +64,7 @@ impl Context for DocCtx<'_> {
     }
 
     fn variable(&self, name: &str, frame: usize) -> String {
-        self.doc.variable_text(name, self.pages.get(frame).copied().flatten())
+        self.doc.variable_text_in(name, self.pages.get(frame).copied().flatten(), self.frame_items.get(frame).copied())
     }
 
     fn marker(&self, marker: Marker, frame: usize) -> String {
@@ -164,9 +165,9 @@ pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
     Some(FrameSpec {
         item: id,
         inner,
-        columns: t.columns.max(1),
+        columns: t.column_plan(inner.width()).0,
         gutter: t.gutter,
-        fixed_column: t.fixed_column_width,
+        fixed_column: t.column_plan(inner.width()).1,
         vjust: t.vjust,
         first_baseline: t.first_baseline,
         first_min: t.first_baseline_min,
@@ -192,7 +193,7 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         None => frames.iter().map(|f| doc.page_of(*f)).collect(),
     };
     let words: Vec<String> = doc.prefs.get("hyphenationExceptions").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|w| w.as_str().map(str::to_string)).collect()).unwrap_or_default();
-    let ctx = DocCtx { doc, pages, exc: crate::compose::parse_exceptions(&words) };
+    let ctx = DocCtx { doc, pages, frame_items: frames.clone(), exc: crate::compose::parse_exceptions(&words) };
     let path_frame = frames.first().and_then(|f| doc.item(*f)).and_then(|it| match &it.kind {
         ItemKind::Text(t) => t.on_path.clone().map(|p| (it.shape.to_path(&it.corner), p)),
         _ => None,

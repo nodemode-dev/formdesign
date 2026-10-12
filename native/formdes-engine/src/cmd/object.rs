@@ -4,7 +4,7 @@ use formdes_model::color::{Gradient, Paint, Stop};
 use formdes_model::doc::{Doc, Home};
 use formdes_model::geom::{Affine, Edges, Point, Rect, Vec2};
 use formdes_model::ids::{ItemId, LayerId};
-use formdes_model::item::{AutoSize, Fitting, Graphic, Item, ItemKind, Shape, State, TextFrame, TextWrap, VJust, WrapMode};
+use formdes_model::item::{AutoSize, ColumnRule, Fitting, Graphic, Item, ItemKind, Shape, State, TextFrame, TextWrap, VJust, WrapMode};
 use formdes_model::story::{Inline, Marker};
 use serde_json::{Map, Value, json};
 
@@ -131,6 +131,14 @@ pub fn resize_items(doc: &mut Doc, ids: &[ItemId], m: Affine, content: bool) {
             && !content
         {
             let _ = fit_content(doc, *id, &kind, None);
+        }
+        if let Some(x) = doc.item_mut(*id) {
+            let w = x.shape.bbox().width();
+            if let Some(t) = x.text_mut()
+                && t.column_rule != ColumnRule::Number
+            {
+                t.columns = t.column_plan((w - t.insets.inside - t.insets.outside).max(1.0)).0;
+            }
         }
     }
 }
@@ -313,7 +321,10 @@ fn drop_shadow(c: &mut Ctx, p: &Value) -> Result<Value> {
     let size = args::opt_f64(p, "size").unwrap_or(12.0);
     let opacity = args::opt_f64(p, "opacity").unwrap_or(35.0) / 100.0;
     let color = p.get("color").and_then(wire::color_in).map(wire::color_out);
-    let mut fx = json!({"on": on, "distance": distance, "angle": angle.to_degrees(), "size": size, "opacity": opacity.clamp(0.0, 1.0), "x": -distance * angle.cos(), "y": distance * angle.sin()});
+    let mut fx = json!({
+        "on": on, "mode": effect_mode(p, "multiply")?, "distance": distance, "angle": angle.to_degrees(), "size": size.max(0.0), "spread": percent(p, "spread", 0.0),
+        "opacity": opacity.clamp(0.0, 1.0), "x": -distance * angle.cos(), "y": distance * angle.sin()
+    });
     if let Some(col) = color
         && let Some(o) = fx.as_object_mut()
     {
@@ -392,6 +403,26 @@ fn basic_feather(c: &mut Ctx, p: &Value) -> Result<Value> {
     };
     let fx = json!({"on": args::opt_bool(p, "on").unwrap_or(true), "width": args::opt_f64(p, "width").unwrap_or(9.0).max(0.0), "choke": percent(p, "choke", 0.0), "corners": corners});
     set_effect(c, p, "basicFeather", fx)
+}
+
+fn gradient_feather(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let radial = args::opt_str(p, "type") == Some("radial");
+    let mut stops = Vec::new();
+    for s in p.get("stops").and_then(Value::as_array).cloned().unwrap_or_default() {
+        let opacity = s.get("opacity").and_then(Value::as_f64).unwrap_or(100.0);
+        let location = s.get("location").and_then(Value::as_f64).unwrap_or(0.0);
+        stops.push((location.clamp(0.0, 100.0) / 100.0, (opacity / 100.0).clamp(0.0, 1.0)));
+    }
+    if stops.is_empty() {
+        stops = vec![(0.0, 1.0), (1.0, 0.0)];
+    }
+    if stops.len() < 2 {
+        return Err(EngineError::new("a gradient feather needs at least two `stops` ([{opacity: 0..100, location: 0..100}])"));
+    }
+    stops.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let stops: Vec<Value> = stops.into_iter().map(|(l, o)| json!({"location": l, "opacity": o})).collect();
+    let fx = json!({"on": args::opt_bool(p, "on").unwrap_or(true), "type": if radial { "radial" } else { "linear" }, "angle": args::opt_f64(p, "angle").unwrap_or(0.0), "stops": stops});
+    set_effect(c, p, "gradientFeather", fx)
 }
 
 fn directional_feather(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -676,9 +707,37 @@ fn text_frame_options(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ignore = args::opt_bool(p, "ignoreWrap");
     let balance = args::opt_bool(p, "balanceColumns");
     let fixed = args::opt_f64(p, "fixedColumnWidth");
+    let rule = match args::opt_str(p, "columnRule") {
+        None => None,
+        Some("fixedNumber" | "number") => Some(ColumnRule::Number),
+        Some("fixedWidth" | "fixed") => Some(ColumnRule::Fixed),
+        Some("flexibleWidth" | "flexible") => Some(ColumnRule::Flexible),
+        Some(_) => return Err(EngineError::new("`columnRule` expected fixedNumber, fixedWidth or flexibleWidth")),
+    };
+    let col_width = args::opt_f64(p, "columnWidth").map(|w| w.max(1.0));
+    let max_width = args::opt_f64(p, "maxColumnWidth").map(|w| w.max(1.0));
     let doc = c.doc_mut()?;
     for id in doc.walk(&ids) {
-        let Some(t) = doc.item_mut(id).and_then(|i| i.text_mut()) else { continue };
+        let Some(it) = doc.item_mut(id) else { continue };
+        let bb = it.shape.bbox();
+        let Some(t) = it.text_mut() else { continue };
+        let inner_w = (bb.width() - t.insets.inside - t.insets.outside).max(1.0);
+        let cur_w = (inner_w - t.gutter * (t.columns.max(1) as f64 - 1.0)) / t.columns.max(1) as f64;
+        if let Some(r) = rule {
+            t.column_rule = r;
+            if r == ColumnRule::Fixed && t.fixed_column_width.is_none() && col_width.is_none() {
+                t.fixed_column_width = Some(cur_w.max(1.0));
+            }
+            if r == ColumnRule::Flexible && t.max_column_width <= 0.0 && max_width.is_none() {
+                t.max_column_width = cur_w.max(1.0);
+            }
+        }
+        if let Some(w) = col_width {
+            t.fixed_column_width = Some(w);
+        }
+        if let Some(w) = max_width {
+            t.max_column_width = w;
+        }
         if let Some(n) = columns {
             t.columns = n;
         }
@@ -702,6 +761,18 @@ fn text_frame_options(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         if let Some(f) = fixed {
             t.fixed_column_width = (f > 0.0).then_some(f);
+        }
+        let new_w = if t.column_rule == ColumnRule::Fixed && (columns.is_some() || col_width.is_some() || gutter.is_some() || inset.is_some() || rule.is_some()) {
+            let n = if columns.is_some() { t.columns } else { t.column_plan(inner_w).0 };
+            t.columns = n;
+            t.fitted_width(n)
+        } else {
+            None
+        };
+        let n_now = t.column_plan(new_w.map(|w| w - t.insets.inside - t.insets.outside).unwrap_or(inner_w)).0;
+        t.columns = n_now;
+        if let Some(w) = new_w {
+            it.shape = it.shape.with_rect(Rect::new(bb.x0, bb.y0, bb.x0 + w, bb.y1));
         }
     }
     ok()
@@ -1251,12 +1322,13 @@ pub fn register(r: &mut Registry) {
     cmd("object.attributes", "Attributes").needs(Needs::Items).sig("{nonprinting?, overprintFill?, overprintStroke?, ids?}").reg(r, attributes);
     cmd("object.color", "Apply Color").needs(Needs::Items).sig("{color: \"#rrggbb\", target?: fill|stroke, ids?}").reg(r, color);
     cmd("object.cornerOptions", "Corner Options").menu(&["Object", "Corner Options..."]).needs(Needs::Items).sig("{shape?: rounded|inverseRounded|inset|bevel|fancy|none, size: pt, ids?}").reg(r, corner_options);
-    cmd("object.dropShadow", "Drop Shadow").menu(&["Object", "Effects", "Drop Shadow..."]).needs(Needs::Items).sig("{on?, distance?: pt, angle?: deg, size?: pt, opacity?: 0..100, color?, ids?}").reg(r, drop_shadow);
+    cmd("object.dropShadow", "Drop Shadow").menu(&["Object", "Effects", "Drop Shadow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, distance?: pt, angle?: deg, size?: pt, spread?: 0..100, color?, ids?}").reg(r, drop_shadow);
     cmd("object.innerShadow", "Inner Shadow").menu(&["Object", "Effects", "Inner Shadow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, distance?: pt, angle?: deg, size?: pt, choke?: 0..100, color?, ids?}").reg(r, inner_shadow);
     cmd("object.outerGlow", "Outer Glow").menu(&["Object", "Effects", "Outer Glow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, size?: pt, spread?: 0..100, technique?: softer|precise, color?, ids?}").reg(r, outer_glow);
     cmd("object.innerGlow", "Inner Glow").menu(&["Object", "Effects", "Inner Glow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, size?: pt, choke?: 0..100, color?, ids?}").reg(r, inner_glow);
     cmd("object.basicFeather", "Basic Feather").menu(&["Object", "Effects", "Basic Feather..."]).needs(Needs::Items).sig("{on?, width?: pt, choke?: 0..100, corners?: sharp|rounded|diffusion, ids?}").reg(r, basic_feather);
-    cmd("object.directionalFeather", "Directional Feather").menu(&["Object", "Effects", "Directional Feather..."]).needs(Needs::Items).sig("{on?, top?: pt, bottom?: pt, left?: pt, right?: pt, choke?: 0..100, angle?: deg, ids?}").reg(r, directional_feather);
+    cmd("object.gradientFeather", "Gradient Feather").menu(&["Object", "Effects", "Gradient Feather..."]).needs(Needs::Items).sig("{on?, type?: linear|radial, angle?: deg, stops?: [{opacity: 0..100, location: 0..100}], ids?}").reg(r, gradient_feather);
+    cmd("object.directionalFeather","Directional Feather").menu(&["Object", "Effects", "Directional Feather..."]).needs(Needs::Items).sig("{on?, top?: pt, bottom?: pt, left?: pt, right?: pt, choke?: 0..100, angle?: deg, ids?}").reg(r, directional_feather);
     cmd("object.fill", "Fill").needs(Needs::Items).sig("{swatch, tint?: 0..1, ids?}").reg(r, fill);
     cmd("object.stroke", "Stroke").needs(Needs::Items).sig("{swatch?, tint?, weight?: pt, type?: {kind, pattern?}, cap?, join?, align?, ids?}").reg(r, stroke);
     cmd("object.fit", "Fit").menu(&["Object", "Fitting"]).needs(Needs::Items).sig("{mode: fillProportionally|fitProportionally|fitContentToFrame|centerContent|fitFrameToContent, ids?}").reg(r, fit);
@@ -1269,7 +1341,7 @@ pub fn register(r: &mut Registry) {
     cmd("object.rename", "Rename").needs(Needs::Items).sig("{id, name}").reg(r, rename);
     cmd("object.setFlags", "Object Flags").needs(Needs::Items).sig("{hidden? | locked?, ids?}").reg(r, set_flags);
     cmd("object.setLayer", "Move to Layer").needs(Needs::Items).sig("{layer: layer id, ids?}").reg(r, set_layer);
-    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, ids?}").reg(r, text_frame_options);
+    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, columnRule?: fixedNumber|fixedWidth|flexibleWidth, columnWidth?: pt (fixedWidth), maxColumnWidth?: pt (flexibleWidth), ids?}").reg(r, text_frame_options);
     cmd("object.textWrap", "Text Wrap").menu(&["Object", "Text Wrap..."]).needs(Needs::Items).sig("{mode: none|boundingBox|contour|jumpObject|jumpToNextColumn, offset?: pt, invert?, ids?}").reg(r, text_wrap);
     cmd("object.duplicate", "Duplicate").menu(&["Edit", "Duplicate"]).key("Mod+Alt+Shift+D").needs(Needs::Items).sig("{dx?, dy?, ids?}").reg(r, duplicate);
     cmd("transform.flip", "Flip").menu(&["Object", "Transform"]).needs(Needs::Items).sig("{axis: horizontal|vertical, ids?}").reg(r, flip);

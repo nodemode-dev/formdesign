@@ -476,6 +476,7 @@ pub fn color_out(c: formdes_model::color::Color) -> Value {
         Color::Rgb([r, g, b]) => json!({"model": "rgb", "r": r4(r), "g": r4(g), "b": r4(b), "hex": c.hex()}),
         Color::Lab([l, a, b]) => json!({"model": "lab", "l": r4(l), "a": r4(a), "b": r4(b)}),
         Color::Gray(g) => json!({"model": "gray", "gray": r4(g * 100.0)}),
+        Color::Ink { rgb, .. } => json!({"model": "rgb", "r": r4(rgb[0]), "g": r4(rgb[1]), "b": r4(rgb[2]), "hex": c.hex()}),
     }
 }
 

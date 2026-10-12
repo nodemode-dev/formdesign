@@ -13,11 +13,13 @@ pub struct RasterOpts {
     pub scale: f64,
     pub paper: Option<Color>,
     pub max_side: u32,
+    /// Draw one separation plate (an index into `Doc::plate_names`) as ink density in grey.
+    pub plate: Option<u8>,
 }
 
 impl Default for RasterOpts {
     fn default() -> Self {
-        RasterOpts { scale: 1.0, paper: Some(Color::Rgb([1.0, 1.0, 1.0])), max_side: 12000 }
+        RasterOpts { scale: 1.0, paper: Some(Color::Rgb([1.0, 1.0, 1.0])), max_side: 12000, plate: None }
     }
 }
 
@@ -108,36 +110,10 @@ pub struct DrawEnv<'a> {
     pub plate: Option<u8>,
 }
 
-fn plate_color(c: Color, a: f64, plate: u8) -> Brush {
-    let cmyk = match c {
-        Color::Cmyk(v) => v,
-        Color::Gray(g) => [0.0, 0.0, 0.0, g],
-        other => {
-            let [r, g, b] = other.to_rgb();
-            let k = 1.0 - r.max(g).max(b);
-            let d = (1.0 - k).max(1e-6);
-            [(1.0 - r - k) / d, (1.0 - g - k) / d, (1.0 - b - k) / d, k]
-        }
-    };
-    Brush::Solid(Color::Gray(cmyk[plate.min(3) as usize].clamp(0.0, 1.0)), a)
-}
-
-fn plate_brush(b: &Brush, plate: Option<u8>) -> Brush {
-    let Some(p) = plate else { return b.clone() };
-    match b {
-        Brush::Solid(c, a) => plate_color(*c, *a, p),
-        Brush::Linear { start, end, stops, alpha } => Brush::Linear {
-            start: *start,
-            end: *end,
-            stops: stops.iter().map(|(o, c, a)| (*o, if let Brush::Solid(g, _) = plate_color(*c, 1.0, p) { g } else { *c }, *a)).collect(),
-            alpha: *alpha,
-        },
-        Brush::Radial { center, radius, stops, alpha } => Brush::Radial {
-            center: *center,
-            radius: *radius,
-            stops: stops.iter().map(|(o, c, a)| (*o, if let Brush::Solid(g, _) = plate_color(*c, 1.0, p) { g } else { *c }, *a)).collect(),
-            alpha: *alpha,
-        },
+fn plate_brush(b: &Brush, env: &DrawEnv) -> Brush {
+    match env.plate {
+        Some(p) => crate::sep::plate_brush(env.doc, b, p),
+        None => b.clone(),
     }
 }
 
@@ -147,11 +123,11 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
         match op {
             Op::Fill { path, brush, even_odd } => {
                 ctx.set_fill_rule(if *even_odd { peniko::Fill::EvenOdd } else { peniko::Fill::NonZero });
-                ctx.set_paint(paint(&plate_brush(brush, env.plate), dev));
+                ctx.set_paint(paint(&plate_brush(brush, env), dev));
                 ctx.fill_path(&(dev * path.clone()));
             }
             Op::Stroke { path, brush, style } => {
-                ctx.set_paint(paint(&plate_brush(brush, env.plate), dev));
+                ctx.set_paint(paint(&plate_brush(brush, env), dev));
                 ctx.set_stroke(stroke_of(style, s));
                 ctx.stroke_path(&(dev * path.clone()));
             }
@@ -176,11 +152,11 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
                     }
                     let p: BezPath = (dev * glyph_xf(g, i)) * outline.as_ref().clone();
                     if let Some(f) = &g.fill {
-                        ctx.set_paint(paint(&plate_brush(f, env.plate), dev));
+                        ctx.set_paint(paint(&plate_brush(f, env), dev));
                         ctx.fill_path(&p);
                     }
                     if let Some((b, wgt)) = &g.stroke {
-                        ctx.set_paint(paint(&plate_brush(b, env.plate), dev));
+                        ctx.set_paint(paint(&plate_brush(b, env), dev));
                         ctx.set_stroke(Stroke::new(wgt * s));
                         ctx.stroke_path(&p);
                     }
@@ -190,7 +166,21 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
                 let Some(a) = env.doc.assets.get(asset) else { continue };
                 let k = xf.as_coeffs();
                 let page_scale = ((k[0] * k[3] - k[1] * k[2]).abs().sqrt() * s).max(0.01);
-                let Some(pixmap) = env.images.pixmap(a, page_scale) else { continue };
+                let pixmap = match env.plate {
+                    Some(p) => env.images.get(a, page_scale).filter(|d| d.width > 0 && d.height > 0 && d.width <= 65535 && d.height <= 65535).map(|d| {
+                        let px: Vec<vello_cpu::color::PremulRgba8> = crate::sep::plate_rgba(&d.rgba, p)
+                            .chunks_exact(4)
+                            .map(|c| {
+                                let a = c[3] as u32;
+                                let m = |v: u8| ((v as u32 * a + 127) / 255) as u8;
+                                vello_cpu::color::PremulRgba8 { r: m(c[0]), g: m(c[1]), b: m(c[2]), a: c[3] }
+                            })
+                            .collect();
+                        std::sync::Arc::new(Pixmap::from_parts(px, d.width as u16, d.height as u16))
+                    }),
+                    None => env.images.pixmap(a, page_scale),
+                };
+                let Some(pixmap) = pixmap else { continue };
                 let (pw, ph) = (pixmap.width() as f64, pixmap.height() as f64);
                 let to_dev = dev * *xf * Affine::scale_non_uniform(iw / pw, ih / ph);
                 ctx.set_paint(PaintType::Image(vello_cpu::Image { image: ImageSource::Pixmap(pixmap), sampler: peniko::ImageSampler::default() }));
@@ -232,7 +222,7 @@ pub fn rasterize(scene: &PageScene, doc: &Doc, outlines: &Outlines, images: &Ima
         ctx.set_paint(PaintType::Solid(rgb(p, 1.0)));
         ctx.fill_rect(&Rect::new(0.0, 0.0, w as f64, h as f64));
     }
-    draw_ops(&mut ctx, &scene.ops, &DrawEnv { doc, outlines, images, dev, scale: s, greek_px: 0.0, plate: None });
+    draw_ops(&mut ctx, &scene.ops, &DrawEnv { doc, outlines, images, dev, scale: s, greek_px: 0.0, plate: opts.plate });
     ctx.flush();
     let mut pixmap = Pixmap::new(w, h);
     let mut res = Resources::default();

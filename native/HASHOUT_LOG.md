@@ -633,3 +633,26 @@ Counters are keyed by list (its name, or the paragraph style when unnamed) and l
 
 Based-on parents were already in the model, the layout and the renderer; what was missing was a way to set one after creation. The cycle check walks the proposed base's chain (16 steps at most) and refuses any chain that reaches the parent being edited.
 
+## Effects, mixed inks, marks and separations (0.25.0) {#parity0250}
+
+### scene.rs · drop shadow blur and gradient feather
+- refers-to: native/formdes-render/src/scene.rs :: shadow, feather
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+Drop Shadow Size is the blur: a luminance mask of vector bands (white outside the edge, black inside) over one flat fill, so the PDF keeps a vector soft mask; Spread moves the 50 percent point outward. Gradient Feather is a mask whose fill is a grey gradient of the opacity stops (linear by angle over the bounding box, or radial), drawn through the same Op::PushMask as Basic Feather.
+
+### color.rs and doc.rs · mixed inks and plates
+- refers-to: native/formdes-model/src/color.rs :: Color::Ink, SwatchValue::Mixed; native/formdes-model/src/doc.rs :: mix_eval, swatch_ink_color, plate_names, plate_density; native/formdes-render/src/sep.rs
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+A spot or mixed ink swatch reaches the renderer as `Color::Ink` (swatch index, tint, display RGB, process equivalent) so plates can split it into its inks; it is never stored in a document. A mixed ink shows as the product of its components' transmittances and its process equivalent is their union per channel. krilla 0.8 writes Separation colour spaces but not DeviceN, so a mixed ink goes into the PDF as its process CMYK equivalent. Plates are `Doc::plate_names` (C, M, Y, K, then spots that neither print as process nor alias another); Separations Preview, the ink limit, file.exportSeparations and file.print with separations all use `Doc::plate_density`.
+
+### marks.rs · printer's marks
+- refers-to: native/formdes-render/src/marks.rs :: Marks; native/formdes-render/src/pdf.rs :: export
+- kind: rationale
+- logged: v0.25.0 · 2026-10-12
+
+Marks are vector ops in page coordinates drawn in a slug (offset raised to the bleed, plus 20 points) that enlarges the PDF media box; TrimBox and BleedBox stay on the page and bleed. A plate PDF or PNG recolours scene and marks together, so registration colour lands at full density on every plate.
+
