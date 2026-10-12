@@ -79,6 +79,7 @@ export class Viewport {
     const r = this.stage.getBoundingClientRect();
     const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
     if (w === this.w && h === this.h && this.tileCanvas.width === Math.round(w * this.dpr)) return;
+    const ow = this.w, oh = this.h;
     this.w = w;
     this.h = h;
     for (const c of [this.tileCanvas, this.hiliteCanvas, this.overlayCanvas]) {
@@ -87,6 +88,12 @@ export class Viewport {
       c.style.width = `${w}px`;
       c.style.height = `${h}px`;
     }
+    if (this.hasDoc && ow > 1 && oh > 1 && (ow !== w || oh !== h)) {
+      const z = this.view.zoom;
+      this.setView({ zoom: z, x: this.view.x + (ow - w) / 2 / z, y: this.view.y + (oh - h) / 2 / z }, false);
+    }
+    this.draw();
+    this.drawOverlays();
     this.requestDraw();
     this.refreshOverlays();
   }
