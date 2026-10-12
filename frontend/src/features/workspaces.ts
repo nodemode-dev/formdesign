@@ -19,6 +19,7 @@ const BUILTIN: Spec[] = [
   { name: 'Interactive for PDF', side: ['props', 'interactive'], dock: ['pages', 'swatches', 'preflight', 'make', 'library'], open: ['props', 'interactive', 'pages', 'swatches'], hidden: ['typeextra', 'review', 'xml'], tabs: { props: 'properties', interactive: 'buttons', pages: 'pages', swatches: 'swatches' } },
   { name: 'Printing and Proofing', side: ['props', 'review'], dock: ['preflight', 'pages', 'swatches', 'make'], open: ['props', 'preflight', 'pages', 'swatches'], hidden: ['typeextra', 'interactive', 'xml', 'library'], tabs: { props: 'properties', preflight: 'separations', pages: 'links', swatches: 'swatches' } },
   { name: 'Typography', side: ['props', 'typeextra', 'review'], dock: ['swatches', 'pages', 'make', 'preflight'], open: ['props', 'typeextra', 'swatches'], hidden: ['interactive', 'xml', 'library'], tabs: { props: 'character', typeextra: 'glyphs', swatches: 'styles' } },
+  { name: 'Editor', side: ['review', 'props'], dock: ['pages'], open: ['review', 'props'], hidden: ['typeextra', 'interactive', 'xml', 'library', 'make', 'swatches', 'preflight'], tabs: { review: 'assignments', props: 'character', pages: 'pages' } },
 ];
 
 const KEY = 'formdes.workspace';
@@ -49,6 +50,7 @@ export function installWorkspaces(ws: Workspace): void {
     if (!l) { toast(`No workspace named ${name}`, 'error'); return; }
     ws.applyLayout(l);
     remember(name);
+    window.dispatchEvent(new CustomEvent('fd-workspace', { detail: name }));
   };
 
   const sync = (): void => {

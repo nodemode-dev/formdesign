@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -33,6 +34,7 @@ class Core:
         self.binary = None
         self._stderr_task: asyncio.Task | None = None
         self.restarts = 0
+        self.guard = None
 
     async def start(self) -> None:
         binary = config.core_binary()
@@ -69,7 +71,49 @@ class Core:
             except (asyncio.TimeoutError, OSError):
                 self.proc.kill()
 
+    def announce(self, event: dict) -> None:
+        for q in list(self.listeners):
+            try:
+                q.put_nowait(event)
+            except asyncio.QueueFull:
+                pass
+
+    @asynccontextmanager
+    async def exclusive(self):
+        async with self.lock:
+            if not self.alive():
+                raise CoreError("the layout core is not running")
+            holder = self
+            last: dict = {}
+
+            class Held:
+                async def call(self, method: str, params: dict | None = None) -> Reply:
+                    holder.next_id += 1
+                    req = json.dumps({"id": holder.next_id, "method": method, "params": params or {}}, separators=(",", ":"))
+                    holder.proc.stdin.write(req.encode() + b"\n")
+                    await holder.proc.stdin.drain()
+                    while True:
+                        line = await asyncio.wait_for(holder.proc.stdout.readline(), 300)
+                        if not line:
+                            raise CoreError("the layout core closed its output")
+                        head = json.loads(line)
+                        data = await holder.proc.stdout.readexactly(head["bin"]) if head.get("bin") else None
+                        if head.get("id") in (None, holder.next_id):
+                            break
+                    last.update({k: head.get(k) for k in ("rev", "selRev", "changed", "damage") if k in head})
+                    if not head.get("ok"):
+                        raise CoreError(head.get("error") or f"{method} failed")
+                    return Reply(head.get("result"), data, {})
+
+            try:
+                yield Held()
+            finally:
+                pass
+        await self._notify(last, "engine", "exclusive")
+
     async def call(self, method: str, params: dict | None = None, *, source: str = "engine", timeout: float = 300) -> Reply:
+        if self.guard is not None and source != "guard" and method in ("exec", "batch", "text", "key", "pointer", "findChange"):
+            await self.guard(method, params or {}, source)
         async with self.lock:
             if not self.alive():
                 if self.proc is not None:

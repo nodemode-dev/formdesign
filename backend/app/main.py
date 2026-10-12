@@ -11,8 +11,12 @@ from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.services import userprefs as userprefs_service
+from app.services import workflow as workflow_service
 from app.routers import agents as agents_api
 from app.routers import colour as colour_api
+from app.routers import motion as motion_api
+from app.routers import workflow as workflow_api
+from app.routers import assistant as assistant_api
 from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, versions as versions_api, website
 from app.services.pty import terminals
 
@@ -25,6 +29,8 @@ async def lifespan(_: FastAPI):
     config.ensure_dirs()
     try:
         await core.start()
+        workflow_service.load_user()
+        core.guard = workflow_service.guard
         await userprefs_service.load_profiles()
         documents.start_autosave()
     except CoreError as exc:
@@ -53,7 +59,10 @@ app.include_router(website.router, prefix="/api")
 app.include_router(terminal.router, prefix="/api")
 app.include_router(agents_api.router, prefix="/api")
 app.include_router(colour_api.router, prefix="/api")
+app.include_router(assistant_api.router, prefix="/api")
 app.include_router(review.router, prefix="/api")
+app.include_router(motion_api.router, prefix="/api")
+app.include_router(workflow_api.router, prefix="/api")
 app.include_router(website.sites)
 app.include_router(mcp.router)
 

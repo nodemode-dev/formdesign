@@ -21,6 +21,7 @@ from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake.store import packs
+from app.services import motion
 from app.templates import registry
 
 PUBLISHED_DIR = config.DATA_DIR / "Published"
@@ -239,6 +240,27 @@ class Builder:
         self.placeholders = 0
         self._h1 = False
         self._img_seen = False
+        self.mo: dict | None = None
+        self.mo_ids: set[str] = set()
+        self.mo_used: set[str] = set()
+
+    def anim(self, b: Block, html: str) -> str:
+        if not self.mo or not html:
+            return html
+        for i in [b.raw.get("item"), *(b.raw.get("frames") or [])]:
+            if i is not None and str(i) in self.mo_ids:
+                self.mo_used.add(str(i))
+                return f'<div class="fd-mo" data-fd="{i}">{html}</div>'
+        return html
+
+    def page_motion(self) -> str:
+        if not self.mo or not self.mo_used:
+            return ""
+        anims = {k: v for k, v in self.mo["anims"].items() if k in self.mo_used}
+        groups = [g for g in self.mo["groups"] if any(str(i) in anims for i in g)]
+        if not anims:
+            return ""
+        return motion.page_script({"mode": "flow", "anims": anims, "groups": groups})
 
     def _body_style(self) -> str:
         counts: dict[str, int] = {}
@@ -401,6 +423,11 @@ class Builder:
             path = f"assets/media/{name}-{aid}{ext}"
             self.site.add(path, data)
             info = {"src": path}
+            if b.kind == "video":
+                got = await motion.poster_bytes(await motion.media_for(self.meta, int(b.raw["item"])), data, ext)
+                if got:
+                    info["poster"] = f"assets/media/{name}-{aid}-poster{got[1]}"
+                    self.site.add(info["poster"], got[0])
         elif mime == "image/svg+xml":
             path = f"assets/img/{name}-{aid}.svg"
             self.site.add(path, data)
@@ -583,8 +610,11 @@ class Builder:
         cap = f"<figcaption>{self.runs_html_join(caption)}</figcaption>" if caption else ""
         src = escape(info["src"])
         if b.kind in ("video", "audio"):
-            attrs = "".join(a for on, a in ((b.raw.get("controls", True), " controls"), (b.raw.get("autoplay"), " autoplay muted"), (b.raw.get("loop"), " loop")) if on)
-            return f'<figure class="{cls} media"><{b.kind} src="{src}"{attrs} preload="metadata"></{b.kind}>{cap}</figure>'
+            o = await motion.media_for(self.meta, int(b.raw["item"]))
+            attrs = "".join(a for on, a in ((o["controls"], " controls"), (o["autoplay"], " autoplay muted" if b.kind == "video" else " autoplay"), (o["loop"], " loop")) if on)
+            if b.kind == "video":
+                attrs += ' playsinline' + (f' poster="{escape(info["poster"])}"' if info.get("poster") else "")
+            return self.anim(b, f'<figure class="{cls} media"><{b.kind} src="{src}"{attrs} preload="metadata"></{b.kind}>{cap}</figure>')
         alt = self.alt_for(b)
         if PLACEHOLDER.match(b.raw.get("name") or ""):
             self.placeholders += 1
@@ -601,7 +631,7 @@ class Builder:
         x0, _, x1, _ = b.raw.get("bounds") or [0, 0, 1, 0]
         share = (x1 - x0) / max(1.0, float(self.c.get("pageWidth") or 612)) * 140
         width = f' style="max-width:{max(30.0, share):.0f}%"' if share < 85 and "feature" not in cls and "cover" not in cls else ""
-        return f'<figure class="{cls}"{width}>{img}{cap}</figure>'
+        return self.anim(b, f'<figure class="{cls}"{width}>{img}{cap}</figure>')
 
     def runs_html_join(self, b: Block) -> str:
         return "<br>".join(self.runs_html(p.get("runs", [])) for p in b.paras if plain(p).strip())
@@ -751,17 +781,17 @@ class Builder:
                 cite = f"<cite>{self.runs_html_join(credit)}</cite>" if credit else ""
                 if credit:
                     skip.add(credit.order)
-                out.append(f'<aside class="pullquote"><blockquote>{self.story_html(b, True)}</blockquote>{cite}</aside>')
+                out.append(self.anim(b, f'<aside class="pullquote"><blockquote>{self.story_html(b, True)}</blockquote>{cite}</aside>'))
             elif b.role == "credit" and b.order in skip:
                 continue
             elif b.role == "cta":
-                out.append(self.cta_html(b, page))
+                out.append(self.anim(b, self.cta_html(b, page)))
             elif b.role in ("kicker", "title", "dek", "byline", "meta") and b.kind == "story":
                 tag = "p"
                 if b.role == "title":
                     tag = "h2" if self._h1 else "h1"
                     self._h1 = True
-                out.append(self.heading_html(b, tag, f"r-{b.role}"))
+                out.append(self.anim(b, self.heading_html(b, tag, f"r-{b.role}")))
             elif b is main and later_figs:
                 n = len(main.paras)
                 pages = sorted(set(main.raw.get("pages") or [main.page]))
@@ -770,9 +800,9 @@ class Builder:
                 for f in later_figs:
                     at = min(n - 1, max(1, round((f.page - p0 + 0.5) / max(1, p1 - p0 + 1) * n)))
                     inserts.setdefault(at, []).append(await self.figure_html(f, pairs.get(f.order)))
-                out.append(f'<div class="story r-{b.role}">{self.story_html(b, has_h1, inserts)}</div>')
+                out.append(self.anim(b, f'<div class="story r-{b.role}">{self.story_html(b, has_h1, inserts)}</div>'))
             else:
-                out.append(f'<div class="story r-{b.role}">{self.story_html(b, has_h1)}</div>')
+                out.append(self.anim(b, f'<div class="story r-{b.role}">{self.story_html(b, has_h1)}</div>'))
         flush_stats()
         flush_figs()
         return "\n".join(x for x in out if x)
@@ -1002,11 +1032,25 @@ class Builder:
         for b in self.blocks:
             if b.kind == "story" and b.text:
                 text_by_page.setdefault(b.page, []).append(b.text)
+        motion_cfg = await motion.export_config(self.meta, "page") if self.meta is not None and self.o.get("animations", True) else None
+        motion_geo = await motion.geometry() if motion_cfg else {}
         for p in pages:
             i = int(p["index"])
             scale = min(3.0, PAGE_PX / max(1.0, float(p["width"])))
+            ids = sorted(int(k) for k, a in (motion_cfg or {}).get("anims", {}).items() if motion_geo.get(int(k), {}).get("page") == i)
+            overlays = ""
             try:
-                r = await core.call("page.png", {"page": i, "scale": scale, "format": "png"})
+                if ids:
+                    plate, shots = await motion.page_layers(i, ids, scale)
+                    r = type("R", (), {"bin": plate})()
+                    for k in ids:
+                        g = motion_geo[k]
+                        if k in shots:
+                            self.site.add(f"assets/pages/page-{i + 1}-a{k}.png", shots[k])
+                            overlays += (f'<img class="ed-an" data-fd="{k}" src="assets/pages/page-{i + 1}-a{k}.png" alt="" style="left:{g["x"] / g["pageW"] * 100:.3f}%;top:{g["y"] / g["pageH"] * 100:.3f}%;'
+                                         f'width:{g["w"] / g["pageW"] * 100:.3f}%;height:{g["h"] / g["pageH"] * 100:.3f}%">')
+                else:
+                    r = await core.call("page.png", {"page": i, "scale": scale, "format": "png"})
             except CoreError as exc:
                 self.site.warnings.append(f"page {p['name']}: {exc}")
                 continue
@@ -1025,7 +1069,7 @@ class Builder:
             text = "".join(f"<p>{escape(t)}</p>" for t in text_by_page.get(i, []))
             load = "" if i < 2 else ' loading="lazy"'
             sp = int(p.get("spread", i))
-            spreads.setdefault(sp, []).append(f'<figure class="ed-page" id="p{i + 1}"><img src="{path}" width="{im.size[0]}" height="{im.size[1]}" alt="Page {escape(p["name"])}" decoding="async"{load}>{hots}<div class="ed-text">{text}</div></figure>')
+            spreads.setdefault(sp, []).append(f'<figure class="ed-page" id="p{i + 1}"><img src="{path}" width="{im.size[0]}" height="{im.size[1]}" alt="Page {escape(p["name"])}" decoding="async"{load}>{overlays}{hots}<div class="ed-text">{text}</div></figure>')
             names.setdefault(sp, []).append(str(p["name"]))
         facing = " facing" if self.c.get("facing") else ""
         rows = []
@@ -1042,6 +1086,8 @@ class Builder:
         first_text = f"Page {first_label[0]}" if len(first_label) == 1 else f"Pages {first_label[0]}–{first_label[-1]}"
         main = (f'<div class="ed-bar"><button class="ed-prev" type="button" aria-label="Previous">&#8592;</button><span class="ed-count" aria-live="polite">{escape(first_text)} of {total}</span>'
                 f'<button class="ed-next" type="button" aria-label="Next">&#8594;</button></div>\n<div class="ed-pages{facing}">{"".join(rows)}</div>\n{script}')
+        if motion_cfg and "ed-an" in main:
+            main += motion.page_script({**motion_cfg, "mode": "flow"})
         self.site.add("edition.html", self.chrome(None, "Edition", self.description(), "edition.html", main, "assets/pages/page-1.webp", body_cls="edition"))
 
     async def fonts_css(self) -> str:
@@ -1187,6 +1233,10 @@ class Builder:
         brand_text = next((re.sub(r"\s+", " ", b.text).strip() for b in self.blocks if b.kind == "story" and b.role == "brand" and b.text), "")
         self.site.title = (self.o.get("title") or "").strip() or brand_text[:80] or (self.pack.get("title") or "").strip() or stem_title
         self.site.layout = self.layout
+        if self.meta is not None and self.o.get("animations", True):
+            self.mo = await motion.export_config(self.meta, "flow")
+            if self.mo:
+                self.mo_ids = set(self.mo["anims"]) | {str(a["button"]) for a in self.mo["anims"].values() if a.get("button") is not None}
         pages = self.split()
         self.site.pages = pages
         n_pages = len(self.c.get("pages", []))
@@ -1202,7 +1252,9 @@ class Builder:
         for p in pages:
             self._h1 = False
             self._img_seen = False
+            self.mo_used = set()
             main = await self.page_html(p)
+            main += self.page_motion()
             img = None
             if p.image:
                 info = await self.image(p.image)
@@ -1516,6 +1568,9 @@ blockquote{margin:1.5em 0;padding-left:1.25em;border-left:3px solid var(--accent
 .ed-page{position:relative;margin:0;width:100%;box-shadow:0 2px 18px rgba(0,0,0,.14);background:#fff}
 .ed-page img{width:100%}
 .ed-hot{position:absolute;display:block}
+.ed-page img.ed-an{position:absolute;display:block;margin:0;max-width:none}
+.ed-page:has(.ed-an){overflow:hidden}
+.fd-mo{display:block}
 .ed-hot:hover{outline:2px solid var(--accent)}
 .ed-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

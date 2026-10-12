@@ -39,6 +39,8 @@ class DocMeta:
     brief: str = ""
     pack_id: str | None = None
     slots: dict = field(default_factory=dict)
+    motion: dict = field(default_factory=dict)
+    workflow: dict = field(default_factory=dict)
     created: float = field(default_factory=time.time)
     modified: float = field(default_factory=time.time)
 
@@ -115,7 +117,7 @@ class Documents:
         uid = await self.active_uid()
         if uid is not None:
             m = DocMeta(uid, path=path if ext == ".fdes" else None)
-            for k in ("template", "brand", "brief", "slots", "created"):
+            for k in ("template", "brand", "brief", "slots", "created", "motion", "workflow"):
                 if k in meta_json:
                     setattr(m, k, meta_json[k])
             m.pack_id = meta_json.get("pack")
@@ -132,7 +134,7 @@ class Documents:
         m.modified = time.time()
         meta = {"format": "formdes", "version": 1, "app": __version__, "title": r.result.get("title"),
                 "template": m.template, "brand": m.brand, "brief": m.brief, "pack": m.pack_id, "slots": m.slots,
-                "created": m.created, "modified": m.modified}
+                "created": m.created, "modified": m.modified, "motion": m.motion, "workflow": m.workflow}
         thumb = None
         try:
             thumb = (await core.call("page.png", {"page": 0, "maxSide": 512})).bin
@@ -205,6 +207,13 @@ class Documents:
         if fmt not in EXPORTS:
             raise CoreError(f"unknown export format {fmt}: one of {', '.join(sorted([*EXPORTS, 'png', 'jpg', 'fdes', 'web']))}")
         command, ext, mime = EXPORTS[fmt]
+        if fmt in ("html", "epub", "epub-fixed"):
+            # The core's HTML and EPUB leave media and animation out; services/mediaexport.py adds them when the document has any.
+            from app.services import mediaexport
+            native = await core.exec(command, {k: v for k, v in options.items() if k != "path"}, source=source)
+            woven = await mediaexport.post(fmt, native if isinstance(native, dict) else {}, str(Path(path).expanduser()) if path else None, options)
+            if woven is not None:
+                return woven
         if fmt in ("txt", "rtf"):
             options.setdefault("format", fmt)
         if path:

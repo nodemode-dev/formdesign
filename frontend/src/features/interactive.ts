@@ -1,6 +1,7 @@
 import '../styles/review.css';
 import '../styles/interactive.css';
 import { editor } from '../editor/editor';
+import { api } from '../engine/client';
 import { enhanceSelect } from '../ui/dropdown';
 import { el, patchList, q, setChecked, setClass, setDisabled, setHidden, setText, setValue } from '../ui/dom';
 import type { Workspace } from '../ui/workspace';
@@ -186,9 +187,11 @@ export class InteractivePanel extends LivePanel {
     <div class="fin-media" hidden>
       <p class="frv-hint fin-mwhat"></p>
       <div class="fin-checks"><label class="frv-check"><input type="checkbox" class="fin-mplay"><span>Play on page load</span></label><label class="frv-check"><input type="checkbox" class="fin-mloop"><span>Loop</span></label><label class="frv-check"><input type="checkbox" class="fin-mctl"><span>Show controls</span></label></div>
+      <div class="fin-form fin-mposter"><label class="fin-f"><span>Poster frame</span><select class="cv-select fin-mpos" aria-label="Poster frame"><option value="auto">Frame from the video</option><option value="none">None</option></select></label><label class="fin-f fin-mtimef"><span>At (seconds)</span><input class="fin-in fin-mtime" type="number" min="0" step="0.5"></label></div>
     </div>
   </div>`);
   private media: { kind?: string; name?: string; playOnPageLoad?: boolean; loop?: boolean; controls?: boolean } | null = null;
+  private poster: { poster: string; posterTime: number } = { poster: 'auto', posterTime: 1 };
   private id: number | null = null;
   private button: ButtonInfo | null = null;
   private field: FieldInfo | null = null;
@@ -210,6 +213,16 @@ export class InteractivePanel extends LivePanel {
       const on = (k: string) => q<HTMLInputElement>(this.root, k).checked;
       void this.run('media.options', { ids: [this.id], playOnPageLoad: on('.fin-mplay'), loop: on('.fin-mloop'), controls: on('.fin-mctl') });
     });
+    const pos = q<HTMLSelectElement>(this.root, '.fin-mpos');
+    enhanceSelect(pos);
+    const sendPoster = () => {
+      if (this.id === null) return;
+      const t = Number(q<HTMLInputElement>(this.root, '.fin-mtime').value);
+      void api('/motion/media', { json: { id: this.id, poster: pos.value, time: Number.isFinite(t) && t >= 0 ? t : 1 } }).then(() => { this.poster = { poster: pos.value, posterTime: Number.isFinite(t) && t >= 0 ? t : 1 }; this.render(); });
+    };
+    pos.addEventListener('change', sendPoster);
+    q(this.root, '.fin-mtime').addEventListener('change', sendPoster);
+    q(this.root, '.fin-mtime').addEventListener('keydown', (e) => { e.stopPropagation(); if ((e as KeyboardEvent).key === 'Enter') (e.target as HTMLElement).blur(); });
   }
 
   protected async load(): Promise<void> {
@@ -221,6 +234,7 @@ export class InteractivePanel extends LivePanel {
     if (this.id !== null) {
       const [bs, fs, md] = await Promise.all([editor.exec<ButtonInfo[]>('button.list', {}, true), editor.exec<FieldInfo[]>('form.list', {}, true), editor.exec<InteractivePanel['media']>('media.get', { id: this.id }, true)]);
       this.media = md ?? null;
+      if (md) { const p = await api<{ poster: string; posterTime: number }>(`/motion/media/${this.id}`).catch(() => undefined); if (p) this.poster = p; }
       this.button = bs?.find((b) => b.id === this.id) ?? null;
       this.field = fs?.find((f) => f.id === this.id) ?? null;
     }
@@ -235,7 +249,12 @@ export class InteractivePanel extends LivePanel {
     setHidden(q(this.root, '.fin-body'), !has);
     setHidden(q(this.root, '.fin-media'), !has || !this.media);
     if (has && this.media) {
-      setText(q(this.root, '.fin-mwhat'), `${this.media.kind === 'audio' || this.media.kind === 'sound' ? 'Sound' : 'Video'}: ${this.media.name ?? ''}. Plays in interactive PDF and EPUB.`);
+      setText(q(this.root, '.fin-mwhat'), `${this.media.kind === 'audio' || this.media.kind === 'sound' ? 'Sound' : 'Video'}: ${this.media.name ?? ''}. Plays in interactive PDF, HTML, EPUB and the Website.`);
+      const isVideo = this.media.kind !== 'audio' && this.media.kind !== 'sound';
+      setHidden(q(this.root, '.fin-mposter'), !isVideo);
+      setValue(q<HTMLSelectElement>(this.root, '.fin-mpos'), this.poster.poster === 'none' ? 'none' : 'auto');
+      setValue(q<HTMLInputElement>(this.root, '.fin-mtime'), String(this.poster.posterTime));
+      setHidden(q(this.root, '.fin-mtimef'), this.poster.poster === 'none');
       setChecked(q<HTMLInputElement>(this.root, '.fin-mplay'), !!this.media.playOnPageLoad);
       setChecked(q<HTMLInputElement>(this.root, '.fin-mloop'), !!this.media.loop);
       setChecked(q<HTMLInputElement>(this.root, '.fin-mctl'), !!this.media.controls);
@@ -310,5 +329,5 @@ export function installInteractive(ws: Workspace): void {
     { id: 'ui.buttons', label: 'Buttons and Forms Panel', run: () => ws.showPanel('buttons') },
     { id: 'ui.transitions', label: 'Page Transitions Panel', run: () => ws.showPanel('transitions') },
   );
-  ws.addMenuItems({ menu: 'Window', items: ['ui.states', 'ui.buttons', 'ui.transitions'], at: 'end' });
+  ws.addMenuItems({ menu: 'Window', items: [{ label: 'Interactive', items: ['ui.states', 'ui.buttons', 'ui.transitions', 'ui.animation', 'ui.timing'] }], at: 'end' });
 }
