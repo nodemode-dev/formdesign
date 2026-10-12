@@ -2,6 +2,15 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.23.0 · 2026-10-12
+
+- File > Package copies the document's fonts into Document fonts (fonts whose licence forbids embedding are left out and named in the report).
+- Autocorrect as you type: Edit > Autocorrect edits the list (forty common misspellings to start), keeps the case you typed and can capitalise the start of a sentence; Edit > Enable Autocorrect turns it on.
+- Paragraph Options has no JSON left: GREP styles, nested styles and tab stops are rows, rules and shading are forms, spacing is minimum, desired and maximum.
+- New Gradient Swatch has a stop list (colour, location, opacity). Window > Colour Theme from Image adds an image's colours as a swatch group.
+- Agents: errors from run_commands name the nearest command or the parameters it takes; find_commands lists a domain and counts matches; tools have titles; a Cursor rule ships in `.cursor/rules`.
+- Parity: 104 to 107.5 of 133 (Package, Autocorrect, GREP styles, Swatches and Colour themes closed).
+
 ## 0.22.0 · 2026-10-12
 
 - Window > Agent Connect: every agent that connects (Claude Code, Codex, Cursor and others, by name, version and transport), what each may do (Allow all, Ask for risky steps, Deny), set-up buttons that show what they will write first, requests waiting for your approval and a feed of every agent call.

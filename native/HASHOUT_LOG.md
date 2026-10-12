@@ -594,3 +594,19 @@ The scene marks paragraphs and pictures with `Op::Tag` (a style named Title is l
 
 A .csv or the first sheet of an .xlsx (shared strings, inline strings, and a formula's cached value; nothing is recalculated) places as a table with a header row; the engine scales its column widths to the frame column. `csv_as_tabs` keeps the old tab-separated paragraphs for callers that want text.
 
+## Package fonts and autocorrect (0.23.0) {#parity0230}
+
+### file.rs · Package copies fonts
+- refers-to: native/formdes-engine/src/cmd/file.rs :: package, fonts_used, font_restricted
+- kind: rationale
+- logged: v0.23.0 · 2026-10-12
+
+Package writes each used face into `Document fonts/` from the bytes the renderer's FontBook already holds (the face that actually drew the text, so the packaged file is the right one), named by its PostScript name with the extension its header implies (OTTO, ttcf, else ttf). InDesign skips fonts whose licence restricts embedding; so does this, by the OS/2 fsType low nibble being 2 (restricted licence), found by walking the table directory (inside a collection, from the face's own offset table). A face resolved to a different family is a substitute and is reported missing rather than copied, so a package never carries the wrong font under the right name. `fonts_used` now returns family and style pairs, since resolving needs both.
+
+### input.rs and edit.rs · autocorrect
+- refers-to: native/formdes-engine/src/input.rs :: text, autocorrect, match_case; native/formdes-engine/src/cmd/edit.rs :: autocorrect
+- kind: rationale
+- logged: v0.23.0 · 2026-10-12
+
+Correction happens in the engine's typing path, not the window, so typing from any client (the window, MCP `text`, the CLI) behaves the same. It runs only when one separator character is typed (space, tab, return, closing punctuation and quotes) with a collapsed caret and `raw` off, reads the word before the caret in character offsets (the same offsets the selection uses), selects it and inserts the replacement through `text.insert`, so it joins the typing undo step and tracked changes record it like typing. An exact key wins; otherwise a lower-case key is matched and the typed word's case (Capitalised or ALL CAPS) is applied to the correction. Settings live in `Session.prefs.autocorrect` (session scope, set by `edit.autocorrect`); the window keeps the person's list and sends it on every engine connection.
+

@@ -417,3 +417,19 @@ The owner chose a dockable panel over a drawer, so the terminal is an ordinary p
 - logged: v0.22.0 · 2026-10-12
 
 The engine announces agent activity as `{type: "agents", what}` events on the window's socket rather than sending the lists, so the panel refetches one snapshot (`/api/agents`, coalesced while a fetch is running) and patches its four keyed lists; nothing in the panel is rebuilt, and a select the person is using is not overwritten. An approval request opens the panel and raises a toast, because the agent is blocked until the person answers. Follow the agent listens to `changed` events from source `mcp` and reveals the union of their damage rectangles, skipping structural changes (no damage, or a damage box larger than the pasteboard). `view` events from the `show` tool go to the shell, which reuses showPanel, setTool, showPage and the zoom commands, so an agent can move the person's view only in ways a person could. The shell posts its own commands (ids, labels, keys, menu) to `/api/actions/window` once, after the menus exist, so the engine's catalogue includes window-only actions.
+
+## src/features: row editors, colour tools, autocorrect (0.23.0) {#parity0230}
+
+### attr-editors.ts · no JSON in dialogs
+- refers-to: frontend/src/features/attr-editors.ts :: structuredEditor, listEditor, objectEditor, triple, gradientStops; frontend/src/features/text-options.ts :: open
+- kind: rationale
+- logged: v0.23.0 · 2026-10-12
+
+The parity trace kept GREP styles, nested styles, rules, shading and gradients partial because they were typed as JSON. Each list or object attribute the catalogue reports now has an editor whose reader returns exactly the JSON shape the model parses (`grep: [{style, pattern}]`, `nested: [{style, through, count, inclusive}]`, `tabs: [{position, align, leader, alignOn}]`, rules `{on, weight, color, tint, width, offset, left, right}`, shading `{on, color, tint, top, bottom, left, right}`, spacing triples), so Paragraph Options still sends only changed values and the engine is unchanged. Percent fields scale on read and write (tints are 0 to 1 in the model). The nested delimiter list is the one the composer matches (`para.rs nested_ranges`), so nothing offered is ignored at composition; nested line styles are not offered because the composer has none yet. A structured field is a div, not a label, so clicking inside it does not activate its first control.
+
+### colour-tools.ts and autocorrect.ts
+- refers-to: frontend/src/features/colour-tools.ts :: gradientDialog, colourTheme; frontend/src/features/autocorrect.ts :: installAutocorrect
+- kind: rationale
+- logged: v0.23.0 · 2026-10-12
+
+New Gradient Swatch is overridden with a stop list. Colour Theme from Image uploads the picture, asks the engine service for its palette (the same median-cut palette intake uses) and adds the ticked colours plus their colour group through `script.run`, one undo step. Autocorrect's list is the person's, kept in the browser and pushed to the engine on each `hello`, because the engine's settings are per session; the core's `edit.autocorrect` menu entry opens the dialog and a separate Enable Autocorrect entry toggles it.
