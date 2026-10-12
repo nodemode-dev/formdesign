@@ -3,6 +3,7 @@ use serde_json::Value;
 
 use crate::attrs::Attrs;
 use crate::ids::{ItemId, StoryId};
+use crate::style::{StyleKind, Styles};
 use crate::{Result, err};
 
 pub const OBJ: char = '\u{FFFC}';
@@ -97,6 +98,79 @@ impl Table {
     pub fn width(&self) -> f64 {
         self.widths.iter().sum()
     }
+
+    /// Which cell style region a cell belongs to: header and footer rows come first, then the left and right
+    /// columns, then the body.
+    pub fn region_of(&self, cell: &TableCell) -> Region {
+        if cell.row < self.header_rows {
+            Region::Header
+        } else if self.footer_rows > 0 && cell.row + cell.rows > self.rows().saturating_sub(self.footer_rows) {
+            Region::Footer
+        } else if cell.col == 0 {
+            Region::Left
+        } else if cell.col + cell.cols >= self.cols() {
+            Region::Right
+        } else {
+            Region::Body
+        }
+    }
+
+    /// A table style option: the table's own override first, then the applied table style (and the styles it is
+    /// based on), read live so that editing the style restyles every table that uses it.
+    pub fn style_attr(&self, styles: &Styles, key: &str) -> Option<Value> {
+        if let Some(v) = self.attrs.get(key).filter(|v| !v.is_null()) {
+            return Some(v.clone());
+        }
+        let name = self.style.as_deref()?;
+        styles.chain(StyleKind::Table, name).iter().rev().find_map(|a| a.get(key).filter(|v| !v.is_null()).cloned())
+    }
+
+    /// The cell style name the table style maps to a region.
+    pub fn region_style(&self, styles: &Styles, region: Region) -> Option<String> {
+        let key = match region {
+            Region::Header => "headerCellStyle",
+            Region::Footer => "footerCellStyle",
+            Region::Left => "leftColumnCellStyle",
+            Region::Right => "rightColumnCellStyle",
+            Region::Body => "bodyCellStyle",
+        };
+        self.style_attr(styles, key).and_then(|v| v.as_str().map(str::to_string)).filter(|s| !s.is_empty() && s != "None")
+    }
+
+    /// The attributes a cell is drawn and composed with: its region's cell style under the cell's own attributes
+    /// (a cell style applied to the cell and local overrides already live in `cell.attrs`).
+    pub fn cell_attrs(&self, styles: &Styles, cell: &TableCell) -> Attrs {
+        let mut out = Attrs::new();
+        if let Some(name) = self.region_style(styles, self.region_of(cell)) {
+            for a in styles.chain(StyleKind::Cell, &name) {
+                out.extend(a.iter().map(|(k, v)| (k.clone(), v.clone())));
+            }
+        }
+        out.extend(cell.attrs.iter().map(|(k, v)| (k.clone(), v.clone())));
+        out
+    }
+
+    /// Alternating pattern membership of row or column `line` out of `count`: `Some(true)` in the first group,
+    /// `Some(false)` in the next, `None` when skipped. `spec` is {first, next, skipFirst, skipLast}; header and
+    /// footer rows never take part.
+    pub fn alt_phase(line: usize, count: usize, head: usize, foot: usize, spec: &Value) -> Option<bool> {
+        let n = |k: &str, d: u64| spec.get(k).and_then(Value::as_u64).unwrap_or(d) as usize;
+        let (first, next) = (n("first", 1).max(1), n("next", 1).max(1));
+        let (lo, hi) = (head + n("skipFirst", 0), count.saturating_sub(foot + n("skipLast", 0)));
+        if line < lo || line >= hi {
+            return None;
+        }
+        Some((line - lo) % (first + next) < first)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Region {
+    Header,
+    Footer,
+    Left,
+    Right,
+    Body,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

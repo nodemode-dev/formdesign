@@ -275,6 +275,8 @@ pub struct TextFrame {
     pub column_rule: ColumnRule,
     #[serde(default)]
     pub max_column_width: f64,
+    #[serde(default)]
+    pub vertical: bool,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -288,7 +290,7 @@ pub enum ColumnRule {
 
 impl TextFrame {
     pub fn new(story: StoryId) -> TextFrame {
-        TextFrame { story, columns: 1, gutter: 12.0, insets: Edges::default(), vjust: VJust::Top, first_baseline: FirstBaseline::Ascent, first_baseline_min: 0.0, autosize: AutoSize::Off, balance: false, ignore_wrap: false, on_path: None, fixed_column_width: None, column_rule: ColumnRule::Number, max_column_width: 0.0 }
+        TextFrame { story, columns: 1, gutter: 12.0, insets: Edges::default(), vjust: VJust::Top, first_baseline: FirstBaseline::Ascent, first_baseline_min: 0.0, autosize: AutoSize::Off, balance: false, ignore_wrap: false, on_path: None, fixed_column_width: None, column_rule: ColumnRule::Number, max_column_width: 0.0, vertical: false }
     }
 
     pub fn column_plan(&self, inner_width: f64) -> (u32, Option<f64>) {

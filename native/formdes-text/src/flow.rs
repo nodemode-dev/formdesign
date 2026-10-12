@@ -40,6 +40,7 @@ pub struct FrameSpec {
     pub grid: Option<(f64, f64)>,
     pub page: usize,
     pub shape: Option<BezPath>,
+    pub vertical: bool,
 }
 
 #[derive(Clone)]
@@ -79,6 +80,7 @@ pub struct CellOut {
     pub col: usize,
     pub rect: Rect,
     pub lines: Vec<PlacedLine>,
+    pub rotate: i32,
 }
 
 #[derive(Clone)]
@@ -684,7 +686,8 @@ impl<'a> Flower<'a> {
                     && let Some(d) = &composed.drop
                 {
                     let lead = line.leading;
-                    out.drops.push(PlacedDrop { para: pi, frame: slot.frame, x: slot.left + props.left_indent, baseline: baseline + lead * (d.lines as f64 - 1.0), drop: d.clone() });
+                    let drop_x = if props.rtl { slot.left + slot.width - props.left_indent - d.width } else { slot.left + props.left_indent };
+                    out.drops.push(PlacedDrop { para: pi, frame: slot.frame, x: drop_x, baseline: baseline + lead * (d.lines as f64 - 1.0), drop: d.clone() });
                 }
                 anchor_marks.push(out.anchors.len());
                 for (at, s) in &built.specials {
@@ -860,29 +863,61 @@ impl<'a> Flower<'a> {
             col_x.push(col_x.last().copied().unwrap_or(0.0) + w);
         }
         let mut cell_lines: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
-        for cell in &t.cells {
-            let ins = cell_insets(cell);
-            let w = (col_x[(cell.col + cell.cols).min(t.cols())] - col_x[cell.col] - ins[1] - ins[3]).max(4.0);
+        let mut need: HashMap<(usize, usize), f64> = HashMap::new();
+        let compose_cell = |cell: &formdes_model::story::TableCell, attrs: &formdes_model::attrs::Attrs, w: f64| -> Vec<Line> {
+            let para_style = attrs.get("paraStyle").and_then(|v| v.as_str()).map(formdes_model::style::style_key).filter(|s| self.styles.exists(formdes_model::style::StyleKind::Paragraph, s));
             let mut lines = Vec::new();
-            let mut h = 0.0;
             for p in &cell.paras {
+                let styled;
+                let p = match &para_style {
+                    Some(ps) if p.style == formdes_model::style::BASIC_PARA || p.style == "No Paragraph Style" => {
+                        let mut q = p.clone();
+                        q.style = ps.clone();
+                        styled = q;
+                        &styled
+                    }
+                    _ => p,
+                };
                 let b = para::build(self.styles, p, None, 0, self.ctx, cur.frame);
                 let c = composer.compose(&b.input, &|_| Slot { left: 0.0, width: w }, 1, self.frames[cur.frame].right_page);
-                for l in c.lines {
-                    h += l.leading;
-                    lines.push(l);
-                }
+                lines.extend(c.lines);
             }
-            cell_lines.insert((cell.row, cell.col), (lines, h + ins[0] + ins[2]));
+            lines
+        };
+        let mut eff: HashMap<(usize, usize), formdes_model::attrs::Attrs> = HashMap::new();
+        for cell in &t.cells {
+            let attrs = t.cell_attrs(self.styles, cell);
+            let ins = cell_insets_of(&attrs);
+            let rot = cell_rotation(&attrs);
+            let w = (col_x[(cell.col + cell.cols).min(t.cols())] - col_x[cell.col] - ins[1] - ins[3]).max(4.0);
+            if rot == 90 || rot == 270 {
+                let nat = compose_cell(cell, &attrs, 1.0e5).iter().map(|l| l.width).fold(0.0, f64::max);
+                need.insert((cell.row, cell.col), (nat + ins[1] + ins[3]).min(600.0));
+            } else {
+                let lines = compose_cell(cell, &attrs, w);
+                let h: f64 = lines.iter().map(|l| l.leading).sum();
+                cell_lines.insert((cell.row, cell.col), (lines, h + ins[0] + ins[2]));
+            }
+            eff.insert((cell.row, cell.col), attrs);
         }
         let rows = t.rows();
         let mut heights = t.heights.clone();
         for cell in &t.cells {
-            if cell.rows == 1
-                && let Some((_, h)) = cell_lines.get(&(cell.row, cell.col))
-                && !t.exact.get(cell.row).copied().unwrap_or(false)
-            {
-                heights[cell.row] = heights[cell.row].max(*h);
+            if cell.rows == 1 && !t.exact.get(cell.row).copied().unwrap_or(false) {
+                let h = cell_lines.get(&(cell.row, cell.col)).map(|(_, h)| *h).or_else(|| need.get(&(cell.row, cell.col)).copied());
+                if let Some(h) = h {
+                    heights[cell.row] = heights[cell.row].max(h);
+                }
+            }
+        }
+        for cell in &t.cells {
+            let Some(attrs) = eff.get(&(cell.row, cell.col)) else { continue };
+            if need.contains_key(&(cell.row, cell.col)) {
+                let ins = cell_insets_of(attrs);
+                let span: f64 = (cell.row..(cell.row + cell.rows).min(rows)).map(|r| heights[r]).sum();
+                let lines = compose_cell(cell, attrs, (span - ins[1] - ins[3]).max(4.0));
+                let h: f64 = lines.iter().map(|l| l.leading).sum();
+                cell_lines.insert((cell.row, cell.col), (lines, h + ins[0] + ins[2]));
             }
         }
         let mut c = cur;
@@ -927,29 +962,38 @@ impl<'a> Flower<'a> {
             let span_h: f64 = h + (1..cell.rows).map(|k| eff.get(r + k).copied().unwrap_or(0.0)).sum::<f64>();
             let rect = Rect::new(x0 + col_x[cell.col], y, x0 + col_x[(cell.col + cell.cols).min(col_x.len() - 1)], y + span_h);
             let mut lines = Vec::new();
-            let ins = cell_insets(cell);
+            let attrs = t.cell_attrs(self.styles, cell);
+            let ins = cell_insets_of(&attrs);
+            let rotate = cell_rotation(&attrs);
+            let boxr = match rotate {
+                90 | 270 => Rect::new(rect.y0, rect.x0, rect.y1, rect.x1),
+                _ => rect,
+            };
             if let Some((ls, total)) = cells.get(&(cell.row, cell.col)) {
-                let spare = (span_h - total).max(0.0);
-                let shift = match cell.attrs.get("vj").and_then(|v| v.as_str()) {
+                let spare = (boxr.height() - total).max(0.0);
+                let shift = match attrs.get("vj").and_then(|v| v.as_str()) {
                     Some("center") => spare / 2.0,
                     Some("bottom") => spare,
                     _ => 0.0,
                 };
-                let mut b = y + ins[0] + shift;
+                let mut b = boxr.y0 + ins[0] + shift;
                 for l in ls {
                     b += l.leading;
                     let mut l = l.clone();
-                    for run in &mut l.runs {
+                    for run in l.runs.iter_mut().chain(l.adorn.iter_mut()) {
                         for g in &mut run.glyphs {
-                            g.x += rect.x0 + ins[1];
+                            g.x += boxr.x0 + ins[1];
                         }
-                        run.x0 += rect.x0 + ins[1];
-                        run.x1 += rect.x0 + ins[1];
+                        run.x0 += boxr.x0 + ins[1];
+                        run.x1 += boxr.x0 + ins[1];
+                    }
+                    for m in &mut l.marks {
+                        m.x += boxr.x0 + ins[1];
                     }
                     lines.push(PlacedLine { para: 0, frame: c.frame, column: c.column, baseline: b, line: l });
                 }
             }
-            frag.cells.push(CellOut { row: cell.row, col: cell.col, rect, lines });
+            frag.cells.push(CellOut { row: cell.row, col: cell.col, rect, lines, rotate });
         }
     }
 
@@ -1068,8 +1112,32 @@ impl<'a> Flower<'a> {
     }
 }
 
+/// Maps the text of a rotated table cell (composed in a box whose width is the cell's height for 90 and 270
+/// degrees) onto the cell rectangle.
+pub fn cell_xf(rect: Rect, rotate: i32) -> kurbo::Affine {
+    match rotate {
+        90 => kurbo::Affine::new([0.0, 1.0, -1.0, 0.0, rect.x0 + rect.x1, 0.0]),
+        270 => kurbo::Affine::new([0.0, -1.0, 1.0, 0.0, 0.0, rect.y0 + rect.y1]),
+        180 => kurbo::Affine::new([-1.0, 0.0, 0.0, -1.0, rect.x0 + rect.x1, rect.y0 + rect.y1]),
+        _ => kurbo::Affine::IDENTITY,
+    }
+}
+
+pub fn cell_rotation(attrs: &formdes_model::attrs::Attrs) -> i32 {
+    match attrs.get("rotate").and_then(|v| v.as_f64()).map(|d| d.round() as i64) {
+        Some(90 | -270) => 90,
+        Some(180 | -180) => 180,
+        Some(270 | -90) => 270,
+        _ => 0,
+    }
+}
+
 pub fn cell_insets(cell: &formdes_model::story::TableCell) -> [f64; 4] {
-    match cell.attrs.get("insets") {
+    cell_insets_of(&cell.attrs)
+}
+
+pub fn cell_insets_of(attrs: &formdes_model::attrs::Attrs) -> [f64; 4] {
+    match attrs.get("insets") {
         Some(serde_json::Value::Number(n)) => [n.as_f64().unwrap_or(4.0); 4],
         Some(serde_json::Value::Array(a)) if a.len() == 4 => {
             let g = |i: usize| a[i].as_f64().unwrap_or(4.0);
@@ -1080,12 +1148,15 @@ pub fn cell_insets(cell: &formdes_model::story::TableCell) -> [f64; 4] {
 }
 
 pub fn offset_line(l: &mut Line, dx: f64) {
-    for r in &mut l.runs {
+    for r in l.runs.iter_mut().chain(l.adorn.iter_mut()) {
         r.x0 += dx;
         r.x1 += dx;
         for g in &mut r.glyphs {
             g.x += dx;
         }
+    }
+    for m in &mut l.marks {
+        m.x += dx;
     }
     for t in &mut l.tabs {
         t.x0 += dx;

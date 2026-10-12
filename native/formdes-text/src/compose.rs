@@ -1,7 +1,7 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use formdes_model::attrs::{Align, Caps, CharProps, Kerning, ParaProps, Position, TabAlign};
+use formdes_model::attrs::{Align, Caps, CharProps, Kerning, Kinsoku, Mojikumi, ParaProps, Position, Ruby, RubyAlign, TabAlign};
 use unicode_bidi::BidiInfo;
 use unicode_linebreak::{BreakOpportunity, linebreaks};
 
@@ -39,6 +39,59 @@ pub struct ParaInput {
     pub props: ParaProps,
     pub prefix: usize,
     pub exceptions: Exceptions,
+    pub vertical: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum Orient {
+    #[default]
+    Side,
+    Upright,
+    Tcy,
+}
+
+pub fn is_cjk(c: char) -> bool {
+    matches!(c as u32, 0x1100..=0x11FF | 0x2E80..=0x2FDF | 0x2FF0..=0x2FFF | 0x3001..=0x30FF | 0x3100..=0x318F | 0x3190..=0x4DBF | 0x4E00..=0x9FFF | 0xA960..=0xA97F | 0xAC00..=0xD7FF | 0xF900..=0xFAFF | 0xFE10..=0xFE1F | 0xFE30..=0xFE4F | 0xFF00..=0xFF60 | 0xFFE0..=0xFFE6 | 0x1B000..=0x1B16F | 0x20000..=0x3FFFF)
+}
+
+const CLOSING: &str = "\u{FF09}\u{3015}\u{FF3D}\u{FF5D}\u{3009}\u{300B}\u{300D}\u{300F}\u{3011}\u{3019}\u{3017}\u{FF60}\u{301E}\u{301F}";
+const OPENING: &str = "\u{FF08}\u{3014}\u{FF3B}\u{FF5B}\u{3008}\u{300A}\u{300C}\u{300E}\u{3010}\u{3018}\u{3016}\u{FF5F}\u{301D}";
+const STOPS: &str = "\u{3001}\u{3002}\u{FF0C}\u{FF0E}";
+const MIDDLE: &str = "\u{30FB}\u{FF1A}\u{FF1B}";
+const HARD_START: &str = "\u{FF01}\u{FF1F}\u{203C}\u{2047}\u{30A0}\u{30FC}\u{3005}\u{303B}\u{309D}\u{309E}\u{30FD}\u{30FE}\u{309B}\u{309C}\u{301C}\u{3041}\u{3043}\u{3045}\u{3047}\u{3049}\u{3063}\u{3083}\u{3085}\u{3087}\u{308E}\u{3095}\u{3096}\u{30A1}\u{30A3}\u{30A5}\u{30A7}\u{30A9}\u{30C3}\u{30E3}\u{30E5}\u{30E7}\u{30EE}\u{30F5}\u{30F6}";
+
+fn no_start(c: char, k: Kinsoku) -> bool {
+    match k {
+        Kinsoku::None => false,
+        Kinsoku::Soft => CLOSING.contains(c) || STOPS.contains(c),
+        Kinsoku::Hard => CLOSING.contains(c) || STOPS.contains(c) || MIDDLE.contains(c) || HARD_START.contains(c),
+    }
+}
+
+fn no_end(c: char, k: Kinsoku) -> bool {
+    k != Kinsoku::None && OPENING.contains(c)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Punct {
+    Open,
+    Close,
+    Stop,
+    Middle,
+}
+
+fn punct(c: char) -> Option<Punct> {
+    if OPENING.contains(c) {
+        Some(Punct::Open)
+    } else if CLOSING.contains(c) {
+        Some(Punct::Close)
+    } else if STOPS.contains(c) {
+        Some(Punct::Stop)
+    } else if MIDDLE.contains(c) {
+        Some(Punct::Middle)
+    } else {
+        None
+    }
 }
 
 pub type Exceptions = Arc<std::collections::HashMap<String, Vec<usize>>>;
@@ -69,6 +122,8 @@ pub struct Seg {
     pub shift: f64,
     pub props: Arc<CharProps>,
     pub level: u8,
+    pub orient: Orient,
+    pub tcy_scale: f64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -79,6 +134,20 @@ struct SGlyph {
     dx: f64,
     dy: f64,
     seg: usize,
+    squeezed: bool,
+}
+
+struct RubyPiece {
+    base: Range<usize>,
+    text: String,
+    glyphs: Vec<crate::shape::Glyph>,
+    face: Arc<Face>,
+    size: f64,
+    props: Arc<CharProps>,
+    ruby: Ruby,
+    base_size: f64,
+    base_shift: f64,
+    width: f64,
 }
 
 pub struct Shaped {
@@ -90,6 +159,10 @@ pub struct Shaped {
     pub base_size: f64,
     objects: Vec<ObjBox>,
     exceptions: Exceptions,
+    vertical: bool,
+    rubies: Vec<RubyPiece>,
+    fixed: Vec<Range<usize>>,
+    mojikumi: Mojikumi,
 }
 
 fn caps_text(s: &str, base: usize) -> (String, Vec<usize>) {
@@ -133,13 +206,35 @@ pub fn shape_para(fonts: &FontBook, input: &ParaInput) -> Shaped {
     let mut glyphs: Vec<SGlyph> = Vec::new();
     let base_size = input.runs.first().map(|r| r.props.size).unwrap_or(12.0);
     let fallback_face = fonts.any_face();
+    let mut tcy: Vec<Range<usize>> = Vec::new();
+    if input.vertical {
+        for run in &input.runs {
+            if run.props.tcy && !run.range.is_empty() {
+                tcy.push(run.range.clone());
+            }
+        }
+        if input.props.auto_tcy > 0 {
+            let mut start: Option<usize> = None;
+            for (i, c) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+                if c.is_ascii_digit() {
+                    start.get_or_insert(i);
+                } else if let Some(s) = start.take()
+                    && text[s..i].len() <= input.props.auto_tcy as usize
+                    && !tcy.iter().any(|r| r.start <= s && i <= r.end)
+                {
+                    tcy.push(s..i);
+                }
+            }
+        }
+    }
+    let mut fixed: Vec<Range<usize>> = tcy.clone();
     for run in &input.runs {
         let p = &run.props;
         let Some(main) = fonts.resolve(&p.font, &p.font_style).or_else(|| fallback_face.clone()) else {
             continue;
         };
         let main = fonts.varied(&main, &p.variations);
-        let mut pieces: Vec<(Range<usize>, Arc<Face>, u8, bool)> = Vec::new();
+        let mut pieces: Vec<(Range<usize>, Arc<Face>, u8, bool, Orient)> = Vec::new();
         let slice = &text[run.range.clone()];
         let mut last_special = false;
         for (off, c) in slice.char_indices() {
@@ -148,15 +243,24 @@ pub fn shape_para(fonts: &FontBook, input: &ParaInput) -> Shaped {
             let face = if is_special(c) || main.covers(c) { main.clone() } else { fonts.fallback(&main, c).unwrap_or_else(|| main.clone()) };
             let lower = matches!(p.caps, Caps::Small) && c.is_lowercase() && !main.has_feature(b"smcp");
             let special = is_special(c);
+            let orient = if !input.vertical || special {
+                Orient::Side
+            } else if tcy.iter().any(|r| r.contains(&at)) {
+                Orient::Tcy
+            } else if is_cjk(c) {
+                Orient::Upright
+            } else {
+                Orient::Side
+            };
             match pieces.last_mut() {
-                Some((r, f, l, lw)) if f.id == face.id && *l == lvl && *lw == lower && !special && !last_special => {
+                Some((r, f, l, lw, o)) if f.id == face.id && *l == lvl && *lw == lower && *o == orient && !special && !last_special => {
                     r.end = at + c.len_utf8();
                 }
-                _ => pieces.push((at..at + c.len_utf8(), face, lvl, lower)),
+                _ => pieces.push((at..at + c.len_utf8(), face, lvl, lower, orient)),
             }
             last_special = special;
         }
-        for (range, face, lvl, synth_small) in pieces {
+        for (range, face, lvl, synth_small, orient) in pieces {
             let piece = &text[range.clone()];
             let first = piece.chars().next().unwrap_or(' ');
             let mut size = p.size;
@@ -176,14 +280,14 @@ pub fn shape_para(fonts: &FontBook, input: &ParaInput) -> Shaped {
                 size *= 0.7;
             }
             let seg_index = segs.len();
-            segs.push(Seg { face: face.clone(), size, shift, props: p.clone(), level: lvl });
+            segs.push(Seg { face: face.clone(), size, shift, props: p.clone(), level: lvl, orient, tcy_scale: 1.0 });
             if is_special(first) {
                 let (id, adv) = match first {
                     OBJ => (NO_GLYPH, input.objects.iter().find(|o| o.at == range.start).map(|o| o.width).unwrap_or(0.0)),
                     '\t' => (TAB_GLYPH, 0.0),
                     _ => (NO_GLYPH, 0.0),
                 };
-                glyphs.push(SGlyph { id, cluster: range.start, adv, dx: 0.0, dy: 0.0, seg: seg_index });
+                glyphs.push(SGlyph { id, cluster: range.start, adv, dx: 0.0, dy: 0.0, seg: seg_index, squeezed: false });
                 continue;
             }
             let upper = matches!(p.caps, Caps::All | Caps::AllSmall) || synth_small;
@@ -201,6 +305,10 @@ pub fn shape_para(fonts: &FontBook, input: &ParaInput) -> Shaped {
             if matches!(p.position, Position::Denominator) {
                 feats.push("dnom".into());
             }
+            if orient == Orient::Upright {
+                feats.push("vert".into());
+                feats.push("vrt2".into());
+            }
             let req = ShapeReq {
                 text: &shaped_text,
                 face: &face,
@@ -215,18 +323,156 @@ pub fn shape_para(fonts: &FontBook, input: &ParaInput) -> Shaped {
             let kern = p.kern / 1000.0 * p.size;
             let out = shape(&req);
             let n = out.len();
+            let (mut fit, mut pad) = (1.0, 0.0);
+            if orient == Orient::Tcy {
+                let nat: f64 = out.iter().map(|g| g.advance * p.h_scale).sum();
+                if nat > size {
+                    fit = size / nat;
+                } else {
+                    pad = (size - nat) / 2.0;
+                }
+                segs[seg_index].tcy_scale = fit;
+            }
             for (gi, g) in out.into_iter().enumerate() {
                 let cluster = map.get(g.cluster).copied().unwrap_or(range.start);
-                let mut adv = g.advance * p.h_scale + track;
+                let mut adv = g.advance * p.h_scale * fit + if orient == Orient::Tcy { 0.0 } else { track };
+                let mut dx = g.dx * p.h_scale * fit;
                 if gi + 1 == n {
-                    adv += kern;
+                    adv += if orient == Orient::Tcy { pad } else { kern };
                 }
-                glyphs.push(SGlyph { id: g.id, cluster, adv, dx: g.dx * p.h_scale, dy: g.dy, seg: seg_index });
+                if gi == 0 && pad > 0.0 {
+                    dx += pad;
+                    adv += pad;
+                }
+                glyphs.push(SGlyph { id: g.id, cluster, adv, dx, dy: g.dy, seg: seg_index, squeezed: false });
             }
         }
     }
     glyphs.sort_by_key(|g| g.cluster);
-    Shaped { text, glyphs, segs, levels, rtl_para, base_size, objects: input.objects.clone(), exceptions: input.exceptions.clone() }
+    if input.props.mojikumi != Mojikumi::None {
+        squeeze_punctuation(&text, &segs, &mut glyphs, input.props.mojikumi);
+    }
+    let rubies = ruby_pieces(fonts, input, &segs, &mut glyphs, &mut fixed);
+    Shaped { text, glyphs, segs, levels, rtl_para, base_size, objects: input.objects.clone(), exceptions: input.exceptions.clone(), vertical: input.vertical, rubies, fixed, mojikumi: input.props.mojikumi }
+}
+
+fn squeeze_one(g: &mut SGlyph, c: char) {
+    if g.squeezed {
+        return;
+    }
+    let q = g.adv * 0.5;
+    if punct(c) == Some(Punct::Open) {
+        g.dx -= q;
+    }
+    g.adv -= q;
+    g.squeezed = true;
+}
+
+fn squeeze_punctuation(text: &str, segs: &[Seg], glyphs: &mut [SGlyph], set: Mojikumi) {
+    let mut at = 0;
+    while at < glyphs.len() {
+        let g = glyphs[at];
+        let next_same = glyphs.get(at + 1).is_some_and(|n| n.cluster == g.cluster);
+        let prev_same = at > 0 && glyphs[at - 1].cluster == g.cluster;
+        let c = text.get(g.cluster..).and_then(|t| t.chars().next());
+        at += 1;
+        let (Some(c), false, false) = (c, next_same, prev_same) else { continue };
+        let Some(class) = punct(c) else { continue };
+        let seg = &segs[g.seg];
+        if g.adv < seg.size * seg.props.h_scale * 0.9 {
+            continue;
+        }
+        let before = text[..g.cluster].chars().next_back().and_then(punct);
+        let after = text[g.cluster + c.len_utf8()..].chars().next().and_then(punct);
+        let squeeze = match set {
+            Mojikumi::None => false,
+            Mojikumi::Tight => true,
+            Mojikumi::Standard => match class {
+                Punct::Open => before.is_some(),
+                Punct::Close => after.is_some(),
+                Punct::Stop => matches!(after, Some(Punct::Open | Punct::Close | Punct::Stop)),
+                Punct::Middle => false,
+            },
+        };
+        if squeeze {
+            squeeze_one(&mut glyphs[at - 1], c);
+        }
+    }
+}
+
+fn ruby_pieces(fonts: &FontBook, input: &ParaInput, segs: &[Seg], glyphs: &mut [SGlyph], fixed: &mut Vec<Range<usize>>) -> Vec<RubyPiece> {
+    let mut groups: Vec<(Range<usize>, &Ruby)> = Vec::new();
+    for run in &input.runs {
+        let Some(r) = run.props.ruby.as_ref() else { continue };
+        if run.range.is_empty() {
+            continue;
+        }
+        match groups.last_mut() {
+            Some((g, prev)) if g.end == run.range.start && *prev == r => g.end = run.range.end,
+            _ => groups.push((run.range.clone(), r)),
+        }
+    }
+    let mut out = Vec::new();
+    for (range, ruby) in groups {
+        let base: Vec<(usize, char)> = input.text[range.clone()].char_indices().map(|(i, c)| (range.start + i, c)).filter(|(_, c)| !is_special(*c)).collect();
+        if base.is_empty() {
+            continue;
+        }
+        let first = glyphs.partition_point(|g| g.cluster < base[0].0);
+        let Some(g0) = glyphs.get(first) else { continue };
+        let seg = &segs[g0.seg];
+        let rsize = (seg.props.size * ruby.scale).max(1.0);
+        let parts: Vec<String> = if ruby.per_char {
+            let mut parts: Vec<String> = if ruby.text.contains('|') { ruby.text.split('|').map(str::to_string).collect() } else { ruby.text.chars().map(|c| c.to_string()).collect() };
+            if parts.len() > base.len() {
+                let rest = parts.split_off(base.len() - 1).join("");
+                parts.push(rest);
+            }
+            parts
+        } else {
+            vec![ruby.text.clone()]
+        };
+        let mut props = (*seg.props).clone();
+        props.size = rsize;
+        props.underline = false;
+        props.strike = false;
+        props.ruby = None;
+        props.kenten = None;
+        props.tcy = false;
+        props.tracking = 0.0;
+        props.kern = 0.0;
+        props.h_scale = 1.0;
+        props.v_scale = 1.0;
+        props.baseline_shift = 0.0;
+        props.position = Position::Normal;
+        let props = Arc::new(props);
+        for (pi, part) in parts.iter().enumerate() {
+            if part.is_empty() {
+                continue;
+            }
+            let sub = if ruby.per_char { base[pi].0..base[pi].0 + base[pi].1.len_utf8() } else { range.clone() };
+            let face = match part.chars().find(|c| !seg.face.covers(*c)) {
+                Some(c) => fonts.fallback(&seg.face, c).unwrap_or_else(|| seg.face.clone()),
+                None => seg.face.clone(),
+            };
+            let shaped = shape(&ShapeReq { text: part, face: &face, size: rsize, kerning: true, ligatures: false, features: &[], rtl: false, language: &lang::bcp47(&seg.props.language) });
+            let width: f64 = shaped.iter().map(|g| g.advance).sum();
+            let lo = glyphs.partition_point(|g| g.cluster < sub.start);
+            let hi = glyphs.partition_point(|g| g.cluster < sub.end);
+            if hi > lo {
+                let base_w: f64 = glyphs[lo..hi].iter().map(|g| g.adv).sum();
+                if width > base_w + 0.01 {
+                    let half = (width - base_w) / 2.0;
+                    glyphs[lo].dx += half;
+                    glyphs[lo].adv += half;
+                    glyphs[hi - 1].adv += half;
+                }
+            }
+            fixed.push(sub.clone());
+            out.push(RubyPiece { base: sub, text: part.clone(), glyphs: shaped, face, size: rsize, props: props.clone(), ruby: ruby.clone(), base_size: seg.size, base_shift: seg.shift, width });
+        }
+    }
+    out
 }
 
 impl Shaped {
@@ -331,6 +577,26 @@ fn syllables(word: &str, props: &ParaProps, language: &str, exc: &Exceptions) ->
 
 const HYPHEN_PENALTY: f64 = 50.0;
 
+fn cjk_opportunities(text: &str, opps: Vec<(usize, BreakOpportunity)>, k: Kinsoku) -> Vec<(usize, BreakOpportunity)> {
+    let mut map: std::collections::BTreeMap<usize, BreakOpportunity> = opps.into_iter().collect();
+    let mut prev: Option<char> = None;
+    for (i, c) in text.char_indices() {
+        if let Some(p) = prev
+            && is_cjk(p)
+            && is_cjk(c)
+        {
+            let allowed = !(no_start(c, k) || no_end(p, k));
+            if allowed {
+                map.entry(i).or_insert(BreakOpportunity::Allowed);
+            } else if map.get(&i) == Some(&BreakOpportunity::Allowed) {
+                map.remove(&i);
+            }
+        }
+        prev = Some(c);
+    }
+    map.into_iter().collect()
+}
+
 pub fn prepare(sh: &Shaped, props: &ParaProps) -> Prepared {
     let text = &sh.text;
     let justified = props.align.justified();
@@ -340,6 +606,12 @@ pub fn prepare(sh: &Shaped, props: &ParaProps) -> Prepared {
     opps.retain(|(i, _)| {
         *i >= text.len() || sh.seg_at(*i).map(|s| !s.props.no_break).unwrap_or(true) || text[..*i].chars().next_back().map(is_space).unwrap_or(false)
     });
+    if text.chars().any(is_cjk) {
+        opps = cjk_opportunities(text, opps, props.kinsoku);
+    }
+    if !sh.fixed.is_empty() {
+        opps.retain(|(i, _)| !sh.fixed.iter().any(|r| r.start < *i && *i < r.end));
+    }
     let has_tabs = text.contains('\t');
     let mut start = 0;
     for (at, kind) in opps {
@@ -450,6 +722,18 @@ pub struct GlyphRun {
     pub x1: f64,
     pub rtl: bool,
     pub hscale: f64,
+    pub orient: Orient,
+    pub text: String,
+}
+
+/// A kenten (emphasis mark) drawn as a vector shape centred on (x, baseline + y).
+#[derive(Clone, Debug)]
+pub struct EmphasisMark {
+    pub x: f64,
+    pub y: f64,
+    pub size: f64,
+    pub kind: char,
+    pub props: Arc<CharProps>,
 }
 
 #[derive(Clone, Debug)]
@@ -472,6 +756,8 @@ pub struct Line {
     pub xheight: f64,
     pub leading: f64,
     pub runs: Vec<GlyphRun>,
+    pub adorn: Vec<GlyphRun>,
+    pub marks: Vec<EmphasisMark>,
     pub hyphen: bool,
     pub forced: bool,
     pub last: bool,
@@ -519,14 +805,18 @@ impl Composer<'_> {
         let skip = drop.as_ref().map(|d| d.chars).unwrap_or(0);
         let geom = |line: usize| -> Slot {
             let s = slot(line);
-            let mut left = s.left + props.left_indent;
+            let mut left = s.left + if props.rtl { props.right_indent } else { props.left_indent };
             let mut width = s.width - props.left_indent - props.right_indent;
             if line == 0 {
-                left += props.first_indent;
+                if !props.rtl {
+                    left += props.first_indent;
+                }
                 width -= props.first_indent;
             }
             if line < drop_lines {
-                left += drop_w;
+                if !props.rtl {
+                    left += drop_w;
+                }
                 width -= drop_w;
             }
             Slot { left, width: width.max(1.0) }
@@ -610,7 +900,7 @@ impl Composer<'_> {
             .collect();
         let width = x + seg.size * 0.15;
         Some(DropCap {
-            run: GlyphRun { face: seg.face.clone(), size, shift: 0.0, props: seg.props.clone(), glyphs, x0: 0.0, x1: x, rtl: false, hscale: 1.0 },
+            run: GlyphRun { face: seg.face.clone(), size, shift: 0.0, props: seg.props.clone(), glyphs, x0: 0.0, x1: x, rtl: false, hscale: 1.0, orient: Orient::Side, text: String::new() },
             chars: end,
             lines: p.drop_lines,
             width,
@@ -688,7 +978,35 @@ impl Composer<'_> {
         } else {
             end
         };
+        let (mut edge_l, mut edge_r) = (0.0, 0.0);
+        let edge_lo = sh.glyphs.partition_point(|g| g.cluster < start);
+        let edge_hi = sh.glyphs.partition_point(|g| g.cluster < content_end);
+        if sh.mojikumi != Mojikumi::None && edge_hi > edge_lo {
+            let g = &sh.glyphs[edge_lo];
+            if !g.squeezed && sh.text.get(g.cluster..).and_then(|t| t.chars().next()).and_then(punct) == Some(Punct::Open) && g.adv >= sh.segs[g.seg].size * 0.9 {
+                edge_l = g.adv * 0.5;
+            }
+            let g = &sh.glyphs[edge_hi - 1];
+            if !g.squeezed && matches!(sh.text.get(g.cluster..).and_then(|t| t.chars().next()).and_then(punct), Some(Punct::Close | Punct::Stop)) && g.adv >= sh.segs[g.seg].size * 0.9 {
+                edge_r = g.adv * 0.5;
+            }
+            if edge_hi - edge_lo == 1 {
+                edge_r = if edge_l > 0.0 { 0.0 } else { edge_r };
+            }
+            natural -= edge_l + edge_r;
+        }
         let align = props.align.resolve(right_page);
+        let align = if props.rtl {
+            match align {
+                Align::Left => Align::Right,
+                Align::Right => Align::Left,
+                Align::Justify => Align::JustifyRight,
+                Align::JustifyRight => Align::Justify,
+                a => a,
+            }
+        } else {
+            align
+        };
         let (hang_l, hang_r) = if props.optical_margin && content_end > start { optical(sh, start, content_end, hyphen) } else { (0.0, 0.0) };
         let slot = Slot { left: slot.left - hang_l, width: slot.width + hang_l + hang_r };
         let justify_this = match align {
@@ -710,7 +1028,8 @@ impl Composer<'_> {
                 let used: f64 = space_extra.iter().map(|s| s.2).sum();
                 let mut left = slot.width - natural - used;
                 let gaps = sh.text[start..content_end].chars().filter(|c| !is_space(*c)).count().saturating_sub(1).max(1) as f64;
-                let max_ls = (props.letter_space[2] - props.letter_space[1]).max(0.0) * sh.base_size;
+                let cjk_line = sh.text[start..content_end].chars().any(is_cjk);
+                let max_ls = (props.letter_space[2] - props.letter_space[1]).max(if cjk_line { 0.3 } else { 0.0 }) * sh.base_size;
                 letter_extra = (left / gaps).min(max_ls);
                 left -= letter_extra * gaps;
                 let space_nat: f64 = spaces.iter().map(|s| s.2).sum();
@@ -750,6 +1069,9 @@ impl Composer<'_> {
         let mut tabs = Vec::new();
         let mut objects = Vec::new();
         let mut carets: Vec<(usize, f64)> = Vec::new();
+        let mut rspans: Vec<(usize, f64, f64)> = sh.rubies.iter().enumerate().filter(|(_, r)| r.base.start >= start && r.base.end <= content_end).map(|(i, _)| (i, f64::MAX, f64::MIN)).collect();
+        let mut kent: Vec<(usize, usize, f64)> = Vec::new();
+        let mut last_seg = usize::MAX;
         for vr in &order {
             let rtl = level_of(vr.start) % 2 == 1;
             let mut idx: Vec<usize> = (lo..hi).filter(|&i| vr.contains(&sh.glyphs[i].cluster)).collect();
@@ -804,8 +1126,17 @@ impl Composer<'_> {
                     adv = g.adv;
                     gdx = g.dx;
                 }
+                if i == lo && edge_l > 0.0 {
+                    gdx -= edge_l;
+                    adv -= edge_l;
+                }
+                if i + 1 == hi && edge_r > 0.0 {
+                    adv -= edge_r;
+                }
+                let new_group = seg.orient == Orient::Tcy && last_seg != g.seg;
+                last_seg = g.seg;
                 let push_new = match runs.last() {
-                    Some(r) => !Arc::ptr_eq(&r.props, &seg.props) || r.face.id != seg.face.id || (r.size - seg.size).abs() > 1e-9 || r.rtl != rtl,
+                    Some(r) => new_group || !Arc::ptr_eq(&r.props, &seg.props) || r.face.id != seg.face.id || (r.size - seg.size).abs() > 1e-9 || r.rtl != rtl || r.orient != seg.orient,
                     None => true,
                 };
                 if push_new {
@@ -818,7 +1149,9 @@ impl Composer<'_> {
                         x0: x,
                         x1: x,
                         rtl,
-                        hscale: seg.props.h_scale * gscale,
+                        hscale: seg.props.h_scale * gscale * seg.tcy_scale,
+                        orient: seg.orient,
+                        text: String::new(),
                     });
                 }
                 let run = runs.last_mut().expect("run pushed");
@@ -826,6 +1159,15 @@ impl Composer<'_> {
                     carets.push((g.cluster, if rtl { x + adv + extra } else { x }));
                 }
                 run.glyphs.push(PlacedGlyph { id: g.id, x: x + gdx, y: -(g.dy + seg.shift), adv: adv + extra, cluster: g.cluster });
+                for sp in rspans.iter_mut() {
+                    if sh.rubies[sp.0].base.contains(&g.cluster) {
+                        sp.1 = sp.1.min(x);
+                        sp.2 = sp.2.max(x + adv + extra);
+                    }
+                }
+                if seg.props.kenten.is_some() && kent.last().is_none_or(|k| k.1 != g.cluster) && sh.text.get(g.cluster..).and_then(|t| t.chars().next()).is_some_and(|c| !c.is_whitespace() && !is_special(c)) {
+                    kent.push((g.seg, g.cluster, x + (adv + extra) / 2.0));
+                }
                 x += adv + extra;
                 run.x1 = x;
             }
@@ -836,13 +1178,124 @@ impl Composer<'_> {
                 let (gid, adv) = hyphen_glyph(&seg);
                 let needs_new = runs.last().map(|r| r.face.id != seg.face.id || !Arc::ptr_eq(&r.props, &seg.props)).unwrap_or(true);
                 if needs_new {
-                    runs.push(GlyphRun { face: seg.face.clone(), size: seg.size, shift: seg.shift, props: seg.props.clone(), glyphs: Vec::new(), x0: x, x1: x, rtl: false, hscale: seg.props.h_scale });
+                    runs.push(GlyphRun { face: seg.face.clone(), size: seg.size, shift: seg.shift, props: seg.props.clone(), glyphs: Vec::new(), x0: x, x1: x, rtl: false, hscale: seg.props.h_scale, orient: Orient::Side, text: String::new() });
                 }
                 if let Some(run) = runs.last_mut() {
                     run.glyphs.push(PlacedGlyph { id: gid, x, y: -seg.shift, adv, cluster: GENERATED });
                     x += adv;
                     run.x1 = x;
                 }
+            }
+        }
+        let mut adorn: Vec<GlyphRun> = Vec::new();
+        let (mut up, mut down, mut ruby_lead) = (0.0f64, 0.0f64, 0.0f64);
+        let adorn_orient = if sh.vertical { Orient::Upright } else { Orient::Side };
+        for (pi, lo_x, hi_x) in &rspans {
+            if *lo_x > *hi_x {
+                continue;
+            }
+            let rp = &sh.rubies[*pi];
+            let n = rp.glyphs.len();
+            let span = hi_x - lo_x;
+            let free = span - rp.width;
+            let centered = (lo_x + free / 2.0, 0.0);
+            let (first_x, gap) = match rp.ruby.align {
+                RubyAlign::Center => centered,
+                RubyAlign::Left => (*lo_x, 0.0),
+                RubyAlign::Right => (hi_x - rp.width, 0.0),
+                RubyAlign::Justify if n > 1 && free > 0.0 => (*lo_x, free / (n - 1) as f64),
+                RubyAlign::Jis if n > 1 && free > 0.0 => (lo_x + free / (2 * n) as f64, free / n as f64),
+                RubyAlign::EqualAki if n > 1 && free > 0.0 => (lo_x + free / (2 * n) as f64, free / n as f64),
+                _ => centered,
+            };
+            let top = rp.base_size * 0.88 + rp.base_shift;
+            let bottom = rp.base_size * 0.12 - rp.base_shift;
+            let y = if rp.ruby.below { bottom + rp.ruby.offset + rp.size * 0.88 } else { -(top + rp.ruby.offset + rp.size * 0.12) };
+            if rp.ruby.below {
+                down = down.max(bottom + rp.ruby.offset + rp.size);
+            } else {
+                up = up.max(top + rp.ruby.offset + rp.size);
+            }
+            if rp.props.leading.is_none() {
+                ruby_lead = ruby_lead.max(rp.base_size + rp.size + rp.ruby.offset.max(0.0));
+            }
+            let mut pen = first_x;
+            let mut placed = Vec::with_capacity(n);
+            for g in &rp.glyphs {
+                placed.push(PlacedGlyph { id: g.id, x: pen + g.dx, y: y - g.dy, adv: g.advance, cluster: g.cluster });
+                pen += g.advance + gap;
+            }
+            adorn.push(GlyphRun { face: rp.face.clone(), size: rp.size, shift: 0.0, props: rp.props.clone(), glyphs: placed, x0: first_x, x1: pen - gap, rtl: false, hscale: 1.0, orient: adorn_orient, text: rp.text.clone() });
+        }
+        let mut mark_props: Vec<(*const CharProps, Arc<CharProps>)> = Vec::new();
+        let mut kent_idx: Option<usize> = None;
+        let mut marks: Vec<EmphasisMark> = Vec::new();
+        for (si, _cluster, cx) in &kent {
+            let seg = &sh.segs[*si];
+            let Some(k) = seg.props.kenten.as_ref() else { continue };
+            let msize = (seg.size * k.scale).max(1.0);
+            let face = if seg.face.covers(k.mark) { seg.face.clone() } else { self.fonts.fallback(&seg.face, k.mark).unwrap_or_else(|| seg.face.clone()) };
+            let mut buf = [0u8; 4];
+            let shaped = shape(&ShapeReq { text: k.mark.encode_utf8(&mut buf), face: &face, size: msize, kerning: false, ligatures: false, features: &[], rtl: false, language: "en" });
+            let Some(mg) = shaped.first() else { continue };
+            let props = match mark_props.iter().find(|(p, _)| std::ptr::eq(*p, Arc::as_ptr(&seg.props))) {
+                Some((_, a)) => a.clone(),
+                None => {
+                    let mut p = (*seg.props).clone();
+                    p.size = msize;
+                    p.underline = false;
+                    p.strike = false;
+                    p.ruby = None;
+                    p.kenten = None;
+                    p.tcy = false;
+                    p.tracking = 0.0;
+                    p.kern = 0.0;
+                    p.h_scale = 1.0;
+                    p.v_scale = 1.0;
+                    p.baseline_shift = 0.0;
+                    p.position = Position::Normal;
+                    if let Some(c) = &k.color {
+                        p.fill = c.clone();
+                        p.fill_tint = k.tint;
+                    }
+                    let a = Arc::new(p);
+                    mark_props.push((Arc::as_ptr(&seg.props), a.clone()));
+                    a
+                }
+            };
+            let top = seg.size * 0.88 + seg.shift;
+            let bottom = seg.size * 0.12 - seg.shift;
+            if matches!(k.mark, '\u{FE45}' | '\u{FE46}' | '\u{2022}' | '\u{25CB}' | '\u{25C9}' | '\u{25B2}' | '\u{25B3}') {
+                let s = msize * 0.6;
+                let gap = seg.size * 0.06;
+                let cy = if k.below { bottom + gap + s / 2.0 } else { -(top + gap + s / 2.0) };
+                if k.below {
+                    down = down.max(bottom + gap + s);
+                } else {
+                    up = up.max(top + gap + s);
+                }
+                marks.push(EmphasisMark { x: *cx, y: cy, size: s, kind: k.mark, props });
+                continue;
+            }
+            let y = if k.below { bottom + seg.size * 0.04 + msize * 0.88 } else { -(top + seg.size * 0.04 + msize * 0.12) };
+            if k.below {
+                down = down.max(bottom + seg.size * 0.04 + msize);
+            } else {
+                up = up.max(top + seg.size * 0.04 + msize);
+            }
+            let mx = if sh.vertical { cx - msize * 0.5 } else { cx - mg.advance / 2.0 };
+            let fresh = match kent_idx {
+                Some(ix) => !Arc::ptr_eq(&adorn[ix].props, &props) || adorn[ix].face.id != face.id,
+                None => true,
+            };
+            if fresh {
+                adorn.push(GlyphRun { face: face.clone(), size: msize, shift: 0.0, props: props.clone(), glyphs: Vec::new(), x0: mx, x1: mx, rtl: false, hscale: 1.0, orient: adorn_orient, text: String::new() });
+                kent_idx = Some(adorn.len() - 1);
+            }
+            if let Some(ix) = kent_idx {
+                let r = &mut adorn[ix];
+                r.glyphs.push(PlacedGlyph { id: mg.id, x: mx + mg.dx, y: y - mg.dy, adv: mg.advance, cluster: GENERATED });
+                r.x1 = mx + mg.advance;
             }
         }
         carets.push((content_end, x));
@@ -864,6 +1317,16 @@ impl Composer<'_> {
             for g in &mut r.glyphs {
                 g.x += dx;
             }
+        }
+        for r in &mut adorn {
+            r.x0 += dx;
+            r.x1 += dx;
+            for g in &mut r.glyphs {
+                g.x += dx;
+            }
+        }
+        for m in &mut marks {
+            m.x += dx;
         }
         for t in &mut tabs {
             t.x0 += dx;
@@ -901,6 +1364,9 @@ impl Composer<'_> {
                 descent = 3.0;
             }
         }
+        ascent = ascent.max(up);
+        descent = descent.max(down);
+        leading = leading.max(ruby_lead);
         for (at, _) in &objects {
             if let Some(o) = sh.objects.iter().find(|o| o.at == *at) {
                 ascent = ascent.max(o.ascent);
@@ -920,6 +1386,8 @@ impl Composer<'_> {
             xheight: xh,
             leading,
             runs,
+            adorn,
+            marks,
             hyphen,
             forced,
             last,
@@ -950,6 +1418,7 @@ pub fn slice_input(input: &ParaInput, from: usize) -> ParaInput {
         props,
         prefix: input.prefix.saturating_sub(from),
         exceptions: input.exceptions.clone(),
+        vertical: input.vertical,
     }
 }
 

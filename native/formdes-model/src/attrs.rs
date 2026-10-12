@@ -42,6 +42,10 @@ const COMPOSER: &[&str] = &["paragraph", "singleLine"];
 const START: &[&str] = &["anywhere", "nextColumn", "nextFrame", "nextPage", "nextOddPage", "nextEvenPage"];
 const LIST: &[&str] = &["none", "bullet", "number"];
 const DIRECTION: &[&str] = &["ltr", "rtl"];
+const KINSOKU: &[&str] = &["none", "soft", "hard"];
+const MOJIKUMI: &[&str] = &["none", "standard", "tight"];
+const RUBY_POSITION: &[&str] = &["above", "below", "right", "left"];
+const RUBY_ALIGN: &[&str] = &["center", "left", "right", "justify", "jis", "equalAki"];
 const CHANGE: &[&str] = &["none", "inserted", "deleted"];
 
 macro_rules! keys {
@@ -83,6 +87,9 @@ keys! {
     Char "language" Kind::Text, "language tag for hyphenation and spelling (en-US, de-DE)";
     Char "features" Kind::List, "OpenType features, e.g. [\"onum\", \"ss01\"]";
     Char "fontVariations" Kind::Object, "variable font axis values by tag, e.g. {\"wght\": 650, \"wdth\": 90}; they override the named style's coordinates";
+    Char "ruby" Kind::Object, "ruby (furigana) over the run: {text, type: group|perCharacter, position: above|below|right|left, alignment: center|left|right|justify|jis|equalAki, size: scale of the base size, offset: pt}; per-character text may be split with |";
+    Char "kenten" Kind::Object, "emphasis marks, one per character: {mark: sesame|whiteSesame|dot|circle|bullseye|triangle|whiteTriangle or any character, position: above|below|right|left, size: scale of the base size, color, tint}";
+    Char "tcy" Kind::Bool, "tate-chu-yoko: set the run horizontally, one em wide, inside a vertical line";
     Char "conditions" Kind::List, "conditional text conditions applied";
     Char "change" Kind::Choice(CHANGE), "tracked change mark";
     Char "xmlTag" Kind::Text, "XML element of this text";
@@ -129,7 +136,10 @@ keys! {
     Para "splitColumns" Kind::Int, "sub-columns this paragraph splits into inside its column, 0 = none";
     Para "splitGutter" Kind::Num, "gap between split sub-columns in points";
     Para "gridAlign" Kind::Bool, "align to the baseline grid";
-    Para "direction" Kind::Choice(DIRECTION), "paragraph direction";
+    Para "direction" Kind::Choice(DIRECTION), "paragraph direction (right-to-left mirrors left and right alignment, indents and drop caps)";
+    Para "kinsoku" Kind::Choice(KINSOKU), "kinsoku shori line-break rules for CJK: none, soft (no line start with closing punctuation, no line end with opening) or hard (soft plus small kana, the prolonged sound mark and iteration marks)";
+    Para "mojikumi" Kind::Choice(MOJIKUMI), "CJK punctuation spacing set: none, standard (adjacent and line-edge punctuation compressed to half width) or tight (all punctuation half width)";
+    Para "autoTcy" Kind::Int, "in vertical text, runs of up to this many digits are set as tate-chu-yoko, 0 = off";
     Para "balance" Kind::Bool, "balance ragged lines";
     Para "opticalMargin" Kind::Bool, "hang punctuation outside the margin";
     Para "nested" Kind::List, "nested styles: [{style, through, count, inclusive}]";
@@ -154,7 +164,10 @@ pub fn default_value(name: &str) -> Value {
         "stroke" => json!("none"),
         "strokeWeight" => json!(1.0),
         "caps" | "position" => json!("normal"),
-        "underline" | "strike" | "noBreak" => json!(false),
+        "underline" | "strike" | "noBreak" | "tcy" => json!(false),
+        "kinsoku" => json!("soft"),
+        "mojikumi" => json!("none"),
+        "autoTcy" => json!(0),
         "ligatures" => json!(true),
         "language" => json!("en-US"),
         "features" | "conditions" | "tabs" | "nested" | "nestedLines" | "grep" => json!([]),
@@ -231,10 +244,144 @@ pub fn validate(name: &str, v: &Value) -> Result<Value> {
                 }
                 v.clone()
             }
+            Value::Object(o) if name == "ruby" => {
+                if o.get("text").is_some_and(|t| !t.is_string()) {
+                    return err("`ruby.text` is the annotation text");
+                }
+                for (k, opts) in [("position", RUBY_POSITION), ("alignment", RUBY_ALIGN)] {
+                    if let Some(x) = o.get(k)
+                        && !x.as_str().is_some_and(|s| opts.iter().any(|c| c.eq_ignore_ascii_case(s)))
+                    {
+                        return err(format!("`ruby.{k}` is one of {}", opts.join(", ")));
+                    }
+                }
+                if let Some(t) = o.get("type")
+                    && !t.as_str().is_some_and(|s| matches!(s.to_ascii_lowercase().as_str(), "group" | "percharacter" | "per-character"))
+                {
+                    return err("`ruby.type` is group or perCharacter");
+                }
+                for k in ["size", "offset"] {
+                    if o.get(k).is_some_and(|x| !x.as_f64().is_some_and(f64::is_finite)) {
+                        return err(format!("`ruby.{k}` is a number"));
+                    }
+                }
+                v.clone()
+            }
+            Value::Object(o) if name == "kenten" => {
+                if o.get("mark").is_some_and(|m| !m.as_str().is_some_and(|s| !s.is_empty())) {
+                    return err("`kenten.mark` is a mark name or a character");
+                }
+                if let Some(x) = o.get("position")
+                    && !x.as_str().is_some_and(|s| RUBY_POSITION.iter().any(|c| c.eq_ignore_ascii_case(s)))
+                {
+                    return err(format!("`kenten.position` is one of {}", RUBY_POSITION.join(", ")));
+                }
+                if o.get("size").is_some_and(|x| !x.as_f64().is_some_and(f64::is_finite)) {
+                    return err("`kenten.size` is a number");
+                }
+                if o.get("color").is_some_and(|c| Paint::from_value(c).is_none()) {
+                    return err("`kenten.color` is a swatch name or a colour");
+                }
+                v.clone()
+            }
             Value::Object(_) | Value::Null => v.clone(),
             _ => return bad(),
         },
     })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RubyAlign {
+    Center,
+    Left,
+    Right,
+    Justify,
+    Jis,
+    EqualAki,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Ruby {
+    pub text: String,
+    pub per_char: bool,
+    pub below: bool,
+    pub align: RubyAlign,
+    pub scale: f64,
+    pub offset: f64,
+}
+
+impl Ruby {
+    pub fn from_value(v: &Value) -> Option<Ruby> {
+        let o = v.as_object()?;
+        let text = o.get("text")?.as_str()?.to_string();
+        if text.is_empty() {
+            return None;
+        }
+        let pos = o.get("position").and_then(Value::as_str).unwrap_or("above").to_ascii_lowercase();
+        Some(Ruby {
+            text,
+            per_char: o.get("type").and_then(Value::as_str).is_some_and(|t| t.to_ascii_lowercase().starts_with("per")),
+            below: matches!(pos.as_str(), "below" | "left"),
+            align: match o.get("alignment").and_then(Value::as_str).unwrap_or("center").to_ascii_lowercase().as_str() {
+                "left" => RubyAlign::Left,
+                "right" => RubyAlign::Right,
+                "justify" => RubyAlign::Justify,
+                "jis" => RubyAlign::Jis,
+                "equalaki" => RubyAlign::EqualAki,
+                _ => RubyAlign::Center,
+            },
+            scale: o.get("size").and_then(Value::as_f64).unwrap_or(0.5).clamp(0.1, 1.0),
+            offset: o.get("offset").and_then(Value::as_f64).unwrap_or(0.0),
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Kenten {
+    pub mark: char,
+    pub below: bool,
+    pub scale: f64,
+    pub color: Option<Paint>,
+    pub tint: f64,
+}
+
+impl Kenten {
+    pub fn from_value(v: &Value) -> Option<Kenten> {
+        let o = v.as_object()?;
+        let name = o.get("mark").and_then(Value::as_str).unwrap_or("sesame");
+        let mark = match name {
+            "sesame" => '\u{FE45}',
+            "whiteSesame" => '\u{FE46}',
+            "dot" => '\u{2022}',
+            "circle" => '\u{25CB}',
+            "bullseye" => '\u{25C9}',
+            "triangle" => '\u{25B2}',
+            "whiteTriangle" => '\u{25B3}',
+            other => other.chars().next()?,
+        };
+        let pos = o.get("position").and_then(Value::as_str).unwrap_or("above").to_ascii_lowercase();
+        Some(Kenten {
+            mark,
+            below: matches!(pos.as_str(), "below" | "left"),
+            scale: o.get("size").and_then(Value::as_f64).unwrap_or(0.5).clamp(0.1, 1.5),
+            color: o.get("color").and_then(Paint::from_value).filter(|p| !p.is_none()),
+            tint: o.get("tint").and_then(Value::as_f64).unwrap_or(1.0).clamp(0.0, 1.0),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kinsoku {
+    None,
+    Soft,
+    Hard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mojikumi {
+    None,
+    Standard,
+    Tight,
 }
 
 fn describe(k: Kind) -> &'static str {
@@ -361,6 +508,9 @@ pub struct CharProps {
     pub language: String,
     pub features: Vec<String>,
     pub variations: Vec<(String, f32)>,
+    pub ruby: Option<Ruby>,
+    pub kenten: Option<Kenten>,
+    pub tcy: bool,
     pub conditions: Vec<String>,
     pub change: Option<String>,
     pub xml_tag: String,
@@ -434,6 +584,9 @@ impl CharProps {
                 .as_object()
                 .map(|o| o.iter().filter(|(t, _)| t.len() == 4).filter_map(|(t, v)| v.as_f64().filter(|f| f.is_finite()).map(|f| (t.clone(), f as f32))).collect())
                 .unwrap_or_default(),
+            ruby: Ruby::from_value(&stack.get("ruby")),
+            kenten: Kenten::from_value(&stack.get("kenten")),
+            tcy: stack.bool("tcy"),
             conditions: stack.strings("conditions"),
             change: Some(stack.text("change")).filter(|c| c != "none" && !c.is_empty()),
             xml_tag: stack.text("xmlTag"),
@@ -678,6 +831,9 @@ pub struct ParaProps {
     pub split_gutter: f64,
     pub grid_align: bool,
     pub rtl: bool,
+    pub kinsoku: Kinsoku,
+    pub mojikumi: Mojikumi,
+    pub auto_tcy: u32,
     pub balance: bool,
     pub optical_margin: bool,
     pub nested: Vec<NestedRule>,
@@ -820,6 +976,17 @@ impl ParaProps {
             split_gutter: stack.num("splitGutter").max(0.0),
             grid_align: stack.bool("gridAlign"),
             rtl: stack.text("direction") == "rtl",
+            kinsoku: match stack.text("kinsoku").as_str() {
+                "none" => Kinsoku::None,
+                "hard" => Kinsoku::Hard,
+                _ => Kinsoku::Soft,
+            },
+            mojikumi: match stack.text("mojikumi").as_str() {
+                "standard" => Mojikumi::Standard,
+                "tight" => Mojikumi::Tight,
+                _ => Mojikumi::None,
+            },
+            auto_tcy: stack.int("autoTcy").clamp(0, 8) as u32,
             balance: stack.bool("balance"),
             optical_margin: stack.bool("opticalMargin"),
             nested,

@@ -23,7 +23,7 @@ pub fn lay(fonts: &FontBook, inputs: &[ParaInput], path: &BezPath, start: f64, f
         inp.props.left_indent = 0.0;
         inp.props.first_indent = 0.0;
         inp.props.right_indent = 0.0;
-        inp.props.align = formdes_model::attrs::Align::Left;
+        inp.props.align = if inp.props.rtl { formdes_model::attrs::Align::Right } else { formdes_model::attrs::Align::Left };
         let c = composer.compose(&inp, &|_| Slot { left: 0.0, width: 1.0e9 }, 1, true);
         for line in c.lines {
             for mut r in line.runs {

@@ -83,6 +83,8 @@ fn cell_value(c: &TableCell) -> Value {
         "insets": ins, "vj": c.attrs.get("vj").cloned().unwrap_or(json!("top")),
         "style": wire::style_name(StyleKind::Cell, c.style.as_deref().unwrap_or("None")),
         "graphic": c.attrs.get("graphic").cloned().unwrap_or(Value::Null),
+        "rotate": formdes_text::flow::cell_rotation(&c.attrs), "diagonal": c.attrs.get("diagonal").cloned().unwrap_or(Value::Null),
+        "paraStyle": c.attrs.get("paraStyle").cloned().unwrap_or(Value::Null),
         "text": c.paras.iter().map(|p| p.plain()).collect::<Vec<_>>().join("\n"),
     })
 }
@@ -100,6 +102,9 @@ fn get(c: &mut Ctx, _: &Value) -> Result<Value> {
     let mut opts = serde_json::Map::new();
     opts.insert("border".into(), t.attrs.get("border").cloned().unwrap_or(json!({"weight": 1})));
     opts.insert("altRows".into(), t.attrs.get("altRows").cloned().unwrap_or(Value::Null));
+    for k in TABLE_STYLE_KEYS.iter().filter(|k| !matches!(**k, "border" | "altRows")) {
+        opts.insert((*k).into(), t.attrs.get(*k).cloned().unwrap_or(Value::Null));
+    }
     Ok(json!({
         "table": cs.at, "story": cs.story, "rows": rows, "columns": t.widths.iter().map(|w| json!({"width": w})).collect::<Vec<_>>(),
         "cells": t.cells.iter().map(cell_value).collect::<Vec<_>>(), "headerRows": t.header_rows, "footerRows": t.footer_rows,
@@ -164,6 +169,8 @@ fn insert(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 fn options(c: &mut Ctx, p: &Value) -> Result<Value> {
     let cs = current(c)?;
+    let given: serde_json::Map<String, Value> = TABLE_STYLE_KEYS.iter().filter_map(|k| p.get(*k).map(|v| ((*k).to_string(), v.clone()))).collect();
+    validate_table_style(c.doc()?, &given)?;
     edit(c, &cs, |t| {
         let n = t.rows();
         if let Some(h) = args::opt_u64(p, "headerRows") {
@@ -183,17 +190,104 @@ fn options(c: &mut Ctx, p: &Value) -> Result<Value> {
                 t.attrs.insert("border".into(), Value::Object(cur));
             }
         }
-        if let Some(a) = p.get("altRows") {
-            if a.is_null() {
-                t.attrs.remove("altRows");
-            } else {
-                t.attrs.insert("altRows".into(), a.clone());
+        for k in TABLE_STYLE_KEYS.iter().filter(|k| **k != "border") {
+            if let Some(a) = p.get(*k) {
+                if a.is_null() || a.as_str() == Some("") {
+                    t.attrs.remove(*k);
+                } else {
+                    t.attrs.insert((*k).into(), a.clone());
+                }
             }
         }
         Ok(())
     })?;
     c.label("Table Options");
     ok()
+}
+
+/// The keys of a table style: the border, the alternating fill and stroke patterns, and the cell style each
+/// region of the table uses.
+pub const TABLE_STYLE_KEYS: [&str; 10] = [
+    "border",
+    "altRows",
+    "altCols",
+    "altRowStrokes",
+    "altColStrokes",
+    "headerCellStyle",
+    "footerCellStyle",
+    "leftColumnCellStyle",
+    "rightColumnCellStyle",
+    "bodyCellStyle",
+];
+
+const REGION_KEYS: [&str; 5] = ["headerCellStyle", "footerCellStyle", "leftColumnCellStyle", "rightColumnCellStyle", "bodyCellStyle"];
+
+fn want_number(k: &str, o: &Value, name: &str) -> Result<()> {
+    match o.get(name) {
+        None | Some(Value::Null) => Ok(()),
+        Some(v) if v.as_f64().is_some_and(|n| n.is_finite() && n >= 0.0) => Ok(()),
+        _ => Err(EngineError::new(format!("`{k}.{name}` expects a number of zero or more"))),
+    }
+}
+
+/// Checks the table style keys of `o` (a style's attributes or a table's options) and the cell styles they name.
+pub fn validate_table_style(doc: &formdes_model::doc::Doc, o: &serde_json::Map<String, Value>) -> Result<()> {
+    for (k, v) in o {
+        if v.is_null() {
+            continue;
+        }
+        if REGION_KEYS.contains(&k.as_str()) {
+            let Some(name) = v.as_str() else { return Err(EngineError::new(format!("`{k}` expects the name of a cell style"))) };
+            if !name.is_empty() && name != "None" && !doc.styles.exists(StyleKind::Cell, name) {
+                return Err(EngineError::new(format!("`{k}`: no cell style named {name}")));
+            }
+        } else if k == "border" {
+            if !v.is_object() {
+                return Err(EngineError::new("`border` expects {weight, color}"));
+            }
+        } else if matches!(k.as_str(), "altRows" | "altCols" | "altRowStrokes" | "altColStrokes") {
+            if !v.is_object() {
+                return Err(EngineError::new(format!("`{k}` expects an object: {{first, next, skipFirst, skipLast, firstColor, firstTint, nextColor, nextTint}} (strokes: firstWeight, firstColor, firstTint, firstType, next...)")));
+            }
+            for n in ["first", "next", "skipFirst", "skipLast", "firstTint", "nextTint", "firstWeight", "nextWeight"] {
+                want_number(k, v, n)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Checks the cell style keys of `o` that need more than a type: the paragraph style, the text rotation and the
+/// diagonal lines.
+pub fn validate_cell_style(doc: &formdes_model::doc::Doc, o: &serde_json::Map<String, Value>) -> Result<()> {
+    for (k, v) in o {
+        if v.is_null() {
+            continue;
+        }
+        match k.as_str() {
+            "paraStyle" => {
+                let Some(name) = v.as_str() else { return Err(EngineError::new("`paraStyle` expects the name of a paragraph style")) };
+                if !name.is_empty() && !doc.styles.exists(StyleKind::Paragraph, name) {
+                    return Err(EngineError::new(format!("`paraStyle`: no paragraph style named {name}")));
+                }
+            }
+            "rotate" => {
+                if !v.as_f64().is_some_and(|d| matches!(d.round() as i64, 0 | 90 | 180 | 270 | -90 | -180 | -270)) {
+                    return Err(EngineError::new("`rotate` expects 0, 90, 180 or 270 degrees"));
+                }
+            }
+            "diagonal" => {
+                let Some(d) = v.as_object() else { return Err(EngineError::new("`diagonal` expects {down?: stroke, up?: stroke, front?}")) };
+                for side in ["down", "up"] {
+                    if d.get(side).is_some_and(|s| !s.is_object() && !s.is_null()) {
+                        return Err(EngineError::new(format!("`diagonal.{side}` expects a stroke {{weight, color, tint, type}}")));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn set_cell(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -207,9 +301,23 @@ fn set_cell(c: &mut Ctx, p: &Value) -> Result<Value> {
     let insets = p.get("insets").cloned();
     let fill = args::opt_str(p, "fill").map(str::to_string);
     let tint = args::opt_f64(p, "tint");
+    let mut extra = serde_json::Map::new();
+    for k in ["rotate", "diagonal", "paraStyle"] {
+        if let Some(v) = p.get(k) {
+            extra.insert(k.into(), v.clone());
+        }
+    }
+    validate_cell_style(c.doc()?, &extra)?;
     edit(c, &cs, |t| {
         let (r0, c0, r1, c1) = norm(&cs, t);
         for cell in t.cells.iter_mut().filter(|x| x.row <= r1 && x.row + x.rows > r0 && x.col <= c1 && x.col + x.cols > c0) {
+            for (k, v) in &extra {
+                if v.is_null() || v.as_str() == Some("") {
+                    cell.attrs.remove(k);
+                } else {
+                    cell.attrs.insert(k.clone(), v.clone());
+                }
+            }
             if let Some(v) = &vj {
                 cell.attrs.insert("vj".into(), json!(v));
             }
@@ -809,11 +917,13 @@ fn sort_rows(c: &mut Ctx, p: &Value) -> Result<Value> {
 fn table_style_create(c: &mut Ctx, p: &Value) -> Result<Value> {
     let name = args::str_(p, "name", "the table style's name")?.to_string();
     let mut attrs = Attrs::new();
-    for k in ["border", "altRows"] {
+    for k in TABLE_STYLE_KEYS {
         if let Some(v) = p.get(k).filter(|v| !v.is_null()) {
             attrs.insert(k.into(), v.clone());
         }
     }
+    let given: serde_json::Map<String, Value> = attrs.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    validate_table_style(c.doc()?, &given)?;
     let doc = c.doc_mut()?;
     let st = doc.styles.create(StyleKind::Table, &name, None)?;
     st.attrs = attrs;
@@ -840,6 +950,10 @@ fn table_style_apply(c: &mut Ctx, p: &Value) -> Result<Value> {
                 }
             }
         }
+        // The other table style keys are read from the style while drawing, so the table keeps no copy of them.
+        for k in TABLE_STYLE_KEYS.iter().filter(|k| !matches!(**k, "border" | "altRows")) {
+            t.attrs.remove(*k);
+        }
         Ok(())
     })?;
     ok()
@@ -856,6 +970,7 @@ fn cell_style_create(c: &mut Ctx, p: &Value) -> Result<Value> {
         attrs = cell.attrs.clone();
     }
     if let Some(o) = p.get("attrs").and_then(Value::as_object) {
+        validate_cell_style(c.doc()?, o)?;
         attrs.extend(o.clone());
     }
     let doc = c.doc_mut()?;
@@ -893,8 +1008,8 @@ pub fn register(r: &mut Registry) {
     cmd("table.get", "Table").needs(Needs::Text).query().sig("{}").reg(r, get);
     cmd("table.select", "Select Cells").needs(Needs::Text).query().sig("{row, col, r1?, c1?}").reg(r, select);
     cmd("table.insert", "Insert Table...").menu(&["Table", "Insert Table..."]).key("Mod+Alt+Shift+T").needs(Needs::Text).sig("{rows, cols, headerRows?, footerRows?, style?}").reg(r, insert);
-    cmd("table.options", "Table Options").menu(&["Table", "Table Options..."]).needs(Needs::Text).sig("{headerRows? | footerRows? | border?: {weight, color} | altRows?: {...} | null}").reg(r, options);
-    cmd("table.setCell", "Cell Options").menu(&["Table", "Cell Options..."]).needs(Needs::Text).sig("{vj? | insets? | fill?, tint?}").reg(r, set_cell);
+    cmd("table.options", "Table Options").menu(&["Table", "Table Options..."]).needs(Needs::Text).sig("{headerRows?, footerRows?, border?: {weight, color}, altRows?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altCols?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altRowStrokes?: {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}, altColStrokes?: {same as altRowStrokes}, headerCellStyle?: cell style name, footerCellStyle?: cell style name, leftColumnCellStyle?: cell style name, rightColumnCellStyle?: cell style name, bodyCellStyle?: cell style name}").help("Table options of the selected table; each key overrides the applied table style and null clears it. Alternating patterns count rows or columns in groups of first then next, skipFirst and skipLast leave rows at the start and end of the body out; row strokes own a row's top and bottom edges, column strokes the left and right edges.").reg(r, options);
+    cmd("table.setCell", "Cell Options").menu(&["Table", "Cell Options..."]).needs(Needs::Text).sig("{vj?, insets?, fill?, tint?, rotate?: 0|90|180|270, diagonal?: {down?: stroke, up?: stroke, front?}, paraStyle?}").reg(r, set_cell);
     cmd("table.setRowHeight", "Row Height").needs(Needs::Text).sig("{height, mode?: atLeast|exactly}").reg(r, row_height);
     cmd("table.setColumnWidth", "Column Width").needs(Needs::Text).sig("{width}").reg(r, col_width);
     cmd("table.insertRowAbove", "Insert Row Above").menu(&["Table", "Insert", "Row Above"]).needs(Needs::Text).sig("{count?}").reg(r, row_above);
@@ -911,7 +1026,7 @@ pub fn register(r: &mut Registry) {
     cmd("table.cellStrokes", "Cell Strokes").menu(&["Table", "Cell Strokes..."]).needs(Needs::Text).sig("{sides?: [top|bottom|left|right|innerHorizontal|innerVertical|outside|inside|all], weight?: pt, color?: swatch, tint?: 0..100, type?: solid|dashed|dotted|none, clear?}").reg(r, cell_strokes);
     cmd("table.distributeColumns", "Distribute Columns Evenly").menu(&["Table", "Distribute Columns Evenly"]).needs(Needs::Text).sig("{}").reg(r, distribute);
     cmd("table.sortRows", "Sort").menu(&["Table", "Sort"]).needs(Needs::Text).sig("{column?, descending?}").reg(r, sort_rows);
-    cmd("style.table.create", "New Table Style").sig("{name, border?, altRows?}").reg(r, table_style_create);
+    cmd("style.table.create", "New Table Style").sig("{name, border?: {weight, color}, altRows?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altCols?: {same as altRows}, altRowStrokes?: {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}, altColStrokes?: {same as altRowStrokes}, headerCellStyle?: cell style name, footerCellStyle?: cell style name, leftColumnCellStyle?: cell style name, rightColumnCellStyle?: cell style name, bodyCellStyle?: cell style name}").reg(r, table_style_create);
     cmd("style.table.apply", "Apply Table Style").needs(Needs::Text).sig("{name}").reg(r, table_style_apply);
     cmd("style.cell.create", "New Cell Style").sig("{name, fromSelection?, attrs?}").reg(r, cell_style_create);
     cmd("style.cell.apply", "Apply Cell Style").needs(Needs::Text).sig("{name}").reg(r, cell_style_apply);

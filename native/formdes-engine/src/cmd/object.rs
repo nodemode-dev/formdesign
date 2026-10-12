@@ -706,6 +706,12 @@ fn text_frame_options(c: &mut Ctx, p: &Value) -> Result<Value> {
     });
     let ignore = args::opt_bool(p, "ignoreWrap");
     let balance = args::opt_bool(p, "balanceColumns");
+    let vertical = match args::opt_str(p, "orientation") {
+        None => args::opt_bool(p, "vertical"),
+        Some("vertical") => Some(true),
+        Some("horizontal") => Some(false),
+        Some(_) => return Err(EngineError::new("`orientation` expected horizontal or vertical")),
+    };
     let fixed = args::opt_f64(p, "fixedColumnWidth");
     let rule = match args::opt_str(p, "columnRule") {
         None => None,
@@ -758,6 +764,9 @@ fn text_frame_options(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         if let Some(b) = balance {
             t.balance = b;
+        }
+        if let Some(v) = vertical {
+            t.vertical = v;
         }
         if let Some(f) = fixed {
             t.fixed_column_width = (f > 0.0).then_some(f);
@@ -988,6 +997,7 @@ fn frame_create(c: &mut Ctx, p: &Value) -> Result<Value> {
         *sides = n.clamp(3, 100) as u32;
     }
     let text = args::opt_str(p, "text").map(str::to_string);
+    let vertical = args::opt_str(p, "orientation") == Some("vertical") || args::opt_bool(p, "vertical") == Some(true);
     let layer = c.target_layer()?;
     let doc = c.doc_mut()?;
     let (kind, story, style) = match content.as_str() {
@@ -996,7 +1006,9 @@ fn frame_create(c: &mut Ctx, p: &Value) -> Result<Value> {
             if let (Some(t), Some(st)) = (&text, doc.story_mut(sid)) {
                 put_text(st, 0, t);
             }
-            (ItemKind::Text(TextFrame::new(sid)), Some(sid), Some(formdes_model::style::BASIC_TEXT))
+            let mut tf = TextFrame::new(sid);
+            tf.vertical = vertical;
+            (ItemKind::Text(tf), Some(sid), Some(formdes_model::style::BASIC_TEXT))
         }
         "graphic" | "image" => (ItemKind::Graphic(Graphic { asset: None, content: Affine::IDENTITY, fitting: None }), None, Some(formdes_model::style::BASIC_GRAPHIC)),
         _ => (ItemKind::Plain, None, None),
@@ -1341,7 +1353,7 @@ pub fn register(r: &mut Registry) {
     cmd("object.rename", "Rename").needs(Needs::Items).sig("{id, name}").reg(r, rename);
     cmd("object.setFlags", "Object Flags").needs(Needs::Items).sig("{hidden? | locked?, ids?}").reg(r, set_flags);
     cmd("object.setLayer", "Move to Layer").needs(Needs::Items).sig("{layer: layer id, ids?}").reg(r, set_layer);
-    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, columnRule?: fixedNumber|fixedWidth|flexibleWidth, columnWidth?: pt (fixedWidth), maxColumnWidth?: pt (flexibleWidth), ids?}").reg(r, text_frame_options);
+    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, orientation?: horizontal|vertical (vertical lines run top to bottom, columns right to left), columnRule?: fixedNumber|fixedWidth|flexibleWidth, columnWidth?: pt (fixedWidth), maxColumnWidth?: pt (flexibleWidth), ids?}").reg(r, text_frame_options);
     cmd("object.textWrap", "Text Wrap").menu(&["Object", "Text Wrap..."]).needs(Needs::Items).sig("{mode: none|boundingBox|contour|jumpObject|jumpToNextColumn, offset?: pt, invert?, ids?}").reg(r, text_wrap);
     cmd("object.duplicate", "Duplicate").menu(&["Edit", "Duplicate"]).key("Mod+Alt+Shift+D").needs(Needs::Items).sig("{dx?, dy?, ids?}").reg(r, duplicate);
     cmd("transform.flip", "Flip").menu(&["Object", "Transform"]).needs(Needs::Items).sig("{axis: horizontal|vertical, ids?}").reg(r, flip);
@@ -1351,7 +1363,7 @@ pub fn register(r: &mut Registry) {
     cmd("transform.rotate", "Rotate").menu(&["Object", "Transform", "Rotate..."]).needs(Needs::Items).sig("{angle: deg, ref?: 0..8, ids?}").reg(r, rotate);
     cmd("transform.scale", "Scale").menu(&["Object", "Transform", "Scale..."]).needs(Needs::Items).sig("{sx, sy?, ref?: 0..8, ids?}").reg(r, scale);
     cmd("transform.set", "Transform").needs(Needs::Items).sig("{x?, y?, width?, height?, rotation?, shear?, ref: 0..8, ids?}").reg(r, transform_set);
-    cmd("frame.create", "New Frame").sig("{spread?, rect: [x0,y0,x1,y1], content?: text|graphic|unassigned, text?, shape?: rectangle|ellipse|polygon, sides?}").reg(r, frame_create);
+    cmd("frame.create", "New Frame").sig("{spread?, rect: [x0,y0,x1,y1], content?: text|graphic|unassigned, text?, orientation?: horizontal|vertical, shape?: rectangle|ellipse|polygon, sides?}").reg(r, frame_create);
     cmd("line.create", "New Line").sig("{spread?, a: [x, y], b: [x, y], weight?}").reg(r, line_create);
     cmd("frame.thread", "Thread Text Frames").sig("{from, to}").reg(r, thread);
     cmd("frame.unthread", "Break Thread").sig("{id}").reg(r, unthread);

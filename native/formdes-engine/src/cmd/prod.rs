@@ -1124,6 +1124,13 @@ fn style_group(c: &mut Ctx, p: &Value) -> Result<Value> {
 fn table_style_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
     let kind = if args::opt_str(p, "kind") == Some("cell") { StyleKind::Cell } else { StyleKind::Table };
     let name = formdes_model::style::style_key(args::str_(p, "name", "the style's name")?);
+    if let Some(o) = p.get("attrs").and_then(Value::as_object) {
+        if kind == StyleKind::Cell {
+            super::table::validate_cell_style(c.doc()?, o)?;
+        } else {
+            super::table::validate_table_style(c.doc()?, o)?;
+        }
+    }
     let doc = c.doc_mut()?;
     let st = doc.styles.list_mut(kind).iter_mut().find(|s| s.name == name).ok_or_else(|| EngineError::new(format!("no {} style named {name}", if kind == StyleKind::Cell { "cell" } else { "table" })))?;
     if let Some(o) = p.get("attrs").and_then(Value::as_object) {
@@ -1158,8 +1165,8 @@ pub fn register(r: &mut Registry) {
     cmd("font.replace", "Find/Replace Font").menu(&["Type", "Find/Replace Font..."]).sig("{from, to, style?, styles?: true}").reg(r, font_replace);
     cmd("style.load", "Load Styles").menu(&["Type", "Load Styles..."]).sig("{path | base64 + name, kinds?: [paragraph, character, object, table, cell], overwrite?: true, swatches?: true}").reg(r, style_load);
     cmd("style.group", "Style Group").menu(&["Type", "New Style Group..."]).sig("{kind?: paragraph|character|object|table|cell, styles: [names], group}").reg(r, style_group);
-    cmd("style.table.edit", "Table Style Options").menu(&["Table", "Table Style Options..."]).sig("{name, attrs?: {border, altRows, ...}, rename?}").reg(r, table_style_edit);
-    cmd("style.cell.edit", "Cell Style Options").menu(&["Table", "Cell Style Options..."]).sig("{kind: cell, name, attrs?, rename?}").reg(r, table_style_edit);
+    cmd("style.table.edit", "Table Style Options").menu(&["Table", "Table Style Options..."]).sig("{name, attrs?: {border, altRows, altCols, altRowStrokes, altColStrokes, headerCellStyle, footerCellStyle, leftColumnCellStyle, rightColumnCellStyle, bodyCellStyle}, rename?}").help("Edits a table style: border {weight, color}; altRows and altCols fills {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}; altRowStrokes and altColStrokes {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}; and the cell style each region (header rows, footer rows, left column, right column, body) uses. null removes a key.").reg(r, table_style_edit);
+    cmd("style.cell.edit", "Cell Style Options").menu(&["Table", "Cell Style Options..."]).sig("{kind: cell, name, attrs?: {fill, fillTint, vj, insets, strokes, paraStyle, rotate, diagonal}, rename?}").help("Edits a cell style: fill and fillTint, vj (top|center|bottom|justify), insets, strokes {top|bottom|left|right: {weight, color, tint, type}}, paraStyle (a paragraph style applied to the cell's text), rotate (0|90|180|270) and diagonal {down?: stroke, up?: stroke, front?}. null removes a key.").reg(r, table_style_edit);
     cmd("place.load", "Load Place Cursor").sig("{paths: [files]}").reg(r, place_load);
     cmd("file.print", "Print").menu(&["File", "Print..."]).key("Mod+P").query().sig("{printer?, copies?, pages?, bleed?, separations?: bool, inks?: [plate names], marks?: bool | {crop, bleed, registration, colorBars, pageInfo, type, weight, offset}, cropMarks?, bleedMarks?, registrationMarks?, colorBars?, pageInformation?, markType?: default|japanese, markWeight?: pt, markOffset?: pt}").reg(r, file_print);
     cmd("file.printers", "Printers").query().sig("{}").reg(r, printers);

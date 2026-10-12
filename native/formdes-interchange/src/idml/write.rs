@@ -711,6 +711,133 @@ impl W<'_> {
     }
 }
 
+fn stroke_type(k: &str) -> &'static str {
+    match k {
+        "dashed" => "Dashed",
+        "dotted" => "Dotted",
+        "none" => "None",
+        _ => "Solid",
+    }
+}
+
+/// Attributes (and the properties element) of a cell style: fill, edge strokes, vertical alignment, rotation,
+/// diagonal lines and the applied paragraph style.
+fn cell_style_attrs(doc: &Doc, a: &Attrs, colors: &mut Colors) -> (String, String) {
+    let mut at = String::new();
+    let mut props = String::new();
+    if let Some(p) = a.get("fill").and_then(Paint::from_value) {
+        let (r, _) = colors.paint_ref(doc, &p);
+        let _ = write!(at, " FillColor=\"{}\"", esc(&r));
+        if let Some(t) = a.get("fillTint").and_then(Value::as_f64) {
+            let _ = write!(at, " FillTint=\"{}\"", num(t * 100.0));
+        }
+    }
+    if let Some(strokes) = a.get("strokes").and_then(|s| s.as_object()) {
+        for (key, edge) in [("top", "Top"), ("bottom", "Bottom"), ("left", "Left"), ("right", "Right")] {
+            let Some(o) = strokes.get(key).and_then(|s| s.as_object()) else { continue };
+            if let Some(p) = o.get("color").and_then(Paint::from_value) {
+                let (r, _) = colors.paint_ref(doc, &p);
+                let _ = write!(at, " {edge}EdgeStrokeColor=\"{}\"", esc(&r));
+            }
+            if let Some(w) = o.get("weight").and_then(|v| v.as_f64()) {
+                let _ = write!(at, " {edge}EdgeStrokeWeight=\"{}\"", num(w));
+            }
+            if let Some(k) = o.get("type").and_then(|v| v.as_str()) {
+                let _ = write!(at, " {edge}EdgeStrokeType=\"StrokeStyle/$ID/{}\"", stroke_type(k));
+            }
+        }
+    }
+    if let Some(v) = a.get("vj").and_then(|v| v.as_str()) {
+        let name = match v {
+            "center" => "CenterAlign",
+            "bottom" => "BottomAlign",
+            "justify" => "JustifyAlign",
+            _ => "TopAlign",
+        };
+        let _ = write!(at, " VerticalJustification=\"{name}\"");
+    }
+    if let Some(r) = a.get("rotate").and_then(Value::as_f64) {
+        let _ = write!(at, " RotationAngle=\"{}\"", num(r.rem_euclid(360.0)));
+    }
+    if let Some(d) = a.get("diagonal").and_then(|d| d.as_object()) {
+        let line = d.get("down").or_else(|| d.get("up")).and_then(|s| s.as_object());
+        if d.get("down").is_some_and(|s| s.is_object()) {
+            at.push_str(" TopLeftDiagonalLine=\"true\"");
+        }
+        if d.get("up").is_some_and(|s| s.is_object()) {
+            at.push_str(" TopRightDiagonalLine=\"true\"");
+        }
+        if let Some(o) = line {
+            if let Some(p) = o.get("color").and_then(Paint::from_value) {
+                let (r, _) = colors.paint_ref(doc, &p);
+                let _ = write!(at, " DiagonalLineStrokeColor=\"{}\"", esc(&r));
+            }
+            if let Some(w) = o.get("weight").and_then(|v| v.as_f64()) {
+                let _ = write!(at, " DiagonalLineStrokeWeight=\"{}\"", num(w));
+            }
+        }
+        if d.get("front").and_then(Value::as_bool) == Some(false) {
+            at.push_str(" DiagonalLineInFront=\"false\"");
+        }
+    }
+    if let Some(n) = a.get("paraStyle").and_then(|v| v.as_str()).filter(|n| !n.is_empty()) {
+        let _ = write!(props, "<AppliedParagraphStyle type=\"object\">{}</AppliedParagraphStyle>", esc(&style_ref(StyleKind::Paragraph, n)));
+    }
+    (at, props)
+}
+
+/// Attributes of a table style: alternating fills and strokes (rows and columns) and the region cell styles.
+fn table_style_attrs(doc: &Doc, a: &Attrs, colors: &mut Colors) -> String {
+    let mut at = String::new();
+    for (key, region) in [
+        ("headerCellStyle", "HeaderRegionCellStyle"),
+        ("footerCellStyle", "FooterRegionCellStyle"),
+        ("leftColumnCellStyle", "LeftColumnRegionCellStyle"),
+        ("rightColumnCellStyle", "RightColumnRegionCellStyle"),
+        ("bodyCellStyle", "BodyRegionCellStyle"),
+    ] {
+        if let Some(n) = a.get(key).and_then(|v| v.as_str()).filter(|n| !n.is_empty() && *n != "None") {
+            let _ = write!(at, " {region}=\"{}\"", esc(&style_ref(StyleKind::Cell, n)));
+        }
+    }
+    for (key, axis, fills) in [("altRows", "Row", true), ("altCols", "Column", true), ("altRowStrokes", "Row", false), ("altColStrokes", "Column", false)] {
+        let Some(o) = a.get(key).and_then(|v| v.as_object()) else { continue };
+        if fills && !at.contains(" AlternatingFills=") {
+            let _ = write!(at, " AlternatingFills=\"Alternating{axis}s\"");
+        }
+        let what = if fills { "Fill" } else { "Stroke" };
+        for (side, tag) in [("first", "Start"), ("next", "End")] {
+            if let Some(n) = o.get(side).and_then(Value::as_f64) {
+                let _ = write!(at, " {tag}{axis}{what}Count=\"{}\"", num(n));
+            }
+            if let Some(p) = o.get(&format!("{side}Color")).and_then(Paint::from_value) {
+                let (r, _) = colors.paint_ref(doc, &p);
+                let _ = write!(at, " {tag}{axis}{what}Color=\"{}\"", esc(&r));
+            }
+            if let Some(t) = o.get(&format!("{side}Tint")).and_then(Value::as_f64) {
+                let _ = write!(at, " {tag}{axis}{what}Tint=\"{}\"", num(t * 100.0));
+            }
+            if !fills {
+                if let Some(w) = o.get(&format!("{side}Weight")).and_then(Value::as_f64) {
+                    let _ = write!(at, " {tag}{axis}StrokeWeight=\"{}\"", num(w));
+                }
+                if let Some(k) = o.get(&format!("{side}Type")).and_then(Value::as_str) {
+                    let _ = write!(at, " {tag}{axis}StrokeType=\"StrokeStyle/$ID/{}\"", stroke_type(k));
+                }
+            }
+        }
+        if fills && axis == "Row" {
+            if let Some(n) = o.get("skipFirst").and_then(Value::as_f64) {
+                let _ = write!(at, " SkipFirstAlternatingFillRows=\"{}\"", num(n));
+            }
+            if let Some(n) = o.get("skipLast").and_then(Value::as_f64) {
+                let _ = write!(at, " SkipLastAlternatingFillRows=\"{}\"", num(n));
+            }
+        }
+    }
+    at
+}
+
 fn styles_xml(doc: &Doc, colors: &mut Colors) -> String {
     let mut s = format!("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<idPkg:Styles xmlns:idPkg=\"{NS}\" DOMVersion=\"{DOM}\">");
     s.push_str("<RootCharacterStyleGroup Self=\"u79\"><CharacterStyle Self=\"CharacterStyle/$ID/[No character style]\" Imported=\"false\" Name=\"$ID/[No character style]\"/>");
@@ -737,11 +864,13 @@ fn styles_xml(doc: &Doc, colors: &mut Colors) -> String {
     s.push_str("</RootParagraphStyleGroup>");
     s.push_str("<RootCellStyleGroup Self=\"u8a\"><CellStyle Self=\"CellStyle/$ID/[None]\" Name=\"$ID/[None]\"/>");
     for st in doc.styles.list(StyleKind::Cell) {
-        let _ = write!(s, "<CellStyle Self=\"{}\" Name=\"{}\"/>", esc(&style_ref(StyleKind::Cell, &st.name)), esc(&st.name));
+        let (a, p) = cell_style_attrs(doc, &st.attrs, colors);
+        let _ = write!(s, "<CellStyle Self=\"{}\" Name=\"{}\"{a}>{}</CellStyle>", esc(&style_ref(StyleKind::Cell, &st.name)), esc(&st.name), props_wrap(&p));
     }
     s.push_str("</RootCellStyleGroup><RootTableStyleGroup Self=\"u8b\"><TableStyle Self=\"TableStyle/$ID/[No table style]\" Name=\"$ID/[No table style]\"/><TableStyle Self=\"TableStyle/$ID/[Basic Table]\" Name=\"$ID/[Basic Table]\"/>");
     for st in doc.styles.list(StyleKind::Table) {
-        let _ = write!(s, "<TableStyle Self=\"{}\" Name=\"{}\"/>", esc(&style_ref(StyleKind::Table, &st.name)), esc(&st.name));
+        let a = table_style_attrs(doc, &st.attrs, colors);
+        let _ = write!(s, "<TableStyle Self=\"{}\" Name=\"{}\"{a}/>", esc(&style_ref(StyleKind::Table, &st.name)), esc(&st.name));
     }
     s.push_str("</RootTableStyleGroup><RootObjectStyleGroup Self=\"u93\"><ObjectStyle Self=\"ObjectStyle/$ID/[None]\" Name=\"$ID/[None]\"/><ObjectStyle Self=\"ObjectStyle/$ID/[Normal Graphics Frame]\" Name=\"$ID/[Normal Graphics Frame]\"/><ObjectStyle Self=\"ObjectStyle/$ID/[Normal Text Frame]\" Name=\"$ID/[Normal Text Frame]\"/>");
     for st in doc.styles.list(StyleKind::Object) {

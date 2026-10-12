@@ -7,7 +7,7 @@ use formdes_model::doc::{Doc, LinkDest, LinkSource};
 use formdes_model::geom::{Affine, BezPath, Edges, KShape, Point, Rect};
 use formdes_model::ids::{AssetId, ItemId};
 use formdes_model::item::{Item, ItemKind, StrokeAlign};
-use formdes_text::compose::{GENERATED, GlyphRun, Line};
+use formdes_text::compose::{GENERATED, GlyphRun, Line, Orient};
 use formdes_text::fonts::Face;
 use formdes_text::layout::{DocLayout, StoryLayout};
 use formdes_text::shape::{ShapeReq, shape};
@@ -110,6 +110,7 @@ struct Ctx<'a> {
     opts: &'a SceneOpts,
     ops: Vec<Op>,
     page: Option<usize>,
+    vert: bool,
 }
 
 pub fn brush_of(doc: &Doc, paint: &Paint, tint: f64, local: Rect, xf: Affine) -> Option<Brush> {
@@ -200,8 +201,8 @@ fn m_push_gradient_mask(ops: &mut Vec<Op>, area: Rect, brush: Brush) {
 
 /// The per-cell stroke on one side of a table cell, if the cell (or the cell across that edge) overrides the table
 /// border there: weight, colour with tint applied and line type.
-fn cell_edge(doc: &Doc, tb: &formdes_model::story::Table, cell: &formdes_model::story::TableCell, side: &str, bw: f64, bcol: Color) -> Option<(f64, Color, String)> {
-    let own = cell.attrs.get("strokes").and_then(|s| s.get(side));
+fn cell_edge(doc: &Doc, tb: &formdes_model::story::Table, effs: &[formdes_model::attrs::Attrs], cell: &formdes_model::story::TableCell, side: &str, bw: f64, bcol: Color) -> Option<(f64, Color, String)> {
+    let own = tb.cells.iter().position(|x| std::ptr::eq(x, cell)).and_then(|i| effs.get(i)).and_then(|a| a.get("strokes")).and_then(|s| s.get(side));
     let facing = || -> Option<&serde_json::Value> {
         let overlap = |x: &formdes_model::story::TableCell| match side {
             "top" => x.row + x.rows == cell.row && x.col < cell.col + cell.cols && x.col + x.cols > cell.col,
@@ -215,7 +216,7 @@ fn cell_edge(doc: &Doc, tb: &formdes_model::story::Table, cell: &formdes_model::
             "left" => "right",
             _ => "left",
         };
-        tb.cells.iter().filter(|x| overlap(x)).find_map(|x| x.attrs.get("strokes").and_then(|s| s.get(opposite)))
+        tb.cells.iter().zip(effs).filter(|(x, _)| overlap(x)).find_map(|(_, a)| a.get("strokes").and_then(|s| s.get(opposite)))
     };
     let o = own.or_else(facing)?.as_object()?;
     let weight = o.get("weight").and_then(|v| v.as_f64()).unwrap_or(bw);
@@ -223,6 +224,27 @@ fn cell_edge(doc: &Doc, tb: &formdes_model::story::Table, cell: &formdes_model::
     let color = o.get("color").and_then(Paint::from_value).filter(|p| !p.is_none()).and_then(|p| doc.paint_color(&p)).unwrap_or(bcol);
     let color = if (tint - 1.0).abs() > 1e-6 { color.tinted(tint) } else { color };
     let kind = o.get("type").and_then(|v| v.as_str()).unwrap_or("solid").to_string();
+    Some((weight, color, kind))
+}
+
+/// The table style's alternating row or column stroke on one side of a cell: rows own a cell's top and bottom
+/// edges, columns its left and right edges. `spec` is {first, next, skipFirst, skipLast, firstWeight, firstColor,
+/// firstTint, firstType, nextWeight, ...}.
+fn alt_edge(doc: &Doc, tb: &formdes_model::story::Table, specs: [&Option<serde_json::Value>; 2], cell: &formdes_model::story::TableCell, side: &str) -> Option<(f64, Color, String)> {
+    let (spec, line, count, head, foot) = match side {
+        "top" => (specs[0], cell.row, tb.rows(), tb.header_rows, tb.footer_rows),
+        "bottom" => (specs[0], cell.row + cell.rows - 1, tb.rows(), tb.header_rows, tb.footer_rows),
+        "left" => (specs[1], cell.col, tb.cols(), 0, 0),
+        _ => (specs[1], cell.col + cell.cols - 1, tb.cols(), 0, 0),
+    };
+    let spec = spec.as_ref()?;
+    let first = formdes_model::story::Table::alt_phase(line, count, head, foot, spec)?;
+    let k = if first { "first" } else { "next" };
+    let weight = spec.get(format!("{k}Weight")).and_then(|v| v.as_f64()).unwrap_or(1.0);
+    let tint = spec.get(format!("{k}Tint")).and_then(|v| v.as_f64()).unwrap_or(1.0);
+    let color = spec.get(format!("{k}Color")).and_then(Paint::from_value).filter(|p| !p.is_none()).and_then(|p| doc.paint_color(&p))?;
+    let color = if (tint - 1.0).abs() > 1e-6 { color.tinted(tint) } else { color };
+    let kind = spec.get(format!("{k}Type")).and_then(|v| v.as_str()).unwrap_or("solid").to_string();
     Some((weight, color, kind))
 }
 
@@ -648,6 +670,11 @@ impl Ctx<'_> {
             }
             return;
         }
+        let xf0 = xf;
+        let vertical = sl.specs.get(fi).is_some_and(|s| s.vertical);
+        let xf = if vertical { xf * formdes_text::layout::composition_xf(&sl.specs[fi]) } else { xf };
+        let outer_vert = self.vert;
+        self.vert = vertical;
         let story = self.doc.story(sl.story);
         self.para_decor(sl, fi, xf, story.map(|s| s.paras.as_slice()).unwrap_or(&[]), true);
         let flow = &sl.flow;
@@ -661,23 +688,25 @@ impl Ctx<'_> {
             let border = table.and_then(|tb| tb.attrs.get("border"));
             let bw = border.and_then(|b| b.get("weight")).and_then(|v| v.as_f64()).unwrap_or(1.0);
             let bcol = border.and_then(|b| b.get("color")).and_then(Paint::from_value).and_then(|p| self.doc.paint_color(&p)).unwrap_or(Color::Cmyk([0.0, 0.0, 0.0, 1.0]));
+            let alt_rows = table.and_then(|tb| tb.style_attr(&self.doc.styles, "altRows"));
+            let alt_cols = table.and_then(|tb| tb.style_attr(&self.doc.styles, "altCols"));
+            let alt_row_strokes = table.and_then(|tb| tb.style_attr(&self.doc.styles, "altRowStrokes"));
+            let alt_col_strokes = table.and_then(|tb| tb.style_attr(&self.doc.styles, "altColStrokes"));
+            let eff_all: Vec<formdes_model::attrs::Attrs> = table.map(|tb| tb.cells.iter().map(|cell| tb.cell_attrs(&self.doc.styles, cell)).collect()).unwrap_or_default();
             for c in &t.cells {
+                let eff: Option<&formdes_model::attrs::Attrs> = table.and_then(|tb| tb.cells.iter().position(|cell| c.row >= cell.row && c.row < cell.row + cell.rows && c.col >= cell.col && c.col < cell.col + cell.cols)).and_then(|i| eff_all.get(i));
                 if let Some(tb) = table
-                    && let Some(cell) = tb.cell(c.row, c.col)
+                    && let Some(ea) = eff
                 {
                     let tint_of = |v: Option<&serde_json::Value>| v.and_then(|x| x.as_f64()).unwrap_or(1.0);
-                    let explicit = cell.attrs.get("fill").and_then(Paint::from_value).filter(|p| !p.is_none()).map(|p| (p, tint_of(cell.attrs.get("fillTint"))));
-                    let alt = tb.attrs.get("altRows").and_then(|a| a.as_object()).and_then(|a| {
-                        let body_end = tb.rows().saturating_sub(tb.footer_rows);
-                        if c.row < tb.header_rows || c.row >= body_end {
-                            return None;
-                        }
-                        let first = a.get("first").and_then(|v| v.as_u64()).unwrap_or(1).max(1) as usize;
-                        let next = a.get("next").and_then(|v| v.as_u64()).unwrap_or(1).max(1) as usize;
-                        let k = (c.row - tb.header_rows) % (first + next);
-                        let (col, tint) = if k < first { (a.get("firstColor"), a.get("firstTint")) } else { (a.get("nextColor"), a.get("nextTint")) };
+                    let explicit = ea.get("fill").and_then(Paint::from_value).filter(|p| !p.is_none()).map(|p| (p, tint_of(ea.get("fillTint"))));
+                    let pattern = |spec: &Option<serde_json::Value>, line: usize, count: usize, head: usize, foot: usize| {
+                        let a = spec.as_ref()?;
+                        let first = formdes_model::story::Table::alt_phase(line, count, head, foot, a)?;
+                        let (col, tint) = if first { (a.get("firstColor"), a.get("firstTint")) } else { (a.get("nextColor"), a.get("nextTint")) };
                         col.and_then(Paint::from_value).filter(|p| !p.is_none()).map(|p| (p, tint_of(tint)))
-                    });
+                    };
+                    let alt = pattern(&alt_rows, c.row, tb.rows(), tb.header_rows, tb.footer_rows).or_else(|| pattern(&alt_cols, c.col, tb.cols(), 0, 0));
                     if let Some((paint, tint)) = explicit.or(alt)
                         && let Some(col) = self.doc.paint_color(&paint)
                     {
@@ -685,13 +714,21 @@ impl Ctx<'_> {
                         self.ops.push(Op::Fill { path: xf * c.rect.to_path(0.1), brush: Brush::Solid(col, 1.0), even_odd: false });
                     }
                 }
+                let diagonal = eff.and_then(|ea| ea.get("diagonal")).and_then(|d| d.as_object());
+                if let Some(d) = diagonal
+                    && !d.get("front").and_then(|f| f.as_bool()).unwrap_or(false)
+                {
+                    self.diagonals(d, c.rect, xf, bw, bcol);
+                }
                 let graphic_cell = table.and_then(|tb| tb.cell(c.row, c.col)).filter(|cell| crate::cellgfx::cell_graphic(cell).is_some());
                 if let Some(cell) = graphic_cell {
                     let ops = crate::cellgfx::cell_image_ops(self.doc, cell, c.rect, xf);
                     self.ops.extend(ops);
                 }
                 let edges: [Option<(f64, Color, String)>; 4] = match table.and_then(|tb| tb.cell(c.row, c.col).map(|cell| (tb, cell))) {
-                    Some((tb, cell)) => ["top", "bottom", "left", "right"].map(|s| cell_edge(self.doc, tb, cell, s, bw, bcol)),
+                    Some((tb, cell)) => ["top", "bottom", "left", "right"].map(|s| {
+                        cell_edge(self.doc, tb, &eff_all, cell, s, bw, bcol).or_else(|| alt_edge(self.doc, tb, [&alt_row_strokes, &alt_col_strokes], cell, s))
+                    }),
                     None => [None, None, None, None],
                 };
                 if edges.iter().all(Option::is_none) {
@@ -719,8 +756,14 @@ impl Ctx<'_> {
                     }
                 }
                 let cell_texts: Vec<String> = table.and_then(|tb| tb.cell(c.row, c.col)).map(|cell| cell.paras.iter().map(|p| p.text()).collect()).unwrap_or_default();
+                let cell_xf = xf * formdes_text::flow::cell_xf(c.rect, c.rotate);
                 for l in c.lines.iter().filter(|_| graphic_cell.is_none()) {
-                    self.line(&l.line, l.baseline, xf, cell_texts.get(l.para).map(String::as_str).unwrap_or(""));
+                    self.line(&l.line, l.baseline, cell_xf, cell_texts.get(l.para).map(String::as_str).unwrap_or(""));
+                }
+                if let Some(d) = diagonal
+                    && d.get("front").and_then(|f| f.as_bool()).unwrap_or(false)
+                {
+                    self.diagonals(d, c.rect, xf, bw, bcol);
                 }
             }
         }
@@ -770,12 +813,13 @@ impl Ctx<'_> {
             }
         }
         self.para_decor(sl, fi, xf, story.map(|s| s.paras.as_slice()).unwrap_or(&[]), false);
+        self.vert = outer_vert;
         let anchors: Vec<_> = flow.anchors.iter().filter(|a| a.frame == fi).cloned().collect();
         for a in anchors {
             let Some(it) = self.doc.item(a.item) else { continue };
             let b = it.xf.transform_rect_bbox(it.shape.bbox());
             let corner_y = if a.inline { b.y1 } else { b.y0 };
-            let desired = xf * Affine::translate((a.x - b.x0, a.y - corner_y)) * it.xf;
+            let desired = xf0 * Affine::translate((a.x - b.x0, a.y - corner_y)) * it.xf;
             let base = desired * self.doc.world_xf(a.item).inverse();
             self.emit(a.item, base);
         }
@@ -877,6 +921,12 @@ impl Ctx<'_> {
         for r in &line.runs {
             self.run(r, baseline, xf, text);
         }
+        for r in &line.adorn {
+            self.run(r, baseline, xf, "");
+        }
+        for m in &line.marks {
+            self.kenten(m, baseline, xf);
+        }
         for t in &line.tabs {
             if t.leader.is_empty() || t.x1 - t.x0 < 1.0 {
                 continue;
@@ -920,10 +970,72 @@ impl Ctx<'_> {
         }
     }
 
+    /// A table cell's diagonal lines: `down` runs from the top left corner to the bottom right, `up` from the
+    /// bottom left to the top right; each is {weight, color, tint, type}.
+    fn diagonals(&mut self, d: &serde_json::Map<String, serde_json::Value>, r: Rect, xf: Affine, bw: f64, bcol: Color) {
+        for (key, a, b) in [("down", (r.x0, r.y0), (r.x1, r.y1)), ("up", (r.x0, r.y1), (r.x1, r.y0))] {
+            let Some(o) = d.get(key).and_then(|v| v.as_object()) else { continue };
+            let w = o.get("weight").and_then(|v| v.as_f64()).unwrap_or(bw.max(0.5));
+            let kind = o.get("type").and_then(|v| v.as_str()).unwrap_or("solid");
+            if w <= 0.0 || kind == "none" {
+                continue;
+            }
+            let tint = o.get("tint").and_then(|v| v.as_f64()).unwrap_or(1.0);
+            let col = o.get("color").and_then(Paint::from_value).filter(|p| !p.is_none()).and_then(|p| self.doc.paint_color(&p)).unwrap_or(bcol);
+            let col = if (tint - 1.0).abs() > 1e-6 { col.tinted(tint) } else { col };
+            let (cap, dash) = match kind {
+                "dashed" => ("butt", vec![w * 3.0, w * 2.0]),
+                "dotted" => ("round", vec![0.01, w * 2.0]),
+                _ => ("butt", Vec::new()),
+            };
+            let mut line = BezPath::new();
+            line.move_to(a);
+            line.line_to(b);
+            self.ops.push(Op::Stroke { path: xf * line, brush: Brush::Solid(col, 1.0), style: StrokeStyle { width: w, cap: cap.into(), join: "miter".into(), dash } });
+        }
+    }
+
+    fn kenten(&mut self, m: &formdes_text::compose::EmphasisMark, baseline: f64, xf: Affine) {
+        let s = m.size;
+        let p = &m.props;
+        let c = kurbo::Vec2::new(m.x, baseline + m.y);
+        let local = if self.vert { Affine::translate(c) * Affine::rotate(-std::f64::consts::FRAC_PI_2) } else { Affine::translate(c) };
+        let place = xf * local;
+        let Some(brush) = brush_of(self.doc, &p.fill, p.fill_tint, Rect::new(-s, -s, s, s), Affine::IDENTITY) else { return };
+        let ring = |this: &mut Self, path: BezPath, w: f64| {
+            this.ops.push(Op::Stroke { path: place * path, brush: brush.clone(), style: StrokeStyle { width: w, cap: "butt".into(), join: "miter".into(), dash: Vec::new() } });
+        };
+        let solid = |this: &mut Self, path: BezPath| {
+            this.ops.push(Op::Fill { path: place * path, brush: brush.clone(), even_odd: false });
+        };
+        let tri = || {
+            let mut t = BezPath::new();
+            t.move_to((0.0, -s * 0.5));
+            t.line_to((s * 0.45, s * 0.4));
+            t.line_to((-s * 0.45, s * 0.4));
+            t.close_path();
+            t
+        };
+        let sesame = || kurbo::Ellipse::new((0.0, 0.0), (s * 0.25, s * 0.5), 0.5).to_path(0.05);
+        match m.kind {
+            '\u{FE45}' => solid(self, sesame()),
+            '\u{FE46}' => ring(self, sesame(), s * 0.1),
+            '\u{2022}' => solid(self, kurbo::Circle::new((0.0, 0.0), s * 0.4).to_path(0.05)),
+            '\u{25CB}' => ring(self, kurbo::Circle::new((0.0, 0.0), s * 0.42).to_path(0.05), s * 0.1),
+            '\u{25C9}' => {
+                ring(self, kurbo::Circle::new((0.0, 0.0), s * 0.5).to_path(0.05), s * 0.1);
+                solid(self, kurbo::Circle::new((0.0, 0.0), s * 0.28).to_path(0.05));
+            }
+            '\u{25B2}' => solid(self, tri()),
+            _ => ring(self, tri(), s * 0.1),
+        }
+    }
+
     fn run(&mut self, r: &GlyphRun, baseline: f64, xf: Affine, text: &str) {
         if r.glyphs.is_empty() {
             return;
         }
+        let text = if r.text.is_empty() { text } else { r.text.as_str() };
         let fill = run_fill(self.doc, r);
         let stroke = run_stroke(self.doc, r);
         let mut glyphs = Vec::with_capacity(r.glyphs.len());
@@ -969,6 +1081,27 @@ impl Ctx<'_> {
                 }
             }
         }
+        let mut per_glyph = None;
+        if self.vert && r.orient != Orient::Side {
+            // Upright CJK and tate-chu-yoko: the frame transform turned the whole line a quarter
+            // turn, so each glyph (or a tate-chu-yoko group) turns back about the centre of its em box.
+            let em = r.size;
+            let group_cx = (r.x0 + r.x1) / 2.0;
+            per_glyph = Some(
+                r.glyphs
+                    .iter()
+                    .map(|g| {
+                        let cx = if r.orient == Orient::Tcy { group_cx } else { g.x + 0.5 * em * r.hscale };
+                        let c = kurbo::Vec2::new(cx, g.y - 0.38 * em);
+                        line_xf * Affine::translate(c) * Affine::rotate(-std::f64::consts::FRAC_PI_2) * Affine::translate(-c) * Affine::translate((g.x, g.y))
+                    })
+                    .collect::<Vec<Affine>>(),
+            );
+            for g in &mut glyphs {
+                g.1 = 0.0;
+                g.2 = 0.0;
+            }
+        }
         self.ops.push(Op::Glyphs(GlyphOp {
             face: r.face.clone(),
             size: r.size,
@@ -978,7 +1111,7 @@ impl Ctx<'_> {
             xf: line_xf,
             glyphs,
             advances,
-            per_glyph: None,
+            per_glyph,
             text: text.to_string(),
             ranges,
             fill,
@@ -1084,7 +1217,7 @@ pub fn page_scene(doc: &Doc, lay: &DocLayout, abs: usize, opts: &SceneOpts) -> O
         let use_right = doc.settings.facing && right;
         parents = parent_items(doc, pid, use_right, 0).into_iter().filter(|(id, _)| !page.detached.contains(id)).collect();
     }
-    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None };
+    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false };
     for layer in layer_order(doc) {
         ctx.page = Some(abs);
         for (id, base) in &parents {
@@ -1117,7 +1250,7 @@ pub enum Target {
 }
 
 pub fn spread_ops(doc: &Doc, lay: &DocLayout, target: Target, opts: &SceneOpts) -> Vec<Op> {
-    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None };
+    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false };
     match target {
         Target::Spread(si) => {
             let Some(spread) = doc.spreads.get(si) else { return Vec::new() };

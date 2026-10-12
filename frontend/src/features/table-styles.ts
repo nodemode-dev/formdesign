@@ -88,31 +88,97 @@ interface Form {
   refill: () => void;
 }
 
-function tableForm(swatches: () => string[]): Form {
-  const colours = (none: boolean) => (): Array<[string, string]> => [...(none ? [['[None]', 'None'] as [string, string]] : []), ...swatches().map((s): [string, string] => [s, s.replace(/^\[(.*)\]$/, '$1')])];
-  const bw = num('Weight (pt)', { min: 0, ph: '1' });
-  const bc = sel('Colour', colours(false));
-  const alt = chk('Alternating row fills');
-  const f1 = num('First rows', { min: 1, ph: '1' }), f1c = sel('First colour', colours(true)), f1t = num('First tint (%)', { scale: 100, min: 0, ph: '100' });
-  const f2 = num('Next rows', { min: 1, ph: '1' }), f2c = sel('Next colour', colours(true)), f2t = num('Next tint (%)', { scale: 100, min: 0, ph: '100' });
-  const border = group('Table border', bw.node, bc.node);
-  const rows = group('Alternating rows', alt.node, f1.node, f1c.node, f1t.node, f2.node, f2c.node, f2t.node);
-  const ctls = [f1, f1c, f1t, f2, f2c, f2t];
-  const sync = (): void => { for (const c of ctls) for (const x of c.node.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) x.disabled = !alt.input.checked; };
-  alt.input.addEventListener('change', sync);
+const colourOpts = (swatches: () => string[], none: boolean) => (): Array<[string, string]> => [...(none ? [['[None]', 'None'] as [string, string]] : []), ...swatches().map((s): [string, string] => [s, s.replace(/^\[(.*)\]$/, '$1')])];
+
+interface Alt { node: HTMLElement; refill: () => void; load: (a: Obj) => void; put: (before: Obj, out: Obj) => void }
+
+/** One alternating pattern of a table style: key is altRows, altCols, altRowStrokes or altColStrokes. */
+function altBlock(title: string, key: string, stroke: boolean, skips: boolean, swatches: () => string[]): Alt {
+  const on = chk(`Use ${title.toLowerCase()}`);
+  const sides = ([['first', 'First'], ['next', 'Next']] as const).map(([k, l]) => ({
+    k,
+    n: num(`${l} count`, { min: 1, ph: '1' }),
+    c: sel(`${l} colour`, colourOpts(swatches, true)),
+    t: num(`${l} tint (%)`, { scale: 100, min: 0, ph: '100' }),
+    w: num(`${l} weight (pt)`, { min: 0, ph: '1' }),
+    ty: sel(`${l} line type`, () => TYPES),
+  }));
+  const skipF = num('Skip first rows', { min: 0, ph: '0' }), skipL = num('Skip last rows', { min: 0, ph: '0' });
+  const ctls: Ctl[] = [...sides.flatMap((s) => (stroke ? [s.n, s.w, s.c, s.t, s.ty] : [s.n, s.c, s.t])), ...(skips ? [skipF, skipL] : [])];
+  const g = group(title, on.node, ...ctls.map((c) => c.node));
+  const sync = (): void => { for (const c of ctls) for (const x of c.node.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) x.disabled = !on.input.checked; };
+  on.input.addEventListener('change', sync);
   return {
-    nodes: [border.node, rows.node],
-    refill: () => { bc.refill(); f1c.refill(); f2c.refill(); },
+    node: g.node,
+    refill: () => { for (const s of sides) s.c.refill(); },
+    load: (a) => {
+      const r = a[key] && typeof a[key] === 'object' ? obj(a[key]) : null;
+      on.set(!!r);
+      const x = r ?? {};
+      for (const s of sides) {
+        s.n.set(x[s.k] ?? 1); s.c.set(typeof x[`${s.k}Color`] === 'string' ? x[`${s.k}Color`] : '[None]'); s.t.set(x[`${s.k}Tint`] ?? 1);
+        s.w.set(x[`${s.k}Weight`]); s.ty.set(typeof x[`${s.k}Type`] === 'string' ? x[`${s.k}Type`] : 'solid');
+      }
+      skipF.set(x.skipFirst ?? 0); skipL.set(x.skipLast ?? 0);
+      sync();
+    },
+    put: (before, out) => {
+      if (!on.input.checked) {
+        if (before[key] != null) out[key] = null;
+        return;
+      }
+      const a = obj(before[key]);
+      for (const s of sides) {
+        a[s.k] = Math.max(1, Math.round((s.n.get() as number | null) ?? 1));
+        const col = s.c.get() as string;
+        if (col && col !== '[None]') a[`${s.k}Color`] = col; else delete a[`${s.k}Color`];
+        const t = s.t.get() as number | null;
+        if (t === null || Math.abs(t - 1) < 1e-9) delete a[`${s.k}Tint`]; else a[`${s.k}Tint`] = Math.min(1, Math.max(0, t));
+        if (stroke) {
+          const w = s.w.get() as number | null;
+          if (w === null) delete a[`${s.k}Weight`]; else a[`${s.k}Weight`] = Math.max(0, w);
+          const ty = s.ty.get() as string;
+          if (ty && ty !== 'solid') a[`${s.k}Type`] = ty; else delete a[`${s.k}Type`];
+        }
+      }
+      if (skips) {
+        for (const [k, c] of [['skipFirst', skipF], ['skipLast', skipL]] as const) {
+          const v = c.get() as number | null;
+          if (v === null || v < 1) delete a[k]; else a[k] = Math.round(v);
+        }
+      }
+      if (!same(a, before[key])) out[key] = a;
+    },
+  };
+}
+
+const REGIONS: Array<[string, string]> = [
+  ['headerCellStyle', 'Header rows'], ['footerCellStyle', 'Footer rows'], ['leftColumnCellStyle', 'Left column'],
+  ['rightColumnCellStyle', 'Right column'], ['bodyCellStyle', 'Body cells'],
+];
+const ROTATE: Array<[string, string]> = [['0', 'None'], ['90', '90 degrees'], ['180', '180 degrees'], ['270', '270 degrees']];
+
+function tableForm(swatches: () => string[], cellStyles: () => string[]): Form {
+  const bw = num('Weight (pt)', { min: 0, ph: '1' });
+  const bc = sel('Colour', colourOpts(swatches, false));
+  const border = group('Table border', bw.node, bc.node);
+  const alts = [
+    altBlock('Alternating row fills', 'altRows', false, true, swatches),
+    altBlock('Alternating column fills', 'altCols', false, false, swatches),
+    altBlock('Alternating row strokes', 'altRowStrokes', true, false, swatches),
+    altBlock('Alternating column strokes', 'altColStrokes', true, false, swatches),
+  ];
+  const regions = REGIONS.map(([key, label]) => ({ key, ctl: sel(`${label} cell style`, () => [['', 'None'], ...cellStyles().map((n): [string, string] => [n, n.replace(/^\[(.*)\]$/, '$1')])]) }));
+  const reg = group('Cell styles by region', ...regions.map((r) => r.ctl.node));
+  return {
+    nodes: [border.node, ...alts.map((a) => a.node), reg.node],
+    refill: () => { bc.refill(); for (const a of alts) a.refill(); for (const r of regions) r.ctl.refill(); },
     load: (a) => {
       const b = obj(a.border);
       bw.set(b.weight);
       bc.set(typeof b.color === 'string' ? b.color : '[Black]');
-      const r = a.altRows && typeof a.altRows === 'object' ? obj(a.altRows) : null;
-      alt.set(!!r);
-      const x = r ?? {};
-      f1.set(x.first ?? 1); f1c.set(typeof x.firstColor === 'string' ? x.firstColor : '[None]'); f1t.set(x.firstTint ?? 1);
-      f2.set(x.next ?? 1); f2c.set(typeof x.nextColor === 'string' ? x.nextColor : '[None]'); f2t.set(x.nextTint ?? 1);
-      sync();
+      for (const x of alts) x.load(a);
+      for (const r of regions) r.ctl.set(typeof a[r.key] === 'string' ? a[r.key] : '');
     },
     changes: (before) => {
       const out: Obj = {};
@@ -122,28 +188,30 @@ function tableForm(swatches: () => string[]): Form {
       const c = bc.get() as string;
       if (c && (typeof before.border === 'object' || c !== '[Black]')) b.color = c;
       if (Object.keys(b).length && !same(b, before.border)) out.border = b;
-      if (!alt.input.checked) {
-        if (before.altRows != null) out.altRows = null;
-      } else {
-        const a = obj(before.altRows);
-        a.first = Math.max(1, Math.round((f1.get() as number | null) ?? 1));
-        a.next = Math.max(1, Math.round((f2.get() as number | null) ?? 1));
-        for (const [key, ctl, tint] of [['first', f1c, f1t], ['next', f2c, f2t]] as const) {
-          const col = ctl.get() as string;
-          if (col && col !== '[None]') a[`${key}Color`] = col; else delete a[`${key}Color`];
-          const t = tint.get() as number | null;
-          if (t === null || Math.abs(t - 1) < 1e-9) delete a[`${key}Tint`]; else a[`${key}Tint`] = Math.min(1, Math.max(0, t));
-        }
-        if (!same(a, before.altRows)) out.altRows = a;
+      for (const x of alts) x.put(before, out);
+      for (const r of regions) {
+        const v = r.ctl.get() as string;
+        const was = typeof before[r.key] === 'string' ? (before[r.key] as string) : '';
+        if (v !== was) out[r.key] = v || null;
       }
       return out;
     },
   };
 }
 
-function cellForm(swatches: () => string[]): Form {
-  const colours = (none: boolean) => (): Array<[string, string]> => [...(none ? [['[None]', 'None'] as [string, string]] : []), ...swatches().map((s): [string, string] => [s, s.replace(/^\[(.*)\]$/, '$1')])];
+function cellForm(swatches: () => string[], paraStyles: () => string[]): Form {
+  const colours = (none: boolean) => colourOpts(swatches, none);
   const fill = sel('Fill colour', colours(true)), tint = num('Fill tint (%)', { scale: 100, min: 0, ph: '100' });
+  const para = sel('Paragraph style', () => [['', 'None'], ...paraStyles().map((n): [string, string] => [n, n.replace(/^\[(.*)\]$/, '$1')])]);
+  const rot = sel('Text rotation', () => ROTATE);
+  const diag = (['down', 'up'] as const).map((key) => {
+    const label = key === 'down' ? 'Top left to bottom right' : 'Top right to bottom left';
+    const on = chk(`${label} diagonal line`);
+    const w = num(`${label} weight (pt)`, { min: 0, ph: '1' }), c = sel(`${label} colour`, colours(true));
+    const sync = (): void => { for (const p of [w, c]) for (const x of p.node.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) x.disabled = !on.input.checked; };
+    on.input.addEventListener('change', sync);
+    return { key, on, w, c, sync, node: group(label, on.node, w.node, c.node).node };
+  });
   const ins = [['Top inset (pt)', 'top'], ['Left inset (pt)', 'left'], ['Bottom inset (pt)', 'bottom'], ['Right inset (pt)', 'right']].map(([l]) => num(l, { min: 0, ph: '4' }));
   const vj = sel('Vertical justification', () => VJ);
   const sides = SIDES.map(([key, label]) => {
@@ -157,9 +225,18 @@ function cellForm(swatches: () => string[]): Form {
     return { key, on, w, c, t, ty, sync, node: g.node };
   });
   return {
-    nodes: [group('Fill', fill.node, tint.node).node, group('Cell insets', ...ins.map((i) => i.node)).node, group('Alignment', vj.node).node, ...sides.map((s) => s.node)],
-    refill: () => { fill.refill(); for (const s of sides) s.c.refill(); },
+    nodes: [group('Fill', fill.node, tint.node).node, group('Cell insets', ...ins.map((i) => i.node)).node, group('Text', para.node, vj.node, rot.node).node, ...sides.map((s) => s.node), ...diag.map((d) => d.node)],
+    refill: () => { fill.refill(); para.refill(); for (const s of sides) s.c.refill(); for (const d of diag) d.c.refill(); },
     load: (a) => {
+      para.set(typeof a.paraStyle === 'string' ? a.paraStyle : '');
+      rot.set(String(typeof a.rotate === 'number' ? ((a.rotate % 360) + 360) % 360 : 0));
+      const dg = obj(a.diagonal);
+      for (const d of diag) {
+        const o = dg[d.key] && typeof dg[d.key] === 'object' ? obj(dg[d.key]) : null;
+        d.on.set(!!o);
+        d.w.set(o?.weight); d.c.set(typeof o?.color === 'string' ? o.color : '[None]');
+        d.sync();
+      }
       fill.set(typeof a.fill === 'string' ? a.fill : '[None]');
       tint.set(a.fillTint ?? 1);
       const iv = a.insets;
@@ -211,6 +288,25 @@ function cellForm(swatches: () => string[]): Form {
       for (const k of Object.keys(old)) if (!SIDES.some(([s]) => s === k)) next[k] = old[k];
       const ns = Object.keys(next).length ? next : null;
       if (!same(ns, before.strokes)) out.strokes = ns;
+      const ps = para.get() as string;
+      if (ps !== (typeof before.paraStyle === 'string' ? before.paraStyle : '')) out.paraStyle = ps || null;
+      const rv = Number(rot.get());
+      const rwas = typeof before.rotate === 'number' ? ((before.rotate % 360) + 360) % 360 : 0;
+      if (rv !== rwas) out.rotate = rv || null;
+      const dold = obj(before.diagonal);
+      const dnext: Obj = { ...dold };
+      for (const d of diag) {
+        if (!d.on.input.checked) { delete dnext[d.key]; continue; }
+        const o = obj(dold[d.key]);
+        const w = d.w.get() as number | null;
+        if (w !== null) o.weight = Math.max(0, w);
+        const c = d.c.get() as string;
+        if (c && c !== '[None]') o.color = c; else delete o.color;
+        dnext[d.key] = o;
+      }
+      const hasDiag = diag.some((d) => dnext[d.key]);
+      const dn = hasDiag ? dnext : null;
+      if (!same(dn, Object.keys(dold).length ? dold : null)) out.diagonal = dn;
       return out;
     },
   };
@@ -223,7 +319,9 @@ async function open(kind: 'table' | 'cell', ws: Workspace, params: Record<string
   let swatchList: string[] = [];
   try { swatchList = swatchNames(await editor.exec<unknown>('swatch.list', {}, true)).filter((s) => s !== '[None]'); } catch { swatchList = []; }
   const d = new Dialog(kind === 'table' ? 'Table Style Options' : 'Cell Style Options', 520);
-  const form: Form = kind === 'table' ? tableForm(() => swatchList) : cellForm(() => swatchList);
+  const cellNames = (list?.cell ?? []).filter((n) => !/^\[?None\]?$/i.test(n));
+  const paraNames = (list?.paragraph ?? []).filter((n) => !/^\[?(None|No Paragraph Style)\]?$/i.test(n));
+  const form: Form = kind === 'table' ? tableForm(() => swatchList, () => cellNames) : cellForm(() => swatchList, () => paraNames);
   const top = el('<div class="fo-form"><label class="fo-field"><span>Style</span><select class="fts-style cv-select"></select></label><label class="fo-field"><span>Style Name</span><input class="fts-name" type="text" spellcheck="false"></label></div>');
   const pick = q<HTMLSelectElement>(top, '.fts-style');
   const name = q<HTMLInputElement>(top, '.fts-name');

@@ -38,7 +38,9 @@ pub fn make_item(doc: &mut Doc, layer: LayerId, tool: &str, shape: Shape, slot: 
         "rectangleFrame" | "ellipseFrame" | "polygonFrame" => (ItemKind::Graphic(Graphic { asset: None, content: Affine::IDENTITY, fitting: None }), None, Some(formdes_model::style::BASIC_GRAPHIC)),
         "type" | "typeVertical" => {
             let sid = doc.new_story(formdes_model::style::BASIC_PARA);
-            (ItemKind::Text(TextFrame::new(sid)), Some(sid), Some(formdes_model::style::BASIC_TEXT))
+            let mut tf = TextFrame::new(sid);
+            tf.vertical = tool == "typeVertical";
+            (ItemKind::Text(tf), Some(sid), Some(formdes_model::style::BASIC_TEXT))
         }
         _ => (ItemKind::Plain, None, None),
     };
@@ -159,7 +161,7 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                     SpreadRef::Parent(i) => serde_json::json!({"kind": "parent", "index": i}),
                 };
                 if tool != "type" {
-                    ses.requests.push(serde_json::json!({"kind": "dialog", "id": "frame.create", "params": {"spread": spread, "rect": [p.x, p.y, p.x + 100.0, p.y + 100.0], "content": content, "shape": shape}}));
+                    ses.requests.push(serde_json::json!({"kind": "dialog", "id": "frame.create", "params": {"spread": spread, "rect": [p.x, p.y, p.x + 100.0, p.y + 100.0], "content": content, "shape": shape, "orientation": if tool == "typeVertical" { "vertical" } else { "horizontal" }}}));
                 }
                 return;
             }

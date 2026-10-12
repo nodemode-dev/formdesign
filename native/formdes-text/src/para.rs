@@ -17,6 +17,9 @@ pub trait Context {
     fn hidden(&self, _over: &Attrs) -> bool {
         false
     }
+    fn vertical(&self, _frame: usize) -> bool {
+        false
+    }
     fn exceptions(&self) -> crate::compose::Exceptions {
         crate::compose::Exceptions::default()
     }
@@ -268,7 +271,7 @@ pub fn build_with(styles: &Styles, para: &Para, list_number: Option<&ListNo>, fo
         out_runs.push(TextRun { range: 0..0, props: Arc::new(base_props) });
     }
     Built {
-        input: ParaInput { text, runs: out_runs, objects, props, prefix, exceptions: ctx.exceptions() },
+        input: ParaInput { text, runs: out_runs, objects, props, prefix, exceptions: ctx.exceptions(), vertical: ctx.vertical(frame) },
         chars,
         specials,
         brk,

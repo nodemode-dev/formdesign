@@ -89,6 +89,10 @@ impl Context for DocCtx<'_> {
         format_number(ordinal as u32, "arabic")
     }
 
+    fn vertical(&self, frame: usize) -> bool {
+        self.frame_items.get(frame).and_then(|f| self.doc.item(*f)).is_some_and(|it| matches!(&it.kind, ItemKind::Text(t) if t.vertical))
+    }
+
     fn exceptions(&self) -> crate::compose::Exceptions {
         self.exc.clone()
     }
@@ -150,8 +154,11 @@ pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
     let ItemKind::Text(t) = &it.kind else { return None };
     let world = doc.world_xf(id);
     let inv = world.inverse();
-    let inner = frame_inner(&it.shape, &t.insets);
+    let real_inner = frame_inner(&it.shape, &t.insets);
+    let flip = vertical_frame_xf(real_inner).inverse();
+    let inner = if t.vertical { Rect::new(real_inner.y0, real_inner.x0, real_inner.y1, real_inner.x1) } else { real_inner };
     let shape: Option<BezPath> = match it.shape {
+        _ if t.vertical => None,
         Shape::Rect { .. } if it.corner.radius <= 0.0 => None,
         _ => Some(it.shape.to_path(&it.corner)),
     };
@@ -173,13 +180,31 @@ pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
         first_baseline: t.first_baseline,
         first_min: t.first_baseline_min,
         balance: t.balance,
-        exclusions: if t.ignore_wrap { Vec::new() } else { exclusions(doc, id, inv) },
+        exclusions: if t.ignore_wrap {
+            Vec::new()
+        } else if t.vertical {
+            exclusions(doc, id, flip * inv)
+        } else {
+            exclusions(doc, id, inv)
+        },
         right_page: page.map(|p| doc.is_right_page(p)).unwrap_or(true),
-        grow: matches!(t.autosize, AutoSize::Height | AutoSize::Both),
-        grid,
+        grow: !t.vertical && matches!(t.autosize, AutoSize::Height | AutoSize::Both),
+        grid: if t.vertical { None } else { grid },
         page: page.unwrap_or(0),
         shape,
+        vertical: t.vertical,
     })
+}
+
+/// Maps a vertical frame's composition space (lines run along x, stack downward in y)
+/// onto the page: the line direction becomes top to bottom and the stacking direction
+/// right to left.
+pub fn vertical_frame_xf(real_inner: Rect) -> Affine {
+    Affine::new([0.0, 1.0, -1.0, 0.0, real_inner.x0 + real_inner.x1, 0.0])
+}
+
+pub fn composition_xf(spec: &FrameSpec) -> Affine {
+    if spec.vertical { Affine::new([0.0, 1.0, -1.0, 0.0, spec.inner.y0 + spec.inner.y1, 0.0]) } else { Affine::IDENTITY }
 }
 
 pub fn layout_story(doc: &Doc, fonts: &FontBook, sid: StoryId) -> Option<StoryLayout> {
