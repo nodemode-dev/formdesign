@@ -2,6 +2,17 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.25.2 · 2026-10-12
+
+- The canvas draws through the GPU: WebGPU first, then WebGL2, then Canvas 2D (View > Renderer), with no blank frame on a lost context; formdes-gpu's frame model on the web.
+- Parity batch five, nine graded rows move (116.5 to 121.5 of 133).
+- Variable fonts: axis sliders in the Character panel (type.fontAxes, fontVariations), named instances, embedded as instances in PDF.
+- Clipping paths from Photoshop paths, alpha channels or detected edges, text wrap to the contour, Convert Clipping Path to Frame.
+- Object Layer Options for placed PDFs (optional content, also in exported PDF) and placed PSDs (own layer reader).
+- PDF/X-1a:2001, PDF/X-3:2002 and PDF/X-4 export with output intent and preflight.
+- Interactive PDF: form fields, video and audio as Screen annotations, page transitions.
+- File > Save a Version and Version History; Edit Original for placed images; Table and Cell Style Options without JSON.
+
 ## 0.25.1 · 2026-10-12
 
 - Parity batch four, ten graded rows closed (109.5 to 116.5 of 133).
