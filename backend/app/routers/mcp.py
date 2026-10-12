@@ -45,7 +45,20 @@ STRATEGY = """How to make a layout in formdes with these tools.
 10. Long documents in parts: save each part, then book (create, add each saved .fdes, paginate, sync, export) numbers them in sequence, shares styles and writes one PDF.
 11. Clean-up and restyling across a document: find_change. count first, then change_all; the built-in queries (op queries) fix straight quotes, dashes, double spaces and stray returns, and findFormat with an empty find restyles every run in a style.
 """
-PROMPTS = [{"name": "layout_strategy", "title": "How to lay out in formdes", "description": "The decision tree for formdes's tools: intake, choose a template, make, look, fix, deliver.", "arguments": []}]
+PROMPT_TEXT = {
+    "layout_strategy": STRATEGY,
+    "fix_overset": "Find and fix overset text in the active FormDesign document.\n1. outline (or look on each page) and note every OVERSET item and its story.\n2. For a threaded body flow, prefer adding continuation pages (run_commands with layout.pages.insert, then frame.thread) or Smart Text Reflow over shrinking type.\n3. For headlines and short fields, set_slots with shorter copy, or run_commands type.attrs with a smaller size on that frame's text.\n4. look again at each page you touched; repeat until outline shows no OVERSET. Report what you changed.",
+    "rebrand": "Re-skin the active FormDesign document with a brand.\n1. list_brands; if the person's brand is missing, save_brand with its colours (Ink, Paper Color, Accent, Accent 2, Muted) and fonts (display, text).\n2. make_layout again with the same pack and template and brand, or change swatches and styles with run_commands (swatch.edit, style edits) to keep manual work.\n3. look at the first pages and check contrast and that no sample colour is left.",
+    "export_print": "Prepare the active FormDesign document for print.\n1. preflight; fix overset text, missing links and fonts, low resolution images and RGB images where the profile asks for CMYK.\n2. export_document pdf with bleed and crop marks (PDF/A-2b when the printer asks for an archival PDF; PDF/X is not available).\n3. Package with fonts and links if the printer wants the source (run_commands file.package with a folder). The person may need to approve writing over existing files.",
+    "export_web": "Publish the active FormDesign document as a website.\n1. preflight and look at each page; give every image alt text (run_commands object.altText) and every button a link.\n2. export_document web to a folder or .zip, or publish_website publish for a link served from this computer (the person approves publishing in Agent Connect).\n3. Fix what the export's warnings list, then publish again.",
+}
+PROMPTS = [
+    {"name": "layout_strategy", "title": "How to lay out in FormDesign", "description": "The decision tree for FormDesign's tools: intake, choose a template, make, look, fix, deliver.", "arguments": []},
+    {"name": "fix_overset", "title": "Fix overset text", "description": "Find every overset frame and fix it with pages, threads or copy, then check.", "arguments": []},
+    {"name": "rebrand", "title": "Re-skin with a brand", "description": "Apply a brand's colours and fonts to the active document.", "arguments": []},
+    {"name": "export_print", "title": "Export for print", "description": "Preflight, PDF with bleed and marks, and Package.", "arguments": []},
+    {"name": "export_web", "title": "Export for the web", "description": "Alt text, links, website export or Publish Online.", "arguments": []},
+]
 
 
 def _tool(name: str, description: str, props: dict, required: list[str] | None = None, **hints: bool) -> dict:
@@ -129,6 +142,14 @@ TOOLS = [
           {"action": {"type": "string", "enum": ["list", "create", "items", "add", "place", "rename", "remove"]}, "name": {"type": "string"}, "index": {"type": "integer", "minimum": 0},
            "ids": {"type": "array", "items": {"type": "integer"}}, "title": {"type": "string"}, "description": {"type": "string"},
            "x": {"type": "number"}, "y": {"type": "number"}, "spread": {"type": "integer", "minimum": 0}}, ["action"], destructive=True),
+    _tool("outline", "A compact outline of the active document: each spread with its pages and parent, and every item on it in one line (id, kind, slot, story, bounds in points, overset, the first words of its text), plus styles in use. Cheaper than get_document when you need to find things; page limits it to one page (from 1).",
+          {"page": {"type": "integer", "minimum": 1}, "max_items": {"type": "integer", "minimum": 5, "maximum": 400, "default": 120}}, [], read=True, idempotent=True),
+    _tool("inspect", "Properties of objects by id: kind, bounds, fill, stroke, object style, layer, story, columns, overset, locked and hidden. fields keeps only the keys you name, so replies stay short.",
+          {"ids": {"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 100}, "fields": {"type": "array", "items": {"type": "string"}}}, ["ids"], read=True, idempotent=True),
+    _tool("look", "Looks at a page: a PNG (a region of it when region is given, in page points [x0, y0, x1, y1]) plus a short list of visible problems on that page: overset text, empty graphic frames, objects off the page.",
+          {"page": {"type": "integer", "minimum": 1, "default": 1}, "region": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}, "max_size": {"type": "integer", "minimum": 128, "maximum": 2048, "default": 900}}, [], read=True, idempotent=True),
+    _tool("use_tool", "Uses one of the 36 layout tools the way a person would, for what only a tool does (drawing a path with the pen, a polygon, a gradient drag): tool id (selection, type, pen, rectangleFrame, ellipse, polygon, gradientSwatch...), then a click [x, y] or a drag [x0, y0, x1, y1] in the same spread points outline and inspect use, optionally text to type afterwards. One undo step per gesture.",
+          {"tool": {"type": "string"}, "spread": {"type": "integer", "minimum": 0, "default": 0}, "click": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "drag": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}, "text": {"type": "string"}}, ["tool"]),
     _tool("show", "Moves the person's FormDesign window so they can follow what you did: go to a page, zoom (fit page, fit spread or a percentage), open a panel, pick a tool, or select objects by id. Changes nothing in the document.",
           {"page": {"type": "integer", "minimum": 1, "description": "Page to show, counting from 1."}, "zoom": {"type": "string", "description": "fit-page, fit-spread, or a percentage such as 150."},
            "panel": {"type": "string", "description": "Panel id: pages, layers, links, properties, character, paragraph, swatches, styles, preflight, make, slots, terminal, connect, find..."},
@@ -245,7 +266,157 @@ async def _hint(msg: str, commands: list) -> str:
     return " ".join(out)
 
 
+def _b(v) -> list:
+    return [round(x) for x in v] if isinstance(v, list) else v
+
+
+async def _outline(a: dict) -> dict:
+    ins = await core.inspect()
+    labels = {s["id"]: s["slot"] for s in await S.list_slots(core, "mcp")}
+    stories = {s["id"]: s for s in ins.get("stories") or []}
+    want = int(a["page"]) - 1 if a.get("page") else None
+    cap, used = int(a.get("max_items", 120)), 0
+    lines = [f"{ins.get('title')} · {ins.get('pageCount')} pages · {len(stories)} stories · {'unsaved changes' if ins.get('dirty') else 'saved'}"]
+    for sp in ins.get("spreads") or []:
+        pages = sp.get("pages") or []
+        if want is not None and not any(p.get("abs") == want for p in pages):
+            continue
+        names = ", ".join(f"{p.get('name')}{'(' + p['parent'] + ')' if p.get('parent') else ''}" for p in pages)
+        lines.append(f"spread {sp.get('index')}: pages {names}")
+        for it in sp.get("items") or []:
+            if used >= cap:
+                lines.append(f"  ... more items: raise max_items or pass page")
+                break
+            used += 1
+            bits = [f"#{it['id']}", str(it.get("kind", "")).replace(" frame", "")]
+            if it["id"] in labels:
+                bits.append(f"slot:{labels[it['id']]}")
+            st = stories.get(it.get("story"))
+            if st:
+                bits.append(f"story {st['id']}")
+            bits.append(str(_b(it.get("bounds"))).replace(" ", ""))
+            if it.get("overset") or (st and st.get("overset")):
+                bits.append("OVERSET")
+            if it.get("locked"):
+                bits.append("locked")
+            if st and st.get("preview") and st.get("frames", [None])[0] == it["id"]:
+                bits.append(json.dumps(st["preview"].replace("\n", " / ")[:48], ensure_ascii=False))
+            lines.append("  " + " ".join(bits))
+    used_styles = sorted({str(s) for s in (ins.get("paragraphStyles") or [])[:30]})
+    lines.append(f"paragraph styles: {', '.join(x if isinstance(x, str) else str(x) for x in used_styles)}"[:600])
+    return _text("\n".join(lines))
+
+
+async def _inspect(a: dict) -> dict:
+    ins = await core.inspect()
+    ids = {int(i) for i in a.get("ids") or []}
+    fields = set(a.get("fields") or [])
+    out, found = [], set()
+    for sp in ins.get("spreads") or []:
+        for it in sp.get("items") or []:
+            if it["id"] in ids:
+                found.add(it["id"])
+                row = {k: (_b(v) if k == "bounds" else v) for k, v in it.items() if (not fields or k in fields or k == "id") and v not in ("", None, False, [])}
+                row["spread"] = sp.get("index")
+                out.append(row)
+    missing = sorted(ids - found)
+    res: dict = {"items": out}
+    if missing:
+        res["notFound"] = missing
+        res["hint"] = "ids come from outline or get_document; items inside groups are listed under their group"
+    return _text(res)
+
+
+async def _look(a: dict) -> dict:
+    page = max(1, int(a.get("page", 1)))
+    size = int(a.get("max_size", 900))
+    ins = await core.inspect()
+    pg_info, items = None, []
+    for sp in ins.get("spreads") or []:
+        for p in sp.get("pages") or []:
+            if p.get("abs") == page - 1:
+                pg_info, items = p, sp.get("items") or []
+    if pg_info is None:
+        return _fail(f"no page {page}: the document has {ins.get('pageCount')} pages")
+    region = a.get("region")
+    r = await core.call("page.png", {"page": page - 1, "maxSide": size if not region else 2048}, source="mcp")
+    png = r.bin or b""
+    if region:
+        from io import BytesIO
+        from PIL import Image
+        im = Image.open(BytesIO(png))
+        pb = pg_info.get("bounds") or [0, 0, 612, 792]
+        sx, sy = im.width / max(1.0, pb[2] - pb[0]), im.height / max(1.0, pb[3] - pb[1])
+        x0, y0, x1, y1 = [float(v) for v in region]
+        box = (max(0, int(x0 * sx)), max(0, int(y0 * sy)), min(im.width, int(x1 * sx)), min(im.height, int(y1 * sy)))
+        if box[2] <= box[0] or box[3] <= box[1]:
+            return _fail("region is empty or outside the page; it is [x0, y0, x1, y1] in page points")
+        im = im.crop(box)
+        im.thumbnail((size, size))
+        buf = BytesIO()
+        im.save(buf, "PNG")
+        png = buf.getvalue()
+    pb = pg_info.get("bounds") or [0, 0, 0, 0]
+    issues = []
+    stories = {s["id"]: s for s in ins.get("stories") or []}
+    for it in items:
+        b = it.get("bounds") or [0, 0, 0, 0]
+        if b[2] < pb[0] or b[0] > pb[2]:
+            continue
+        st = stories.get(it.get("story"))
+        if it.get("overset") or (st and st.get("overset") and st.get("frames", [None])[-1] == it["id"]):
+            issues.append(f"#{it['id']} text is overset")
+        if str(it.get("kind", "")).strip("<>") in ("graphic", "graphic frame") and not it.get("image") and not it.get("link"):
+            issues.append(f"#{it['id']} empty graphic frame")
+        covers = b[0] <= pb[0] and b[1] <= pb[1] and b[2] >= pb[2] and b[3] >= pb[3]
+        if not covers and (b[0] < pb[0] - 0.5 or b[2] > pb[2] + 0.5 or b[1] < pb[1] - 0.5 or b[3] > pb[3] + 0.5):
+            issues.append(f"#{it['id']} extends past the page edge")
+    note = f"page {page} of {ins.get('pageCount')}" + ("; " + "; ".join(issues[:12]) if issues else "; no overset text, empty frames or objects off the page")
+    return _image(png, note)
+
+
+async def _use_tool(a: dict) -> dict:
+    events = []
+    if a.get("drag"):
+        x0, y0, x1, y1 = [float(v) for v in a["drag"]]
+        events = [{"kind": "down", "x": x0, "y": y0}, {"kind": "drag", "x": (x0 + x1) / 2, "y": (y0 + y1) / 2}, {"kind": "drag", "x": x1, "y": y1}, {"kind": "up", "x": x1, "y": y1}]
+    elif a.get("click"):
+        x, y = [float(v) for v in a["click"]]
+        events = [{"kind": "down", "x": x, "y": y}, {"kind": "up", "x": x, "y": y}]
+    else:
+        return _fail("give click [x, y] or drag [x0, y0, x1, y1] in spread points (outline shows item bounds)")
+    tr = (await core.call("tools", {}, source="mcp")).result
+    tr = tr.get("tools", tr) if isinstance(tr, dict) else tr
+    ids = [t["id"] for g in tr for t in (g if isinstance(g, list) else [g]) if isinstance(t, dict)]
+    if a["tool"] not in ids:
+        near = difflib.get_close_matches(a["tool"], ids, n=3, cutoff=0.3)
+        return _fail(f"no tool `{a['tool']}`" + (f"; did you mean {', '.join(near)}?" if near else "") + f" Tools: {', '.join(ids)}")
+    lay = (await core.call("layout", {}, source="mcp")).result or {}
+    want = int(a.get("spread", 0))
+    slot = next((s for s in lay.get("slots") or [] if (s.get("spread") or {}).get("index") == want and (s.get("spread") or {}).get("kind") == "doc"), None)
+    if slot is None:
+        return _fail(f"no spread {want}: outline lists the spreads")
+    xa, xb, xc, xd, xe, xf = slot.get("xf") or [1, 0, 0, 1, 0, 0]
+    for e in events:
+        x, y = e["x"], e["y"]
+        e["x"], e["y"] = xa * x + xc * y + xe, xb * x + xd * y + xf
+    r = await core.call("pointer", {"events": events, "tool": a["tool"], "zoom": 1}, source="mcp")
+    out = {"tool": a["tool"], "result": r.result}
+    if a.get("text"):
+        t = await core.call("text", {"text": a["text"]}, source="mcp")
+        out["typed"] = t.result
+    return _text(out)
+
+
 async def _run(name: str, a: dict) -> dict:
+    if name == "outline":
+        return await _outline(a)
+    if name == "inspect":
+        return await _inspect(a)
+    if name == "look":
+        return await _look(a)
+    if name == "use_tool":
+        return await _use_tool(a)
     if name == "show":
         if a.get("select"):
             await core.exec("selection.set", {"ids": [int(i) for i in a["select"]]}, source="mcp")
@@ -578,7 +749,8 @@ async def mcp(request: Request) -> Response:
     elif method == "prompts/list":
         out = _ok(req_id, {"prompts": PROMPTS}, modern)
     elif method == "prompts/get":
-        out = _ok(req_id, {"description": PROMPTS[0]["description"], "messages": [{"role": "user", "content": {"type": "text", "text": STRATEGY}}]}, modern) if params.get("name") == "layout_strategy" else _err(req_id, -32602, f"No prompt named {params.get('name')}")
+        pr = next((p for p in PROMPTS if p["name"] == params.get("name")), None)
+        out = _ok(req_id, {"description": pr["description"], "messages": [{"role": "user", "content": {"type": "text", "text": PROMPT_TEXT[pr["name"]]}}]}, modern) if pr else _err(req_id, -32602, f"No prompt named {params.get('name')}; prompts/list shows {', '.join(p['name'] for p in PROMPTS)}")
     elif method == "tools/list":
         out = _ok(req_id, {"tools": TOOLS}, modern)
     elif method == "tools/call":

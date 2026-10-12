@@ -10,7 +10,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
 - Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`, `library`
-- Other: `publish_website`, `show`
+- Other: `publish_website`, `outline`, `inspect`, `look`, `use_tool`, `show`
 
 ## intake
 
@@ -286,6 +286,44 @@ Object libraries: reusable objects (a logo lockup, a footer, a pull-quote box) s
 - `spread`: integer
 
 Note: writes or replaces files.
+
+## outline
+
+A compact outline of the active document: each spread with its pages and parent, and every item on it in one line (id, kind, slot, story, bounds in points, overset, the first words of its text), plus styles in use. Cheaper than get_document when you need to find things; page limits it to one page (from 1).
+
+- `page`: integer
+- `max_items`: integer; default 120
+
+Note: read-only.
+
+## inspect
+
+Properties of objects by id: kind, bounds, fill, stroke, object style, layer, story, columns, overset, locked and hidden. fields keeps only the keys you name, so replies stay short.
+
+- `ids`: array; required
+- `fields`: array
+
+Note: read-only.
+
+## look
+
+Looks at a page: a PNG (a region of it when region is given, in page points [x0, y0, x1, y1]) plus a short list of visible problems on that page: overset text, empty graphic frames, objects off the page.
+
+- `page`: integer; default 1
+- `region`: array
+- `max_size`: integer; default 900
+
+Note: read-only.
+
+## use_tool
+
+Uses one of the 36 layout tools the way a person would, for what only a tool does (drawing a path with the pen, a polygon, a gradient drag): tool id (selection, type, pen, rectangleFrame, ellipse, polygon, gradientSwatch...), then a click [x, y] or a drag [x0, y0, x1, y1] in the same spread points outline and inspect use, optionally text to type afterwards. One undo step per gesture.
+
+- `tool`: string; required
+- `spread`: integer; default 0
+- `click`: array
+- `drag`: array
+- `text`: string
 
 ## show
 
