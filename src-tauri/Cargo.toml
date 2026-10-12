@@ -1,6 +1,6 @@
 [package]
 name = "formdes"
-version = "0.25.3"
+version = "0.25.4"
 description = "formdes desktop shell"
 authors = ["nodemode-ai"]
 license = "Apache-2.0"

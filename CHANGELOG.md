@@ -2,6 +2,14 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.25.4 · 2026-10-12
+
+- Phase 5, last item: View > Renderer > Native in the desktop app composites the page tiles on wgpu under a transparent webview (opt-in; Auto never picks it). Builds and starts on Linux; on-screen output still to be confirmed on a real desktop.
+- Parity batch seven (127 to 130 of 133).
+- Type > Find More Fonts: the Google Fonts library (1941 families) with previews, licences and activation into the running layout core; documents offer missing families on open.
+- Plug-ins: sandboxed plug-ins with declared permissions checked by the window and the engine, Window > Plug-ins with a catalogue (sha256 checked), install from file, enable, disable; Word Count and Lorem Fill examples.
+- Open PDFs as editable layouts (frames, mapped fonts, pictures and shapes, the rest in a locked backdrop, with a fidelity report); Publisher and PageMaker files through LibreOffice; QuarkXPress wired but untested; .indd explains the IDML route.
+
 ## 0.25.3 · 2026-10-12
 
 - Parity batch six, eight graded rows close (121.5 to 127 of 133).
