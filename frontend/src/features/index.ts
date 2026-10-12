@@ -30,8 +30,10 @@ import { installAutocorrect } from './autocorrect';
 import { installPdfComments } from './pdf-comments';
 import { installReviewShare } from './review-share';
 import { installWordImport } from './word-import';
+import { installRenderer } from './renderer';
+import { installTableStyles } from './table-styles';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
   { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }, { install: installPathType }, { install: installInteractive }, { install: installXml }, { install: installLibrary },
   { install: installDictionaries }, { install: installProof }, { install: installWorkspaces }, { install: installShortcuts }, { install: installClipboard }, { install: installTextOptions }, { install: installTerminal }, { install: installConnect }, { install: installColourTools }, { install: installAutocorrect },
-  { install: installPdfComments }, { install: installReviewShare }, { install: installWordImport }];
+  { install: installPdfComments }, { install: installReviewShare }, { install: installWordImport }, { install: installRenderer }, { install: installTableStyles }];

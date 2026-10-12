@@ -347,6 +347,7 @@ export const feature: Feature = {
       { id: 'links.relinkPicked', label: 'Relink…', enabled: pickedLink, run: needLink(() => void links.relink()) },
       { id: 'links.goToPicked', label: 'Go to Link', enabled: pickedLink, run: needLink(() => void links.goTo()) },
       { id: 'links.updatePicked', label: 'Update Link', enabled: pickedLink, run: needLink(() => void links.update(false)) },
+      { id: 'links.editOriginal', label: 'Edit Original', enabled: () => !!links.pickedLink && links.pickedLink.status !== 'embedded' && links.pickedLink.status !== 'missing', run: needLink(() => void links.editOriginal()) },
       { id: 'links.updateAll', label: 'Update All Links', enabled: () => editor.hasDoc, run: () => void links.update(true) },
       { id: 'links.embedPicked', label: 'Embed Link', enabled: () => !!links.pickedLink && links.pickedLink.status !== 'embedded', run: needLink(() => void links.embed()) },
     );
@@ -362,6 +363,7 @@ export const feature: Feature = {
     ws.override('links.goTo', needLink(() => void links.goTo()));
     ws.override('links.embed', needLink(() => void links.embed()));
 
+    ws.addMenuItems({ menu: 'Edit', at: 'end', items: ['links.editOriginal'] });
     ws.addMenuItems({ menu: 'Layout', at: 'start', items: ['pages.first', 'ui.prevPage', 'ui.nextPage', 'pages.last', '-', 'pages.prevSpread', 'pages.nextSpread', '-', 'pages.goTo', '-', 'pages.editParents'] });
 
     ws.registerPanel({ id: 'pages', label: 'Pages', group: 'pages', column: 'left', order: 10, create: () => pages.root, onShow: () => { wire(); pages.onShow(); } });

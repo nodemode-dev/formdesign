@@ -13,7 +13,7 @@ from app.engine.documents import documents
 from app.services import userprefs as userprefs_service
 from app.routers import agents as agents_api
 from app.routers import colour as colour_api
-from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, website
+from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, versions as versions_api, website
 from app.services.pty import terminals
 
 logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
@@ -38,6 +38,7 @@ app = FastAPI(title="formdes engine", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 app.include_router(system.router, prefix="/api")
 app.include_router(core_api.router, prefix="/api")
+app.include_router(versions_api.router, prefix="/api")
 app.include_router(documents_api.router, prefix="/api")
 app.include_router(intake.router, prefix="/api")
 app.include_router(templates.router, prefix="/api")

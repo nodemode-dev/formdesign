@@ -19,6 +19,8 @@
 .fd-app .cv-dd-btn.fd-ws-select { width: 178px; }
 .fd-st-proof { color: var(--accent-ink); white-space: nowrap; }
 .fd-st-proof:empty { display: none; }
+.fd-st-renderer { color: var(--text-muted); white-space: nowrap; }
+.fd-st-renderer:empty { display: none; }
 .fd-field { display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: var(--fs-11); }
 .fd-field .cv-dd-btn { width: 100%; }
 .fd-note { margin: var(--space-2) 0 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }

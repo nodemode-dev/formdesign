@@ -27,6 +27,16 @@
 .fp-lab { overflow: hidden; color: var(--text-muted); font-size: var(--fs-11); text-overflow: ellipsis; white-space: nowrap; }
 .fp-linked { display: grid; grid-template-columns: minmax(0, 1fr) 22px; gap: 6px; align-items: stretch; min-width: 0; }
 .fp-note { margin: 2px 0 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }
+.fp-axes { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-1); }
+.fp-axes[hidden], .fp-axes-reset[hidden] { display: none; }
+.fp-axes-head { display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: var(--fs-11); }
+.fp-axes-reset { padding: 0 6px; height: 18px; border: 1px solid var(--line-2); border-radius: var(--radius); background: transparent; color: var(--text-muted); font-size: var(--fs-11); cursor: pointer; }
+.fp-axes-reset:hover { background: var(--surface-raised); color: var(--text-primary); }
+.fp-axes-rows { display: flex; flex-direction: column; gap: 4px; }
+.fp-ax { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; align-items: center; gap: 8px; color: var(--text-muted); font-size: var(--fs-11); }
+.fp-ax-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-ax-range { width: 100%; min-width: 0; margin: 0; accent-color: var(--accent-color); }
+.fp-ax-val { text-align: right; color: var(--text-primary); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .fp-hint { margin: 10px 2px 2px; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }
 .fp-grow { flex: 1; }
 .fp-vsep { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--line-2); }

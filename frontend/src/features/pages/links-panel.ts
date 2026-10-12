@@ -1,5 +1,5 @@
 import { editor } from '../../editor/editor';
-import { engine, type ChangeEvent } from '../../engine/client';
+import { api, engine, type ChangeEvent } from '../../engine/client';
 import { el, patchList, q, setClass, setHidden, setText, setTitle } from '../../ui/dom';
 import { toast } from '../../ui/toast';
 import type { Workspace } from '../../ui/workspace';
@@ -56,7 +56,7 @@ export class LinksPanel {
 
   onShow(): void { this.later.run(0); }
 
-  menu(): string[] { return ['links.relinkPicked', 'links.goToPicked', 'links.updatePicked', 'links.updateAll', '-', 'links.embedPicked']; }
+  menu(): string[] { return ['links.relinkPicked', 'links.goToPicked', 'links.updatePicked', 'links.updateAll', '-', 'links.editOriginal', 'links.embedPicked']; }
 
   get pickedLink(): LinkInfo | null {
     const a = this.picked.get(this.uid);
@@ -161,6 +161,16 @@ export class LinksPanel {
     const l = this.pickedLink;
     await editor.exec('links.update', all || !l ? {} : { asset: l.asset });
     await this.refresh(true);
+  }
+
+  /** Opens the linked file in the system's default app; the engine updates the link when that app saves it. */
+  async editOriginal(): Promise<void> {
+    const l = this.pickedLink;
+    if (!l) return;
+    try {
+      await api('/links/edit-original', { json: { asset: l.asset } });
+      toast(`Opened ${l.name}; the link updates when you save it there`);
+    } catch (err) { toast((err as Error).message, 'error'); }
   }
 
   async embed(): Promise<void> {

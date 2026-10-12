@@ -149,7 +149,7 @@ class Documents:
                 z.writestr("thumbs/page-1.png", thumb, compress_type=zipfile.ZIP_STORED)
         return buf.getvalue()
 
-    async def save(self, path: str | None = None, *, source: str = "engine") -> dict:
+    async def save(self, path: str | None = None, *, source: str = "engine", comment: str = "") -> dict:
         m = await self.meta_for_active()
         if m is None:
             raise CoreError("no document open")
@@ -170,9 +170,15 @@ class Documents:
                 p = p.with_suffix(config.FDES_EXT)
             from app.intake.store import packs
             pack = packs.get(m.pack_id) if m.pack_id else None
-            p.write_bytes(await self.serialize_fdes(pack))
+            data = await self.serialize_fdes(pack)
+            p.write_bytes(data)
             m.path = str(p)
             await core.call("docs.saved", {"path": str(p)}, source=source)
+            try:
+                from app.services import versions
+                versions.keep(str(p), data, comment, "save")
+            except OSError as exc:
+                log.warning("version not kept: %s", exc)
         self.remember(str(p))
         return {"path": str(p), "bytes": p.stat().st_size}
 
@@ -204,6 +210,10 @@ class Documents:
         if path:
             options["path"] = str(Path(path).expanduser())
         result = await core.exec(command, options, source=source)
+        if fmt == "pdf" and isinstance(result, dict):
+            # Transitions, form fields, media and the PDF/X identity are pypdf work on the finished file (services/pdfpost.py).
+            from app.services import pdfpost
+            result = await pdfpost.apply(result, options, options.get("path"), source)
         if path:
             return result, None, mime
         data = base64.b64decode(result.get("base64", "")) if isinstance(result, dict) and result.get("base64") else None

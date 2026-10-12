@@ -1,0 +1,26 @@
+/* formdes · File > Version History and Save a Version */
+
+.fd-versions .cv-dialog-body { gap: 14px; padding: 18px 20px; }
+.fd-vh-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.fd-vh-main { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; min-height: 300px; }
+.fd-vh-list { display: flex; flex-direction: column; gap: 2px; height: 320px; padding: 6px; overflow-y: auto; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-1); overscroll-behavior: contain; }
+.fd-vh-row { display: grid; grid-template-columns: 138px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fs-12); text-align: left; cursor: pointer; }
+.fd-vh-row:hover { background: var(--bg-hover); }
+.fd-vh-row.is-picked { border-color: var(--line-3); background: var(--surface-raised); }
+.fd-vh-when { color: var(--text-primary); white-space: nowrap; }
+.fd-vh-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-vh-row.is-named .fd-vh-what { color: var(--accent-ink); }
+.fd-vh-size { color: var(--text-muted); font-size: var(--fs-11); white-space: nowrap; }
+.fd-vh-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fd-vh-prev { height: 220px; overflow: hidden; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface-1); box-shadow: var(--shadow-sm); }
+.fd-vh-previmg { display: block; width: 100%; height: 100%; object-fit: contain; }
+.fd-vh-previmg:not([src]) { visibility: hidden; }
+.fd-vh-prev.is-empty .fd-vh-previmg { visibility: hidden; }
+.fd-vh-dname { color: var(--text-primary); font-size: var(--fs-13); font-weight: 500; overflow-wrap: anywhere; }
+.fd-vh-dsub { margin-top: 2px; color: var(--text-muted); font-size: var(--fs-12); }
+.fd-vh-empty { margin: 0; }
+
+@media (max-width: 640px) {
+  .fd-vh-main { grid-template-columns: minmax(0, 1fr); }
+  .fd-vh-side { display: none; }
+}

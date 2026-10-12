@@ -449,3 +449,12 @@ Each dialog is built once and its lists are patched by key (imported notes by st
 - logged: v0.25.0 · 2026-10-12
 
 File > Place with one .docx offers it to `onPlaceFile` handlers before the plain Place; cancelling the dialog counts as handled. The two style tables are keyed rows whose select options are patched, not rebuilt; a Word style with the same name as a document style defaults to that style, otherwise to Use Word style, and a remembered pick wins. After a Place into the cursor the window asks the engine to finish the pending character styles and footnotes on each change for up to 30 minutes.
+
+## src/features/properties: variable font axes (0.26.0) {#axes0260}
+
+### axes.ts
+- refers-to: frontend/src/features/properties/axes.ts :: VariationAxes; frontend/src/features/properties/textpanels.ts :: CharacterPanel
+- kind: rationale
+- logged: v0.26.0 · 2026-10-12
+
+The Character panel's axis sliders are built once per set of axes (a signature of tag, minimum and maximum), not per selection: moving between two fonts with the same axes only rewrites the slider values and readouts, and a font without axes hides the block. `type.fontAxes` answers are cached per family and style, and a slow answer for an earlier selection is dropped. A slider's readout follows the pointer; the change is sent on release or a key step as `fontVariations` (only axes that differ from the named style's coordinates, plus any already set), and Reset sends null.

@@ -11,6 +11,7 @@ import { PreferencesDialog } from './document/prefs';
 import { PreflightPanel } from './document/preflight';
 import { PublishDialog } from './document/publish';
 import { DocumentSetupDialog } from './document/setup';
+import { installVersions } from './document/versions';
 
 function lazy<T>(make: () => T): () => T {
   let v: T | null = null;
@@ -26,8 +27,11 @@ export const feature: Feature = {
     const setup = lazy(() => new DocumentSetupDialog(ws));
     const prefs = lazy(() => new PreferencesDialog());
     const has = () => editor.hasDoc;
+    const history = installVersions(ws);
 
     ws.addCommands(
+      { id: 'ui.saveVersion', label: 'Save a Version…', enabled: has, run: () => history.open(true) },
+      { id: 'ui.versionHistory', label: 'Version History…', enabled: has, run: () => history.open() },
       { id: 'ui.new', label: 'New Document…', keys: ['Mod+N'], run: () => newDoc().open() },
       { id: 'ui.export', label: 'Export…', keys: ['Mod+E'], enabled: has, run: () => void exporter().open() },
       { id: 'ui.exportWeb', label: 'Export Website…', enabled: has, run: () => void exporter().open('web') },
@@ -51,7 +55,7 @@ export const feature: Feature = {
     ws.override('file.package', () => void pack().open());
     ws.override('layout.documentSetup', () => void setup().open());
     ws.addMenuItems({ menu: 'File', items: ['ui.export', 'ui.publish'], at: 'start' });
-    ws.addMenuItems({ menu: 'File', items: ['ui.recover'], at: 'end' });
+    ws.addMenuItems({ menu: 'File', items: ['ui.saveVersion', 'ui.versionHistory', 'ui.recover'], at: 'end' });
     ws.addMenuItems({ menu: 'Edit', items: ['ui.prefs'], at: 'end' });
 
     let preflight: PreflightPanel | null = null;
