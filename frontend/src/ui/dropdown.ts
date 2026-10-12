@@ -6,6 +6,7 @@ import { icon } from './icons';
  *  a tick on the chosen item; arrows, Enter and Esc. The <select> stays underneath and stays the truth: a choice sets its
  *  value and fires its change event, so the code that owns it is unchanged; values it is given show on the button. */
 export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string } = {}): void {
+  if (select.classList.contains('cv-dd-native')) return;
   const btn = el<HTMLButtonElement>(`<button class="cv-dd-btn" type="button" aria-haspopup="listbox"><span class="cv-dd-label"></span>${icon('chevronDown', 12)}</button>`);
   const pop = el(`<div class="cv-dd-pop" role="listbox" hidden>${opts.search ? '<input class="cv-dd-search" type="search">' : ''}<div class="cv-dd-list"></div></div>`);
   const list = pop.querySelector('.cv-dd-list') as HTMLElement, search = pop.querySelector('.cv-dd-search') as HTMLInputElement | null;

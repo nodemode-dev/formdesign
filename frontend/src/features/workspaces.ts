@@ -7,7 +7,8 @@ import type { SubMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
 
-interface Spec { name: string; side: string[]; dock: string[]; open: string[]; hidden?: string[]; tabs?: Record<string, string> }
+interface Spec { name: string; left?: string[]; side: string[]; dock: string[]; open: string[]; hidden?: string[]; tabs?: Record<string, string> }
+const LEFT_DEFAULT = ['pages', 'make'];
 interface Saved { name: string; layout: PanelLayout }
 
 const BUILTIN: Spec[] = [
@@ -37,7 +38,8 @@ export function installWorkspaces(ws: Workspace): void {
     if (!b) return null;
     const groups: PanelLayout['groups'] = {};
     for (const gid of Object.keys(ws.layout().groups)) if (!/^g[0-9a-z]+$/.test(gid)) groups[gid] = { tab: b.tabs?.[gid], min: !b.open.includes(gid) };
-    return { dock: { side: b.side, dock: b.dock, hidden: b.hidden ?? [], heights: {}, custom: [], width: null }, groups, homes: {} };
+    const left = (b.left ?? LEFT_DEFAULT).filter((g) => !(b.hidden ?? []).includes(g));
+    return { dock: { left, side: b.side.filter((g) => !left.includes(g)), dock: b.dock.filter((g) => !left.includes(g)), hidden: b.hidden ?? [], heights: {}, custom: [], width: null, collapsed: [] }, groups, homes: {} };
   };
 
   const remember = (name: string): void => { current = name; try { localStorage.setItem(KEY, name); } catch { } if (select.value !== name) select.value = name; };

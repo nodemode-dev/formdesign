@@ -1,8 +1,12 @@
 import { el, setClass, setHidden, setStyleVar } from './dom';
+import { icon } from './icons';
 import { PanelGroup } from './panel-group';
 
-export type DockColumn = 'side' | 'dock';
-export interface DockState { side: string[]; dock: string[]; hidden: string[]; heights: Record<string, number>; custom: Array<{ id: string; label: string }>; width: number | null }
+export type DockColumn = 'left' | 'side' | 'dock';
+export interface DockState { left: string[]; side: string[]; dock: string[]; hidden: string[]; heights: Record<string, number>; custom: Array<{ id: string; label: string }>; width: number | null; collapsed: DockColumn[] }
+const COLS: DockColumn[] = ['left', 'side', 'dock'];
+const LEFT_W = 252;
+const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'sparkle', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder' };
 export interface PanelLayout { dock: DockState; groups: Record<string, { tab?: string; min?: boolean }>; homes: Record<string, string> }
 
 const KEY = 'formdes.dock';
@@ -24,8 +28,8 @@ export class Dock {
   private suppressClick = false;
   onChange: (() => void) | null = null;
 
-  constructor(private readonly root: HTMLElement, private readonly cols: Record<DockColumn, HTMLElement>, private readonly resizer: HTMLElement, private readonly makeGroup: (host: HTMLElement, id: string, label: string) => PanelGroup) {
-    this.defaults = { side: ids(cols.side), dock: ids(cols.dock), hidden: [], heights: {}, custom: [], width: null };
+  constructor(private readonly root: HTMLElement, private readonly cols: Record<DockColumn, HTMLElement>, private readonly resizer: HTMLElement, private readonly makeGroup: (host: HTMLElement, id: string, label: string) => PanelGroup, private readonly minirail: HTMLElement) {
+    this.defaults = { left: ids(cols.left), side: ids(cols.side), dock: ids(cols.dock), hidden: [], heights: {}, custom: [], width: null, collapsed: [] };
     let raw: Partial<DockState> = {};
     try { raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<DockState>; } catch { raw = {}; }
     for (const c of Array.isArray(raw.custom) ? raw.custom : []) if (c && CUSTOM_ID.test(String(c.id)) && typeof c.label === 'string' && !PanelGroup.all.has(c.id)) makeGroup(cols.dock, c.id, c.label);
@@ -39,12 +43,18 @@ export class Dock {
 
   private merge(raw: Partial<DockState>): DockState {
     const known = this.known(), has = (id: string) => known.includes(id);
-    const side = strs(raw.side).filter(has), dock = strs(raw.dock).filter((id) => has(id) && !side.includes(id));
-    for (const id of this.defaults.side) if (!side.includes(id) && !dock.includes(id)) side.splice(Math.min(this.defaults.side.indexOf(id), side.length), 0, id);
-    for (const id of known) if (!side.includes(id) && !dock.includes(id)) { const at = this.defaults.dock.indexOf(id); dock.splice(at < 0 ? dock.length : Math.min(at, dock.length), 0, id); }
+    const fresh = !Array.isArray(raw.left);
+    const left = fresh ? [] : strs(raw.left).filter(has);
+    const side = strs(raw.side).filter((id) => has(id) && !left.includes(id)), dock = strs(raw.dock).filter((id) => has(id) && !left.includes(id) && !side.includes(id));
+    const placed = (id: string) => left.includes(id) || side.includes(id) || dock.includes(id);
+    if (fresh) for (const id of this.defaults.left) { if (side.includes(id)) side.splice(side.indexOf(id), 1); if (dock.includes(id)) dock.splice(dock.indexOf(id), 1); left.push(id); }
+    for (const id of this.defaults.left) if (!placed(id)) left.splice(Math.min(this.defaults.left.indexOf(id), left.length), 0, id);
+    for (const id of this.defaults.side) if (!placed(id)) side.splice(Math.min(this.defaults.side.indexOf(id), side.length), 0, id);
+    for (const id of known) if (!placed(id)) { const at = this.defaults.dock.indexOf(id); dock.splice(at < 0 ? dock.length : Math.min(at, dock.length), 0, id); }
     const custom = (Array.isArray(raw.custom) ? raw.custom : []).filter((c) => c && has(c.id) && CUSTOM_ID.test(c.id)).map((c) => ({ id: c.id, label: String(c.label).slice(0, 80) }));
     const w = typeof raw.width === 'number' && raw.width >= W_MIN && raw.width <= W_MAX ? Math.round(raw.width) : null;
-    return { side, dock, hidden: strs(raw.hidden).filter(has), heights: nums(raw.heights), custom, width: w };
+    const collapsed = strs(raw.collapsed).filter((c): c is DockColumn => (COLS as string[]).includes(c));
+    return { left, side, dock, hidden: strs(raw.hidden).filter(has), heights: nums(raw.heights), custom, width: w, collapsed };
   }
 
   get snapshot(): DockState { return JSON.parse(JSON.stringify(this.state)) as DockState; }
@@ -69,7 +79,7 @@ export class Dock {
     const keep = this.state.custom.filter((c) => { const g = PanelGroup.all.get(c.id); if (g && g.size > 0) return true; g?.remove(); return false; });
     if (keep.length === this.state.custom.length) return;
     const gone = new Set(this.state.custom.filter((c) => !keep.includes(c)).map((c) => c.id));
-    this.state = { ...this.state, custom: keep, side: this.state.side.filter((id) => !gone.has(id)), dock: this.state.dock.filter((id) => !gone.has(id)) };
+    this.state = { ...this.state, custom: keep, left: this.state.left.filter((id) => !gone.has(id)), side: this.state.side.filter((id) => !gone.has(id)), dock: this.state.dock.filter((id) => !gone.has(id)) };
     this.persist();
   }
 
@@ -81,7 +91,8 @@ export class Dock {
   private save(): void { this.persist(); this.apply(); this.onChange?.(); }
 
   private apply(): void {
-    for (const col of ['side', 'dock'] as DockColumn[]) {
+    this.closeFly();
+    for (const col of COLS) {
       const host = this.cols[col], want = this.state[col].map((id) => this.section(id)).filter((s): s is HTMLElement => !!s);
       const now = Array.from(host.children).filter((c) => want.includes(c as HTMLElement));
       if (want.some((s, i) => now[i] !== s)) for (const s of want) host.appendChild(s);
@@ -97,11 +108,124 @@ export class Dock {
     this.splitters();
     if (this.state.width) setStyleVar(this.root, '--cv-layers-w', `${this.state.width}px`);
     else if (this.root.style.getPropertyValue('--cv-layers-w')) this.root.style.removeProperty('--cv-layers-w');
+    for (const col of COLS) setClass(this.cols[col], 'is-collapsed', this.isCollapsed(col));
+    setClass(this.root, 'is-side-collapsed', this.isCollapsed('side'));
+    setClass(this.root, 'is-dock-collapsed', this.isCollapsed('dock'));
+    const leftOpen = this.shown('left').length > 0 && !this.isCollapsed('left');
+    setStyleVar(this.root, '--fd-left-w', leftOpen ? `${LEFT_W}px` : '0px');
+    setHidden(this.cols.left, !leftOpen);
+    this.renderStrips();
+  }
+
+  isCollapsed(col: DockColumn): boolean { return this.state.collapsed.includes(col); }
+
+  /** A column folded to icons: the left column into the tool rail's lower part (one minirail), the right columns into
+   *  a strip at their top. A strip icon opens its group as a flyout beside it, the group's own element moved there and
+   *  back (never rebuilt), so scroll, inputs and selection survive. */
+  setCollapsed(col: DockColumn, on: boolean): void {
+    if (this.isCollapsed(col) === on) return;
+    this.state.collapsed = on ? [...this.state.collapsed, col] : this.state.collapsed.filter((c) => c !== col);
+    this.save();
+  }
+
+  private readonly strips = new Map<DockColumn, HTMLElement>();
+  private readonly collapseBtns = new Map<DockColumn, HTMLElement>();
+  private fly: HTMLElement | null = null;
+  private flyOpen: { s: HTMLElement; mark: Comment; btn: HTMLElement } | null = null;
+
+  private closeFly(): void {
+    const o = this.flyOpen;
+    if (!o) return;
+    o.mark.replaceWith(o.s);
+    o.btn.classList.remove('is-on');
+    this.flyOpen = null;
+    if (this.fly) setHidden(this.fly, true);
+  }
+
+  private flyHost(): HTMLElement {
+    if (!this.fly) {
+      this.fly = el('<div class="cv-props-fly cv-dock-fly fd-col-fly" hidden></div>');
+      (document.getElementById('overlay-root') ?? document.body).appendChild(this.fly);
+      document.addEventListener('pointerdown', (e) => { const t = e.target as Node; if (this.flyOpen && !this.fly?.contains(t) && !this.flyOpen.btn.contains(t)) this.closeFly(); }, true);
+      document.addEventListener('keydown', (e) => { if (this.flyOpen && e.key === 'Escape') this.closeFly(); });
+    }
+    return this.fly;
+  }
+
+  private stripFor(col: DockColumn): HTMLElement {
+    let s = this.strips.get(col);
+    if (!s) {
+      s = el(col === 'left' ? '<div class="fd-minirail-groups"></div>' : `<div class="${col === 'side' ? 'cv-props-strip' : 'cv-dock-strip'}"></div>`);
+      if (col === 'left') this.minirail.appendChild(s); else this.cols[col].prepend(s);
+      const label = col === 'left' ? 'Expand the left panels' : 'Expand panels';
+      const expand = el<HTMLButtonElement>(`<button class="cv-strip-btn cv-strip-expand" type="button" title="${label}" aria-label="${label}">${icon(col === 'left' ? 'collapseRight' : 'collapseLeft', 16)}</button>`);
+      expand.addEventListener('click', () => this.setCollapsed(col, false));
+      s.appendChild(expand);
+      this.strips.set(col, s);
+    }
+    return s;
+  }
+
+  private renderStrips(): void {
+    for (const col of COLS) {
+      const on = this.isCollapsed(col) && this.shown(col).length > 0;
+      if (col === 'left') setHidden(this.minirail, !on);
+      if (!on && !this.strips.has(col)) { this.placeCollapse(col); continue; }
+      const strip = this.stripFor(col);
+      const want = on ? this.state[col].filter((id) => this.present(id)) : [];
+      const have = new Map<string, HTMLElement>();
+      for (const b of Array.from(strip.querySelectorAll<HTMLElement>('[data-group]'))) have.set(b.dataset.group as string, b);
+      for (const [id, b] of have) if (!want.includes(id)) b.remove();
+      for (const id of want) {
+        let b = have.get(id);
+        if (!b) b = this.stripButton(col, id);
+        strip.appendChild(b);
+      }
+      this.placeCollapse(col);
+    }
+  }
+
+  private stripButton(col: DockColumn, id: string): HTMLElement {
+    const label = PanelGroup.all.get(id)?.root.getAttribute('aria-label') ?? id;
+    const b = el<HTMLButtonElement>(`<button class="cv-strip-btn" type="button">${icon(GROUP_ICONS[id] ?? 'panelNav', 18)}</button>`);
+    b.dataset.group = id;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', () => {
+      const s = this.section(id);
+      if (!s) return;
+      if (this.flyOpen?.s === s) { this.closeFly(); return; }
+      this.closeFly();
+      const fly = this.flyHost(), mark = document.createComment(id);
+      s.replaceWith(mark);
+      fly.appendChild(s);
+      setHidden(fly, false);
+      this.flyOpen = { s, mark, btn: b };
+      b.classList.add('is-on');
+      const r = b.getBoundingClientRect();
+      if (col === 'left') { fly.style.right = ''; fly.style.left = `${Math.round(r.right + 8)}px`; }
+      else { fly.style.left = ''; fly.style.right = `${Math.round(window.innerWidth - r.left + 8)}px`; }
+      fly.style.top = `${Math.round(Math.max(8, Math.min(r.top, window.innerHeight - fly.offsetHeight - 8)))}px`;
+    });
+    return b;
+  }
+
+  /** The collapse control sits on the head of the column's first shown group. */
+  private placeCollapse(col: DockColumn): void {
+    let btn = this.collapseBtns.get(col);
+    if (!btn) {
+      const label = col === 'left' ? 'Collapse to the minirail' : 'Collapse to icons';
+      btn = el<HTMLButtonElement>(`<button class="cv-group-collapse cv-dock-collapse" type="button" title="${label}" aria-label="${label}">${icon(col === 'left' ? 'collapseLeft' : 'collapseRight', 14)}</button>`);
+      btn.addEventListener('click', (e) => { e.stopPropagation(); this.setCollapsed(col, true); });
+      this.collapseBtns.set(col, btn);
+    }
+    const first = this.shown(col)[0], head = first?.querySelector(':scope > .cv-panel-head');
+    if (head && btn.parentElement !== head) head.appendChild(btn);
   }
 
   private splitters(): void {
     const used = new Set<string>();
-    for (const col of ['side', 'dock'] as DockColumn[]) {
+    for (const col of COLS) {
       const shown = this.shown(col);
       for (let i = 0; i < shown.length - 1; i++) {
         const above = shown[i], id = above.dataset.group as string;
@@ -200,16 +324,16 @@ export class Dock {
   private insert(id: string, col: DockColumn, index: number): void {
     const before = this.state[col].filter((x) => this.present(x))[index] ?? null;
     if (before === id) return;
-    const side = this.state.side.filter((x) => x !== id), dock = this.state.dock.filter((x) => x !== id);
-    const into = col === 'side' ? side : dock, at = before ? into.indexOf(before) : into.length;
+    const left = this.state.left.filter((x) => x !== id), side = this.state.side.filter((x) => x !== id), dock = this.state.dock.filter((x) => x !== id);
+    const into = col === 'left' ? left : col === 'side' ? side : dock, at = before ? into.indexOf(before) : into.length;
     into.splice(at < 0 ? into.length : at, 0, id);
-    this.state = { ...this.state, side, dock };
+    this.state = { ...this.state, left, side, dock };
     this.save();
   }
 
   gapAt(x: number, y: number): { col: DockColumn; index: number; host: HTMLElement; y: number } | null {
     let col: DockColumn | null = null;
-    for (const c of ['side', 'dock'] as DockColumn[]) {
+    for (const c of COLS) {
       const r = this.cols[c].getBoundingClientRect();
       if (r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) col = c;
     }

@@ -1,0 +1,36 @@
+/* The left panel column and the minirail (Sprint 20, phase 1). The main grid gains a left column between the tool rail
+   and the canvas; its width is one variable the dock writes (--fd-left-w: 252px open, 0 when collapsed or empty), so a
+   collapse moves no node and rebuilds nothing. Collapsed, the left column's groups become icons in the rail's lower part. */
+.fd-app .cv-main {
+  grid-template-columns: var(--cv-rail-w) var(--fd-left-w, 0px) minmax(0, 1fr) var(--cv-props-w, 284px) 6px var(--cv-layers-w);
+  grid-template-areas: "opts opts opts props rsz dock" "rail left stage props rsz dock";
+}
+.fd-app .cv-main > .fd-left-col { grid-area: left; }
+.fd-left-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg-secondary); border-right: 1px solid var(--line-0); }
+.fd-left-col[hidden] { display: none; }
+.fd-left-col > section.cv-group { flex: none; }
+.fd-left-col > section.cv-group:not(.is-min):not(.is-sized) { flex: 1 1 0; min-height: 150px; overflow: hidden; display: flex; flex-direction: column; }
+.fd-left-col > section.cv-group > .cv-group-body:not([hidden]) { flex: 1; min-height: 0; overflow-y: auto; }
+.fd-left-col > section.cv-pages.cv-group > .cv-group-body { display: flex; flex-direction: column; padding: 0; }
+.fd-left-col > section.is-sized { display: flex; flex-direction: column; overflow: hidden; }
+
+/* The rail stays one column of icons: tools on top, the folded left groups at the bottom. */
+.cv-rail { min-height: 0; }
+.fd-minirail { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: auto; padding: 8px 0 4px; border-top: 1px solid var(--line-1); }
+.fd-minirail[hidden] { display: none; }
+.fd-minirail-groups { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+/* The right columns folded to their strips: the column narrows to the strip's width. */
+.fd-app.is-side-collapsed .cv-main { --cv-props-w: 46px; }
+.fd-app.is-dock-collapsed .cv-main { --cv-layers-w: 46px; }
+.fd-app.is-dock-collapsed .cv-resizer { visibility: hidden; pointer-events: none; }
+.cv-props-col.is-collapsed > .cv-group, .cv-props-col.is-collapsed > .cv-dock-split { display: none !important; }
+
+/* A flyout from the minirail or a strip holds the group's own element. */
+.fd-col-fly > section { display: flex !important; flex-direction: column; max-height: calc(100vh - 40px); }
+.fd-col-fly > section > .cv-group-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Tab (Hide Panels) hides the left column with the others. */
+.cv-app.is-panels-hidden .fd-left-col { display: none !important; }
+.fd-app.is-panels-hidden .cv-main { --fd-left-w: 0px; }
+.cv-app.is-panels-hidden .cv-main { grid-template-columns: 0 0 minmax(0, 1fr) 0 0 0 !important; }

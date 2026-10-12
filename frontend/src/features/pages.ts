@@ -364,9 +364,9 @@ export const feature: Feature = {
 
     ws.addMenuItems({ menu: 'Layout', at: 'start', items: ['pages.first', 'ui.prevPage', 'ui.nextPage', 'pages.last', '-', 'pages.prevSpread', 'pages.nextSpread', '-', 'pages.goTo', '-', 'pages.editParents'] });
 
-    ws.registerPanel({ id: 'pages', label: 'Pages', group: 'pages', column: 'dock', order: 10, create: () => pages.root, onShow: () => { wire(); pages.onShow(); } });
-    ws.registerPanel({ id: 'layers', label: 'Layers', group: 'pages', column: 'dock', order: 20, create: () => layers.root, onShow: () => { wire(); layers.onShow(); } });
-    ws.registerPanel({ id: 'links', label: 'Links', group: 'pages', column: 'dock', order: 30, create: () => links.root, onShow: () => { wire(); links.onShow(); } });
+    ws.registerPanel({ id: 'pages', label: 'Pages', group: 'pages', column: 'left', order: 10, create: () => pages.root, onShow: () => { wire(); pages.onShow(); } });
+    ws.registerPanel({ id: 'layers', label: 'Layers', group: 'pages', column: 'left', order: 20, create: () => layers.root, onShow: () => { wire(); layers.onShow(); } });
+    ws.registerPanel({ id: 'links', label: 'Links', group: 'pages', column: 'left', order: 30, create: () => links.root, onShow: () => { wire(); links.onShow(); } });
     requestAnimationFrame(wire);
   },
 };

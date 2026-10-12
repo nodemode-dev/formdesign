@@ -5,7 +5,7 @@ import type { Command, Commands } from './commands';
 import type { PanelLayout } from './dock';
 import type { MenuItem } from './menu';
 
-export type Column = 'side' | 'dock';
+export type Column = 'left' | 'side' | 'dock';
 export type MenuName = 'File' | 'Edit' | 'Layout' | 'Type' | 'Object' | 'Table' | 'View' | 'Window' | 'Help';
 
 export interface PanelSpec {

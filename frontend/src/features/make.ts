@@ -60,8 +60,8 @@ function install(ws: Workspace): void {
   links.pickTemplate = () => (gallery ??= new Gallery()).open('pick');
   links.openBrands = (name) => void (kits ??= new BrandKits(ws)).open(name);
 
-  ws.registerPanel({ id: 'make', label: 'Make', group: 'make', column: 'dock', order: 10, create: () => makePage });
-  ws.registerPanel({ id: 'slots', label: 'Slots', group: 'make', column: 'dock', order: 20, create: () => slotsPage, onShow: () => slots.onShow() });
+  ws.registerPanel({ id: 'make', label: 'Make', group: 'make', column: 'left', order: 10, create: () => makePage });
+  ws.registerPanel({ id: 'slots', label: 'Slots', group: 'make', column: 'left', order: 20, create: () => slotsPage, onShow: () => slots.onShow() });
 
   const free = (combo: string): string[] => (ws.commands.forCombo(combo) ? [] : [combo]);
   ws.addCommands(

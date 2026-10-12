@@ -2,6 +2,7 @@ import { engine } from './engine/client';
 import { FEATURES } from './features';
 import { brandMark } from './ui/brand';
 import { mountOnce, q, revealApp } from './ui/dom';
+import { enhanceAllSelects } from './ui/dropdown';
 import { icon } from './ui/icons';
 import { Shell } from './ui/shell';
 import { applyTheme } from './ui/themes';
@@ -25,7 +26,8 @@ const SHELL = `<div class="cv-app fd-app">
 </header>
 <div class="cv-main">
 <div class="cv-options fd-control"></div>
-<aside class="cv-rail" aria-label="Tools"><div class="cv-rail-tools"></div><div class="cv-colors fd-fillstroke"></div><div class="cv-rail-modes"></div></aside>
+<aside class="cv-rail" aria-label="Tools"><div class="cv-rail-tools"></div><div class="cv-colors fd-fillstroke"></div><div class="cv-rail-modes"></div><div class="fd-minirail" hidden></div></aside>
+<section class="fd-left-col" aria-label="Left panels" hidden></section>
 <div class="cv-stage-col">
 <div class="cv-doc-tabs"><div class="cv-tabs"><div class="cv-tab-strip" role="tablist"></div><button class="cv-icon-btn" type="button" data-cmd="new" title="New Document">${icon('add', 16)}</button></div></div>
 <main class="cv-stage fd-stage">
@@ -49,6 +51,7 @@ export function startApp(): void {
   const host = document.getElementById('app');
   if (!host) return;
   mountOnce(host, SHELL);
+  enhanceAllSelects();
   const root = q(host, '.fd-app');
   const shell = new Shell(root);
   for (const f of FEATURES) {

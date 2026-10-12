@@ -5,6 +5,7 @@ import { Viewport } from '../editor/viewport';
 import { Commands, comboOf, type Command } from './commands';
 import { askSaveChanges, Dialog } from './dialogs';
 import { needsForm, openCommandForm } from './command-form';
+import { CommandPalette } from './command-palette';
 import { el, escapeHtml, isMac, patchList, q, setClass, setHidden, setText, setTitle } from './dom';
 import { HomeScreen } from './home';
 import { icon } from './icons';
@@ -54,6 +55,7 @@ export class Shell implements Workspace {
   private readonly stage: HTMLElement;
   private dock: Dock | null = null;
   private groupMenu: PopupMenu | null = null;
+  private palette: CommandPalette | null = null;
   private menuGroup = '';
 
   constructor(readonly root: HTMLElement) {
@@ -99,7 +101,7 @@ export class Shell implements Workspace {
   layout(): PanelLayout {
     const groups: PanelLayout['groups'] = {}, homes: Record<string, string> = {};
     for (const [gid, g] of PanelGroup.all) { groups[gid] = { tab: g.current, min: g.minimised }; for (const t of g.tabIds) homes[t] = gid; }
-    const dock = this.dock?.snapshot ?? { side: [], dock: [], hidden: [], heights: {}, custom: [], width: null };
+    const dock = this.dock?.snapshot ?? { left: [], side: [], dock: [], hidden: [], heights: {}, custom: [], width: null, collapsed: [] };
     return { dock, groups, homes };
   }
 
@@ -219,6 +221,9 @@ export class Shell implements Workspace {
       { id: 'ui.nextPage', label: 'Next Page', keys: ['Shift+PageDown'], enabled: has, run: () => this.stepPage(1) },
       { id: 'ui.panels', label: 'Hide Panels', keys: ['Tab'], run: () => this.root.classList.toggle('is-panels-hidden') },
       { id: 'ui.about', label: 'About FormDesign', run: () => toast(`FormDesign ${VERSION} · layout core ${editor.coreVersion || 'offline'} · Apache-2.0`) },
+      { id: 'ui.search', label: 'Search…', keys: ['Mod+K'], run: () => { this.palette ??= new CommandPalette(this.commands, () => MENUS.map((m) => ({ label: m, items: () => this.menuItems(m) }))); this.palette.show(); } },
+      { id: 'ui.collapseLeft', keys: ['Alt+Shift+Mod+L'], label: () => (this.dock?.isCollapsed('left') ? 'Expand Left Panels' : 'Collapse Left Panels to Minirail'), run: () => this.dock?.setCollapsed('left', !this.dock.isCollapsed('left')) },
+      { id: 'ui.collapseRight', keys: ['Shift+Tab'], label: () => (this.dock?.isCollapsed('dock') ? 'Expand Right Panels' : 'Collapse Right Panels to Icons'), run: () => { const on = !this.dock?.isCollapsed('dock'); this.dock?.setCollapsed('side', on); this.dock?.setCollapsed('dock', on); } },
       { id: 'ui.group.close', label: 'Close Group', run: () => { if (this.menuGroup) this.dock?.hide(this.menuGroup); } },
       { id: 'ui.group.minimise', label: () => (PanelGroup.all.get(this.menuGroup)?.minimised ? 'Expand Group' : 'Minimise Group'), run: () => { const g = PanelGroup.all.get(this.menuGroup); g?.setMinimised(!g.minimised); } },
     );
@@ -282,9 +287,9 @@ export class Shell implements Workspace {
   private uiMenu(name: MenuName): { pre: MenuItem[]; post: MenuItem[] } {
     switch (name) {
       case 'File': return { pre: ['ui.open', 'ui.close', 'ui.save', 'ui.saveAs', '-', 'ui.place'], post: [] };
-      case 'Edit': return { pre: ['ui.undo', 'ui.redo'], post: ['ui.shortcuts'] };
+      case 'Edit': return { pre: ['ui.undo', 'ui.redo'], post: ['ui.search', 'ui.shortcuts'] };
       case 'View': return { pre: ['ui.zoomIn', 'ui.zoomOut', 'ui.fitPage', 'ui.fitSpread', 'ui.actualSize', 'ui.fitAll', '-', 'ui.preview', 'ui.quality', '-', 'ui.rulers', 'ui.guides', 'ui.frames', 'ui.baseline', 'ui.threads', '-', 'ui.prevPage', 'ui.nextPage'], post: [] };
-      case 'Window': return { pre: this.panels.map((p) => `ui.panel.${p.id}`), post: ['ui.panels', 'ui.home'] };
+      case 'Window': return { pre: this.panels.map((p) => `ui.panel.${p.id}`), post: ['ui.collapseLeft', 'ui.collapseRight', 'ui.panels', 'ui.home'] };
       case 'Help': return { pre: ['ui.about'], post: [] };
       default: return { pre: [], post: [] };
     }
@@ -349,7 +354,8 @@ export class Shell implements Workspace {
   }
 
   mountPanels(): void {
-    const side = q(this.root, '.cv-props-col'), dock = q(this.root, '.cv-layers');
+    const left = q(this.root, '.fd-left-col'), side = q(this.root, '.cv-props-col'), dock = q(this.root, '.cv-layers');
+    const hostOf = (c: PanelSpec['column']): HTMLElement => (c === 'left' ? left : c === 'side' ? side : dock);
     PanelGroup.startMin = new Set(['swatches', 'preflight', 'typeextra', 'review', 'interactive', 'xml', 'library']);
     const byGroup = new Map<string, PanelSpec[]>();
     for (const p of [...this.panels].sort((a, b) => (a.order ?? 50) - (b.order ?? 50))) {
@@ -364,7 +370,7 @@ export class Shell implements Workspace {
         this.panelBodies.set(p.id, body);
         return { id: p.id, label: p.label, body };
       });
-      const g = new PanelGroup(list[0].column === 'side' ? side : dock, gid, tabs, list.map((p) => p.label).join(', '));
+      const g = new PanelGroup(hostOf(list[0].column), gid, tabs, list.map((p) => p.label).join(', '));
       g.onTab = (id) => this.panels.find((p) => p.id === id)?.onShow?.();
       this.groupMenuFor(g);
       this.groups.set(gid, g);
@@ -375,7 +381,7 @@ export class Shell implements Workspace {
       this.groupMenuFor(g);
       return g;
     };
-    const dk = new Dock(this.root, { side, dock }, q(this.root, '.cv-resizer'), makeGroup);
+    const dk = new Dock(this.root, { left, side, dock }, q(this.root, '.cv-resizer'), makeGroup, q(this.root, '.fd-minirail'));
     this.dock = dk;
     PanelGroup.restoreHomes();
     PanelGroup.onMoved = () => dk.refresh();
@@ -407,7 +413,7 @@ export class Shell implements Workspace {
     body.dataset.panel = spec.id;
     this.panelBodies.set(spec.id, body);
     if (g) g.addTab(spec.id, spec.label, body);
-    else this.groups.set(spec.group, new PanelGroup(q(this.root, spec.column === 'side' ? '.cv-props-col' : '.cv-layers'), spec.group, [{ id: spec.id, label: spec.label, body }], spec.label));
+    else this.groups.set(spec.group, new PanelGroup(q(this.root, spec.column === 'left' ? '.fd-left-col' : spec.column === 'side' ? '.cv-props-col' : '.cv-layers'), spec.group, [{ id: spec.id, label: spec.label, body }], spec.label));
   }
 
   private wire(): void {

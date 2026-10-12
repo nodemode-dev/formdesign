@@ -30,6 +30,15 @@
 .cv-list-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-2); height: var(--ctl); padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font-size: var(--fs-12); text-align: left; cursor: pointer; }
 .cv-list-row:hover { background: var(--bg-hover); color: var(--text-primary); }
 .cv-list-row.is-selected { background: var(--accent-color-dim); color: var(--text-primary); }
+.cv-palette-box { position: relative; height: calc(12 * var(--ctl) + 11 * 2px + 2 * var(--space-1) + 2px); margin-top: var(--space-2); }
+.cv-palette-list { display: grid; align-content: start; gap: 2px; height: 100%; overflow: hidden; padding: var(--space-1); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-primary); }
+.cv-palette-row { grid-template-columns: 18px minmax(0, 1fr) 260px; }
+.cv-palette-row .cv-list-name, .cv-palette-row .cv-list-meta { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cv-palette-row .cv-list-meta { text-align: right; }
+.cv-palette-row.is-off { opacity: 0.45; cursor: default; }
+.cv-palette-row.is-off:hover { background: transparent; color: var(--text-secondary); }
+.cv-palette-icon { display: grid; place-items: center; color: var(--text-muted); }
+.cv-palette-empty { position: absolute; top: var(--space-4); left: 0; right: 0; text-align: center; }
 .cv-list-meta { color: var(--text-muted); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
 .cv-list-empty { padding: var(--space-4); color: var(--text-muted); font-size: var(--fs-11); text-align: center; }
 .cv-list-empty[hidden] { display: none; }
