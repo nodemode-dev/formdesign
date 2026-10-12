@@ -408,3 +408,12 @@ The handle lives inside the left column (absolute, right edge) rather than as a 
 - logged: v0.21.0 · 2026-10-12
 
 The owner chose a dockable panel over a drawer, so the terminal is an ordinary panel group (`terminal`, home column `left`, minimised at start) and gets folding, flyouts, workspaces and drag for free. xterm is imported on first show only, so the window's first paint does not pay for it. One `.ft-screen` per session stays mounted; a tab switch flips `hidden`, and the flyout moves the panel's own node, so a running CLI never loses its screen. Resize goes through one rAF-coalesced fit, and xterm's onResize sends the new size to the PTY. Colours come from the theme tokens at creation and on `nm:ui-settings-changed`, assigned to `term.options.theme`, which xterm applies without a remount. xterm 6 draws its own scrollbar elements inside `.xterm-scrollable-element`, which the global `::-webkit-scrollbar` rule cannot reach, so terminal.css hides them by class and the slider colours are transparent as well. Exit is detected from the engine's `[process exited with code N]` line, which strikes the tab through.
+
+## src/features/connect.ts {#connect0220}
+
+### connect.ts · the Agent Connect panel
+- refers-to: frontend/src/features/connect.ts :: ConnectPanel, installConnect; frontend/src/engine/client.ts :: receive; frontend/src/ui/shell.ts :: publishActions, agentView
+- kind: rationale
+- logged: v0.22.0 · 2026-10-12
+
+The engine announces agent activity as `{type: "agents", what}` events on the window's socket rather than sending the lists, so the panel refetches one snapshot (`/api/agents`, coalesced while a fetch is running) and patches its four keyed lists; nothing in the panel is rebuilt, and a select the person is using is not overwritten. An approval request opens the panel and raises a toast, because the agent is blocked until the person answers. Follow the agent listens to `changed` events from source `mcp` and reveals the union of their damage rectangles, skipping structural changes (no damage, or a damage box larger than the pasteboard). `view` events from the `show` tool go to the shell, which reuses showPanel, setTool, showPage and the zoom commands, so an agent can move the person's view only in ways a person could. The shell posts its own commands (ids, labels, keys, menu) to `/api/actions/window` once, after the menus exist, so the engine's catalogue includes window-only actions.

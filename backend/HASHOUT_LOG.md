@@ -323,3 +323,26 @@ A shell reachable from a browser is the largest surface FormDesign has. The engi
 
 `make`, `export` and `check-template` start their own core; `cmd`, `commands`, `tools` and `tool` deliberately do not: they call the running engine over HTTP (`/api/core/exec`, `/api/core/commands`, `/mcp`), so what a person or an agent does in the terminal lands in the document the window shows, as one undo step per command, and repaints through the same change events. `tool` uses the MCP endpoint rather than its own code path, so the terminal and agents can never disagree about what a tool does.
 
+## app/services/agents.py and app/routers/agents.py {#connect0220}
+
+### agents.py · who is calling
+- refers-to: backend/app/services/agents.py :: identify, display, KNOWN; backend/app/routers/mcp.py :: mcp; setup/mcp_stdio.py :: forward
+- kind: rationale
+- logged: v0.22.0 · 2026-10-12
+
+The MCP endpoint is stateless, and only initialize carries clientInfo, so the engine now answers initialize with an Mcp-Session-Id header (clients send it back on every later request, as Streamable HTTP asks) and maps it to the client; unknown or missing ids are not refused, so stateless clients keep working and fall back to the 2026-07-28 `_meta` clientInfo or the user agent. The stdio bridge keeps the id between lines and adds `X-Formdes-Transport: stdio`. Names are normalised (`claude-code` becomes Claude Code) so a policy set for an agent survives its version changes. Sessions live in memory: after an engine restart a client is known again at its next initialize.
+
+### agents.py · policies, gates and approvals
+- refers-to: backend/app/services/agents.py :: policy, gate_reason, ask, decide, record; backend/app/routers/mcp.py :: call_tool
+- kind: rationale
+- logged: v0.22.0 · 2026-10-12
+
+The plan's risky steps are the ones a person cannot take back with Undo: publishing, writing over a file on disk, packaging, printing, and deleting several pages. Ask (the default for a new agent) parks such a call on a future that the window's Approve or Decline resolves; the HTTP request stays open for up to 300 seconds, inside the stdio bridge's 660 second timeout, and a decline or timeout returns an error that tells the agent to ask the person. Allow all skips the gates, Deny refuses every call; the master switch still overrides all three. The activity ring (200 calls) records the revision before and after each call so the feed can say whether the document changed. Policies and the switch share agents.json; the old settings route now writes through set_enabled so it no longer drops the policies.
+
+### routers/agents.py · the action catalogue
+- refers-to: backend/app/routers/agents.py :: actions, actions_window
+- kind: rationale
+- logged: v0.22.0 · 2026-10-12
+
+One list of everything FormDesign can do, built on request from the core's `commands` and `tools`, the window's own actions (posted by the window once its menus exist, kept in memory) and the MCP tool list, each with where it is reachable. Menus and Search already read the same sources; this is the list agents, the CLI and the skills read, so a new command shows up everywhere without a hand-written reference.
+

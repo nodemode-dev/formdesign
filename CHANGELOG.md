@@ -2,6 +2,13 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.22.0 · 2026-10-12
+
+- Window > Agent Connect: every agent that connects (Claude Code, Codex, Cursor and others, by name, version and transport), what each may do (Allow all, Ask for risky steps, Deny), set-up buttons that show what they will write first, requests waiting for your approval and a feed of every agent call.
+- Risky steps wait for you when an agent is set to Ask: publishing or taking down a website, saving or exporting over an existing file, packaging, printing and deleting more than one page.
+- Follow the agent scrolls to each change an agent makes; agents can also show you a page, a zoom, a panel or a tool with the new `show` tool (30 tools).
+- One catalogue of everything FormDesign can do (`./formdes actions`, GET /api/actions): engine commands, tools, the window's own actions and MCP tools.
+
 ## 0.21.0 · 2026-10-12
 
 - Window > Terminal: real terminals in a panel that docks like any other (by default in the left column, folding into the minirail). Start a Shell, Claude Code, Codex or Cursor CLI; agents start in the FormDesign folder already connected to its MCP server. Sessions survive a reload with their scrollback; no scrollbar is drawn.
