@@ -16,6 +16,7 @@ import urllib.request
 
 URL = os.environ.get("FORMDES_MCP_URL", "http://127.0.0.1:8196/mcp")
 _started = False
+_session = ""
 
 
 def forward(line: str) -> str | None:
@@ -25,11 +26,15 @@ def forward(line: str) -> str | None:
         return json.dumps({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}})
     params = msg.get("params") or {}
     version = (params.get("_meta") or {}).get("io.modelcontextprotocol/protocolVersion") or params.get("protocolVersion") or "2025-11-25"
-    req = urllib.request.Request(URL, data=line.encode(), method="POST",
-                                 headers={"Content-Type": "application/json", "Accept": "application/json", "MCP-Protocol-Version": version})
+    global _session
+    headers = {"Content-Type": "application/json", "Accept": "application/json", "MCP-Protocol-Version": version, "X-Formdes-Transport": "stdio"}
+    if _session:
+        headers["Mcp-Session-Id"] = _session
+    req = urllib.request.Request(URL, data=line.encode(), method="POST", headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=660) as r:
             body = r.read().decode()
+            _session = r.headers.get("Mcp-Session-Id") or _session
     except urllib.error.HTTPError as exc:
         body = exc.read().decode() or ""
     except (urllib.error.URLError, OSError) as exc:

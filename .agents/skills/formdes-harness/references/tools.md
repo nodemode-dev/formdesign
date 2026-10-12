@@ -10,7 +10,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
 - Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`, `library`
-- Other: `publish_website`
+- Other: `publish_website`, `show`
 
 ## intake
 
@@ -285,3 +285,13 @@ Object libraries: reusable objects (a logo lockup, a footer, a pull-quote box) s
 - `spread`: integer
 
 Note: writes or replaces files.
+
+## show
+
+Moves the person's FormDesign window so they can follow what you did: go to a page, zoom (fit page, fit spread or a percentage), open a panel, pick a tool, or select objects by id. Changes nothing in the document.
+
+- `page`: integer; Page to show, counting from 1.
+- `zoom`: string; fit-page, fit-spread, or a percentage such as 150.
+- `panel`: string; Panel id: pages, layers, links, properties, character, paragraph, swatches, styles, preflight, make, slots, terminal, connect, find...
+- `tool`: string; Tool id from the engine's tool list, e.g. selection, type, rectangle-frame.
+- `select`: array; Object ids to select (get_document lists them).

@@ -15,6 +15,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
+from app.services import agents as A
 from app.services import books, libraries, pdfread, profiles, queries
 from app.templates import brands, registry, spec
 
@@ -122,17 +123,18 @@ TOOLS = [
           {"action": {"type": "string", "enum": ["list", "create", "items", "add", "place", "rename", "remove"]}, "name": {"type": "string"}, "index": {"type": "integer", "minimum": 0},
            "ids": {"type": "array", "items": {"type": "integer"}}, "title": {"type": "string"}, "description": {"type": "string"},
            "x": {"type": "number"}, "y": {"type": "number"}, "spread": {"type": "integer", "minimum": 0}}, ["action"], destructive=True),
+    _tool("show", "Moves the person's FormDesign window so they can follow what you did: go to a page, zoom (fit page, fit spread or a percentage), open a panel, pick a tool, or select objects by id. Changes nothing in the document.",
+          {"page": {"type": "integer", "minimum": 1, "description": "Page to show, counting from 1."}, "zoom": {"type": "string", "description": "fit-page, fit-spread, or a percentage such as 150."},
+           "panel": {"type": "string", "description": "Panel id: pages, layers, links, properties, character, paragraph, swatches, styles, preflight, make, slots, terminal, connect, find..."},
+           "tool": {"type": "string", "description": "Tool id from the engine's tool list, e.g. selection, type, rectangle-frame."},
+           "select": {"type": "array", "items": {"type": "integer"}, "description": "Object ids to select (get_document lists them)."}}, [], idempotent=True),
 ]
 NAMES = {t["name"] for t in TOOLS}
 _status = {"calls": 0, "last": None, "at": 0.0}
-_SETTINGS = config.DATA_DIR / "agents.json"
 
 
 def agents_enabled() -> bool:
-    try:
-        return bool(json.loads(_SETTINGS.read_text()).get("enabled", True))
-    except (OSError, ValueError, AttributeError):
-        return True
+    return A.enabled()
 
 
 def _local_origin(origin: str | None) -> bool:
@@ -203,6 +205,11 @@ async def _document(detail: str) -> dict:
 
 
 async def _run(name: str, a: dict) -> dict:
+    if name == "show":
+        if a.get("select"):
+            await core.exec("selection.set", {"ids": [int(i) for i in a["select"]]}, source="mcp")
+        A.view(page=int(a["page"]) - 1 if a.get("page") else None, zoom=a.get("zoom"), panel=a.get("panel"), tool=a.get("tool"))
+        return _text("shown in the window" if core.listeners else "no FormDesign window is open; nothing to show")
     if name == "intake":
         paths = [_abs(p) for p in a.get("paths") or []]
         missing = [str(p) for p in paths if not p.exists()]
@@ -463,18 +470,31 @@ async def _book(a: dict) -> dict:
         return _fail(str(exc))
 
 
-async def call_tool(name: str, args: dict) -> dict:
+async def call_tool(name: str, args: dict, client: str = "Unknown client") -> dict:
     if not agents_enabled():
-        return _fail("Agent access to formdes is turned off. Turn it on in formdes under Preferences > Agents.")
+        return _fail("Agent access to FormDesign is turned off. Turn it on in FormDesign under Window > Agent Connect (or Preferences > Agents).")
+    pol = A.policy(client)
+    if pol == "deny":
+        A.record(client, name, args, False, 0, "refused: this client is set to Deny in Agent Connect", core.rev)
+        return _fail(f"{client} is set to Deny in FormDesign's Agent Connect panel; the person can change that there.")
+    reason = A.gate_reason(name, args)
+    if reason and pol == "ask":
+        if not await A.ask(client, name, args, reason):
+            A.record(client, name, args, False, 0, f"not approved: {reason}", core.rev)
+            return _fail(f"The person did not approve this ({reason}) in FormDesign's Agent Connect panel within {int(A.APPROVAL_WAIT)} seconds, or declined it. Ask them, then retry.")
     _status["calls"] += 1
     _status["last"] = name
     _status["at"] = time.time()
+    t0, rev0 = time.perf_counter(), core.rev
     try:
-        return await _run(name, args)
+        out = await _run(name, args)
     except CoreError as exc:
-        return _fail(f"{exc}")
+        out = _fail(f"{exc}")
     except (ValueError, KeyError, TypeError, OSError) as exc:
-        return _fail(f"{exc.__class__.__name__}: {exc}")
+        out = _fail(f"{exc.__class__.__name__}: {exc}")
+    first = next((c.get("text", "") for c in out.get("content", []) if c.get("type") == "text"), "image")
+    A.record(client, name, args, not out.get("isError"), (time.perf_counter() - t0) * 1000, first, rev0)
+    return out
 
 
 @router.post("/mcp")
@@ -491,6 +511,7 @@ async def mcp(request: Request) -> Response:
     if req_id is None:
         return Response(status_code=202)
     meta = params.get("_meta") or {}
+    client, new_sid = A.identify(request.headers, params, method or "")
     version = meta.get("io.modelcontextprotocol/protocolVersion") or request.headers.get("mcp-protocol-version") or "2025-11-25"
     modern = version == "2026-07-28"
     server = {"name": "formdes", "version": __version__}
@@ -511,10 +532,12 @@ async def mcp(request: Request) -> Response:
         out = _ok(req_id, {"tools": TOOLS}, modern)
     elif method == "tools/call":
         name, args = params.get("name"), params.get("arguments") or {}
-        out = _ok(req_id, await call_tool(name, args), modern) if name in NAMES and isinstance(args, dict) else _err(req_id, -32602, f"No tool named {name}")
+        out = _ok(req_id, await call_tool(name, args, client), modern) if name in NAMES and isinstance(args, dict) else _err(req_id, -32602, f"No tool named {name}")
     else:
         out = _err(req_id, -32601, f"Method not found: {method}")
-    return Response(content=json.dumps(out), media_type="application/json")
+    if new_sid:
+        A.push("clients")
+    return Response(content=json.dumps(out), media_type="application/json", headers={"Mcp-Session-Id": new_sid} if new_sid else None)
 
 
 @router.get("/api/mcp/status")
@@ -527,6 +550,5 @@ async def settings(request: Request) -> dict:
     body = json.loads(await request.body() or b"{}")
     if not isinstance(body, dict) or not isinstance(body.get("enabled"), bool):
         return {"ok": False, "error": "expected {enabled: true or false}"}
-    _SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-    _SETTINGS.write_text(json.dumps({"enabled": body["enabled"]}))
+    A.set_enabled(body["enabled"])
     return {"ok": True, "enabled": body["enabled"]}
