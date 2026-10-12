@@ -44,6 +44,8 @@ Measured against InDesign and Affinity in 133 traced rows (full 1, partial 0.5, 
 ```bash
 ./formdes boot                     # then open http://localhost:5196
 ./formdes templates                # list the 71 templates
+./formdes cmd layout.pages.insert count=2   # any engine command, on the document the window has open
+./formdes tool preview '{"page": 1}'        # any MCP tool, the same way agents call it
 ./formdes make article.md photo.jpg logo.png --brief "Square instagram ad for Northlight. CTA: Read the issue" --out ad.png
 ```
 

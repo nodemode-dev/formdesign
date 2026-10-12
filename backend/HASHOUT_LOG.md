@@ -298,3 +298,28 @@ Paragraph styles become classes sized against the body style (the style with the
 
 InDesign publishes to Adobe's servers; formdes has no hosted service, so a published site is a folder under `Published/` served by the engine at `/sites/{slug}/` and an `index.json` record. A document owns its site by its saved path, or, while unsaved, by its uid within this engine run (`SESSION`), so publishing again updates rather than duplicates and an old record cannot claim a new document after a restart. A rebuild writes a sibling `.partial` folder and swaps it in, so a reader never sees half a site. `/sites` resolves paths inside the site's folder only and answers the site's own 404 page otherwise; `/api/system/open` opens http and https links, or folders inside the data folder, nothing else.
 
+## app/services/pty.py and app/routers/terminal.py {#terminal0210}
+
+### pty.py · sessions, presets and where they start
+- refers-to: backend/app/services/pty.py :: PRESETS, workdir, environment, Terminals.create, Session.feed
+- kind: rationale
+- logged: v0.21.0 · 2026-10-12
+
+The family standard (FormEncoder, FormWeb 0.4.0) is a live terminal that starts Claude Code, Codex and Cursor already connected. A session starts in the repo folder because that is where `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` live, so each CLI finds the `formdes` server without setup; a frozen desktop engine has no repo and starts in the data folder instead (agents there need `./formdes agents install` at user scope, phase 4). The dispatcher's folder goes first on PATH so `formdes cmd` works in any shell. POSIX reads the master fd through the event loop's reader (no thread); Windows uses pywinpty in a reader thread that hands bytes back with call_soon_threadsafe. The 256 KB ring is what a reconnecting window replays; output fans out to one queue per attached socket, so two windows can watch one session. Closing sends SIGHUP to the session's process group (start_new_session), so a CLI's children go too.
+
+### terminal.py · who may open a shell
+- refers-to: backend/app/routers/terminal.py :: _local, _guard, term_ws
+- kind: rationale
+- logged: v0.21.0 · 2026-10-12
+
+A shell reachable from a browser is the largest surface FormDesign has. The engine binds loopback only; every route refuses a foreign Origin (browsers always send it on cross-site requests and WebSocket handshakes); the socket also needs a per-boot token that GET /api/term returns, which a foreign page cannot read because the engine's CORS list holds only FormDesign's own origins. The token is compared in constant time and never logged or put in a URL the engine prints.
+
+## app/live_cli.py {#livecli0210}
+
+### live_cli.py · the terminal's way into every command and tool
+- refers-to: backend/app/live_cli.py :: cmd_run, cmd_commands, cmd_tool, add_parsers
+- kind: rationale
+- logged: v0.21.0 · 2026-10-12
+
+`make`, `export` and `check-template` start their own core; `cmd`, `commands`, `tools` and `tool` deliberately do not: they call the running engine over HTTP (`/api/core/exec`, `/api/core/commands`, `/mcp`), so what a person or an agent does in the terminal lands in the document the window shows, as one undo step per command, and repaints through the same change events. `tool` uses the MCP endpoint rather than its own code path, so the terminal and agents can never disagree about what a tool does.
+

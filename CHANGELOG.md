@@ -2,6 +2,12 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.21.0 · 2026-10-12
+
+- Window > Terminal: real terminals in a panel that docks like any other (by default in the left column, folding into the minirail). Start a Shell, Claude Code, Codex or Cursor CLI; agents start in the FormDesign folder already connected to its MCP server. Sessions survive a reload with their scrollback; no scrollbar is drawn.
+- `./formdes cmd ID key=value` runs any of the 311 engine commands on the document the window has open; `./formdes commands` lists them; `./formdes tools` and `./formdes tool NAME '{json}'` list and call the MCP tools agents use.
+- Terminals answer only this computer's FormDesign window: other origins are refused and the connection needs a per-launch token.
+
 ## 0.20.1 · 2026-10-12
 
 - Folding or unfolding a panel column, or resizing the window, no longer paints an empty canvas frame, and the page stays centred where it was.

@@ -30,6 +30,8 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | i_overlay 2.2 (with i_float, i_shape, i_tree, i_key_sort; https://github.com/iShape-Rust/iOverlay) | MIT | Pathfinder: union, difference, intersection and exclusion of shapes in `native/formdes-engine` |
 | qrcodegen 1.8 (Project Nayuki, https://www.nayuki.io/page/qr-code-generator-library) | MIT | QR code encoding in `native/formdes-engine` |
 | moxcms 0.8 (https://github.com/awxkee/moxcms) | BSD-3-Clause OR Apache-2.0 (used under Apache-2.0) | ICC colour transforms for soft proofing in `native/formdes-engine` |
+| xterm.js 6.0.0 and @xterm/addon-fit 0.11.0 (https://github.com/xtermjs/xterm.js) | MIT, Copyright (c) 2017-2019 The xterm.js authors, 2014-2016 SourceLair Private Company, 2012-2013 Christopher Jeffrey | the Terminal panel in `frontend/src/features/terminal.ts` |
+| pywinpty 3.0.5 (https://github.com/andfoy/pywinpty), Windows only | MIT | ConPTY sessions for the Terminal panel in `backend/app/services/pty.py` |
 
 ## Downloaded at your request, not distributed
 

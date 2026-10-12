@@ -399,3 +399,12 @@ Setting a canvas's width clears it, and a ResizeObserver callback runs after the
 - logged: v0.20.1 · 2026-10-12
 
 The handle lives inside the left column (absolute, right edge) rather than as a grid track, so the grid keeps six tracks and folding still writes one variable. `leftWidth` is optional in DockState so layouts saved by 0.20.0 and the built-in workspaces stay valid; null means the 252 px default.
+
+## src/features/terminal.ts {#terminal0210}
+
+### terminal.ts · the Terminal panel
+- refers-to: frontend/src/features/terminal.ts :: TerminalPanel, load, theme, installTerminal; frontend/src/styles/terminal.css
+- kind: rationale
+- logged: v0.21.0 · 2026-10-12
+
+The owner chose a dockable panel over a drawer, so the terminal is an ordinary panel group (`terminal`, home column `left`, minimised at start) and gets folding, flyouts, workspaces and drag for free. xterm is imported on first show only, so the window's first paint does not pay for it. One `.ft-screen` per session stays mounted; a tab switch flips `hidden`, and the flyout moves the panel's own node, so a running CLI never loses its screen. Resize goes through one rAF-coalesced fit, and xterm's onResize sends the new size to the PTY. Colours come from the theme tokens at creation and on `nm:ui-settings-changed`, assigned to `term.options.theme`, which xterm applies without a remount. xterm 6 draws its own scrollbar elements inside `.xterm-scrollable-element`, which the global `::-webkit-scrollbar` rule cannot reach, so terminal.css hides them by class and the slider colours are transparent as well. Exit is detected from the engine's `[process exited with code N]` line, which strikes the tab through.
