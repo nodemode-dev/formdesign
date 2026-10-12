@@ -385,3 +385,17 @@ The family's interface standard (FormWeb 0.3.4, formvis 1.66.1) puts one minirai
 - logged: v0.20.0 · 2026-10-12
 
 Loaded after formdes.css and before light-mode.css and scrollbars.css. It redefines `.cv-main`'s tracks for six columns, keeps the options bar across rail, left column and canvas, and repeats the Hide Panels rule for six tracks; the five-track rules in shell.css stay for formvis parity and are overridden here.
+
+### viewport.ts · resize draws in the same frame
+- refers-to: frontend/src/editor/viewport.ts :: resize
+- kind: rationale
+- logged: v0.20.1 · 2026-10-12
+
+Setting a canvas's width clears it, and a ResizeObserver callback runs after the frame's animation callbacks, so a redraw queued from it lands a frame late and the cleared canvas paints once. resize() therefore draws tiles and overlays synchronously from the tiles it already holds, then queues the normal pass. With a document open it shifts the view by half the size change in each direction so the point at the stage's centre stays put when a column folds or the window resizes.
+
+### dock.ts · the left column's resizer
+- refers-to: frontend/src/ui/dock.ts :: wireLeftResizer, merge (leftWidth)
+- kind: rationale
+- logged: v0.20.1 · 2026-10-12
+
+The handle lives inside the left column (absolute, right edge) rather than as a grid track, so the grid keeps six tracks and folding still writes one variable. `leftWidth` is optional in DockState so layouts saved by 0.20.0 and the built-in workspaces stay valid; null means the 252 px default.

@@ -2,6 +2,11 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.20.1 · 2026-10-12
+
+- Folding or unfolding a panel column, or resizing the window, no longer paints an empty canvas frame, and the page stays centred where it was.
+- The left panel column has a resizer on its right edge (double-click for the default width); its width is remembered and kept in workspaces.
+
 ## 0.20.0 · 2026-10-12
 
 - The product is called FormDesign: window, splash, home, About, status bar and the desktop bundle. The `formdes` command, the `formdes` MCP server, `FORMDES_*` settings and `.fdes` files keep their names.
