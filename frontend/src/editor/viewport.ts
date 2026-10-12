@@ -1,11 +1,13 @@
 import { engine, type ChangeEvent } from '../engine/client';
 import { editor, type Rect4 } from './editor';
 import { Canvas2dCompositor } from '../gpu/canvas2d';
-import type { Compositor, Frame, FrameTile, Preference } from '../gpu/index';
+import { inTauri, type Compositor, type Frame, type FrameTile, type Preference } from '../gpu/index';
 import { chainFor, selectCompositor, type CanvasFactory, type PathId } from '../gpu/select';
 
 const RENDERER_KEY = 'formdes.renderer';
-const PATH_LABEL: Record<PathId, string> = { webgpu: 'WebGPU', webgl2: 'WebGL2', canvas2d: 'Canvas 2D' };
+const PATH_LABEL: Record<PathId, string> = { native: 'Native', webgpu: 'WebGPU', webgl2: 'WebGL2', canvas2d: 'Canvas 2D' };
+/** Set on the root while the native canvas is showing through the page's transparent stage. */
+const NATIVE_CLASS = 'is-native-canvas';
 
 export interface ViewState { zoom: number; x: number; y: number }
 export interface ViewOptions {
@@ -38,6 +40,8 @@ export class Viewport {
   private activeId: PathId = 'canvas2d';
   private rendererPref: Preference = 'auto';
   private swapToken = 0;
+  /** While the native canvas has not shown its first full frame: the path that is still on screen and still drawn. */
+  private nativeWait: Compositor | null = null;
   private snapshotTimer = 0;
   private rendererNote = '';
   private readonly rendererListeners: Array<() => void> = [];
@@ -73,7 +77,9 @@ export class Viewport {
     editor.on('selection', () => this.refreshOverlays());
     editor.on('tool', () => this.refreshOverlays());
     matchMedia(`(resolution: ${this.dpr}dppx)`).addEventListener?.('change', () => { this.dpr = Math.max(1, window.devicePixelRatio || 1); this.resize(); });
-    try { const p = localStorage.getItem(RENDERER_KEY); if (p === 'auto' || p === 'webgpu' || p === 'webgl2' || p === 'canvas2d') this.rendererPref = p; } catch { }
+    try { const p = localStorage.getItem(RENDERER_KEY); if (p === 'auto' || p === 'webgpu' || p === 'webgl2' || p === 'canvas2d' || (p === 'native' && inTauri())) this.rendererPref = p; } catch { }
+    // The desktop shell can start the page on the native canvas (FORMDES_RENDERER=native), ahead of the remembered choice.
+    if (inTauri() && (window as unknown as { __FORMDES_RENDERER__?: string }).__FORMDES_RENDERER__ === 'native') this.rendererPref = 'native';
     if (this.rendererPref !== 'canvas2d') void this.chooseRenderer(this.rendererPref);
     else this.notifyRenderer();
   }
@@ -133,6 +139,28 @@ export class Viewport {
     next.resize(this.w, this.h, this.dpr);
     this.uploadAll(next);
     next.onLost = (why) => this.onPathLost(next, id, why);
+    if (id === 'native') {
+      // The native canvas draws in the window beneath the web view. The previous path keeps drawing and stays visible until
+      // the native one has shown a full frame; then the stage turns transparent in one paint.
+      const wait = this.nativeWait ?? prev;
+      this.nativeWait = wait;
+      next.onShown = () => {
+        if (this.comp !== next) return;
+        const held = this.nativeWait;
+        this.nativeWait = null;
+        document.documentElement.classList.add(NATIVE_CLASS);
+        this.tileCanvas.style.visibility = 'hidden';
+        for (const c of this.extraCanvases) if (c !== next.canvas) c.style.visibility = 'hidden';
+        if (held && held !== this.base && held !== next) window.setTimeout(() => this.dispose(held), 120);
+      };
+      this.comp = next;
+      this.activeId = id;
+      this.draw();
+      this.notifyRenderer();
+      return;
+    }
+    const wasNative = prev.name === 'Native';
+    if (wasNative) this.leaveNative();
     if (next.canvas) next.canvas.style.visibility = 'visible';
     this.comp = next;
     this.activeId = id;
@@ -141,6 +169,15 @@ export class Viewport {
     if (prev !== this.base && prev.canvas && prev.canvas !== next.canvas) prev.canvas.style.visibility = 'hidden';
     if (prev !== this.base) window.setTimeout(() => this.dispose(prev), 120);
     this.notifyRenderer();
+  }
+
+  /** Back to the page's own canvases: the stage paints again and the held path (if the native one never showed) is let go. */
+  private leaveNative(): void {
+    document.documentElement.classList.remove(NATIVE_CLASS);
+    this.tileCanvas.style.visibility = 'visible';
+    const held = this.nativeWait;
+    this.nativeWait = null;
+    if (held && held !== this.base && held !== this.comp) window.setTimeout(() => this.dispose(held), 120);
   }
 
   private dispose(c: Compositor): void {
@@ -155,6 +192,7 @@ export class Viewport {
     // Bridge at once on Canvas 2D from the tiles already held, so the lost canvas is never what the next paint shows,
     // then try the paths after the lost one.
     const lostCanvas = c.canvas;
+    if (id === 'native') this.leaveNative();
     this.rendererNote = `${PATH_LABEL[id]} lost (${why.slice(0, 60)})`;
     this.uploadAll(this.base);
     this.base.resize(this.w, this.h, this.dpr);
@@ -430,7 +468,13 @@ export class Viewport {
       for (const t of this.tiles.values()) if (t.bmp && want.has(t.gkey)) this.comp.upload(t.gkey, t.bmp);
       this.comp.draw(frame);
     }
-    if (this.comp !== this.base) this.snapshotLater(frame);
+    if (this.nativeWait) {
+      // Native is not showing yet: the path still on screen keeps up with the view.
+      const held = this.nativeWait;
+      for (const t of this.tiles.values()) if (t.bmp && !held.has(t.gkey)) held.upload(t.gkey, t.bmp);
+      held.draw(frame);
+    }
+    if (this.comp !== this.base && this.activeId !== 'native') this.snapshotLater(frame);
     this.drawOverlays();
   }
 

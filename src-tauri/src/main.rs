@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod native;
+
 use std::sync::Mutex;
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
@@ -70,6 +72,14 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Backend(Mutex::new(None)))
+        .manage(native::NativeState::default())
+        .invoke_handler(tauri::generate_handler![
+            native::native_canvas_start,
+            native::native_canvas_frame,
+            native::native_canvas_tile,
+            native::native_canvas_resize,
+            native::native_canvas_stop
+        ])
         .setup(|app| {
             let handle = app.handle().clone();
             let mut cmd = app.shell().sidecar("formdes-engine")?.env("FORMDES_PORT", "8196");
@@ -109,7 +119,17 @@ fn main() {
                                 ((size.width as f64 / scale) * SCREEN_FRACTION, (size.height as f64 / scale) * SCREEN_FRACTION)
                             })
                             .unwrap_or(FALLBACK_LOGICAL);
+                        // FORMDES_RENDERER=native starts the page on the native canvas (a test and support aid; the
+                        // normal way is View > Renderer, which the page remembers).
+                        let preset = match std::env::var("FORMDES_RENDERER").as_deref() {
+                            Ok("native") => "window.__FORMDES_RENDERER__ = 'native';",
+                            _ => "",
+                        };
+                        // The window and its web view are transparent so the native canvas shows through the page's hole;
+                        // the page paints every pixel itself unless that mode is on.
                         let _ = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
+                            .transparent(true)
+                            .initialization_script(preset)
                             .title("FormDesign")
                             .inner_size(width, height)
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)

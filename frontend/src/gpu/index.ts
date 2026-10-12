@@ -40,6 +40,11 @@ export interface Compositor {
   readonly canvas: HTMLCanvasElement | null;
   /** Called once if the device or context is lost; the owner falls back to the next path. */
   onLost: ((why: string) => void) | null;
+  /**
+   * Native (desktop) only: it draws in a window beneath the web view, so the owner keeps its previous canvas up until this
+   * fires, once the first complete frame has been shown, and only then makes the web canvas region transparent.
+   */
+  onShown?: (() => void) | null;
   init(canvas: HTMLCanvasElement): Promise<boolean>;
   upload(key: string, source: TileSource): void;
   has(key: string): boolean;
@@ -50,10 +55,16 @@ export interface Compositor {
   destroy(): void;
 }
 
-export type Preference = 'auto' | 'webgpu' | 'webgl2' | 'canvas2d';
+export type Preference = 'auto' | 'native' | 'webgpu' | 'webgl2' | 'canvas2d';
 export const PREFERENCES: Array<{ id: Preference; label: string }> = [
-  { id: 'auto', label: 'Auto' }, { id: 'webgpu', label: 'WebGPU' }, { id: 'webgl2', label: 'WebGL2' }, { id: 'canvas2d', label: 'Canvas 2D' },
+  { id: 'auto', label: 'Auto' }, { id: 'native', label: 'Native (desktop)' }, { id: 'webgpu', label: 'WebGPU' }, { id: 'webgl2', label: 'WebGL2' }, { id: 'canvas2d', label: 'Canvas 2D' },
 ];
+
+/** True inside the Tauri desktop shell, the only place the Native path exists. */
+export function inTauri(): boolean {
+  const w = window as unknown as { __TAURI__?: unknown; __TAURI_INTERNALS__?: unknown };
+  return !!(w.__TAURI__ || w.__TAURI_INTERNALS__);
+}
 
 /** The shadow under a page, in CSS pixels (the same numbers as composite.rs). */
 export const SHADOW_BLUR = 8;

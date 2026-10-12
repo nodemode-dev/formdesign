@@ -3,5 +3,13 @@
   "identifier": "default",
   "description": "The window talks HTTP and WebSocket to its engine on the loopback address; it needs only the core permissions.",
   "windows": ["splash", "main"],
-  "permissions": ["core:default"]
+  "remote": { "urls": ["http://127.0.0.1:*", "http://localhost:*"] },
+  "permissions": [
+    "core:default",
+    "allow-native-canvas-start",
+    "allow-native-canvas-frame",
+    "allow-native-canvas-tile",
+    "allow-native-canvas-resize",
+    "allow-native-canvas-stop"
+  ]
 }

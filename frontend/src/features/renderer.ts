@@ -1,4 +1,4 @@
-import { PREFERENCES, type Preference } from '../gpu/index';
+import { inTauri, PREFERENCES as ALL_PREFERENCES, type Preference } from '../gpu/index';
 import { el, q, setText } from '../ui/dom';
 import type { SubMenu } from '../ui/menu';
 import type { Workspace } from '../ui/workspace';
@@ -7,6 +7,8 @@ import type { Workspace } from '../ui/workspace';
 // localStorage (formdes.renderer); this module only registers the menu and shows the active path in the status bar.
 export function installRenderer(ws: Workspace): void {
   const vp = ws.viewport;
+  // The Native (desktop) path exists only inside the Tauri shell; a browser never lists it.
+  const PREFERENCES = ALL_PREFERENCES.filter((p) => p.id !== 'native' || inTauri());
   const chip = el('<span class="fd-st-renderer"></span>');
   const status = q(ws.root, '.fd-status');
   status.insertBefore(chip, q(status, '.fd-st-version'));

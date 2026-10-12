@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-native-canvas-stop"
+description = "Enables the native_canvas_stop command without any pre-configured scope."
+commands.allow = ["native_canvas_stop"]
+
+[[permission]]
+identifier = "deny-native-canvas-stop"
+description = "Denies the native_canvas_stop command without any pre-configured scope."
+commands.deny = ["native_canvas_stop"]
