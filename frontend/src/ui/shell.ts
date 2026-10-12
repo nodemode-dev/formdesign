@@ -356,7 +356,7 @@ export class Shell implements Workspace {
   mountPanels(): void {
     const left = q(this.root, '.fd-left-col'), side = q(this.root, '.cv-props-col'), dock = q(this.root, '.cv-layers');
     const hostOf = (c: PanelSpec['column']): HTMLElement => (c === 'left' ? left : c === 'side' ? side : dock);
-    PanelGroup.startMin = new Set(['swatches', 'preflight', 'typeextra', 'review', 'interactive', 'xml', 'library']);
+    PanelGroup.startMin = new Set(['swatches', 'preflight', 'typeextra', 'review', 'interactive', 'xml', 'library', 'terminal']);
     const byGroup = new Map<string, PanelSpec[]>();
     for (const p of [...this.panels].sort((a, b) => (a.order ?? 50) - (b.order ?? 50))) {
       const list = byGroup.get(p.group) ?? [];
