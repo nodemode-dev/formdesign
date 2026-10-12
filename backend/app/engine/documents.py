@@ -82,6 +82,11 @@ class Documents:
             self.meta[uid] = DocMeta(uid)
         return await self.overview()
 
+    async def new_meta(self) -> None:
+        uid = await self.active_uid()
+        if uid is not None:
+            self.meta[uid] = DocMeta(uid)
+
     async def adopt(self, *, template: dict | None = None, brand: dict | None = None, brief: str = "", pack_id: str | None = None,
                     slots: dict | None = None) -> DocMeta | None:
         uid = await self.active_uid()
@@ -112,8 +117,16 @@ class Documents:
             await core.call("exec", {"command": "file.openIdml", "params": {"base64": base64.b64encode(data).decode(), "name": name}}, source=source)
         elif ext == ".fdoc" or data[:2] == b"PK":
             await core.call("exec", {"command": "file.openBytes", "params": {"name": name, "base64": base64.b64encode(data).decode()}}, source=source)
+        elif ext in (".pdf", ".pub", ".qxd", ".qxp", ".pmd", ".p65", ".pm6", ".pm5", ".pm4", ".pm3", ".pt5", ".pt6", ".indd", ".indt", ".indb", ".inx"):
+            from app.services import layoutimport
+            src = path
+            if not src:
+                folder = layoutimport.new_work("open")
+                src = str(folder / Path(name).name)
+                Path(src).write_bytes(data)
+            return (await layoutimport.open_layout(src))["overview"]
         else:
-            raise CoreError(f"{name} is not a layout document (.fdes, .fdoc or .idml); place it or make a layout from it instead")
+            raise CoreError(f"{name} is not a layout document (.fdes, .fdoc, .idml, .pdf, .pub, .qxd, .qxp, .pmd or .p65); place it or make a layout from it instead")
         uid = await self.active_uid()
         if uid is not None:
             m = DocMeta(uid, path=path if ext == ".fdes" else None)

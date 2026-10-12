@@ -17,6 +17,8 @@ from app.routers import colour as colour_api
 from app.routers import motion as motion_api
 from app.routers import workflow as workflow_api
 from app.routers import assistant as assistant_api
+from app.routers import cloudfonts as cloudfonts_api
+from app.routers import plugins as plugins_api
 from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, versions as versions_api, website
 from app.services.pty import terminals
 
@@ -63,6 +65,8 @@ app.include_router(assistant_api.router, prefix="/api")
 app.include_router(review.router, prefix="/api")
 app.include_router(motion_api.router, prefix="/api")
 app.include_router(workflow_api.router, prefix="/api")
+app.include_router(cloudfonts_api.router, prefix="/api")
+app.include_router(plugins_api.router, prefix="/api")
 app.include_router(website.sites)
 app.include_router(mcp.router)
 

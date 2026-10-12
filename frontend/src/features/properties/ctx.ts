@@ -112,6 +112,7 @@ class Ctx {
   private running = false;
   private again = false;
   private docGen = 0;
+  private fontsGen = 0;
   private lastRedo = '';
   private readonly cache = new Map<string, { key: string; value: Promise<any> }>();
   private readonly mem = new Map<string, Mem>();
@@ -119,6 +120,8 @@ class Ctx {
   constructor() {
     for (const ev of ['selection', 'docs', 'layout', 'ready', 'connection'] as const) editor.on(ev, () => this.schedule());
     editor.on('change', (e: { docChanged?: boolean } | undefined) => { if (e?.docChanged) this.docGen++; this.schedule(); });
+    // Cloud Fonts activated or removed: the family list is read again.
+    document.addEventListener('formdes:fonts-changed', () => { this.fontsGen++; this.schedule(); });
     editor.on('docs', () => {
       const d = editor.doc;
       const redo = d ? `${d.uid}:${d.canRedo}:${d.redoLabel ?? ''}` : '';
@@ -179,7 +182,7 @@ class Ctx {
       return;
     }
     const rev = engine.rev, uid = editor.doc?.uid ?? null, gen = `${uid}:${this.docGen}`;
-    const fontsP = this.memo('fonts', 'once', () => engine.call<string[]>('fonts.families').then((r) => r.result ?? []).catch(() => [] as string[]));
+    const fontsP = this.memo('fonts', `fonts${this.fontsGen}`, () => engine.call<string[]>('fonts.families').then((r) => r.result ?? []).catch(() => [] as string[]));
     const prefsP = this.memo('prefs', gen, () => query('document.preferences'));
     const appP = this.memo('app', 'once', () => query('prefs.set'));
     const aseP = this.memo('ase', gen, () => query<{ base64: string }>('swatch.save'));

@@ -58,7 +58,7 @@ def core_binary() -> Path | None:
 
 def font_dirs() -> list[Path]:
     extra = [Path(p) for p in os.environ.get("FORMDES_FONT_DIRS", "").split(os.pathsep) if p.strip()]
-    return [d for d in [FONTS_DIR, FONTS_USER_DIR, *extra] if d.is_dir()]
+    return [d for d in [FONTS_DIR, FONTS_USER_DIR, DATA_DIR / "Cloud Fonts", *extra] if d.is_dir()]
 
 
 DICTIONARIES_DIR = DATA_DIR / "Dictionaries"

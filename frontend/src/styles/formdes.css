@@ -24,6 +24,11 @@
 .fd-field { display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: var(--fs-11); }
 .fd-field .cv-dd-btn { width: 100%; }
 .fd-note { margin: var(--space-2) 0 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }
+.fd-report-h { margin: var(--space-3) 0 var(--space-1); font-size: var(--fs-11); font-weight: 600; color: var(--text); }
+.fd-report-row { display: flex; justify-content: space-between; gap: var(--space-3); padding: 2px 0; font-size: var(--fs-11); border-bottom: 1px solid var(--border); }
+.fd-report-k { color: var(--text-muted); }
+.fd-steps { margin: var(--space-2) 0 0; padding-left: 18px; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.5; }
+.fd-link { color: var(--accent); }
 .fd-proof { display: flex; flex-direction: column; gap: var(--space-3); }
 .fd-proof .cv-dd-btn { width: 100%; }
 .fd-guide-ghost { position: absolute; left: 0; top: 0; z-index: var(--z-raised); width: 100%; height: 1px; background: var(--accent-color); pointer-events: none; }

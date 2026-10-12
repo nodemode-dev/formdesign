@@ -63,6 +63,21 @@ async def open_path(body: dict = Body(...)):
         raise _fail(exc) from exc
 
 
+@router.post("/documents/probe")
+async def probe(body: dict = Body(...)):
+    from app.services import layoutimport
+    return layoutimport.probe(str(body.get("path", "")))
+
+
+@router.post("/documents/import")
+async def import_layout(body: dict = Body(...)):
+    from app.services import layoutimport
+    try:
+        return await layoutimport.open_layout(str(body.get("path", "")), body.get("options") or {})
+    except CoreError as exc:
+        raise _fail(exc) from exc
+
+
 @router.post("/documents/upload")
 async def upload(file: UploadFile = File(...)):
     data = await file.read()

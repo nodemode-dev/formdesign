@@ -13,12 +13,13 @@ import { Dock, type PanelLayout } from './dock';
 import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './menu';
 import { PanelGroup, type GroupTab } from './panel-group';
 import { toast } from './toast';
+import { FOREIGN_ACCEPT, FOREIGN_EXTS, openForeign } from './open-layout';
 import { toolIcon } from './tool-icons';
 import type { MenuAddition, MenuName, PanelSpec, Workspace } from './workspace';
 import { VERSION } from '../version';
 
 const MENUS: MenuName[] = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'View', 'Window', 'Help'];
-const LAYOUT_EXTS = /\.(fdes|fdoc|idml)$/i;
+const LAYOUT_EXTS = /\.(fdes|fdoc|idml|pub|qxd|qxp|pmd|p65|indd)$/i;
 
 export function coreCombo(shortcut: string | null): string | null {
   if (!shortcut) return null;
@@ -493,6 +494,7 @@ export class Shell implements Workspace {
   }
 
   private async openFile(f: File): Promise<void> {
+    if (FOREIGN_EXTS.test(f.name)) { await openForeign(f, () => editor.refreshMeta()); return; }
     const fd = new FormData();
     fd.append('file', f, f.name);
     try { await api('/documents/upload', { method: 'POST', body: fd }); editor.refreshMeta(); } catch (err) { toast(friendly((err as Error).message), 'error'); }
@@ -503,7 +505,7 @@ export class Shell implements Workspace {
   }
 
   private async openDialog(): Promise<void> {
-    const files = await this.pickFiles('.fdes,.fdoc,.idml', true);
+    const files = await this.pickFiles(`.fdes,.fdoc,.idml,${FOREIGN_ACCEPT}`, true);
     for (const f of files) await this.openFile(f);
   }
 

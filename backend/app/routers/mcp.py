@@ -92,7 +92,7 @@ TOOLS = [
     _tool("new_document", "Opens a new document: from a template (with its sample content, or empty slots with sample false) or blank with a size in points.",
           {"template": {"type": "string"}, "brand": {}, "sample": {"type": "boolean", "default": True}, "title": {"type": "string"},
            "width": {"type": "number"}, "height": {"type": "number"}, "pages": {"type": "integer", "minimum": 1}, "facing": {"type": "boolean"}, "preset": {"type": "string", "description": "Letter, A4, A5, Tabloid..."}}),
-    _tool("open_document", "Opens a .fdes, .fdoc or .idml file.", {"path": _PATH}, ["path"]),
+    _tool("open_document", "Opens a .fdes, .fdoc or .idml file. A .pdf, or a Publisher (.pub), QuarkXPress (.qxd, .qxp) or PageMaker (.pmd, .p65) file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. .indd cannot be read: export IDML from InDesign.", {"path": _PATH, "backdrop": {"type": "string", "enum": ["auto", "never"]}}, ["path"]),
     _tool("save_document", "Saves the active document (.fdes by default, keeps slots and the content pack; .fdoc or .idml by extension).", {"path": _PATH}, destructive=True),
     _tool("export_document", "Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), a print booklet, "
           "or web: a responsive multi-page website (path is a folder, or a .zip). web options: split auto|articles|pages|single, layout article|landing|card|email|docs, "
@@ -493,6 +493,9 @@ async def _run(name: str, a: dict) -> dict:
         await documents.new(params, source="mcp")
         return _text(await _document("summary"))
     if name == "open_document":
+        from app.services import layoutimport
+        if str(a["path"]).lower().endswith(tuple(layoutimport.OPEN_EXTS | layoutimport.INDD_EXTS)):
+            return _text(await layoutimport.open_layout(str(_abs(a["path"])), {"backdrop": a.get("backdrop", "auto")}))
         return _text(await documents.open_path(str(_abs(a["path"])), source="mcp"))
     if name == "save_document":
         return _text(await documents.save(str(_abs(a["path"])) if a.get("path") else None, source="mcp"))
