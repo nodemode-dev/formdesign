@@ -668,11 +668,11 @@ fn print_booklet(c: &mut Ctx, p: &Value) -> Result<Value> {
     deliver(p, bytes, json!({"pages": sheets.len(), "warnings": []}))
 }
 
-fn fonts_used(doc: &Doc) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
+fn fonts_used(doc: &Doc) -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = Vec::new();
     let mut add = |a: &Attrs| {
         if let Some(f) = a.get("font").and_then(Value::as_str) {
-            let s = format!("{} {}", f, a.get("fontStyle").and_then(Value::as_str).unwrap_or("")).trim().to_string();
+            let s = (f.to_string(), a.get("fontStyle").and_then(Value::as_str).unwrap_or("Regular").to_string());
             if !out.contains(&s) {
                 out.push(s);
             }
@@ -691,6 +691,22 @@ fn fonts_used(doc: &Doc) -> Vec<String> {
     });
     out.sort();
     out
+}
+
+fn font_restricted(data: &[u8], index: u32) -> bool {
+    let be32 = |o: usize| data.get(o..o + 4).map(|b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]) as usize);
+    let be16 = |o: usize| data.get(o..o + 2).map(|b| u16::from_be_bytes([b[0], b[1]]) as usize);
+    let start = if data.get(0..4) == Some(b"ttcf") { be32(12 + 4 * index as usize).unwrap_or(0) } else { 0 };
+    let n = be16(start + 4).unwrap_or(0);
+    for i in 0..n {
+        let rec = start + 12 + 16 * i;
+        if data.get(rec..rec + 4) == Some(b"OS/2") {
+            let off = be32(rec + 8).unwrap_or(0);
+            let fs_type = be16(off + 8).unwrap_or(0);
+            return fs_type & 0x000f == 0x0002;
+        }
+    }
+    false
 }
 
 fn package(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -747,10 +763,51 @@ fn package(c: &mut Ctx, p: &Value) -> Result<Value> {
         std::fs::write(dir.join(&n), b).map_err(|e| EngineError::new(format!("cannot write PDF: {e}")))?;
         files.push(n);
     }
-    let fonts = fonts_used(&doc);
-    let mut report = format!("Package report: {title}\n\nPages: {}\nLinks: {}\nMissing links: {}\n\nFonts used (not copied: check each font's licence before sending it):\n", doc.page_count(), doc.assets.len(), if missing.is_empty() { "none".into() } else { missing.join(", ") });
-    for f in &fonts {
-        report.push_str(&format!("  {f}\n"));
+    let used = fonts_used(&doc);
+    let copy_fonts = args::opt_bool(p, "fonts").unwrap_or(true);
+    let mut fonts: Vec<String> = Vec::new();
+    let mut font_lines: Vec<String> = Vec::new();
+    let mut written: Vec<String> = Vec::new();
+    if copy_fonts {
+        std::fs::create_dir_all(dir.join("Document fonts")).map_err(|e| EngineError::new(format!("cannot create Document fonts: {e}")))?;
+    }
+    for (family, style) in &used {
+        let label = format!("{family} {style}");
+        fonts.push(label.clone());
+        let Some(face) = c.session.renderer.fonts.resolve(family, style) else {
+            font_lines.push(format!("  {label}: missing on this computer"));
+            continue;
+        };
+        if face.family != *family {
+            font_lines.push(format!("  {label}: missing, drawn with {} {}", face.family, face.style));
+            continue;
+        }
+        if !copy_fonts {
+            font_lines.push(format!("  {label}"));
+            continue;
+        }
+        if font_restricted(&face.data, face.index) {
+            font_lines.push(format!("  {label}: not copied, its licence forbids embedding (OS/2 fsType)"));
+            continue;
+        }
+        let ext = match face.data.get(0..4) {
+            Some(b"OTTO") => "otf",
+            Some(b"ttcf") => "ttc",
+            _ => "ttf",
+        };
+        let base: String = if face.postscript.is_empty() { label.replace(' ', "-") } else { face.postscript.clone() };
+        let name = format!("{base}.{ext}");
+        if !written.contains(&name) {
+            std::fs::write(dir.join("Document fonts").join(&name), face.data.as_slice()).map_err(|e| EngineError::new(format!("cannot copy {label}: {e}")))?;
+            written.push(name.clone());
+            files.push(format!("Document fonts/{name}"));
+        }
+        font_lines.push(format!("  {label}: copied as Document fonts/{name}"));
+    }
+    let mut report = format!("Package report: {title}\n\nPages: {}\nLinks: {}\nMissing links: {}\n\nFonts ({}; check each font's licence before sending it):\n", doc.page_count(), doc.assets.len(), if missing.is_empty() { "none".into() } else { missing.join(", ") }, if copy_fonts { "copied into Document fonts unless noted" } else { "not copied" });
+    for f in &font_lines {
+        report.push_str(f);
+        report.push('\n');
     }
     report.push_str("\nSwatches:\n");
     for s in &doc.swatches {
@@ -848,7 +905,7 @@ pub fn register(r: &mut Registry) {
     cmd("file.exportText", "Export Text...").menu(&["File", "Export", "Text..."]).needs(Needs::Text).query().sig("{format: txt|rtf|tagged, path?}").reg(r, export_text);
     cmd("file.exportXml", "Export XML...").menu(&["File", "Export", "XML..."]).query().sig("{path?}").reg(r, export_xml);
     cmd("file.printBooklet", "Print Booklet...").menu(&["File", "Print Booklet..."]).query().sig("{path?, type?: 2upSaddleStitch|2upPerfectBound|consecutive, spaceBetweenPages?, creep?, pages?}").reg(r, print_booklet);
-    cmd("file.package", "Package...").menu(&["File", "Package..."]).key("Mod+Alt+Shift+P").query().sig("{dir, idml?, pdf?, instructions?}").reg(r, package);
+    cmd("file.package", "Package...").menu(&["File", "Package..."]).key("Mod+Alt+Shift+P").query().sig("{dir, idml?, pdf?, fonts?: true, instructions?}").reg(r, package);
     cmd("file.recovery.save", "Save Recovery Data").needs(Needs::Nothing).query().sig("{dir}").reg(r, recovery_save);
     cmd("file.recovery.list", "Recoverable Documents").needs(Needs::Nothing).query().sig("{dir}").reg(r, recovery_list);
     cmd("file.recovery.open", "Recover Unsaved Documents").menu(&["File", "Recover Unsaved Documents"]).needs(Needs::Nothing).query().sig("{dir}").reg(r, recovery_open);
