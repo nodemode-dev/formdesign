@@ -8,7 +8,7 @@ import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
 
 interface Spec { name: string; left?: string[]; side: string[]; dock: string[]; open: string[]; hidden?: string[]; tabs?: Record<string, string> }
-const LEFT_DEFAULT = ['pages', 'make', 'terminal'];
+const LEFT_DEFAULT = ['pages', 'make', 'terminal', 'connect'];
 interface Saved { name: string; layout: PanelLayout }
 
 const BUILTIN: Spec[] = [

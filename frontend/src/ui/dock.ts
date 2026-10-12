@@ -6,7 +6,7 @@ export type DockColumn = 'left' | 'side' | 'dock';
 export interface DockState { left: string[]; side: string[]; dock: string[]; hidden: string[]; heights: Record<string, number>; custom: Array<{ id: string; label: string }>; width: number | null; collapsed: DockColumn[]; leftWidth?: number | null }
 const COLS: DockColumn[] = ['left', 'side', 'dock'];
 const LEFT_W = 252;
-const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'sparkle', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder', terminal: 'terminal' };
+const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'sparkle', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder', terminal: 'terminal', connect: 'link' };
 export interface PanelLayout { dock: DockState; groups: Record<string, { tab?: string; min?: boolean }>; homes: Record<string, string> }
 
 const KEY = 'formdes.dock';

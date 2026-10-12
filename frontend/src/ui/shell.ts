@@ -356,7 +356,7 @@ export class Shell implements Workspace {
   mountPanels(): void {
     const left = q(this.root, '.fd-left-col'), side = q(this.root, '.cv-props-col'), dock = q(this.root, '.cv-layers');
     const hostOf = (c: PanelSpec['column']): HTMLElement => (c === 'left' ? left : c === 'side' ? side : dock);
-    PanelGroup.startMin = new Set(['swatches', 'preflight', 'typeextra', 'review', 'interactive', 'xml', 'library', 'terminal']);
+    PanelGroup.startMin = new Set(['swatches', 'preflight', 'typeextra', 'review', 'interactive', 'xml', 'library', 'terminal', 'connect']);
     const byGroup = new Map<string, PanelSpec[]>();
     for (const p of [...this.panels].sort((a, b) => (a.order ?? 50) - (b.order ?? 50))) {
       const list = byGroup.get(p.group) ?? [];
@@ -425,7 +425,8 @@ export class Shell implements Workspace {
       const map: Record<string, string> = { home: 'ui.home', undo: 'ui.undo', redo: 'ui.redo', 'zoom-in': 'ui.zoomIn', 'zoom-out': 'ui.zoomOut', 'fit-spread': 'ui.fitSpread', make: 'ui.make', settings: 'ui.prefs', new: 'ui.templates' };
       if (map[id]) this.commands.run(map[id]);
     });
-    editor.on('commands', () => { this.addCoreCommands(); this.buildMenus(); });
+    editor.on('commands', () => { this.addCoreCommands(); this.buildMenus(); this.publishActions(); });
+    engine.on('view', (v: { page?: number; zoom?: string; panel?: string; tool?: string }) => this.agentView(v));
     editor.on('docs', () => { this.syncTabs(); this.home.sync(editor.docs.length); this.syncTitle(); if (!editor.docs.length) void this.loadRecent(); });
     editor.on('tool', () => this.syncTools());
     editor.on('commands', () => this.renderTools());
@@ -452,6 +453,26 @@ export class Shell implements Workspace {
     });
     window.addEventListener('beforeunload', (e) => { if (editor.docs.some((d) => d.dirty) && !('__TAURI_INTERNALS__' in window)) e.preventDefault(); });
     void this.loadRecent();
+  }
+
+  private published = false;
+  private publishActions(): void {
+    if (this.published || !this.menubar) return;
+    this.published = true;
+    const areas = this.menuAreas();
+    const actions = this.commands.all().filter((c) => !editor.command(c.id)).map((c) => ({ id: c.id, label: this.commands.label(c), keys: c.keys ?? [], menu: areas.get(c.id) ?? '' }));
+    void api('/actions/window', { method: 'POST', json: { actions } }).catch(() => { this.published = false; });
+  }
+
+  private agentView(v: { page?: number; zoom?: string; panel?: string; tool?: string }): void {
+    if (v.panel) this.showPanel(v.panel);
+    if (v.tool) void editor.setTool(v.tool);
+    if (!editor.hasDoc) return;
+    if (typeof v.page === 'number') this.viewport.showPage(v.page);
+    const z = String(v.zoom ?? '').trim().toLowerCase();
+    if (z === 'fit-page') this.viewport.fitPage();
+    else if (z === 'fit-spread') this.viewport.fitSpread();
+    else if (/^\d+(\.\d+)?%?$/.test(z)) this.viewport.zoomTo(Math.max(0.05, Math.min(40, parseFloat(z) / 100)));
   }
 
   private async loadRecent(): Promise<void> {

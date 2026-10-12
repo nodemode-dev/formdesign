@@ -24,7 +24,8 @@ import { installWorkspaces } from './workspaces';
 import { installClipboard } from './clipboard';
 import { installTextOptions } from './text-options';
 import { installTerminal } from './terminal';
+import { installConnect } from './connect';
 
 export const FEATURES: Feature[] = [make, properties, pages, document, rulers, { install: installGlyphs }, { install: installTabs }, { install: installTable }, { install: installBook },
   { install: installStoryEditor }, { install: installReview }, { install: installSeparations }, { install: installFind }, { install: installSpelling }, { install: installPathType }, { install: installInteractive }, { install: installXml }, { install: installLibrary },
-  { install: installDictionaries }, { install: installProof }, { install: installWorkspaces }, { install: installShortcuts }, { install: installClipboard }, { install: installTextOptions }, { install: installTerminal }];
+  { install: installDictionaries }, { install: installProof }, { install: installWorkspaces }, { install: installShortcuts }, { install: installClipboard }, { install: installTextOptions }, { install: installTerminal }, { install: installConnect }];
