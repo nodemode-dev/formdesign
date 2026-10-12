@@ -608,6 +608,42 @@ fn parents_new(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"index": doc.parents.len() - 1, "label": format!("{prefix}-{name}")}))
 }
 
+fn parents_options(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let doc = c.doc_mut()?;
+    let id = parent_id(doc, p.get("parent"), None)?.ok_or_else(|| EngineError::new("missing `parent` (a parent prefix such as \"A\")"))?;
+    let based = match p.get("basedOn") {
+        None => doc.parent(id).and_then(|x| x.based_on),
+        Some(v) => parent_id(doc, Some(v), None)?,
+    };
+    let mut cur = based;
+    let mut guard = 0;
+    while let Some(b) = cur {
+        if b == id {
+            return Err(EngineError::new("a parent cannot be based on itself, directly or through another parent"));
+        }
+        guard += 1;
+        cur = if guard < 16 { doc.parent(b).and_then(|x| x.based_on) } else { None };
+    }
+    let prefix = args::opt_str(p, "prefix").map(str::trim).filter(|s| !s.is_empty()).map(|s| s.chars().take(4).collect::<String>());
+    if let Some(pf) = &prefix
+        && doc.parents.iter().any(|x| x.prefix == *pf && x.id != id)
+    {
+        return Err(EngineError::new(format!("there is already a parent with prefix {pf}")));
+    }
+    let par = doc.parents.iter_mut().find(|x| x.id == id).ok_or_else(|| EngineError::new("no such parent"))?;
+    if let Some(pf) = prefix {
+        par.prefix = pf;
+    }
+    if let Some(n) = args::opt_str(p, "name").map(str::trim).filter(|s| !s.is_empty()) {
+        par.name = n.to_string();
+    }
+    par.based_on = based;
+    let label = format!("{}-{}", par.prefix, par.name);
+    let base = based.and_then(|b| doc.parent(b)).map(|b| b.prefix.clone());
+    c.label("Parent Page Options");
+    Ok(json!({"label": label, "basedOn": base}))
+}
+
 fn parents_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
     let st = c.state_mut()?;
     st.editing_parents = args::opt_bool(p, "on").unwrap_or(!st.editing_parents);
@@ -1004,6 +1040,7 @@ pub fn register(r: &mut Registry) {
     cmd("layout.pages.duplicateSpread", "Duplicate Spread").menu(&["Layout", "Pages", "Duplicate Spread"]).sig("{spread}").reg(r, duplicate_spread);
     cmd("layout.pages.applyParent", "Apply Parent to Pages...").menu(&["Layout", "Pages", "Apply Parent to Pages..."]).sig("{pages: [0-based], parent: prefix | null}").reg(r, apply_parent);
     cmd("layout.parents.new", "New Parent...").menu(&["Layout", "Pages", "New Parent..."]).sig("{prefix?, name?, basedOn?}").reg(r, parents_new);
+    cmd("layout.parents.options", "Parent Page Options...").menu(&["Layout", "Pages", "Parent Page Options..."]).sig("{parent: prefix, prefix?, name?, basedOn?: prefix | null}").reg(r, parents_options);
     cmd("layout.parents.edit", "Edit Parents").menu(&["Layout", "Pages", "Edit Parents"]).query().sig("{on}").reg(r, parents_edit);
     cmd("layout.section", "Numbering & Section Options...").menu(&["Layout", "Numbering & Section Options..."]).sig("{page: 1-based, remove? | startNumber?, style?, prefix?, includePrefix?, marker?}").reg(r, section);
     cmd("layout.overrideParentItems", "Override All Parent Page Items").menu(&["Layout", "Pages", "Override All Parent Page Items"]).sig("{page: 0-based}").reg(r, override_all);
