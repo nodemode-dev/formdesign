@@ -11,7 +11,8 @@ from app.core import config
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.services import userprefs as userprefs_service
-from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, system, templates, userprefs, website
+from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, system, templates, terminal, userprefs, website
+from app.services.pty import terminals
 
 logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("formdes")
@@ -27,6 +28,7 @@ async def lifespan(_: FastAPI):
     except CoreError as exc:
         log.error("%s", exc)
     yield
+    terminals.close_all()
     await core.stop()
 
 
@@ -45,6 +47,7 @@ app.include_router(libraries.router, prefix="/api")
 app.include_router(userprefs.router, prefix="/api")
 app.include_router(dictionaries.router, prefix="/api")
 app.include_router(website.router, prefix="/api")
+app.include_router(terminal.router, prefix="/api")
 app.include_router(website.sites)
 app.include_router(mcp.router)
 
