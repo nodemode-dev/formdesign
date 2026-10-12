@@ -20,7 +20,7 @@ export class HomeScreen {
   constructor(host: HTMLElement, private readonly d: HomeDeps, actions: HomeAction[]) {
     const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
     const center = el(`<div class="cv-home-center">
-      <h1 class="cv-home-brand">formdes<span class="cv-home-by">by NodeMode</span></h1>
+      <h1 class="cv-home-brand">FormDesign<span class="cv-home-by">by NodeMode</span></h1>
       <p class="cv-home-sub">Lay out a magazine, a site, a report or an ad. Start from a template, make one from your files, or open a document.</p>
       <div class="cv-home-actions"></div>
       <p class="cv-home-hint">${icon('upload', 14)}<span>Drop Markdown, PDF, Word, images or a folder anywhere to make a layout from them.</span></p>

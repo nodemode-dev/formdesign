@@ -218,7 +218,7 @@ export class Shell implements Workspace {
       { id: 'ui.prevPage', label: 'Previous Page', keys: ['Shift+PageUp'], enabled: has, run: () => this.stepPage(-1) },
       { id: 'ui.nextPage', label: 'Next Page', keys: ['Shift+PageDown'], enabled: has, run: () => this.stepPage(1) },
       { id: 'ui.panels', label: 'Hide Panels', keys: ['Tab'], run: () => this.root.classList.toggle('is-panels-hidden') },
-      { id: 'ui.about', label: 'About formdes', run: () => toast(`formdes ${VERSION} · layout core ${editor.coreVersion || 'offline'} · Apache-2.0`) },
+      { id: 'ui.about', label: 'About FormDesign', run: () => toast(`FormDesign ${VERSION} · layout core ${editor.coreVersion || 'offline'} · Apache-2.0`) },
       { id: 'ui.group.close', label: 'Close Group', run: () => { if (this.menuGroup) this.dock?.hide(this.menuGroup); } },
       { id: 'ui.group.minimise', label: () => (PanelGroup.all.get(this.menuGroup)?.minimised ? 'Expand Group' : 'Minimise Group'), run: () => { const g = PanelGroup.all.get(this.menuGroup); g?.setMinimised(!g.minimised); } },
     );
@@ -429,7 +429,7 @@ export class Shell implements Workspace {
     this.viewport.onView = () => { this.syncZoom(); this.syncPageLabel(); };
     engine.on('close', () => this.syncStatus(false));
     this.syncStatus(false);
-    setText(q(root, '.fd-st-version'), `formdes ${VERSION}`);
+    setText(q(root, '.fd-st-version'), `FormDesign ${VERSION}`);
     window.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); setHidden(q(root, '.cv-drop'), false); } });
     window.addEventListener('dragleave', (e) => { if (!e.relatedTarget) setHidden(q(root, '.cv-drop'), true); });
     window.addEventListener('drop', (e) => {
@@ -642,7 +642,7 @@ export class Shell implements Workspace {
 
   private syncTitle(): void {
     const d = editor.doc;
-    document.title = d ? `${d.dirty ? '• ' : ''}${d.title} · formdes` : 'formdes';
+    document.title = d ? `${d.dirty ? '• ' : ''}${d.title} · FormDesign` : 'FormDesign';
   }
 
   private syncZoom(): void {

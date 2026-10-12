@@ -8,7 +8,7 @@ import { applyTheme } from './ui/themes';
 
 const SHELL = `<div class="cv-app fd-app">
 <header class="cv-titlebar">
-<button class="cv-brand" type="button" data-cmd="home" title="Home">${brandMark(18)}<span class="cv-brand-name">formdes</span></button>
+<button class="cv-brand" type="button" data-cmd="home" title="Home">${brandMark(18)}<span class="cv-brand-name">FormDesign</span></button>
 <nav class="cv-menubar" aria-label="Main menu"></nav>
 <div class="cv-zoom fd-title-tools">
 <button class="cv-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
