@@ -1,10 +1,12 @@
-# formdes
+# FormDesign (repo and tools: formdes)
 
 Page layout and publishing (an InDesign alternative) for the web and the desktop in the form family's design language: a Rust layout core (formdes-core over formdes's own layout crates in `native/`), a Python and FastAPI engine, a vanilla TypeScript and Vite window, a Tauri 2 shell.
 
 ## Making layouts
 
 When the person wants something laid out (a magazine spread, newsletter, report, flyer, poster, menu, card, ad, banner, landing page, blog, email or deck) from files, a PDF, images or an idea, use the `formdes` MCP server with the `formdes-harness` skill (`.claude/skills/formdes-harness`), not formdes's source code. `.mcp.json` starts it (`./formdes mcp`, which starts the engine if it is not running). The fast path is intake, make_layout, preview, set_slots, export_document.
+
+Beyond the fast path: `find_commands` (by word or domain) then `run_commands`; their errors name the fix. `show` moves the person's view so they can follow. Risky steps (publishing, overwriting a file, packaging, printing, deleting several pages) can wait for the person's approval in Window > Agent Connect; if a call was not approved, ask them rather than retrying. In a shell, `./formdes cmd ID key=value`, `./formdes actions` and `./formdes tool NAME '{json}'` reach the same engine.
 
 For a new template, use the `formdes-template-creator` skill.
 
