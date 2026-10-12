@@ -152,8 +152,70 @@ pub fn text(ses: &mut Session, p: &Value) -> Result<Value> {
         return Err(EngineError::new("nothing is taking text: click into a text frame with the Type tool first"));
     }
     let raw = p.get("raw").and_then(Value::as_bool).unwrap_or(false);
+    let mut corrected = None;
+    if !raw && t.chars().count() == 1 && t.chars().all(|ch| ch.is_whitespace() || ".,;:!?)\"\u{2019}\u{201d}".contains(ch)) {
+        corrected = autocorrect(ses)?;
+    }
     ses.execute("text.insert", &json!({"text": t, "raw": raw}))?;
-    Ok(json!({"inserted": t.chars().count()}))
+    Ok(json!({"inserted": t.chars().count(), "corrected": corrected}))
+}
+
+fn autocorrect(ses: &mut Session) -> Result<Option<Value>> {
+    let ac = ses.prefs.get("autocorrect").cloned().unwrap_or(Value::Null);
+    if ac.get("on").and_then(Value::as_bool) != Some(true) {
+        return Ok(None);
+    }
+    let Some(st) = ses.active() else { return Ok(None) };
+    let Some(sel) = st.selection.text else { return Ok(None) };
+    if sel.anchor != sel.focus {
+        return Ok(None);
+    }
+    let Some(story) = st.doc.story(sel.story) else { return Ok(None) };
+    let chars: Vec<char> = story.text().chars().collect();
+    let end = sel.focus.min(chars.len());
+    let mut start = end;
+    while start > 0 && (chars[start - 1].is_alphanumeric() || chars[start - 1] == '\'' || chars[start - 1] == '\u{2019}') {
+        start -= 1;
+    }
+    if start == end {
+        return Ok(None);
+    }
+    let word: String = chars[start..end].iter().collect();
+    let pairs = ac.get("pairs").and_then(Value::as_object);
+    let lower = word.to_lowercase();
+    let found = pairs.and_then(|m| m.get(&word).or_else(|| m.get(&lower))).and_then(Value::as_str).map(str::to_string);
+    let mut rep = match found {
+        Some(r) if pairs.is_some_and(|m| m.contains_key(&word)) => r,
+        Some(r) => match_case(&word, &r),
+        None => return Ok(None),
+    };
+    let sentence_start = chars[..start].iter().rev().find(|c| !c.is_whitespace()).is_none_or(|c| ".!?\n".contains(*c));
+    if ac.get("capitalize").and_then(Value::as_bool) == Some(true) && sentence_start {
+        let mut cs = rep.chars();
+        if let Some(f) = cs.next() {
+            rep = f.to_uppercase().chain(cs).collect();
+        }
+    }
+    if rep == word {
+        return Ok(None);
+    }
+    if let Some(st) = ses.active_mut() {
+        st.selection = crate::session::Selection::text(crate::session::TextSel { story: sel.story, anchor: start, focus: end });
+    }
+    ses.execute("text.insert", &json!({"text": rep}))?;
+    Ok(Some(json!({"from": word, "to": rep})))
+}
+
+fn match_case(word: &str, rep: &str) -> String {
+    let letters: Vec<char> = word.chars().filter(|c| c.is_alphabetic()).collect();
+    if letters.len() > 1 && letters.iter().all(|c| c.is_uppercase()) {
+        return rep.to_uppercase();
+    }
+    if word.chars().next().is_some_and(char::is_uppercase) {
+        let mut cs = rep.chars();
+        return cs.next().map(|f| f.to_uppercase().chain(cs).collect()).unwrap_or_default();
+    }
+    rep.to_string()
 }
 
 pub fn cursor(ses: &mut Session, p: &Value) -> Value {

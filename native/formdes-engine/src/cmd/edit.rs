@@ -67,7 +67,28 @@ fn script_run(c: &mut Ctx, p: &Value) -> Result<Value> {
     c.session.batch(&cmds, label.as_deref())
 }
 
+fn autocorrect(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let mut ac = c.session.prefs.get("autocorrect").cloned().filter(Value::is_object).unwrap_or_else(|| serde_json::json!({"on": false, "pairs": {}}));
+    if let Some(on) = p.get("on").and_then(Value::as_bool) {
+        ac["on"] = Value::Bool(on);
+    }
+    if let Some(pairs) = p.get("pairs") {
+        let o = pairs.as_object().ok_or_else(|| crate::EngineError::new("`pairs` is an object of {misspelling: correction}"))?;
+        let clean: serde_json::Map<String, Value> = o.iter().filter(|(k, v)| !k.trim().is_empty() && v.as_str().is_some_and(|s| !s.is_empty())).map(|(k, v)| (k.trim().to_string(), v.clone())).collect();
+        ac["pairs"] = Value::Object(clean);
+    }
+    if let Some(caps) = p.get("capitalize").and_then(Value::as_bool) {
+        ac["capitalize"] = Value::Bool(caps);
+    }
+    if !c.session.prefs.is_object() {
+        c.session.prefs = serde_json::json!({});
+    }
+    c.session.prefs["autocorrect"] = ac.clone();
+    Ok(ac)
+}
+
 pub fn register(r: &mut Registry) {
+    r.add(cmd("edit.autocorrect", "Autocorrect").menu(&["Edit", "Autocorrect..."]).sig("{on?, pairs?: {misspelling: correction}, capitalize?}").query().build(), autocorrect);
     r.add(cmd("edit.undo", "Undo").menu(&["Edit", "Undo"]).key("Mod+Z").query().build(), undo);
     r.add(cmd("edit.redo", "Redo").menu(&["Edit", "Redo"]).key("Mod+Shift+Z").query().build(), redo);
     r.add(cmd("edit.deselectAll", "Deselect All").menu(&["Edit", "Deselect All"]).key("Mod+Shift+A").query().build(), deselect_all);
