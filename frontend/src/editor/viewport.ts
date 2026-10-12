@@ -1,5 +1,11 @@
 import { engine, type ChangeEvent } from '../engine/client';
 import { editor, type Rect4 } from './editor';
+import { Canvas2dCompositor } from '../gpu/canvas2d';
+import type { Compositor, Frame, FrameTile, Preference } from '../gpu/index';
+import { chainFor, selectCompositor, type CanvasFactory, type PathId } from '../gpu/select';
+
+const RENDERER_KEY = 'formdes.renderer';
+const PATH_LABEL: Record<PathId, string> = { webgpu: 'WebGPU', webgl2: 'WebGL2', canvas2d: 'Canvas 2D' };
 
 export interface ViewState { zoom: number; x: number; y: number }
 export interface ViewOptions {
@@ -8,7 +14,7 @@ export interface ViewOptions {
   proof: { target: string; intent: string; simulatePaper: boolean } | null;
 }
 
-interface Tile { key: string; level: number; i: number; j: number; rect: Rect4; bmp: ImageBitmap | null; stale: boolean; dirtyAt: number; used: number }
+interface Tile { key: string; gkey: string; level: number; i: number; j: number; rect: Rect4; bmp: ImageBitmap | null; stale: boolean; dirtyAt: number; used: number }
 
 const T = 512;
 const MAX_TILES = 180;
@@ -26,7 +32,16 @@ export class Viewport {
   private readonly views = new Map<number, ViewState>();
   private readonly caches = new Map<number, Map<string, Tile>>();
   private tiles = new Map<string, Tile>();
-  private readonly tctx: CanvasRenderingContext2D;
+  /** The display path in use, and the Canvas 2D one on the page's own tile canvas, which is always kept ready as the fallback. */
+  private comp: Compositor;
+  private readonly base: Canvas2dCompositor;
+  private activeId: PathId = 'canvas2d';
+  private rendererPref: Preference = 'auto';
+  private swapToken = 0;
+  private snapshotTimer = 0;
+  private rendererNote = '';
+  private readonly rendererListeners: Array<() => void> = [];
+  private readonly extraCanvases = new Set<HTMLCanvasElement>();
   private readonly hctx: CanvasRenderingContext2D;
   private readonly octx: CanvasRenderingContext2D;
   private dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -45,7 +60,10 @@ export class Viewport {
   private pending = 0;
 
   constructor(readonly stage: HTMLElement, readonly tileCanvas: HTMLCanvasElement, readonly hiliteCanvas: HTMLCanvasElement, readonly overlayCanvas: HTMLCanvasElement) {
-    this.tctx = tileCanvas.getContext('2d', { alpha: false }) as CanvasRenderingContext2D;
+    // Canvas2dCompositor.init does its work before its first await, so the page draws from the first frame as before.
+    this.base = new Canvas2dCompositor();
+    void this.base.init(tileCanvas);
+    this.comp = this.base;
     this.hctx = hiliteCanvas.getContext('2d') as CanvasRenderingContext2D;
     this.octx = overlayCanvas.getContext('2d') as CanvasRenderingContext2D;
     new ResizeObserver(() => this.resize()).observe(stage);
@@ -55,7 +73,116 @@ export class Viewport {
     editor.on('selection', () => this.refreshOverlays());
     editor.on('tool', () => this.refreshOverlays());
     matchMedia(`(resolution: ${this.dpr}dppx)`).addEventListener?.('change', () => { this.dpr = Math.max(1, window.devicePixelRatio || 1); this.resize(); });
+    try { const p = localStorage.getItem(RENDERER_KEY); if (p === 'auto' || p === 'webgpu' || p === 'webgl2' || p === 'canvas2d') this.rendererPref = p; } catch { }
+    if (this.rendererPref !== 'canvas2d') void this.chooseRenderer(this.rendererPref);
+    else this.notifyRenderer();
   }
+
+  // The display path. Canvas 2D is on the page's own tile canvas and always alive; WebGPU and WebGL2 each draw on a canvas of
+  // their own that is inserted once, under the highlight and overlay canvases, when that path is first chosen. A switch builds
+  // the new path beside the old one, uploads the tiles it holds, draws a full frame into it and only then hides the old
+  // canvas, all in one task, so the next paint already shows the new frame.
+  get renderer(): { pref: Preference; id: PathId; name: string; note: string } {
+    return { pref: this.rendererPref, id: this.activeId, name: this.comp.name, note: this.rendererNote };
+  }
+
+  onRenderer(fn: () => void): void { this.rendererListeners.push(fn); }
+
+  private notifyRenderer(): void { for (const fn of this.rendererListeners) fn(); }
+
+  setRenderer(pref: Preference): Promise<void> {
+    this.rendererPref = pref;
+    try { localStorage.setItem(RENDERER_KEY, pref); } catch { }
+    return this.chooseRenderer(pref);
+  }
+
+  private factory(): CanvasFactory {
+    return {
+      create: (id) => {
+        if (id === 'canvas2d') return this.tileCanvas;
+        const c = document.createElement('canvas');
+        c.className = `cv-canvas fd-tiles-gpu fd-tiles-${id}`;
+        c.setAttribute('aria-hidden', 'true');
+        c.style.visibility = 'hidden';
+        this.tileCanvas.after(c);
+        this.extraCanvases.add(c);
+        return c;
+      },
+      discard: (c) => { this.extraCanvases.delete(c); c.remove(); },
+    };
+  }
+
+  private async chooseRenderer(pref: Preference, after?: PathId): Promise<void> {
+    if (!after && chainFor(pref)[0] === this.activeId && this.comp.canvas) { this.rendererNote = ''; this.notifyRenderer(); return; }
+    const token = ++this.swapToken;
+    const sel = await selectCompositor(pref, this.factory(), after, new Map([['canvas2d', this.base]]));
+    if (token !== this.swapToken) {
+      // A newer choice superseded this one while it was starting.
+      if (sel && sel.compositor !== this.base && sel.compositor !== this.comp) this.dispose(sel.compositor);
+      return;
+    }
+    if (!sel) return;
+    const want = chainFor(pref)[0];
+    this.rendererNote = sel.id !== want && pref !== 'auto' ? `${PATH_LABEL[want]} is not available here` : '';
+    this.adopt(sel.compositor, sel.id);
+  }
+
+  private adopt(next: Compositor, id: PathId): void {
+    if (next === this.comp) { this.activeId = id; this.notifyRenderer(); return; }
+    const prev = this.comp;
+    next.resize(this.w, this.h, this.dpr);
+    this.uploadAll(next);
+    next.onLost = (why) => this.onPathLost(next, id, why);
+    if (next.canvas) next.canvas.style.visibility = 'visible';
+    this.comp = next;
+    this.activeId = id;
+    this.draw();
+    // The new canvas has its frame; the old one can go. Both changes land in the same paint.
+    if (prev !== this.base && prev.canvas && prev.canvas !== next.canvas) prev.canvas.style.visibility = 'hidden';
+    if (prev !== this.base) window.setTimeout(() => this.dispose(prev), 120);
+    this.notifyRenderer();
+  }
+
+  private dispose(c: Compositor): void {
+    const canvas = c.canvas;
+    c.onLost = null;
+    try { c.destroy(); } catch { }
+    if (canvas && canvas !== this.tileCanvas) { this.extraCanvases.delete(canvas); canvas.remove(); }
+  }
+
+  private onPathLost(c: Compositor, id: PathId, why: string): void {
+    if (c !== this.comp) return;
+    // Bridge at once on Canvas 2D from the tiles already held, so the lost canvas is never what the next paint shows,
+    // then try the paths after the lost one.
+    const lostCanvas = c.canvas;
+    this.rendererNote = `${PATH_LABEL[id]} lost (${why.slice(0, 60)})`;
+    this.uploadAll(this.base);
+    this.base.resize(this.w, this.h, this.dpr);
+    this.comp = this.base;
+    this.activeId = 'canvas2d';
+    this.tileCanvas.style.visibility = 'visible';
+    this.draw();
+    if (lostCanvas) lostCanvas.style.visibility = 'hidden';
+    window.setTimeout(() => this.dispose(c), 120);
+    this.notifyRenderer();
+    const note = this.rendererNote;
+    void this.chooseRenderer(this.rendererPref, id).then(() => { if (this.activeId === 'canvas2d') this.rendererNote = note; this.notifyRenderer(); });
+  }
+
+  /** Drops a tile from every path that holds it (the base path only references the bitmap, which is about to close). */
+  private forget(t: Tile): void {
+    this.comp.evict(t.gkey);
+    if (this.comp !== this.base) this.base.evict(t.gkey);
+  }
+
+  private uploadAll(c: Compositor): void {
+    for (const cache of [...this.caches.values(), this.tiles]) {
+      for (const t of cache.values()) if (t.bmp && !c.has(t.gkey)) c.upload(t.gkey, t.bmp);
+    }
+  }
+
+  /** Test hook: asks the active GPU path to report itself lost, as a real device or context loss would. */
+  simulateLoss(): void { const c = this.comp; if (c !== this.base) c.onLost?.('simulated'); }
 
   get hasDoc(): boolean { return !!editor.layout && editor.hasDoc; }
   get scale(): number { return this.view.zoom * this.dpr; }
@@ -82,12 +209,14 @@ export class Viewport {
     const ow = this.w, oh = this.h;
     this.w = w;
     this.h = h;
-    for (const c of [this.tileCanvas, this.hiliteCanvas, this.overlayCanvas]) {
+    for (const c of [this.hiliteCanvas, this.overlayCanvas]) {
       c.width = Math.round(w * this.dpr);
       c.height = Math.round(h * this.dpr);
       c.style.width = `${w}px`;
       c.style.height = `${h}px`;
     }
+    this.base.resize(w, h, this.dpr);
+    if (this.comp !== this.base) this.comp.resize(w, h, this.dpr);
     if (this.hasDoc && ow > 1 && oh > 1 && (ow !== w || oh !== h)) {
       const z = this.view.zoom;
       this.setView({ zoom: z, x: this.view.x + (ow - w) / 2 / z, y: this.view.y + (oh - h) / 2 / z }, false);
@@ -216,7 +345,7 @@ export class Viewport {
       this.uid = doc ? doc.uid : null;
       const open = new Set(editor.docs.map((d) => d.uid));
       for (const [uid, cache] of this.caches) {
-        if (!open.has(uid)) { for (const t of cache.values()) t.bmp?.close(); this.caches.delete(uid); this.views.delete(uid); }
+        if (!open.has(uid)) { for (const t of cache.values()) { this.forget(t); t.bmp?.close(); } this.caches.delete(uid); this.views.delete(uid); }
       }
       this.tiles = (this.uid !== null ? this.caches.get(this.uid) : undefined) ?? new Map();
       const saved = this.uid !== null ? this.views.get(this.uid) : undefined;
@@ -278,38 +407,43 @@ export class Viewport {
   }
 
   private draw(): void {
-    const ctx = this.tctx;
     const s = this.scale;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = `rgb(${this.bg[0]},${this.bg[1]},${this.bg[2]})`;
-    ctx.fillRect(0, 0, this.tileCanvas.width, this.tileCanvas.height);
-    if (!this.hasDoc) { this.drawOverlays(); return; }
-    const vr = this.visibleRect();
-    const cur = this.level;
-    this.tick++;
-    ctx.fillStyle = '#ffffff';
-    for (const p of editor.layout?.pages ?? []) {
-      if (!intersects(p.rect, vr)) continue;
-      const x0 = Math.round((p.rect[0] - this.view.x) * s), y0 = Math.round((p.rect[1] - this.view.y) * s);
-      ctx.fillRect(x0, y0, Math.round((p.rect[2] - this.view.x) * s) - x0, Math.round((p.rect[3] - this.view.y) * s) - y0);
+    const frame: Frame = { width: Math.round(this.w * this.dpr), height: Math.round(this.h * this.dpr), dpr: this.dpr, bg: this.bg, scale: s, x: this.view.x, y: this.view.y, pages: [], tiles: [] };
+    if (this.hasDoc) {
+      const vr = this.visibleRect();
+      const cur = this.level;
+      this.tick++;
+      for (const p of editor.layout?.pages ?? []) if (intersects(p.rect, vr)) frame.pages.push(p.rect);
+      // Tiles of other levels first, the furthest from the view's scale first, then the current level on top.
+      const others = [...this.tiles.values()].filter((t) => t.bmp && t.level !== cur && intersects(t.rect, vr))
+        .sort((a, b) => Math.abs(Math.log(b.level / s)) - Math.abs(Math.log(a.level / s)));
+      const ft = (t: Tile): FrameTile => ({ key: t.gkey, rect: t.rect, level: t.level });
+      for (const t of others) frame.tiles.push(ft(t));
+      for (const t of this.tiles.values()) {
+        if (t.level === cur && t.bmp && intersects(t.rect, vr)) { frame.tiles.push(ft(t)); t.used = this.tick; }
+      }
     }
-    const others = [...this.tiles.values()].filter((t) => t.bmp && t.level !== cur && intersects(t.rect, vr))
-      .sort((a, b) => Math.abs(Math.log(b.level / s)) - Math.abs(Math.log(a.level / s)));
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    for (const t of others) this.blit(t);
-    for (const t of this.tiles.values()) {
-      if (t.level === cur && t.bmp && intersects(t.rect, vr)) { this.blit(t); t.used = this.tick; }
+    const missing = this.comp.draw(frame);
+    if (missing.length) {
+      // Tiles that arrived while another path was drawing: hand them to this one and draw again.
+      const want = new Set(missing);
+      for (const t of this.tiles.values()) if (t.bmp && want.has(t.gkey)) this.comp.upload(t.gkey, t.bmp);
+      this.comp.draw(frame);
     }
+    if (this.comp !== this.base) this.snapshotLater(frame);
     this.drawOverlays();
   }
 
-  private blit(t: Tile): void {
-    if (!t.bmp) return;
-    const s = this.scale;
-    const x0 = Math.round((t.rect[0] - this.view.x) * s), y0 = Math.round((t.rect[1] - this.view.y) * s);
-    const x1 = Math.round((t.rect[2] - this.view.x) * s), y1 = Math.round((t.rect[3] - this.view.y) * s);
-    this.tctx.drawImage(t.bmp, x0, y0, x1 - x0, y1 - y0);
+  // A lost GPU context or device blanks its canvas before the page hears about it, so the page's own Canvas 2D canvas
+  // stays visible underneath the GPU canvases and is repainted with the latest frame whenever drawing goes quiet. If the
+  // GPU canvas goes blank, what shows through is the last settled frame, never the empty stage.
+  private snapshotLater(frame: Frame): void {
+    window.clearTimeout(this.snapshotTimer);
+    this.snapshotTimer = window.setTimeout(() => {
+      if (this.comp === this.base) return;
+      this.uploadAll(this.base);
+      this.base.draw(frame);
+    }, 160);
   }
 
   private async pump(): Promise<void> {
@@ -328,7 +462,7 @@ export class Viewport {
     for (const r of req) {
       if (!this.tiles.has(r.key)) {
         const [, i, j] = r.key.split('|').map(Number);
-        this.tiles.set(r.key, { key: r.key, level: L, i, j, rect: this.tileRect(L, i, j), bmp: null, stale: false, dirtyAt: rev, used: this.tick });
+        this.tiles.set(r.key, { key: r.key, gkey: `${uid}|${r.key}`, level: L, i, j, rect: this.tileRect(L, i, j), bmp: null, stale: false, dirtyAt: rev, used: this.tick });
       }
     }
     try {
@@ -344,8 +478,10 @@ export class Viewport {
         if (!t) return;
         const px = bytes.slice(info.offset, info.offset + info.len);
         const bmp = await createImageBitmap(new ImageData(px, info.w, info.h));
+        if (this.comp !== this.base) this.base.evict(t.gkey);
         t.bmp?.close();
         t.bmp = bmp;
+        this.comp.upload(t.gkey, bmp);
         t.stale = t.dirtyAt > rev;
         t.used = this.tick;
       }));
@@ -363,7 +499,7 @@ export class Viewport {
     if (this.tiles.size <= MAX_TILES) return;
     const vr = this.visibleRect();
     const list = [...this.tiles.values()].filter((t) => !(t.level === this.level && intersects(t.rect, vr))).sort((a, b) => a.used - b.used);
-    for (const t of list.slice(0, this.tiles.size - MAX_TILES)) { t.bmp?.close(); this.tiles.delete(t.key); }
+    for (const t of list.slice(0, this.tiles.size - MAX_TILES)) { this.forget(t); t.bmp?.close(); this.tiles.delete(t.key); }
   }
 
   refreshOverlays(): void {
