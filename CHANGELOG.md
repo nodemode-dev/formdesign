@@ -1,6 +1,14 @@
 # Changelog
 
-Every release of formdes, newest first. Versions follow semver; tags read `v*.*.*`.
+Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
+
+## 0.20.0 · 2026-10-12
+
+- The product is called FormDesign: window, splash, home, About, status bar and the desktop bundle. The `formdes` command, the `formdes` MCP server, `FORMDES_*` settings and `.fdes` files keep their names.
+- A left panel column between the tools and the canvas, with Pages, Layers and Links and Make and Slots by default; drag any panel group into or out of it, per workspace.
+- The left column folds into the tool rail as a minirail of icons, each opening its panels as a flyout; the Properties column and the dock fold into icon strips. Window > Collapse Left Panels to Minirail (Alt+Shift+Mod+L) and Collapse Right Panels to Icons (Shift+Tab). The folded state is remembered and kept in workspaces.
+- Edit > Search (Mod+K): every command, panel and tool, ranked as you type, with its menu path and keys.
+- Every drop-down in the window uses the themed list, so no system list with a scrollbar appears.
 
 ## 0.19.0 · 2026-10-10
 

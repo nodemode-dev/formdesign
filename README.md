@@ -1,5 +1,5 @@
-<p align="center"><img src="assets/formdes_folder_icon.png" width="112" alt="formdes"></p>
-<h1 align="center">formdes</h1>
+<p align="center"><img src="assets/formdes_folder_icon.png" width="112" alt="FormDesign"></p>
+<h1 align="center">FormDesign</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
 <img src="https://img.shields.io/badge/version-0.19.0-f97316" alt="version 0.19.0">

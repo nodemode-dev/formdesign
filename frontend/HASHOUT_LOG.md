@@ -369,3 +369,19 @@ Engine menu paths end with the item's own text (`["Object", "Pathfinder"]`), so 
 - logged: v0.19.0 · 2026-10-10
 
 The two dialogs are built from `type.attrsCatalog` (each model attribute's name, level, kind, description and the current value at the cursor) and send only the changed values through `type.attrs`, so the panels and the dialogs never disagree and a new attribute in the model appears here without window code. Attributes are grouped in collapsible sections, and list- or object-valued ones (tabs, nested and GREP styles, rules, shading) are JSON boxes.
+
+## src/ui/dock.ts: the left column and the minirail {#cols0200}
+
+### dock.ts · three columns, collapse and the minirail
+- refers-to: frontend/src/ui/dock.ts :: DockState, merge, apply, setCollapsed, renderStrips, stripButton, placeCollapse
+- kind: rationale
+- logged: v0.20.0 · 2026-10-12
+
+The family's interface standard (FormWeb 0.3.4, formvis 1.66.1) puts one minirail on the left and makes every panel column collapsible. The dock now has three columns, `left` (between the tool rail and the canvas), `side` and `dock`, and `collapsed` lists the folded ones. The left column folds into the tool rail's lower part (`.fd-minirail`), so the window keeps one rail; the right columns fold into the strips formvis uses (`.cv-props-strip`, `.cv-dock-strip`). A strip or minirail icon moves the group's own section into one flyout in `#overlay-root` and leaves a comment where it was, and closing puts it back, so nothing is rebuilt and a panel's scroll, inputs and selection survive. The left column's width is one variable (`--fd-left-w`, 252 px open, 0 folded or empty) and the right strips set `--cv-props-w` and `--cv-layers-w` to 46 px through classes on the app, so a collapse writes one grid track and moves no node. A saved dock state from before 0.20.0 has no `left` list; `merge` then moves the groups whose panels register `column: 'left'` (Pages and Make by default) out of the right columns once, and keeps the person's arrangement after that, including panels they dragged into or out of the left column. Workspaces carry `left` and `collapsed`; built-ins put Pages and Make on the left unless they hide them.
+
+### columns.css · the grid with a left column
+- refers-to: frontend/src/styles/columns.css
+- kind: rationale
+- logged: v0.20.0 · 2026-10-12
+
+Loaded after formdes.css and before light-mode.css and scrollbars.css. It redefines `.cv-main`'s tracks for six columns, keeps the options bar across rail, left column and canvas, and repeats the Hide Panels rule for six tracks; the five-track rules in shell.css stay for formvis parity and are overridden here.
