@@ -2,6 +2,14 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.25.0 · 2026-10-12
+
+- Phase 5 begins: `native/formdes-gpu`, the canvas compositor on wgpu 30.0.1 (tile atlas with a memory budget, pasteboard, page shadows and tiles drawn through the view, white paper instead of a blank hole while a tile is missing, window display). The web display paths and the native canvas follow in 0.25.x.
+- Paragraph borders in Paragraph Options and paragraph styles: per-side weights and offsets, solid or dashed, rounded corners, column or text width, consecutive borders merge.
+- Nested line styles: character styles for the first lines of a paragraph, re-applied as text reflows.
+- Object > Effects: Inner Shadow, Outer Glow, Inner Glow, Basic Feather and Directional Feather, on screen and in PDF (feathers as soft masks).
+- Table > Cell Strokes per side for the selected cells (also in IDML) and Table > Split Cell. Known issue: splitting an unmerged cell horizontally misdraws the other columns; fixed in 0.25.1.
+
 ## 0.24.0 · 2026-10-12
 
 - The repository is now called formdesign (folder, clone address, zips, updater and core downloads); the `formdes` command and MCP server keep their names.
