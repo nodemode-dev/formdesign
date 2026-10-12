@@ -670,6 +670,30 @@ impl W<'_> {
                 let (r, _) = self.colors.paint_ref(self.doc, &p);
                 let _ = write!(out, " FillColor=\"{}\"", esc(&r));
             }
+            if let Some(strokes) = cell.attrs.get("strokes").and_then(|s| s.as_object()) {
+                for (key, edge) in [("top", "Top"), ("bottom", "Bottom"), ("left", "Left"), ("right", "Right")] {
+                    let Some(o) = strokes.get(key).and_then(|s| s.as_object()) else { continue };
+                    if let Some(p) = o.get("color").and_then(Paint::from_value) {
+                        let (r, _) = self.colors.paint_ref(self.doc, &p);
+                        let _ = write!(out, " {edge}EdgeStrokeColor=\"{}\"", esc(&r));
+                    }
+                    if let Some(w) = o.get("weight").and_then(|v| v.as_f64()) {
+                        let _ = write!(out, " {edge}EdgeStrokeWeight=\"{}\"", num(w));
+                    }
+                    if let Some(t) = o.get("tint").and_then(|v| v.as_f64()) {
+                        let _ = write!(out, " {edge}EdgeStrokeTint=\"{}\"", num(t * 100.0));
+                    }
+                    if let Some(k) = o.get("type").and_then(|v| v.as_str()) {
+                        let name = match k {
+                            "dashed" => "Dashed",
+                            "dotted" => "Dotted",
+                            "none" => "None",
+                            _ => "Solid",
+                        };
+                        let _ = write!(out, " {edge}EdgeStrokeType=\"StrokeStyle/$ID/{name}\"");
+                    }
+                }
+            }
             out.push('>');
             let n = cell.paras.len();
             for (i, p) in cell.paras.iter().enumerate() {

@@ -532,6 +532,10 @@ fn export_svg(c: &mut Ctx, p: &Value) -> Result<Value> {
                 let _ = write!(body, "<g opacity=\"{o:.3}\">");
                 open.push("g");
             }
+            Op::PushMask(_) => {
+                body.push_str("<g>");
+                open.push("g");
+            }
             Op::PushBlend(m) => {
                 let mode: String = m.chars().flat_map(|ch| if ch.is_uppercase() { vec!['-', ch.to_ascii_lowercase()] } else { vec![ch] }).collect();
                 let _ = write!(body, "<g style=\"mix-blend-mode:{mode}\">");

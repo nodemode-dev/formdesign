@@ -100,6 +100,29 @@ export function structuredEditor(name: string, value: unknown, lists: Lists): { 
     { key: 'count', label: 'Count', type: 'number', width: 56, def: 1 },
     { key: 'through', label: 'Delimiter', type: 'select', options: () => THROUGH, def: 'sentence' },
   ], value, 'New Nested Style');
+  if (name === 'nestedLines') return listEditor([
+    { key: 'style', label: 'Character Style', type: 'select', options: chars },
+    { key: 'lines', label: 'Lines', type: 'number', width: 56, def: 1 },
+  ], value, 'New Line Style');
+  if (name === 'border') return objectEditor([
+    { key: 'on', label: 'Paragraph Border On', type: 'check' },
+    { key: 'weight', label: 'Weight (pt)', type: 'number', def: 1 },
+    { key: 'top', label: 'Top Weight', type: 'number' },
+    { key: 'bottom', label: 'Bottom Weight', type: 'number' },
+    { key: 'left', label: 'Left Weight', type: 'number' },
+    { key: 'right', label: 'Right Weight', type: 'number' },
+    { key: 'color', label: 'Colour', type: 'select', options: sw, def: 'Black' },
+    { key: 'tint', label: 'Tint (%)', type: 'number', def: 1, scale: 100 },
+    { key: 'type', label: 'Type', type: 'select', options: () => [['solid', 'Solid'], ['dashed', 'Dashed']], def: 'solid' },
+    { key: 'corner', label: 'Corner', type: 'select', options: () => [['none', 'None'], ['rounded', 'Rounded']], def: 'none' },
+    { key: 'cornerSize', label: 'Corner Size', type: 'number', def: 6 },
+    { key: 'offsetTop', label: 'Top Offset', type: 'number', def: 0 },
+    { key: 'offsetBottom', label: 'Bottom Offset', type: 'number', def: 0 },
+    { key: 'offsetLeft', label: 'Left Offset', type: 'number', def: 0 },
+    { key: 'offsetRight', label: 'Right Offset', type: 'number', def: 0 },
+    { key: 'width', label: 'Width', type: 'select', options: () => [['column', 'Column'], ['text', 'Text']], def: 'column' },
+    { key: 'merge', label: 'Merge Consecutive Borders', type: 'check', def: true },
+  ], value);
   if (name === 'tabs') return listEditor([
     { key: 'position', label: 'Position (pt)', type: 'number', width: 80 },
     { key: 'align', label: 'Align', type: 'select', options: () => [['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['decimal', 'Decimal']] },

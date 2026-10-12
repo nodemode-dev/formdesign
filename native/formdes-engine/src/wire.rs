@@ -410,6 +410,17 @@ pub fn para_out(s: &Stack) -> Map<String, Value> {
     m.insert("shadingColor".into(), json!(sh.and_then(|o| o.get("color")).and_then(Paint::from_value).map(|p| paint_name(&p)).unwrap_or_else(|| "[Black]".into())));
     m.insert("shadingTint".into(), json!(sh.and_then(|o| o.get("tint")).and_then(Value::as_f64).unwrap_or(1.0)));
     m.insert("shadingOffsets".into(), json!([shn("top"), shn("left"), shn("bottom"), shn("right")]));
+    let border = s.get("border");
+    let bd = border.as_object().filter(|o| o.get("on").and_then(Value::as_bool) != Some(false));
+    m.insert("border".into(), match bd {
+        Some(o) => {
+            let mut o = o.clone();
+            o.insert("on".into(), json!(true));
+            Value::Object(o)
+        }
+        None => json!({"on": false}),
+    });
+    m.insert("nestedLines".into(), Value::Array(s.get("nestedLines").as_array().cloned().unwrap_or_default()));
     m
 }
 

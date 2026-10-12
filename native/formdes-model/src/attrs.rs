@@ -115,6 +115,7 @@ keys! {
     Para "ruleAbove" Kind::Object, "{weight, color, tint, offset, left, right, width: column|text}";
     Para "ruleBelow" Kind::Object, "{weight, color, tint, offset, left, right, width: column|text}";
     Para "shading" Kind::Object, "{color, tint, top, bottom, left, right}";
+    Para "border" Kind::Object, "{on, weight, top, bottom, left, right (stroke weights), color, tint, type: solid|dashed, corner: none|rounded, cornerSize, offsetTop, offsetBottom, offsetLeft, offsetRight, width: column|text, merge}";
     Para "tabs" Kind::List, "[{position, align: left|center|right|decimal, leader, alignOn}]";
     Para "list" Kind::Choice(LIST), "none, bullet or number";
     Para "bullet" Kind::Text, "bullet character";
@@ -131,6 +132,7 @@ keys! {
     Para "balance" Kind::Bool, "balance ragged lines";
     Para "opticalMargin" Kind::Bool, "hang punctuation outside the margin";
     Para "nested" Kind::List, "nested styles: [{style, through, count, inclusive}]";
+    Para "nestedLines" Kind::List, "nested line styles: [{style, lines}] applied in order to the first lines of the paragraph";
     Para "grep" Kind::List, "GREP styles: [{style, pattern}]";
 }
 
@@ -154,7 +156,7 @@ pub fn default_value(name: &str) -> Value {
         "underline" | "strike" | "noBreak" => json!(false),
         "ligatures" => json!(true),
         "language" => json!("en-US"),
-        "features" | "conditions" | "tabs" | "nested" | "grep" => json!([]),
+        "features" | "conditions" | "tabs" | "nested" | "nestedLines" | "grep" => json!([]),
         "change" => json!("none"),
         "xmlTag" | "dropStyle" | "listName" => json!(""),
         "align" => json!("left"),
@@ -173,7 +175,7 @@ pub fn default_value(name: &str) -> Value {
         "composer" => json!("paragraph"),
         "keepTogether" | "gridAlign" | "balance" | "opticalMargin" => json!(false),
         "start" => json!("anywhere"),
-        "ruleAbove" | "ruleBelow" | "shading" => Value::Null,
+        "ruleAbove" | "ruleBelow" | "shading" | "border" => Value::Null,
         "list" => json!("none"),
         "bullet" => json!("\u{2022}"),
         "numberFormat" => json!("^#.^t"),
@@ -516,6 +518,60 @@ pub struct Shading {
     pub right: f64,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Border {
+    pub top: f64,
+    pub bottom: f64,
+    pub left: f64,
+    pub right: f64,
+    pub color: Paint,
+    pub tint: f64,
+    pub dashed: bool,
+    pub rounded: bool,
+    pub corner: f64,
+    pub offset_top: f64,
+    pub offset_bottom: f64,
+    pub offset_left: f64,
+    pub offset_right: f64,
+    pub text_width: bool,
+    pub merge: bool,
+}
+
+impl Border {
+    fn from_value(v: &Value) -> Option<Border> {
+        let o = v.as_object()?;
+        if o.get("on").and_then(Value::as_bool) == Some(false) {
+            return None;
+        }
+        let n = |k: &str, d: f64| o.get(k).and_then(Value::as_f64).unwrap_or(d);
+        let w = n("weight", 1.0).max(0.0);
+        let b = Border {
+            top: n("top", w).max(0.0),
+            bottom: n("bottom", w).max(0.0),
+            left: n("left", w).max(0.0),
+            right: n("right", w).max(0.0),
+            color: o.get("color").and_then(Paint::from_value).unwrap_or(Paint::Swatch { name: "Black".into(), tint: 1.0 }),
+            tint: n("tint", 1.0),
+            dashed: o.get("type").and_then(Value::as_str) == Some("dashed"),
+            rounded: o.get("corner").and_then(Value::as_str) == Some("rounded"),
+            corner: n("cornerSize", 6.0).max(0.0),
+            offset_top: n("offsetTop", 0.0),
+            offset_bottom: n("offsetBottom", 0.0),
+            offset_left: n("offsetLeft", 0.0),
+            offset_right: n("offsetRight", 0.0),
+            text_width: o.get("width").and_then(Value::as_str) == Some("text"),
+            merge: o.get("merge").and_then(Value::as_bool).unwrap_or(true),
+        };
+        if b.top + b.bottom + b.left + b.right <= 0.0 { None } else { Some(b) }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NestedLine {
+    pub style: String,
+    pub lines: u32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TabAlign {
     Left,
@@ -595,6 +651,7 @@ pub struct ParaProps {
     pub rule_above: Option<Rule>,
     pub rule_below: Option<Rule>,
     pub shading: Option<Shading>,
+    pub border: Option<Border>,
     pub tabs: Vec<Tab>,
     pub list: ListKind,
     pub bullet: String,
@@ -611,6 +668,7 @@ pub struct ParaProps {
     pub balance: bool,
     pub optical_margin: bool,
     pub nested: Vec<NestedRule>,
+    pub nested_lines: Vec<NestedLine>,
     pub grep: Vec<GrepRule>,
 }
 
@@ -659,6 +717,18 @@ impl ParaProps {
                             count: o.get("count").and_then(Value::as_u64).unwrap_or(1) as u32,
                             inclusive: o.get("inclusive").and_then(Value::as_bool).unwrap_or(true),
                         })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let nested_lines = stack
+            .get("nestedLines")
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| {
+                        let o = v.as_object()?;
+                        Some(NestedLine { style: o.get("style")?.as_str()?.to_string(), lines: o.get("lines").and_then(Value::as_u64).unwrap_or(1).max(1) as u32 })
                     })
                     .collect()
             })
@@ -716,6 +786,7 @@ impl ParaProps {
             rule_above: Rule::from_value(&stack.get("ruleAbove")),
             rule_below: Rule::from_value(&stack.get("ruleBelow")),
             shading,
+            border: Border::from_value(&stack.get("border")),
             tabs,
             list: match stack.text("list").as_str() {
                 "bullet" => ListKind::Bullet,
@@ -739,6 +810,7 @@ impl ParaProps {
             balance: stack.bool("balance"),
             optical_margin: stack.bool("opticalMargin"),
             nested,
+            nested_lines,
             grep,
         }
     }

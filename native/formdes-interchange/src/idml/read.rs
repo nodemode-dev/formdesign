@@ -705,6 +705,29 @@ fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
         if let Some(f) = c.paint_value(cell.attr("FillColor")) {
             attrs.insert("fill".into(), f);
         }
+        let mut strokes = serde_json::Map::new();
+        for (key, edge) in [("top", "Top"), ("bottom", "Bottom"), ("left", "Left"), ("right", "Right")] {
+            let mut one = serde_json::Map::new();
+            if let Some(v) = c.paint_value(cell.attr(&format!("{edge}EdgeStrokeColor"))) {
+                one.insert("color".into(), v);
+            }
+            if let Some(w) = cell.num(&format!("{edge}EdgeStrokeWeight")) {
+                one.insert("weight".into(), json!(w));
+            }
+            if let Some(t) = cell.num(&format!("{edge}EdgeStrokeTint")).filter(|t| *t >= 0.0) {
+                one.insert("tint".into(), json!(t / 100.0));
+            }
+            if let Some(k) = cell.attr(&format!("{edge}EdgeStrokeType")) {
+                let k = k.rsplit('/').next().unwrap_or("Solid").to_ascii_lowercase();
+                one.insert("type".into(), json!(if k.contains("dash") { "dashed" } else if k.contains("dot") { "dotted" } else if k == "none" { "none" } else { "solid" }));
+            }
+            if !one.is_empty() {
+                strokes.insert(key.into(), serde_json::Value::Object(one));
+            }
+        }
+        if !strokes.is_empty() {
+            attrs.insert("strokes".into(), serde_json::Value::Object(strokes));
+        }
         t.cells.push(TableCell { row, col, rows: cell.num("RowSpan").unwrap_or(1.0).max(1.0) as usize, cols: cell.num("ColumnSpan").unwrap_or(1.0).max(1.0) as usize, paras, attrs, style: cell.attr("AppliedCellStyle").map(style_name).filter(|s| s != "None") });
     }
     for r in 0..t.rows() {

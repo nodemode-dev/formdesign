@@ -612,6 +612,7 @@ fn shift_op(op: &Op, d: Affine) -> Op {
         }
         Op::Image { asset, xf, w, h } => Op::Image { asset: *asset, xf: d * *xf, w: *w, h: *h },
         Op::PushClip(p) => Op::PushClip(d * p.clone()),
+        Op::PushMask(v) => Op::PushMask(v.iter().map(|o| shift_op(o, d)).collect()),
         Op::Link { rect, target } => Op::Link { rect: d.transform_rect_bbox(*rect), target: target.clone() },
         other => other.clone(),
     }

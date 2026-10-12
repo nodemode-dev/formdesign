@@ -831,11 +831,11 @@ pub fn register(r: &mut Registry) {
     cmd("story.replaceRange", "Typing").sig("{story, start, end, text} (byte offsets)").reg(r, story_replace);
     cmd("story.paras", "Paragraphs").query().sig("{story}").reg(r, story_paras);
     cmd("type.char", "Character Formatting").needs(Needs::Text).sig("{attrs: {size?, fontFamily?, fontStyle?, leading?, tracking?, fill?, ...}}").reg(r, type_char);
-    cmd("type.para", "Paragraph Formatting").needs(Needs::Text).sig("{attrs: {align?, leftIndent?, spaceBefore?, tabs?, ...}}").reg(r, type_para);
+    cmd("type.para", "Paragraph Formatting").needs(Needs::Text).sig("{attrs: {align?, leftIndent?, spaceBefore?, tabs?, ruleAbove?, ruleBelow?, shading?, border?: {on, weight, top, bottom, left, right, color, tint, type: solid|dashed, corner: none|rounded, cornerSize, offsetTop, offsetBottom, offsetLeft, offsetRight, width: column|text, merge}, nested?, nestedLines?: [{style, lines}], ...}}").reg(r, type_para);
     cmd("type.selectionAttrs", "Selection Attributes").needs(Needs::Text).query().sig("{}").reg(r, selection_attrs);
     cmd("type.pathOptions", "Type on a Path Options").menu(&["Type", "Type on a Path", "Options..."]).needs(Needs::Items).sig("{id, align?, flip?, start?} or {id, delete: true}").reg(r, path_options);
-    cmd("style.paragraph.create", "New Paragraph Style").sig("{name, fromSelection? | para?, chars?, basedOn?, nextStyle?}").reg(r, para_style_create);
-    cmd("style.paragraph.edit", "Paragraph Style Options").sig("{name, rename?, basedOn?, nextStyle?, para?, chars?}").reg(r, para_style_edit);
+    cmd("style.paragraph.create", "New Paragraph Style").sig("{name, fromSelection? | para? (same keys as type.para attrs incl. border, nestedLines), chars?, basedOn?, nextStyle?}").reg(r, para_style_create);
+    cmd("style.paragraph.edit", "Paragraph Style Options").sig("{name, rename?, basedOn?, nextStyle?, para?: same keys as type.para attrs incl. border, nestedLines, chars?}").reg(r, para_style_edit);
     cmd("style.paragraph.apply", "Apply Paragraph Style").needs(Needs::Text).sig("{name, clearOverrides?}").reg(r, para_style_apply);
     cmd("style.paragraph.delete", "Delete Paragraph Style").sig("{name, replaceWith?}").reg(r, para_style_delete);
     cmd("style.character.create", "New Character Style").sig("{name, chars?, basedOn?, fromSelection?}").reg(r, char_style_create);

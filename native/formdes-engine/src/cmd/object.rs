@@ -326,6 +326,83 @@ fn drop_shadow(c: &mut Ctx, p: &Value) -> Result<Value> {
     ok()
 }
 
+fn effect_color(fx: &mut Value, p: &Value) {
+    if let Some(col) = p.get("color").and_then(wire::color_in).map(wire::color_out)
+        && let Some(o) = fx.as_object_mut()
+    {
+        let cv = formdes_model::color::Color::from_value(&col).or_else(|| wire::color_in(&col)).map(|c| serde_json::to_value(c).unwrap_or(Value::Null));
+        o.insert("color".into(), cv.unwrap_or(Value::Null));
+    }
+}
+
+fn effect_mode(p: &Value, default: &str) -> Result<String> {
+    let mode = args::opt_str(p, "mode").unwrap_or(default);
+    const MODES: [&str; 12] = ["normal", "multiply", "screen", "overlay", "darken", "lighten", "colorDodge", "colorBurn", "hardLight", "softLight", "difference", "exclusion"];
+    if MODES.contains(&mode) { Ok(mode.to_string()) } else { Err(EngineError::new(format!("mode must be one of {}", MODES.join(", ")))) }
+}
+
+fn percent(p: &Value, key: &str, default: f64) -> f64 {
+    (args::opt_f64(p, key).unwrap_or(default) / 100.0).clamp(0.0, 1.0)
+}
+
+fn set_effect(c: &mut Ctx, p: &Value, key: &str, fx: Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    set_each(c, &ids, |it| {
+        it.effects.insert(key.into(), fx.clone());
+    })?;
+    ok()
+}
+
+fn inner_shadow(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let distance = args::opt_f64(p, "distance").unwrap_or(5.0).max(0.0);
+    let angle = args::opt_f64(p, "angle").unwrap_or(135.0).to_radians();
+    let mut fx = json!({
+        "on": args::opt_bool(p, "on").unwrap_or(true), "mode": effect_mode(p, "multiply")?, "opacity": percent(p, "opacity", 75.0),
+        "distance": distance, "angle": angle.to_degrees(), "size": args::opt_f64(p, "size").unwrap_or(5.0).max(0.0), "choke": percent(p, "choke", 0.0),
+        "x": -distance * angle.cos(), "y": distance * angle.sin()
+    });
+    effect_color(&mut fx, p);
+    set_effect(c, p, "innerShadow", fx)
+}
+
+fn outer_glow(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let technique = if args::opt_str(p, "technique") == Some("precise") { "precise" } else { "softer" };
+    let mut fx = json!({
+        "on": args::opt_bool(p, "on").unwrap_or(true), "mode": effect_mode(p, "normal")?, "opacity": percent(p, "opacity", 75.0),
+        "size": args::opt_f64(p, "size").unwrap_or(7.0).max(0.0), "spread": percent(p, "spread", 0.0), "technique": technique
+    });
+    effect_color(&mut fx, p);
+    set_effect(c, p, "outerGlow", fx)
+}
+
+fn inner_glow(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let mut fx = json!({
+        "on": args::opt_bool(p, "on").unwrap_or(true), "mode": effect_mode(p, "normal")?, "opacity": percent(p, "opacity", 75.0),
+        "size": args::opt_f64(p, "size").unwrap_or(7.0).max(0.0), "choke": percent(p, "choke", 0.0)
+    });
+    effect_color(&mut fx, p);
+    set_effect(c, p, "innerGlow", fx)
+}
+
+fn basic_feather(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let corners = match args::opt_str(p, "corners") {
+        Some("sharp") => "sharp",
+        Some("diffusion") => "diffusion",
+        _ => "rounded",
+    };
+    let fx = json!({"on": args::opt_bool(p, "on").unwrap_or(true), "width": args::opt_f64(p, "width").unwrap_or(9.0).max(0.0), "choke": percent(p, "choke", 0.0), "corners": corners});
+    set_effect(c, p, "basicFeather", fx)
+}
+
+fn directional_feather(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let side = |k: &str| args::opt_f64(p, k).unwrap_or(9.0).max(0.0);
+    let fx = json!({
+        "on": args::opt_bool(p, "on").unwrap_or(true), "top": side("top"), "bottom": side("bottom"), "left": side("left"), "right": side("right"),
+        "choke": percent(p, "choke", 0.0), "angle": args::opt_f64(p, "angle").unwrap_or(0.0)
+    });
+    set_effect(c, p, "directionalFeather", fx)
+}
+
 fn fill(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
     let name = args::str_(p, "swatch", "a swatch name such as Accent or [None]")?;
@@ -1175,6 +1252,11 @@ pub fn register(r: &mut Registry) {
     cmd("object.color", "Apply Color").needs(Needs::Items).sig("{color: \"#rrggbb\", target?: fill|stroke, ids?}").reg(r, color);
     cmd("object.cornerOptions", "Corner Options").menu(&["Object", "Corner Options..."]).needs(Needs::Items).sig("{shape?: rounded|inverseRounded|inset|bevel|fancy|none, size: pt, ids?}").reg(r, corner_options);
     cmd("object.dropShadow", "Drop Shadow").menu(&["Object", "Effects", "Drop Shadow..."]).needs(Needs::Items).sig("{on?, distance?: pt, angle?: deg, size?: pt, opacity?: 0..100, color?, ids?}").reg(r, drop_shadow);
+    cmd("object.innerShadow", "Inner Shadow").menu(&["Object", "Effects", "Inner Shadow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, distance?: pt, angle?: deg, size?: pt, choke?: 0..100, color?, ids?}").reg(r, inner_shadow);
+    cmd("object.outerGlow", "Outer Glow").menu(&["Object", "Effects", "Outer Glow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, size?: pt, spread?: 0..100, technique?: softer|precise, color?, ids?}").reg(r, outer_glow);
+    cmd("object.innerGlow", "Inner Glow").menu(&["Object", "Effects", "Inner Glow..."]).needs(Needs::Items).sig("{on?, mode?: normal|multiply|screen|overlay|darken|lighten|colorDodge|colorBurn|hardLight|softLight|difference|exclusion, opacity?: 0..100, size?: pt, choke?: 0..100, color?, ids?}").reg(r, inner_glow);
+    cmd("object.basicFeather", "Basic Feather").menu(&["Object", "Effects", "Basic Feather..."]).needs(Needs::Items).sig("{on?, width?: pt, choke?: 0..100, corners?: sharp|rounded|diffusion, ids?}").reg(r, basic_feather);
+    cmd("object.directionalFeather", "Directional Feather").menu(&["Object", "Effects", "Directional Feather..."]).needs(Needs::Items).sig("{on?, top?: pt, bottom?: pt, left?: pt, right?: pt, choke?: 0..100, angle?: deg, ids?}").reg(r, directional_feather);
     cmd("object.fill", "Fill").needs(Needs::Items).sig("{swatch, tint?: 0..1, ids?}").reg(r, fill);
     cmd("object.stroke", "Stroke").needs(Needs::Items).sig("{swatch?, tint?, weight?: pt, type?: {kind, pattern?}, cap?, join?, align?, ids?}").reg(r, stroke);
     cmd("object.fit", "Fit").menu(&["Object", "Fitting"]).needs(Needs::Items).sig("{mode: fillProportionally|fitProportionally|fitContentToFrame|centerContent|fitFrameToContent, ids?}").reg(r, fit);

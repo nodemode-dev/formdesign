@@ -109,6 +109,10 @@ pub struct ListNo {
 }
 
 pub fn build(styles: &Styles, para: &Para, list_number: Option<&ListNo>, footnote_base: usize, ctx: &dyn Context, frame: usize) -> Built {
+    build_with(styles, para, list_number, footnote_base, ctx, frame, &[])
+}
+
+pub fn build_with(styles: &Styles, para: &Para, list_number: Option<&ListNo>, footnote_base: usize, ctx: &dyn Context, frame: usize, line_styles: &[(Range<usize>, String)]) -> Built {
     let props: ParaProps = styles.para_props(&para.style, &para.over);
     let mut text = String::new();
     let mut chars = Vec::new();
@@ -217,7 +221,8 @@ pub fn build(styles: &Styles, para: &Para, list_number: Option<&ListNo>, footnot
             runs.push((start..text.len(), seg.style().map(str::to_string), seg.over().clone()));
         }
     }
-    let mut over_styles: Vec<(Range<usize>, String)> = nested_ranges(&text, prefix, &props.nested);
+    let mut over_styles: Vec<(Range<usize>, String)> = line_styles.to_vec();
+    over_styles.extend(nested_ranges(&text, prefix, &props.nested));
     for g in &props.grep {
         for r in grep_ranges(&text, &g.pattern) {
             if r.start >= prefix {

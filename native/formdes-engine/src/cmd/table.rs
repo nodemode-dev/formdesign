@@ -484,6 +484,219 @@ fn unmerge(c: &mut Ctx, _: &Value) -> Result<Value> {
     ok()
 }
 
+fn strip_stroke(cell: &mut TableCell, side: &str) {
+    let empty = match cell.attrs.get_mut("strokes").and_then(Value::as_object_mut) {
+        Some(s) => {
+            s.remove(side);
+            s.is_empty()
+        }
+        None => false,
+    };
+    if empty {
+        cell.attrs.remove("strokes");
+    }
+}
+
+fn split_cell(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let cs = current(c)?;
+    let horizontal = match args::opt_str(p, "direction").unwrap_or("horizontal") {
+        "horizontal" => true,
+        "vertical" => false,
+        _ => return Err(EngineError::new("`direction` expected horizontal or vertical")),
+    };
+    edit(c, &cs, |t| {
+        let (r0, c0, _, _) = norm(&cs, t);
+        let cell = t.cell(r0, c0).cloned().ok_or_else(|| EngineError::new("no cell there"))?;
+        let (r, col) = (cell.row, cell.col);
+        let mut fresh = blank(r, col);
+        fresh.style = cell.style.clone();
+        fresh.attrs = cell.attrs.clone();
+        let own = |x: &TableCell| x.row == r && x.col == col;
+        if horizontal {
+            if cell.rows > 1 {
+                let top = cell.rows.div_ceil(2);
+                fresh.row = r + top;
+                fresh.rows = cell.rows - top;
+                fresh.cols = cell.cols;
+                strip_stroke(&mut fresh, "top");
+                if let Some(x) = t.cell_mut(r, col) {
+                    x.rows = top;
+                    strip_stroke(x, "bottom");
+                }
+            } else {
+                let h = t.heights[r];
+                t.heights[r] = h / 2.0;
+                t.heights.insert(r + 1, h / 2.0);
+                let ex = t.exact.get(r).copied().unwrap_or(false);
+                if t.exact.len() >= r + 1 {
+                    t.exact.insert(r + 1, ex);
+                }
+                let body_end = t.rows() - 1 - t.footer_rows;
+                if r < t.header_rows {
+                    t.header_rows += 1;
+                } else if r >= body_end {
+                    t.footer_rows += 1;
+                }
+                for x in t.cells.iter_mut() {
+                    if x.row > r {
+                        x.row += 1;
+                    } else if !own(x) && x.row + x.rows > r {
+                        x.rows += 1;
+                    }
+                }
+                fresh.row = r + 1;
+                fresh.cols = cell.cols;
+                strip_stroke(&mut fresh, "top");
+                if let Some(x) = t.cell_mut(r, col) {
+                    strip_stroke(x, "bottom");
+                }
+            }
+            fresh.col = col;
+        } else {
+            if cell.cols > 1 {
+                let left = cell.cols.div_ceil(2);
+                fresh.col = col + left;
+                fresh.cols = cell.cols - left;
+                fresh.rows = cell.rows;
+                strip_stroke(&mut fresh, "left");
+                if let Some(x) = t.cell_mut(r, col) {
+                    x.cols = left;
+                    strip_stroke(x, "right");
+                }
+            } else {
+                let w = t.widths[col];
+                t.widths[col] = w / 2.0;
+                t.widths.insert(col + 1, w / 2.0);
+                for x in t.cells.iter_mut() {
+                    if x.col > col {
+                        x.col += 1;
+                    } else if !own(x) && x.col + x.cols > col {
+                        x.cols += 1;
+                    }
+                }
+                fresh.col = col + 1;
+                fresh.rows = cell.rows;
+                strip_stroke(&mut fresh, "left");
+                if let Some(x) = t.cell_mut(r, col) {
+                    strip_stroke(x, "right");
+                }
+            }
+            fresh.row = r;
+        }
+        fresh.paras = vec![Para::empty(BASIC_PARA)];
+        t.cells.push(fresh);
+        t.cells.sort_by_key(|x| (x.row, x.col));
+        Ok(())
+    })?;
+    c.label(if horizontal { "Split Cell Horizontally" } else { "Split Cell Vertically" });
+    ok()
+}
+
+const STROKE_SIDES: [&str; 6] = ["top", "bottom", "left", "right", "innerHorizontal", "innerVertical"];
+
+fn cell_strokes(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let cs = current(c)?;
+    let mut sides: Vec<String> = match p.get("sides") {
+        Some(Value::Array(a)) => a.iter().filter_map(Value::as_str).map(str::to_string).collect(),
+        Some(Value::String(s)) => vec![s.clone()],
+        _ => vec!["outside".into()],
+    };
+    let mut expanded = Vec::new();
+    for s in sides.drain(..) {
+        match s.as_str() {
+            "all" => expanded.extend(STROKE_SIDES.iter().map(|x| x.to_string())),
+            "outside" => expanded.extend(STROKE_SIDES[..4].iter().map(|x| x.to_string())),
+            "inside" => expanded.extend(STROKE_SIDES[4..].iter().map(|x| x.to_string())),
+            other if STROKE_SIDES.contains(&other) => expanded.push(s),
+            other => return Err(EngineError::new(format!("unknown side {other}: use top, bottom, left, right, innerHorizontal, innerVertical, outside, inside or all"))),
+        }
+    }
+    let weight = args::opt_f64(p, "weight").map(|w| w.max(0.0));
+    let tint = args::opt_f64(p, "tint").map(|t| (t / 100.0).clamp(0.0, 1.0));
+    let kind = match args::opt_str(p, "type") {
+        None => None,
+        Some(k) if ["solid", "dashed", "dotted", "none"].contains(&k) => Some(k.to_string()),
+        Some(_) => return Err(EngineError::new("`type` expected solid, dashed, dotted or none")),
+    };
+    let color = match args::opt_str(p, "color") {
+        None => None,
+        Some(name) => {
+            let key = formdes_model::color::swatch_key(name);
+            if !key.starts_with('#') && !key.eq_ignore_ascii_case("none") && c.doc()?.swatch(name).is_none() {
+                return Err(EngineError::new(format!("no swatch named {name}")));
+            }
+            Some(key)
+        }
+    };
+    let clear = args::opt_bool(p, "clear").unwrap_or(false);
+    if !clear && weight.is_none() && tint.is_none() && kind.is_none() && color.is_none() {
+        return Err(EngineError::new("give weight, color, tint or type (or clear: true)"));
+    }
+    edit(c, &cs, |t| {
+        let (r0, c0, r1, c1) = norm(&cs, t);
+        for cell in t.cells.iter_mut().filter(|x| x.row <= r1 && x.row + x.rows > r0 && x.col <= c1 && x.col + x.cols > c0) {
+            let mut targets: Vec<&str> = Vec::new();
+            for s in &expanded {
+                match s.as_str() {
+                    "top" if cell.row <= r0 => targets.push("top"),
+                    "bottom" if cell.row + cell.rows > r1 => targets.push("bottom"),
+                    "left" if cell.col <= c0 => targets.push("left"),
+                    "right" if cell.col + cell.cols > c1 => targets.push("right"),
+                    "innerHorizontal" => {
+                        if cell.row > r0 {
+                            targets.push("top");
+                        }
+                        if cell.row + cell.rows <= r1 {
+                            targets.push("bottom");
+                        }
+                    }
+                    "innerVertical" => {
+                        if cell.col > c0 {
+                            targets.push("left");
+                        }
+                        if cell.col + cell.cols <= c1 {
+                            targets.push("right");
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            if targets.is_empty() {
+                continue;
+            }
+            let mut strokes = cell.attrs.get("strokes").and_then(Value::as_object).cloned().unwrap_or_default();
+            for side in targets {
+                if clear {
+                    strokes.remove(side);
+                    continue;
+                }
+                let mut one = strokes.get(side).and_then(Value::as_object).cloned().unwrap_or_default();
+                if let Some(w) = weight {
+                    one.insert("weight".into(), json!(w));
+                }
+                if let Some(col) = &color {
+                    one.insert("color".into(), json!(col));
+                }
+                if let Some(tn) = tint {
+                    one.insert("tint".into(), json!(tn));
+                }
+                if let Some(k) = &kind {
+                    one.insert("type".into(), json!(k));
+                }
+                strokes.insert(side.into(), Value::Object(one));
+            }
+            if strokes.is_empty() {
+                cell.attrs.remove("strokes");
+            } else {
+                cell.attrs.insert("strokes".into(), Value::Object(strokes));
+            }
+        }
+        Ok(())
+    })?;
+    c.label("Cell Strokes");
+    ok()
+}
+
 fn distribute(c: &mut Ctx, _: &Value) -> Result<Value> {
     let cs = current(c)?;
     edit(c, &cs, |t| {
@@ -638,6 +851,8 @@ pub fn register(r: &mut Registry) {
     cmd("table.deleteColumn", "Delete Column").menu(&["Table", "Delete", "Column"]).needs(Needs::Text).sig("{}").reg(r, delete_cols);
     cmd("table.merge", "Merge Cells").menu(&["Table", "Merge Cells"]).needs(Needs::Text).sig("{}").reg(r, merge);
     cmd("table.unmerge", "Unmerge Cells").menu(&["Table", "Unmerge Cells"]).needs(Needs::Text).sig("{}").reg(r, unmerge);
+    cmd("table.splitCell", "Split Cell").menu(&["Table", "Split Cell"]).needs(Needs::Text).sig("{direction?: horizontal|vertical}").reg(r, split_cell);
+    cmd("table.cellStrokes", "Cell Strokes").menu(&["Table", "Cell Strokes..."]).needs(Needs::Text).sig("{sides?: [top|bottom|left|right|innerHorizontal|innerVertical|outside|inside|all], weight?: pt, color?: swatch, tint?: 0..100, type?: solid|dashed|dotted|none, clear?}").reg(r, cell_strokes);
     cmd("table.distributeColumns", "Distribute Columns Evenly").menu(&["Table", "Distribute Columns Evenly"]).needs(Needs::Text).sig("{}").reg(r, distribute);
     cmd("table.sortRows", "Sort").menu(&["Table", "Sort"]).needs(Needs::Text).sig("{column?, descending?}").reg(r, sort_rows);
     cmd("style.table.create", "New Table Style").sig("{name, border?, altRows?}").reg(r, table_style_create);

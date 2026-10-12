@@ -3,7 +3,7 @@ use formdes_model::doc::Doc;
 use kurbo::{Affine, BezPath, Cap, Join, Rect, Shape, Stroke};
 use vello_cpu::color::{AlphaColor, Srgb};
 use vello_cpu::peniko::{self, BlendMode, Compose, Mix};
-use vello_cpu::{ImageSource, PaintType, Pixmap, RenderContext, Resources};
+use vello_cpu::{ImageSource, Mask, PaintType, Pixmap, RenderContext, Resources};
 
 use crate::images::Images;
 use crate::outline::Outlines;
@@ -201,6 +201,15 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
             Op::PushClip(path) => ctx.push_clip_layer(&(dev * path.clone())),
             Op::PushOpacity(o) => ctx.push_opacity_layer(*o as f32),
             Op::PushBlend(b) => ctx.push_blend_layer(blend(b)),
+            Op::PushMask(inner) => {
+                let (w, h) = (ctx.width(), ctx.height());
+                let mut mctx = RenderContext::new(w, h);
+                draw_ops(&mut mctx, inner, env);
+                mctx.flush();
+                let mut pm = Pixmap::new(w, h);
+                mctx.render(&mut pm, &mut Resources::default());
+                ctx.push_mask_layer(Mask::new_luminance(&pm));
+            }
             Op::Pop => ctx.pop_layer(),
             Op::Link { .. } | Op::Tag(_) => {}
         }

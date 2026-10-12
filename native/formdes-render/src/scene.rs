@@ -59,6 +59,7 @@ pub enum Op {
     PushClip(BezPath),
     PushOpacity(f64),
     PushBlend(String),
+    PushMask(Vec<Op>),
     Pop,
     Link { rect: Rect, target: LinkTarget },
     Tag(Tagging),
@@ -139,7 +140,253 @@ fn gradient_brush(g: &Gradient, r: Rect, xf: Affine) -> Brush {
     }
 }
 
+type FxMap = serde_json::Map<String, serde_json::Value>;
+
+fn fx<'a>(it: &'a Item, key: &str) -> Option<&'a FxMap> {
+    let s = it.effects.get(key).and_then(|v| v.as_object())?;
+    if s.get("on").and_then(|v| v.as_bool()) == Some(false) {
+        return None;
+    }
+    Some(s)
+}
+
+fn fnum(s: &FxMap, k: &str, d: f64) -> f64 {
+    s.get(k).and_then(|v| v.as_f64()).unwrap_or(d)
+}
+
+fn fmode(s: &FxMap, d: &str) -> String {
+    s.get("mode").and_then(|v| v.as_str()).unwrap_or(d).to_string()
+}
+
+fn fcolor(s: &FxMap, d: Color) -> Color {
+    s.get("color").and_then(Color::from_value).unwrap_or(d)
+}
+
+fn smooth(t: f64) -> f64 {
+    let t = t.clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+
+/// Soft edges built from vector bands. `profile(d)` is the wanted cumulative opacity at distance `d` from the
+/// edge (it must not increase with `d`). Each band is a stroke of half-width `r` at opacity `a`; where bands overlap
+/// near the edge their opacities accumulate to the profile. Vector bands keep effects native in the PDF.
+fn bands(size: f64, n: usize, profile: impl Fn(f64) -> f64) -> Vec<(f64, f64)> {
+    let mut out = Vec::new();
+    let mut prev = 0.0;
+    for k in 0..n {
+        let r = size * (n - k) as f64 / n as f64;
+        let d = r - size / (2.0 * n as f64);
+        let t = profile(d).clamp(0.0, 0.999);
+        if t - prev <= 1e-4 {
+            continue;
+        }
+        out.push((r, 1.0 - (1.0 - t) / (1.0 - prev)));
+        prev = t;
+    }
+    out
+}
+
+fn glow_profile(opacity: f64, core: f64, size: f64) -> impl Fn(f64) -> f64 {
+    move |d| if d <= core { opacity } else { opacity * (1.0 - smooth((d - core) / (size - core).max(1e-6))) }
+}
+
+fn band_stroke(path: &BezPath, color: Color, alpha: f64, half: f64, join: &str) -> Op {
+    Op::Stroke { path: path.clone(), brush: Brush::Solid(color, alpha), style: StrokeStyle { width: half * 2.0, cap: "butt".into(), join: join.into(), dash: Vec::new() } }
+}
+
+/// The per-cell stroke on one side of a table cell, if the cell (or the cell across that edge) overrides the table
+/// border there: weight, colour with tint applied and line type.
+fn cell_edge(doc: &Doc, tb: &formdes_model::story::Table, cell: &formdes_model::story::TableCell, side: &str, bw: f64, bcol: Color) -> Option<(f64, Color, String)> {
+    let own = cell.attrs.get("strokes").and_then(|s| s.get(side));
+    let facing = || -> Option<&serde_json::Value> {
+        let overlap = |x: &formdes_model::story::TableCell| match side {
+            "top" => x.row + x.rows == cell.row && x.col < cell.col + cell.cols && x.col + x.cols > cell.col,
+            "bottom" => x.row == cell.row + cell.rows && x.col < cell.col + cell.cols && x.col + x.cols > cell.col,
+            "left" => x.col + x.cols == cell.col && x.row < cell.row + cell.rows && x.row + x.rows > cell.row,
+            _ => x.col == cell.col + cell.cols && x.row < cell.row + cell.rows && x.row + x.rows > cell.row,
+        };
+        let opposite = match side {
+            "top" => "bottom",
+            "bottom" => "top",
+            "left" => "right",
+            _ => "left",
+        };
+        tb.cells.iter().filter(|x| overlap(x)).find_map(|x| x.attrs.get("strokes").and_then(|s| s.get(opposite)))
+    };
+    let o = own.or_else(facing)?.as_object()?;
+    let weight = o.get("weight").and_then(|v| v.as_f64()).unwrap_or(bw);
+    let tint = o.get("tint").and_then(|v| v.as_f64()).unwrap_or(1.0);
+    let color = o.get("color").and_then(Paint::from_value).filter(|p| !p.is_none()).and_then(|p| doc.paint_color(&p)).unwrap_or(bcol);
+    let color = if (tint - 1.0).abs() > 1e-6 { color.tinted(tint) } else { color };
+    let kind = o.get("type").and_then(|v| v.as_str()).unwrap_or("solid").to_string();
+    Some((weight, color, kind))
+}
+
+/// A path that covers `around` except for `path` (a rectangle wound against the path, for non-zero clips, or any
+/// winding with the even-odd rule).
+fn complement(path: &BezPath, around: Rect) -> BezPath {
+    let (x0, y0, x1, y1) = (around.x0, around.y0, around.x1, around.y1);
+    let mut out = BezPath::new();
+    out.move_to((x0, y0));
+    if path.area() < 0.0 {
+        out.line_to((x1, y0));
+        out.line_to((x1, y1));
+        out.line_to((x0, y1));
+    } else {
+        out.line_to((x0, y1));
+        out.line_to((x1, y1));
+        out.line_to((x1, y0));
+    }
+    out.close_path();
+    for el in path.elements() {
+        out.push(*el);
+    }
+    out
+}
+
 impl Ctx<'_> {
+    fn blend_open(&mut self, mode: &str) -> bool {
+        if mode.is_empty() || mode == "normal" {
+            return false;
+        }
+        self.ops.push(Op::PushBlend(mode.to_string()));
+        true
+    }
+
+    fn outer_glow(&mut self, it: &Item, path: &BezPath) {
+        let Some(s) = fx(it, "outerGlow") else { return };
+        let size = fnum(s, "size", 7.0).max(0.0);
+        if size <= 0.0 {
+            return;
+        }
+        let opacity = fnum(s, "opacity", 0.75).clamp(0.0, 1.0);
+        let core = fnum(s, "spread", 0.0).clamp(0.0, 0.99) * size;
+        let color = fcolor(s, Color::Rgb([1.0, 0.75, 0.2]));
+        let join = if s.get("technique").and_then(|v| v.as_str()) == Some("precise") { "miter" } else { "round" };
+        let blended = self.blend_open(&fmode(s, "normal"));
+        let closed = it.shape.closed();
+        if closed {
+            self.ops.push(Op::PushClip(complement(path, path.bounding_box().inflate(size + 8.0, size + 8.0))));
+        }
+        for (r, a) in bands(size, 18, glow_profile(opacity, core, size)) {
+            self.ops.push(band_stroke(path, color, a, r, join));
+        }
+        if closed {
+            self.ops.push(Op::Pop);
+        }
+        if blended {
+            self.ops.push(Op::Pop);
+        }
+    }
+
+    fn inner_band(&mut self, clip: &BezPath, src: &BezPath, outside: bool, color: Color, mode: &str, size: f64, profile: impl Fn(f64) -> f64) {
+        let blended = self.blend_open(mode);
+        self.ops.push(Op::PushClip(clip.clone()));
+        let comp = outside.then(|| complement(src, clip.bounding_box().union(src.bounding_box()).inflate(size + 8.0, size + 8.0)));
+        for (r, a) in bands(size, 18, profile) {
+            self.ops.push(Op::PushOpacity(a));
+            if let Some(c) = &comp {
+                self.ops.push(Op::Fill { path: c.clone(), brush: Brush::Solid(color, 1.0), even_odd: true });
+            }
+            self.ops.push(band_stroke(src, color, 1.0, r, "round"));
+            self.ops.push(Op::Pop);
+        }
+        self.ops.push(Op::Pop);
+        if blended {
+            self.ops.push(Op::Pop);
+        }
+    }
+
+    fn inner_effects(&mut self, it: &Item, path: &BezPath) {
+        if !it.shape.closed() {
+            return;
+        }
+        if let Some(s) = fx(it, "innerShadow") {
+            let size = fnum(s, "size", 5.0).max(0.0);
+            let opacity = fnum(s, "opacity", 0.75).clamp(0.0, 1.0);
+            let core = fnum(s, "choke", 0.0).clamp(0.0, 0.99) * size;
+            let (dx, dy) = (fnum(s, "x", 3.5), fnum(s, "y", 3.5));
+            let color = fcolor(s, Color::Cmyk([0.0, 0.0, 0.0, 1.0]));
+            let src = Affine::translate((dx, dy)) * path.clone();
+            if size > 0.0 || dx != 0.0 || dy != 0.0 {
+                self.inner_band(path, &src, true, color, &fmode(s, "multiply"), size.max(0.01), glow_profile(opacity, core, size.max(0.01)));
+            }
+        }
+        if let Some(s) = fx(it, "innerGlow") {
+            let size = fnum(s, "size", 7.0).max(0.0);
+            if size > 0.0 {
+                let opacity = fnum(s, "opacity", 0.75).clamp(0.0, 1.0);
+                let core = fnum(s, "choke", 0.0).clamp(0.0, 0.99) * size;
+                let color = fcolor(s, Color::Rgb([1.0, 0.75, 0.2]));
+                self.inner_band(path, path, false, color, &fmode(s, "normal"), size, glow_profile(opacity, core, size));
+            }
+        }
+    }
+
+    /// Feather effects mask everything the object draws; returns how many mask layers were opened.
+    fn feather(&mut self, it: &Item, path: &BezPath) -> usize {
+        let mut opened = 0;
+        let white = Color::Rgb([1.0, 1.0, 1.0]);
+        let black = Color::Rgb([0.0, 0.0, 0.0]);
+        if let Some(s) = fx(it, "basicFeather")
+            && it.shape.closed()
+        {
+            let width = fnum(s, "width", 9.0).max(0.0);
+            let choke = fnum(s, "choke", 0.0).clamp(0.0, 0.95);
+            let reach = width * (1.0 - choke);
+            if reach > 0.0 {
+                let join = if s.get("corners").and_then(|v| v.as_str()) == Some("sharp") { "miter" } else { "round" };
+                let mut m = vec![Op::Fill { path: path.clone(), brush: Brush::Solid(white, 1.0), even_odd: false }, Op::PushClip(path.clone())];
+                for (r, a) in bands(reach, 28, |d| 1.0 - smooth(d / reach)) {
+                    m.push(band_stroke(path, black, a, r, join));
+                }
+                m.push(Op::Pop);
+                self.ops.push(Op::PushMask(m));
+                opened += 1;
+            }
+        }
+        if let Some(s) = fx(it, "directionalFeather")
+            && it.shape.closed()
+        {
+            let side = |k: &str| fnum(s, k, 0.0).max(0.0);
+            let (wt, wb, wl, wr) = (side("top"), side("bottom"), side("left"), side("right"));
+            if wt + wb + wl + wr > 0.0 {
+                let choke = fnum(s, "choke", 0.0).clamp(0.0, 0.95);
+                let rot = Affine::rotate_about(fnum(s, "angle", 0.0).to_radians(), path.bounding_box().center());
+                let bb = (rot.inverse() * path.clone()).bounding_box();
+                let (cx, cy) = (bb.center().x, bb.center().y);
+                let pad = 4.0;
+                let stops = || -> Vec<(f64, Color, f64)> {
+                    let mut v: Vec<(f64, Color, f64)> = (0..=8).map(|i| ((1.0 - choke) * i as f64 / 8.0, black, 1.0 - smooth(i as f64 / 8.0))).collect();
+                    if choke > 0.0 {
+                        v.push((1.0, black, 0.0));
+                    }
+                    v
+                };
+                let mut m = vec![Op::Fill { path: path.clone(), brush: Brush::Solid(white, 1.0), even_odd: false }, Op::PushClip(path.clone())];
+                let mut ramp = |p0: Point, p1: Point, r: Rect| {
+                    m.push(Op::Fill { path: rot * r.to_path(0.1), brush: Brush::Linear { start: rot * p0, end: rot * p1, stops: stops(), alpha: 1.0 }, even_odd: false });
+                };
+                if wl > 0.0 {
+                    ramp(Point::new(bb.x0, cy), Point::new(bb.x0 + wl, cy), Rect::new(bb.x0 - pad, bb.y0 - pad, bb.x0 + wl, bb.y1 + pad));
+                }
+                if wr > 0.0 {
+                    ramp(Point::new(bb.x1, cy), Point::new(bb.x1 - wr, cy), Rect::new(bb.x1 - wr, bb.y0 - pad, bb.x1 + pad, bb.y1 + pad));
+                }
+                if wt > 0.0 {
+                    ramp(Point::new(cx, bb.y0), Point::new(cx, bb.y0 + wt), Rect::new(bb.x0 - pad, bb.y0 - pad, bb.x1 + pad, bb.y0 + wt));
+                }
+                if wb > 0.0 {
+                    ramp(Point::new(cx, bb.y1), Point::new(cx, bb.y1 - wb), Rect::new(bb.x0 - pad, bb.y1 - wb, bb.x1 + pad, bb.y1 + pad));
+                }
+                m.push(Op::Pop);
+                self.ops.push(Op::PushMask(m));
+                opened += 1;
+            }
+        }
+        opened
+    }
+
     fn visible(&self, it: &Item) -> bool {
         if it.hidden {
             return false;
@@ -176,7 +423,9 @@ impl Ctx<'_> {
                 let local = it.shape.to_path(&it.corner);
                 let path = xf * local.clone();
                 let bbox = it.shape.bbox();
+                self.outer_glow(it, &path);
                 self.shadow(it, &path);
+                let masks = self.feather(it, &path);
                 if it.shape.closed()
                     && let Some(b) = brush_of(self.doc, &it.fill, 1.0, bbox, xf)
                 {
@@ -190,6 +439,9 @@ impl Ctx<'_> {
                         self.ops.push(Op::Pop);
                     }
                 }
+                if !matches!(it.kind, ItemKind::Graphic(_)) {
+                    self.inner_effects(it, &path);
+                }
                 match &it.kind {
                     ItemKind::Graphic(g) => {
                         if let Some(aid) = g.asset
@@ -202,6 +454,7 @@ impl Ctx<'_> {
                             self.ops.push(Op::Pop);
                             self.ops.push(Op::Tag(Tagging::End));
                         }
+                        self.inner_effects(it, &path);
                     }
                     ItemKind::Text(_) => self.text(id, xf),
                     _ => {}
@@ -212,6 +465,9 @@ impl Ctx<'_> {
                 }
                 self.stroke(it, &path, xf);
                 if over {
+                    self.ops.push(Op::Pop);
+                }
+                for _ in 0..masks {
                     self.ops.push(Op::Pop);
                 }
                 self.link_item(id, &path);
@@ -353,9 +609,33 @@ impl Ctx<'_> {
                         self.ops.push(Op::Fill { path: xf * c.rect.to_path(0.1), brush: Brush::Solid(col, 1.0), even_odd: false });
                     }
                 }
-                if bw > 0.0 {
-                    let path = xf * c.rect.to_path(0.1);
-                    self.ops.push(Op::Stroke { path, brush: Brush::Solid(bcol, 1.0), style: StrokeStyle { width: bw, cap: "butt".into(), join: "miter".into(), dash: Vec::new() } });
+                let edges: [Option<(f64, Color, String)>; 4] = match table.and_then(|tb| tb.cell(c.row, c.col).map(|cell| (tb, cell))) {
+                    Some((tb, cell)) => ["top", "bottom", "left", "right"].map(|s| cell_edge(self.doc, tb, cell, s, bw, bcol)),
+                    None => [None, None, None, None],
+                };
+                if edges.iter().all(Option::is_none) {
+                    if bw > 0.0 {
+                        let path = xf * c.rect.to_path(0.1);
+                        self.ops.push(Op::Stroke { path, brush: Brush::Solid(bcol, 1.0), style: StrokeStyle { width: bw, cap: "butt".into(), join: "miter".into(), dash: Vec::new() } });
+                    }
+                } else {
+                    let r = c.rect;
+                    let ends = [((r.x0, r.y0), (r.x1, r.y0)), ((r.x0, r.y1), (r.x1, r.y1)), ((r.x0, r.y0), (r.x0, r.y1)), ((r.x1, r.y0), (r.x1, r.y1))];
+                    for (edge, (a, b)) in edges.into_iter().zip(ends) {
+                        let (w, col, kind) = edge.unwrap_or((bw, bcol, "solid".into()));
+                        if w <= 0.0 || kind == "none" {
+                            continue;
+                        }
+                        let mut line = BezPath::new();
+                        line.move_to(a);
+                        line.line_to(b);
+                        let (cap, dash) = match kind.as_str() {
+                            "dashed" => ("butt", vec![w * 3.0, w * 2.0]),
+                            "dotted" => ("round", vec![0.01, w * 2.0]),
+                            _ => ("square", Vec::new()),
+                        };
+                        self.ops.push(Op::Stroke { path: xf * line, brush: Brush::Solid(col, 1.0), style: StrokeStyle { width: w, cap: cap.into(), join: "miter".into(), dash } });
+                    }
                 }
                 let cell_texts: Vec<String> = table.and_then(|tb| tb.cell(c.row, c.col)).map(|cell| cell.paras.iter().map(|p| p.text()).collect()).unwrap_or_default();
                 for l in &c.lines {
@@ -421,7 +701,8 @@ impl Ctx<'_> {
     }
 
     fn para_decor(&mut self, sl: &StoryLayout, fi: usize, xf: Affine, paras: &[formdes_model::story::Para], under: bool) {
-        for b in sl.flow.boxes.iter().filter(|b| b.frame == fi) {
+        let boxes: Vec<&formdes_text::flow::ParaBox> = sl.flow.boxes.iter().filter(|b| b.frame == fi).collect();
+        for (bi, b) in boxes.iter().enumerate() {
             let Some(p) = paras.get(b.para) else { continue };
             let props: ParaProps = self.doc.styles.para_props(&p.style, &p.over);
             let lines: Vec<&formdes_text::flow::PlacedLine> = sl.flow.lines.iter().filter(|l| l.frame == fi && l.para == b.para && l.column == b.column).collect();
@@ -432,6 +713,59 @@ impl Ctx<'_> {
                 {
                     let r = Rect::new(b.left - sh.left, b.top - sh.top, b.right + sh.right, b.bottom + sh.bottom);
                     self.ops.push(Op::Fill { path: xf * r.to_path(0.1), brush: br, even_odd: false });
+                }
+                if let Some(bd) = &props.border {
+                    let same = |o: &formdes_text::flow::ParaBox| -> bool {
+                        o.column == b.column
+                            && paras.get(o.para).map(|q| self.doc.styles.para_props(&q.style, &q.over).border.as_ref() == Some(bd)).unwrap_or(false)
+                    };
+                    if bd.merge && bi > 0 && boxes[bi - 1].para + 1 == b.para && boxes[bi - 1].last && b.first && same(boxes[bi - 1]) {
+                        continue;
+                    }
+                    let mut bottom = b.bottom;
+                    let mut x_lo = lines.iter().map(|l| l.line.left).fold(f64::MAX, f64::min);
+                    let mut x_hi = lines.iter().map(|l| l.line.left + l.line.width).fold(0.0, f64::max);
+                    let mut k = bi;
+                    while bd.merge && k + 1 < boxes.len() && boxes[k + 1].para == boxes[k].para + 1 && boxes[k].last && boxes[k + 1].first && same(boxes[k + 1]) {
+                        k += 1;
+                        bottom = boxes[k].bottom;
+                        for l in sl.flow.lines.iter().filter(|l| l.frame == fi && l.para == boxes[k].para && l.column == b.column) {
+                            x_lo = x_lo.min(l.line.left);
+                            x_hi = x_hi.max(l.line.left + l.line.width);
+                        }
+                    }
+                    let (cx0, cx1) = if bd.text_width { (x_lo, x_hi) } else { (b.left, b.right) };
+                    let (x0, y0, x1, y1) = (cx0 - bd.offset_left, b.top - bd.offset_top, cx1 + bd.offset_right, bottom + bd.offset_bottom);
+                    if let Some(br) = brush_of(self.doc, &bd.color, bd.tint, Rect::ZERO, xf) {
+                        let dash = |w: f64| if bd.dashed { vec![(w * 4.0).max(3.0), (w * 3.0).max(2.0)] } else { Vec::new() };
+                        let uniform = (bd.top - bd.bottom).abs() < 1e-6 && (bd.top - bd.left).abs() < 1e-6 && (bd.top - bd.right).abs() < 1e-6;
+                        if bd.rounded && bd.corner > 0.0 {
+                            let w = bd.top.max(bd.bottom).max(bd.left).max(bd.right);
+                            let r = Rect::new(x0 - w / 2.0, y0 - w / 2.0, x1 + w / 2.0, y1 + w / 2.0);
+                            let path = kurbo::RoundedRect::from_rect(r, bd.corner.min(r.width() / 2.0).min(r.height() / 2.0)).to_path(0.1);
+                            self.ops.push(Op::Stroke { path: xf * path, brush: br, style: StrokeStyle { width: w, cap: "butt".into(), join: "round".into(), dash: dash(w) } });
+                        } else if uniform {
+                            let w = bd.top;
+                            let r = Rect::new(x0 - w / 2.0, y0 - w / 2.0, x1 + w / 2.0, y1 + w / 2.0);
+                            self.ops.push(Op::Stroke { path: xf * r.to_path(0.1), brush: br, style: StrokeStyle { width: w, cap: "butt".into(), join: "miter".into(), dash: dash(w) } });
+                        } else {
+                            let sides = [
+                                (bd.top, (x0 - bd.left, y0 - bd.top / 2.0), (x1 + bd.right, y0 - bd.top / 2.0)),
+                                (bd.bottom, (x0 - bd.left, y1 + bd.bottom / 2.0), (x1 + bd.right, y1 + bd.bottom / 2.0)),
+                                (bd.left, (x0 - bd.left / 2.0, y0 - bd.top), (x0 - bd.left / 2.0, y1 + bd.bottom)),
+                                (bd.right, (x1 + bd.right / 2.0, y0 - bd.top), (x1 + bd.right / 2.0, y1 + bd.bottom)),
+                            ];
+                            for (w, a, c) in sides {
+                                if w <= 0.0 {
+                                    continue;
+                                }
+                                let mut path = BezPath::new();
+                                path.move_to(a);
+                                path.line_to(c);
+                                self.ops.push(Op::Stroke { path: xf * path, brush: br.clone(), style: StrokeStyle { width: w, cap: "butt".into(), join: "miter".into(), dash: dash(w) } });
+                            }
+                        }
+                    }
                 }
                 continue;
             }

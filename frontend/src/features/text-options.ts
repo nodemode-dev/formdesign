@@ -11,10 +11,10 @@ interface Key { name: string; level: 'character' | 'paragraph'; kind: string; ch
 const GROUPS: Array<[string, RegExp]> = [
   ['Basic', /^(font|fontStyle|size|leading|kerning|kern|tracking|align|leftIndent|rightIndent|firstIndent|lastIndent|spaceBefore|spaceAfter|autoLeading)$/],
   ['Advanced character', /^(hScale|vScale|baselineShift|skew|language|position|caps|noBreak|ligatures|features)$/],
-  ['Colour and lines', /^(fill|fillTint|stroke|strokeWeight|underline|strike|ruleAbove|ruleBelow|shading)$/],
+  ['Colour and lines', /^(fill|fillTint|stroke|strokeWeight|underline|strike|ruleAbove|ruleBelow|shading|border)$/],
   ['Keeps and spans', /^(keepNext|keepTogether|keepFirst|keepLast|start|spanColumns|splitColumns|splitGutter|gridAlign)$/],
   ['Justification and hyphenation', /^(wordSpace|letterSpace|glyphScale|composer|hyphenate|hyph\w+|balance|opticalMargin|direction)$/],
-  ['Drop caps, lists and nested styles', /^(drop\w+|list|bullet|numberFormat|numberStyle|listName|startAt|nested|grep|tabs)$/],
+  ['Drop caps, lists and nested styles', /^(drop\w+|list|bullet|numberFormat|numberStyle|listName|startAt|nested|nestedLines|grep|tabs)$/],
 ];
 
 const HIDE = new Set(['change', 'xmlTag', 'conditions']);

@@ -136,6 +136,41 @@ fn kstroke(b: &Brush, s: &StrokeStyle) -> Stroke {
     }
 }
 
+fn mask_ops(surface: &mut krilla::surface::Surface, ops: &[Op]) {
+    for op in ops {
+        match op {
+            Op::Fill { path, brush, even_odd } => {
+                if let Some(p) = kpath(path) {
+                    surface.set_stroke(None);
+                    surface.set_fill(Some(kfill(brush, *even_odd)));
+                    surface.draw_path(&p);
+                }
+            }
+            Op::Stroke { path, brush, style } => {
+                if let Some(p) = kpath(path) {
+                    surface.set_fill(None);
+                    surface.set_stroke(Some(kstroke(brush, style)));
+                    surface.draw_path(&p);
+                }
+            }
+            Op::PushClip(path) => match kpath(path) {
+                Some(p) => surface.push_clip_path(&p, &FillRule::NonZero),
+                None => {
+                    let mut e = PathBuilder::new();
+                    e.move_to(0.0, 0.0);
+                    e.line_to(0.0, 0.0);
+                    if let Some(p) = e.finish() {
+                        surface.push_clip_path(&p, &FillRule::NonZero);
+                    }
+                }
+            },
+            Op::PushOpacity(o) => surface.push_opacity(nf(*o)),
+            Op::Pop => surface.pop(),
+            _ => {}
+        }
+    }
+}
+
 fn blend(name: &str) -> BlendMode {
     match name {
         "multiply" => BlendMode::Multiply,
@@ -376,6 +411,16 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
                     }
                     Op::PushOpacity(o) => surface.push_opacity(nf(*o)),
                     Op::PushBlend(m) => surface.push_blend_mode(blend(m)),
+                    Op::PushMask(inner) => {
+                        let mut sb = surface.stream_builder();
+                        {
+                            let mut ms = sb.surface();
+                            mask_ops(&mut ms, inner);
+                            ms.finish();
+                        }
+                        let stream = sb.finish();
+                        surface.push_mask(krilla::mask::Mask::new(stream, krilla::mask::MaskType::Luminosity));
+                    }
                     Op::Pop => surface.pop(),
                     Op::Link { rect, target } => links.push((*rect, target.clone())),
                     Op::Tag(t) => {

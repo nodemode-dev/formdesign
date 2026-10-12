@@ -442,7 +442,10 @@ impl<'a> Flower<'a> {
                 break;
             };
             cur = start;
-            let built = para::build(self.styles, para, number.as_ref(), notes, self.ctx, cur.frame);
+            let mut built = para::build(self.styles, para, number.as_ref(), notes, self.ctx, cur.frame);
+            if !props.nested_lines.is_empty() && built.table().is_none() {
+                built = self.line_styled(para, number.as_ref(), notes, cur, built);
+            }
             out.para_maps.push(built.chars.clone());
             out.para_texts.push(built.input.text.clone());
             notes += built.specials.iter().filter(|(_, s)| matches!(s, Special::Footnote { .. })).count();
@@ -492,6 +495,31 @@ impl<'a> Flower<'a> {
         }
         self.finish(&mut out);
         out
+    }
+
+    fn line_styled(&self, para: &Para, number: Option<&para::ListNo>, notes: usize, cur: Cursor, built: Built) -> Built {
+        let rules = built.input.props.nested_lines.clone();
+        let mut built = built;
+        let mut prev: Vec<(usize, usize)> = Vec::new();
+        for _ in 0..3 {
+            let (_, composed) = self.compose_from(&built.input, 0, cur, 0.0);
+            let spans: Vec<(usize, usize)> = composed.lines.iter().map(|l| (l.start, l.end)).collect();
+            if spans == prev {
+                break;
+            }
+            let mut extra: Vec<(std::ops::Range<usize>, String)> = Vec::new();
+            let mut at = 0usize;
+            for r in &rules {
+                let to = (at + r.lines as usize).min(spans.len());
+                if at < to {
+                    extra.push((spans[at].0..spans[to - 1].1, r.style.clone()));
+                }
+                at += r.lines as usize;
+            }
+            built = para::build_with(self.styles, para, number, notes, self.ctx, cur.frame, &extra);
+            prev = spans;
+        }
+        built
     }
 
     fn apply_break(&self, cur: Cursor, b: BreakKind) -> Option<Cursor> {
