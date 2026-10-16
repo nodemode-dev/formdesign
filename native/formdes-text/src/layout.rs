@@ -77,6 +77,41 @@ fn note_numbers(doc: &Doc, flow: &Flow, pages: &[Option<usize>], restart: &str) 
     out
 }
 
+/// Numbers every placed footnote of every story in reading order of where it lands
+/// (page, then the frame's top and left, then column and the story's own order), so
+/// stories on one page share a sequence.
+fn doc_note_numbers(doc: &Doc, lay: &DocLayout, restart: &str, start: usize) -> std::collections::HashMap<StoryId, std::collections::HashMap<usize, usize>> {
+    let order: std::collections::HashMap<StoryId, usize> = doc.stories.keys().enumerate().map(|(i, s)| (*s, i)).collect();
+    let mut all: Vec<(usize, i64, i64, usize, usize, usize, StoryId)> = Vec::new();
+    for (sid, l) in &lay.stories {
+        let mut seen = std::collections::HashSet::new();
+        for n in &l.flow.notes {
+            if !seen.insert(n.ordinal) {
+                continue;
+            }
+            let Some(fid) = l.frames.get(n.frame) else { continue };
+            let page = doc.page_of(*fid).unwrap_or(usize::MAX);
+            let b = doc.bounds(*fid).unwrap_or_default();
+            all.push((page, b.y0.round() as i64, b.x0.round() as i64, n.column, order.get(sid).copied().unwrap_or(0), n.ordinal, *sid));
+        }
+    }
+    all.sort_unstable();
+    let mut count: std::collections::HashMap<Option<usize>, usize> = std::collections::HashMap::new();
+    let mut out: std::collections::HashMap<StoryId, std::collections::HashMap<usize, usize>> = std::collections::HashMap::new();
+    for (page, _, _, _, _, ordinal, sid) in all {
+        let key = match restart {
+            "page" => Some(page),
+            "section" => Some(doc.section_for(page).map(|s| s.start).unwrap_or(0)),
+            _ => None,
+        };
+        let n = count.entry(key).or_insert(0);
+        *n += 1;
+        let value = if key.is_none() { start + *n - 1 } else { *n };
+        out.entry(sid).or_default().insert(ordinal, value);
+    }
+    out
+}
+
 impl Context for DocCtx<'_> {
     fn inline_size(&self, item: ItemId) -> Option<(f64, f64)> {
         let it = self.doc.item(item)?;
@@ -269,6 +304,10 @@ pub fn layout_story(doc: &Doc, fonts: &FontBook, sid: StoryId) -> Option<StoryLa
 }
 
 pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<usize>) -> Option<StoryLayout> {
+    layout_story_with(doc, fonts, sid, page, None)
+}
+
+fn layout_story_with(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<usize>, preset: Option<&std::collections::HashMap<usize, usize>>) -> Option<StoryLayout> {
     let story = doc.story(sid)?;
     let frames: Vec<ItemId> = story.frames.iter().copied().filter(|f| doc.item(*f).is_some()).collect();
     let pages: Vec<Option<usize>> = match page {
@@ -276,7 +315,7 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         None => frames.iter().map(|f| doc.page_of(*f)).collect(),
     };
     let words: Vec<String> = doc.prefs.get("hyphenationExceptions").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|w| w.as_str().map(str::to_string)).collect()).unwrap_or_default();
-    let mut ctx = DocCtx { doc, pages, frame_items: frames.clone(), exc: crate::compose::parse_exceptions(&words), notes: Default::default() };
+    let mut ctx = DocCtx { doc, pages, frame_items: frames.clone(), exc: crate::compose::parse_exceptions(&words), notes: preset.cloned().unwrap_or_default() };
     let path_frame = frames.first().and_then(|f| doc.item(*f)).and_then(|it| match &it.kind {
         ItemKind::Text(t) => t.on_path.clone().map(|p| (it.shape.to_path(&it.corner), p)),
         _ => None,
@@ -324,7 +363,7 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         }
     }
     let restart = doc.prefs.get("footnotes").and_then(|v| v.get("restart")).and_then(|v| v.as_str()).unwrap_or("").to_string();
-    if (restart == "page" || restart == "section") && !flow.notes.is_empty() {
+    if preset.is_none() && (restart == "page" || restart == "section") && !flow.notes.is_empty() {
         for _ in 0..2 {
             let map = note_numbers(doc, &flow, &ctx.pages, &restart);
             if map == ctx.notes {
@@ -345,6 +384,24 @@ pub fn layout_doc(doc: &Doc, fonts: &FontBook) -> DocLayout {
                 out.frame_of.insert(*f, (*sid, i));
             }
             out.stories.insert(*sid, l);
+        }
+    }
+    let notes = doc.prefs.get("footnotes");
+    if notes.and_then(|v| v.get("scope")).and_then(|v| v.as_str()) == Some("document") {
+        let restart = notes.and_then(|v| v.get("restart")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let start = notes.and_then(|v| v.get("start")).and_then(|v| v.as_u64()).unwrap_or(1).max(1) as usize;
+        let mut maps: std::collections::HashMap<StoryId, std::collections::HashMap<usize, usize>> = std::collections::HashMap::new();
+        for _ in 0..2 {
+            let next = doc_note_numbers(doc, &out, &restart, start);
+            if next == maps {
+                break;
+            }
+            maps = next;
+            for (sid, map) in &maps {
+                if let Some(l) = layout_story_with(doc, fonts, *sid, None, Some(map)) {
+                    out.stories.insert(*sid, l);
+                }
+            }
         }
     }
     for (sid, st) in &doc.stories {
