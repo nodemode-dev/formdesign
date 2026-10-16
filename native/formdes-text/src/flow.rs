@@ -671,6 +671,7 @@ impl<'a> Flower<'a> {
                 }
                 let has_note = built.specials.iter().any(|(at, s)| matches!(s, Special::Footnote { .. }) && *at >= line.start && *at < line.end.max(line.start + 1));
                 if has_note {
+                    let mut added: Vec<f64> = Vec::new();
                     for (at, s) in &built.specials {
                         if let Special::Footnote { ordinal, paras } = s
                             && *at >= line.start
@@ -678,7 +679,24 @@ impl<'a> Flower<'a> {
                         {
                             let h = self.place_note(*ordinal, paras, slot.frame, slot.column, out);
                             *self.note_height.borrow_mut().entry((slot.frame, slot.column)).or_insert(0.0) += h;
+                            added.push(h);
                         }
+                    }
+                    let not_first = prev.is_some_and(|(f, c, _)| f == slot.frame && c == slot.column);
+                    if not_first && baseline + line.descent > self.bottom(slot.frame, slot.column) + 0.5 {
+                        for h in added.iter().rev() {
+                            out.notes.pop();
+                            *self.note_height.borrow_mut().entry((slot.frame, slot.column)).or_insert(0.0) -= h;
+                        }
+                        let next = Cursor { frame: slot.frame, column: slot.column, y: 0.0, baseline: None, top: true };
+                        match self.next_column(next) {
+                            Some(nc) => restart = Some((line.start, nc)),
+                            None => {
+                                out.overset_at = Some((pi, built.char_of(line.start)));
+                                return None;
+                            }
+                        }
+                        break;
                     }
                 }
                 if first_line
