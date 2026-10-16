@@ -253,6 +253,7 @@ pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
         _ => Some(it.shape.to_path(&it.corner)),
     };
     let page = doc.page_of(id);
+    let note_columns = doc.prefs.get("footnotes").and_then(|v| v.get("columns")).and_then(|v| v.as_u64()).unwrap_or(0).min(6) as u32;
     let grid = if doc.settings.baseline.increment > 0.0 {
         let origin = world * Point::new(0.0, 0.0);
         let top = if doc.settings.baseline.from_margin { doc.settings.margins.top } else { 0.0 };
@@ -283,8 +284,10 @@ pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
         page: page.unwrap_or(0),
         shape,
         vertical: t.vertical,
-        span_notes: t.span_notes && !t.vertical && t.column_plan(inner.width()).0 > 1,
+        span_notes: !t.vertical && ((t.span_notes && t.column_plan(inner.width()).0 > 1) || note_columns > 0),
         note_reserve: 0.0,
+        note_columns,
+        note_split: Vec::new(),
     })
 }
 
@@ -354,6 +357,14 @@ fn layout_story_with(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<usi
                 if (want - s.note_reserve).abs() > 0.5 {
                     s.note_reserve = want;
                     moved = true;
+                }
+                if s.note_columns > 1 {
+                    let hs: Vec<f64> = flow.notes.iter().filter(|n| n.frame == i).map(|n| n.height).collect();
+                    let split = crate::flow::note_split(&hs, s.note_columns as usize);
+                    if split != s.note_split {
+                        s.note_split = split;
+                        moved = true;
+                    }
                 }
             }
             if !moved {

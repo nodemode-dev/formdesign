@@ -43,6 +43,8 @@ pub struct FrameSpec {
     pub vertical: bool,
     pub span_notes: bool,
     pub note_reserve: f64,
+    pub note_columns: u32,
+    pub note_split: Vec<usize>,
 }
 
 #[derive(Clone)]
@@ -100,6 +102,50 @@ pub struct NoteOut {
     pub frame: usize,
     pub column: usize,
     pub lines: Vec<PlacedLine>,
+    pub sub: usize,
+    pub top: f64,
+    pub height: f64,
+}
+
+fn split_height(heights: &[f64], n: usize) -> f64 {
+    let mut sums = vec![0.0; n.max(1)];
+    for (h, s) in heights.iter().zip(note_split(heights, n)) {
+        sums[s] += h;
+    }
+    sums.into_iter().fold(0.0, f64::max)
+}
+
+pub fn note_split(heights: &[f64], n: usize) -> Vec<usize> {
+    let k = heights.len();
+    let n = n.max(1).min(k.max(1));
+    let mut pre = vec![0.0; k + 1];
+    for (i, h) in heights.iter().enumerate() {
+        pre[i + 1] = pre[i] + h;
+    }
+    let mut best = vec![vec![f64::INFINITY; k + 1]; n + 1];
+    let mut cut = vec![vec![0usize; k + 1]; n + 1];
+    best[0][0] = 0.0;
+    for j in 1..=n {
+        for i in 0..=k {
+            for s in 0..=i {
+                let v = best[j - 1][s].max(pre[i] - pre[s]);
+                if v < best[j][i] - 1e-9 {
+                    best[j][i] = v;
+                    cut[j][i] = s;
+                }
+            }
+        }
+    }
+    let mut out = vec![0; k];
+    let mut i = k;
+    for j in (1..=n).rev() {
+        let s = cut[j][i];
+        for o in &mut out[s..i] {
+            *o = j - 1;
+        }
+        i = s;
+    }
+    out
 }
 
 #[derive(Clone, Debug)]
@@ -161,6 +207,7 @@ pub struct Flower<'a> {
     pub frames: &'a [FrameSpec],
     pub ctx: &'a dyn Context,
     note_height: RefCell<HashMap<(usize, usize), f64>>,
+    note_cols: RefCell<HashMap<usize, Vec<f64>>>,
     shapes: Vec<Option<Vec<Vec<Point>>>>,
     ex_shapes: Vec<Vec<Option<Vec<Vec<Point>>>>>,
     region_top: RefCell<HashMap<usize, f64>>,
@@ -247,6 +294,7 @@ impl<'a> Flower<'a> {
             frames,
             ctx,
             note_height: RefCell::new(HashMap::new()),
+            note_cols: RefCell::new(HashMap::new()),
             shapes,
             ex_shapes,
             region_top: RefCell::new(HashMap::new()),
@@ -695,7 +743,12 @@ impl<'a> Flower<'a> {
                     let not_first = prev.is_some_and(|(f, c, _)| f == slot.frame && c == slot.column);
                     if not_first && baseline + line.descent > self.bottom(slot.frame, slot.column) + 0.5 {
                         for h in added.iter().rev() {
-                            out.notes.pop();
+                            if let Some(n) = out.notes.pop()
+                                && let Some(cols) = self.note_cols.borrow_mut().get_mut(&n.frame)
+                                && let Some(v) = cols.get_mut(n.sub)
+                            {
+                                *v = n.top;
+                            }
                             *self.note_height.borrow_mut().entry(self.note_key(slot.frame, slot.column)).or_insert(0.0) -= h;
                         }
                         let next = Cursor { frame: slot.frame, column: slot.column, y: 0.0, baseline: None, top: true };
@@ -858,8 +911,26 @@ impl<'a> Flower<'a> {
 
     fn place_note(&self, ordinal: usize, paras: &[Para], f: usize, c: usize, out: &mut Flow) -> f64 {
         let span = self.frames[f].span_notes;
-        let (x, w) = if span { (self.frames[f].inner.x0, self.frames[f].inner.width().max(1.0)) } else { self.column_x(f, c) };
+        let (mut x, mut w) = if span { (self.frames[f].inner.x0, self.frames[f].inner.width().max(1.0)) } else { self.column_x(f, c) };
         let c = if span { 0 } else { c };
+        let n_sub = if span { self.frames[f].note_columns.max(1) as usize } else { 1 };
+        let mut sub = 0;
+        let mut top = 0.0;
+        if n_sub > 1 {
+            let gutter = self.frames[f].gutter;
+            let sw = ((w - gutter * (n_sub - 1) as f64) / n_sub as f64).max(1.0);
+            let mut cols = self.note_cols.borrow_mut();
+            let hs = cols.entry(f).or_insert_with(|| vec![0.0; n_sub]);
+            let placed: Vec<usize> = out.notes.iter().filter(|n| n.frame == f).map(|n| n.sub).collect();
+            let last = placed.last().copied().unwrap_or(0);
+            sub = match self.frames[f].note_split.get(placed.len()) {
+                Some(s) if *s < n_sub && *s >= last => *s,
+                _ => (last..n_sub).fold(last, |b, k| if hs[k] < hs[b] - 0.01 { k } else { b }),
+            };
+            top = hs[sub];
+            x += sub as f64 * (sw + gutter);
+            w = sw;
+        }
         let mut lines = Vec::new();
         let mut y = 0.0;
         let composer = Composer { fonts: self.fonts };
@@ -882,7 +953,16 @@ impl<'a> Flower<'a> {
                 lines.push(PlacedLine { para: k, frame: f, column: c, baseline: y, line });
             }
         }
-        out.notes.push(NoteOut { ordinal, frame: f, column: c, lines });
+        out.notes.push(NoteOut { ordinal, frame: f, column: c, lines, sub, top, height: y + 4.0 });
+        if n_sub > 1 {
+            let mut cols = self.note_cols.borrow_mut();
+            let hs = cols.entry(f).or_insert_with(|| vec![0.0; n_sub]);
+            hs[sub] = top + y + 4.0;
+            let mut all: Vec<f64> = out.notes.iter().filter(|n| n.frame == f).map(|n| n.height).collect();
+            let after = split_height(&all, n_sub);
+            all.pop();
+            return after - split_height(&all, n_sub);
+        }
         y + 4.0
     }
 
@@ -1166,7 +1246,7 @@ impl<'a> Flower<'a> {
             for n in out.notes.iter_mut().filter(|n| n.frame == fi) {
                 let total = self.note_height.borrow().get(&(fi, n.column)).copied().unwrap_or(0.0);
                 let above = stacked.entry(n.column).or_insert(0.0);
-                let top = fr.inner.y1 - total + *above;
+                let top = fr.inner.y1 - total + if fr.span_notes && fr.note_columns > 1 { n.top } else { *above };
                 *above += n.lines.last().map(|l| l.baseline).unwrap_or(0.0) + 4.0;
                 for l in &mut n.lines {
                     l.baseline += top;

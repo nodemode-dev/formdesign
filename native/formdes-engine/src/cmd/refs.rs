@@ -314,6 +314,12 @@ fn footnote_options(c: &mut Ctx, p: &Value) -> Result<Value> {
     {
         return Err(EngineError::new("scope is story or document"));
     }
+    if let Some(v) = p.get("columns")
+        && !v.is_null()
+        && v.as_u64().is_none_or(|n| n > 6)
+    {
+        return Err(EngineError::new("columns is a whole number from 0 (follow the text columns) to 6"));
+    }
     let doc = c.doc_mut()?;
     let mut cur = doc.prefs.get("footnotes").and_then(Value::as_object).cloned().unwrap_or_default();
     if let Some(v) = p.get("scope") {
@@ -337,6 +343,12 @@ fn footnote_options(c: &mut Ctx, p: &Value) -> Result<Value> {
         match v.as_u64().filter(|n| *n >= 1) {
             Some(n) => { cur.insert("start".into(), json!(n)); }
             None => { cur.remove("start"); }
+        }
+    }
+    if let Some(v) = p.get("columns") {
+        match v.as_u64().filter(|n| *n >= 1) {
+            Some(n) => { cur.insert("columns".into(), json!(n)); }
+            None => { cur.remove("columns"); }
         }
     }
     doc.prefs.insert("footnotes".into(), Value::Object(cur.clone()));
@@ -640,8 +652,8 @@ pub fn register(r: &mut Registry) {
     cmd("variables.define", "Define Text Variables").menu(&["Type", "Text Variables", "Define..."]).sig("{name, kind?: custom|runningHeader|chapterNumber|creationDate|modificationDate|outputDate|fileName|lastPageNumber|liveCaption, text?, number?, style?, date?, value?: {field, image, prefix}}").reg(r, variables_define);
     cmd("variables.delete", "Delete Text Variable").sig("{name}").reg(r, variables_delete);
     cmd("variables.insert", "Insert Variable").menu(&["Type", "Text Variables", "Insert Variable"]).needs(Needs::Text).sig("{name}").reg(r, variables_insert);
-    cmd("footnote.options", "Document Footnote Options").menu(&["Type", "Document Footnote Options..."]).sig("{numbering?: arabic|roman|ROMAN|alpha|ALPHA|01|001|symbols, start?: number, restart?: continuous|page|section, scope?: story|document (document numbers the notes of every story in one sequence, in page order), prefix?, suffix?, separator?: text after the number in the note (default a space)}")
-        .help("Sets how footnotes are numbered across the document: the number style (including symbols * † ‡ §), the first number, whether numbering restarts on every page or section, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
+    cmd("footnote.options", "Document Footnote Options").menu(&["Type", "Document Footnote Options..."]).sig("{numbering?: arabic|roman|ROMAN|alpha|ALPHA|01|001|symbols, start?: number, restart?: continuous|page|section, scope?: story|document (document numbers the notes of every story in one sequence, in page order), columns?: number (0 follows the text columns; 1 to 6 sets footnotes in that many columns across each frame), prefix?, suffix?, separator?: text after the number in the note (default a space)}")
+        .help("Sets how footnotes are numbered across the document: the number style (including symbols * † ‡ §), the first number, whether numbering restarts on every page or section, how many columns the footnotes are set in independent of the text columns, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
     cmd("footnote.insert", "Insert Footnote").menu(&["Type", "Insert Footnote"]).needs(Needs::Text).sig("{text?, style?}").reg(r, footnote_insert);
     cmd("footnote.list", "Footnotes").query().sig("{story?}").reg(r, footnote_list);
     cmd("footnote.set", "Edit Footnote").sig("{story, at, text}").reg(r, footnote_set);
