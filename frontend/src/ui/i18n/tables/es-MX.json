@@ -12,10 +12,16 @@
 "Add the selected objects to this library": "Agregar los objetos seleccionados a esta biblioteca",
 "Add the word to this document": "Agregar la palabra a este documento",
 "Add to Swatches": "Agregar a muestras",
+"Blend": "Fusión",
 "Click, then press the keys": "Haga clic y presione las teclas",
 "Document to add": "Documento que agregar",
 "Enter a width and a height": "Ingrese un ancho y un alto",
 "Frame from the video": "Fotograma del video",
+"Make Blend": "Crear fusión",
+"Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.": "Crea pasos con espaciado uniforme entre dos objetos, interpolando los colores de relleno y de trazo, el grosor del trazo y la opacidad; las formas con el mismo número de puntos de ancla se transforman una en otra, las demás se mueven y se escalan, como lo hace la función Fusión de Illustrator.",
 "Paste in Place": "Pegar en su lugar",
-"Save a document to add it": "Guarde un documento para agregarlo"
+"Save a document to add it": "Guarde un documento para agregarlo",
+"Shape Builder": "Generador de formas",
+"Shape Builder...": "Generador de formas...",
+"Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.": "Divide las formas superpuestas seleccionadas en sus regiones y después une las regiones que están bajo los puntos indicados en una sola forma (o las borra con mode erase), conservando cada una de las demás regiones como una forma independiente, como lo hace el Generador de formas de Illustrator."
 }
