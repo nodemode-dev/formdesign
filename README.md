@@ -2,7 +2,7 @@
 <h1 align="center">FormDesign</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.25.4-f97316" alt="version 0.25.4">
+<img src="https://img.shields.io/badge/version-0.26.0-f97316" alt="version 0.26.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -83,6 +83,14 @@ The first `install` compiles the layout core (a few minutes on the first build).
 | Layout core | standard input and output | `formdes-core`, started and supervised by the engine |
 
 ### Desktop app
+
+One step from the repository root (installs, builds the window, freezes the engine, bundles; macOS installs to Applications, Linux makes a .deb):
+
+```bash
+./build_app                        # build_app.bat on Windows; --open, --install (Linux), --no-install (macOS), --clean
+```
+
+Or step by step:
 
 ```bash
 ./formdes install-desktop          # PyInstaller, and checks Rust and the webview libraries

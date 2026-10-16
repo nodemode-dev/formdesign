@@ -2,6 +2,14 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.26.0 · 2026-10-16
+
+- Claude Code inside the window: a Claude Code panel beside the Terminal runs your own Claude Code sign-in, connected to FormDesign's tools, with streamed replies, tool steps, usage, Stop, New chat, and hand-off to and from a Claude Code terminal. The Terminal's Claude Code preset now starts connected. Window > Claude Code (Alt+Mod+J) and Claude Code in Terminal (Shift+Mod+J); settings in Preferences > Agents; `./formdes claude` in a shell.
+- One build script: `./build_app` (and `build_app.bat`) builds the desktop app from the repository root, start to finish, logging to build_app.log.
+- Live corners at anchor points: Object > Paths > Round Corners (round, inverted round, chamfer, inset) on selected anchors or every corner, kept while you edit the path; Corner Options now rounds polygons, stars and paths; Expand Corners.
+- Object > Paths > Offset Path and Outline Stroke.
+- 26 interface languages with English the default (Preferences > Appearance > Language); menus, commands and labels translated, long help sentences to follow. `./formdes i18n keys|check|export|import`.
+
 ## 0.25.4 · 2026-10-12
 
 - Phase 5, last item: View > Renderer > Native in the desktop app composites the page tiles on wgpu under a transparent webview (opt-in; Auto never picks it). Builds and starts on Linux; on-screen output still to be confirmed on a real desktop.
