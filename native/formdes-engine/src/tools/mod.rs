@@ -119,7 +119,7 @@ pub static GROUPS: &[&[ToolDef]] = &[
     &[],
     &[t("type", "Type Tool", "tool-type", Some("T")), t("typeOnPath", "Type on a Path Tool", "tool-type-path", Some("Shift+T")), t("typeVertical", "Vertical Type Tool", "tool-type-vertical", None)],
     &[t("line", "Line Tool", "tool-line", Some("\\"))],
-    &[t("pen", "Pen Tool", "tool-pen", Some("P")), t("addAnchor", "Add Anchor Point Tool", "tool-pen-add", Some("=")), t("deleteAnchor", "Delete Anchor Point Tool", "tool-pen-delete", Some("-")), t("convertDirection", "Convert Direction Point Tool", "tool-anchor", Some("Shift+C"))],
+    &[t("pen", "Pen Tool", "tool-pen", Some("P")), t("curvature", "Curvature Tool", "tool-pen", Some("Shift+`")),t("addAnchor", "Add Anchor Point Tool", "tool-pen-add", Some("=")), t("deleteAnchor", "Delete Anchor Point Tool", "tool-pen-delete", Some("-")), t("convertDirection", "Convert Direction Point Tool", "tool-anchor", Some("Shift+C"))],
     &[t("pencil", "Pencil Tool", "tool-pencil", Some("N")), t("smooth", "Smooth Tool", "tool-smooth", None), t("erase", "Erase Tool", "tool-erase", None)],
     &[t("rectangleFrame", "Rectangle Frame Tool", "tool-rect-frame", Some("F")), t("ellipseFrame", "Ellipse Frame Tool", "tool-ellipse-frame", None), t("polygonFrame", "Polygon Frame Tool", "tool-polygon-frame", None)],
     &[t("rectangle", "Rectangle Tool", "tool-rect", Some("M")), t("ellipse", "Ellipse Tool", "tool-ellipse", Some("L")), t("polygon", "Polygon Tool", "tool-polygon", None)],
@@ -189,6 +189,7 @@ pub struct Gesture {
 pub struct Pen {
     pub slot: Option<SpreadRef>,
     pub anchors: Vec<(Point, Point, Point)>,
+    pub corners: Vec<usize>,
 }
 
 #[derive(Default, Clone)]
@@ -313,6 +314,7 @@ impl Session {
             "typeOnPath" => text::type_on_path(self, ev, view),
             "rectangleFrame" | "ellipseFrame" | "polygonFrame" | "rectangle" | "ellipse" | "polygon" | "line" => draw::shape_tool(self, ev, view, &tool),
             "pen" => draw::pen(self, ev, view),
+            "curvature" => draw::curvature(self, ev, view),
             "addAnchor" | "deleteAnchor" | "convertDirection" | "scissors" => draw::anchor_tool(self, ev, view, &tool),
             "pencil" | "smooth" | "erase" => draw::pencil(self, ev, view, &tool),
             "eyedropper" => misc::eyedropper(self, ev, view),
@@ -346,7 +348,7 @@ impl Session {
         let tool = self.tool.clone();
         match tool.as_str() {
             "type" | "typeVertical" | "typeOnPath" | "note" if self.wants_text() => text::key(self, key, mods, view),
-            "pen" => Ok(draw::pen_key(self, key)),
+            "pen" | "curvature" => Ok(draw::pen_key(self, key)),
             _ => select::key(self, key, mods),
         }
     }
@@ -363,7 +365,7 @@ impl Session {
             "directSelection" => "arrowHollow",
             "type" | "typeOnPath" | "typeVertical" => text::cursor(self, at, view),
             "rectangleFrame" | "ellipseFrame" | "polygonFrame" | "rectangle" | "ellipse" | "polygon" | "line" | "measure" | "gap" | "page" => "crosshair",
-            "pen" | "addAnchor" | "deleteAnchor" | "convertDirection" | "pencil" | "smooth" | "erase" | "scissors" => "pen",
+            "pen" | "curvature" | "addAnchor" | "deleteAnchor" | "convertDirection" | "pencil" | "smooth" | "erase" | "scissors" => "pen",
             "eyedropper" | "colorTheme" => "eyedropper",
             "rotate" => "rotate",
             "scale" | "shear" | "gradientSwatch" | "gradientFeather" => "crosshair",

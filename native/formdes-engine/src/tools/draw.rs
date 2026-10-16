@@ -366,6 +366,43 @@ pub fn pen(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
     Ok(())
 }
 
+fn resmooth(pen: &mut super::Pen, closed: bool) {
+    let pts: Vec<Point> = pen.anchors.iter().map(|a| a.0).collect();
+    let n = pts.len();
+    let mut out = smooth_anchors(&pts, closed);
+    for (i, a) in out.iter_mut().enumerate() {
+        if pen.corners.contains(&i) || (!closed && (i == 0 || i + 1 == n)) {
+            *a = (a.0, a.0, a.0);
+        }
+    }
+    pen.anchors = out;
+}
+
+pub fn curvature(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
+    if ev.kind != Kind::Down {
+        return Ok(());
+    }
+    let Some(mut h) = here(ses, ev.pos) else { return Ok(()) };
+    if ses.tools.pen.slot.is_some_and(|s| s != h.slot) {
+        finish_pen(ses, false);
+    }
+    h.p = snap_pt(ses, h.slot, h.p, view);
+    let anchors = &ses.tools.pen.anchors;
+    if anchors.len() >= 2 && (h.xf * anchors[0].0 - ev.pos).hypot() <= view.tol(6.0) {
+        resmooth(&mut ses.tools.pen, true);
+        finish_pen(ses, true);
+        return Ok(());
+    }
+    ses.tools.pen.slot = Some(h.slot);
+    ses.tools.pen.anchors.push((h.p, h.p, h.p));
+    if ev.mods.alt {
+        let i = ses.tools.pen.anchors.len() - 1;
+        ses.tools.pen.corners.push(i);
+    }
+    resmooth(&mut ses.tools.pen, false);
+    Ok(())
+}
+
 pub fn pen_key(ses: &mut Session, key: Key) -> bool {
     match key {
         Key::Enter | Key::Escape if !ses.tools.pen.anchors.is_empty() => {

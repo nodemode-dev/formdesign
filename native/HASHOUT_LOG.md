@@ -714,3 +714,10 @@ From Illustrator's Spiral, Arc, Rectangular Grid and Polar Grid tools and Object
 
 From InDesign's and Illustrator's Stroke panels as Adobe documents them. The renderer builds a stroke style in fifteen places, and only the item stroke has a person's miter limit, so the limit travels inside the join value ("miter 10") from that one site, and `join_parts` splits it where a style becomes a raster stroke, a PDF stroke or an SVG attribute; every other style keeps the plain join and the default of 4. Arrowheads were stored on strokes but never drawn: they are now drawn at the ends of open paths along the end tangent, sized by the stroke width times the start or end scale, filled in the stroke's paint (triangle, wide triangle, barbed, curved, solid circle and square) or stroked (simple, wide simple, circle, square, bar); the path is not shortened under them. Aligned dashes scale the pattern so a closed path holds a whole number of periods and an open path ends on a dash; Illustrator aligns per segment between corners, so this is the whole-path approximation.
 
+### tools/draw.rs, cmd/art.rs · Curvature tool and Knife
+- refers-to: native/formdes-engine/src/tools/draw.rs :: curvature, resmooth; native/formdes-engine/src/tools/mod.rs :: Pen.corners; native/formdes-engine/src/cmd/art.rs :: knife
+- kind: rationale
+- logged: v0.28.0 · 2026-10-16
+
+From Illustrator's Curvature and Knife tools as Adobe documents them. The Curvature tool shares the Pen's in-progress anchors and its finish rules (Enter or Escape ends an open path, clicking the first point closes it, changing tool or spread ends it); every click re-smooths all interior points with the Pencil's chord-based handles, so the curve changes shape as points are added, and Alt-click marks a corner kept without handles. Knife subtracts a 0.05 pt slit stroked along the given polyline from each crossed closed shape and turns every resulting piece into a copy of the original; it is a command with a points list (agents and the dialog) rather than a freehand canvas tool for now.
+
