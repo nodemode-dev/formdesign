@@ -205,6 +205,91 @@ struct Ctx<'a> {
     depth: u8,
 }
 
+/// The first subpath of a path as a polyline with its running length, for bending art along it.
+struct Spine {
+    pts: Vec<Point>,
+    acc: Vec<f64>,
+}
+
+impl Spine {
+    fn new(path: &BezPath) -> Spine {
+        let mut pts: Vec<Point> = Vec::new();
+        let mut started = false;
+        kurbo::flatten(path.iter(), 0.1, |el| match el {
+            kurbo::PathEl::MoveTo(p) if !started => {
+                started = true;
+                pts.push(p);
+            }
+            kurbo::PathEl::LineTo(p) if pts.len() < 20_000 && pts.last().is_some_and(|q| q.distance(p) > 1e-6) => pts.push(p),
+            kurbo::PathEl::ClosePath if pts.len() > 1 => {
+                let first = pts[0];
+                pts.push(first);
+            }
+            _ => {}
+        });
+        let mut acc = vec![0.0; pts.len()];
+        for i in 1..pts.len() {
+            acc[i] = acc[i - 1] + pts[i].distance(pts[i - 1]);
+        }
+        Spine { pts, acc }
+    }
+
+    fn at(&self, s: f64) -> (Point, kurbo::Vec2) {
+        let n = self.pts.len();
+        if n < 2 {
+            return (self.pts.first().copied().unwrap_or(Point::ZERO), kurbo::Vec2::new(0.0, 1.0));
+        }
+        let i = self.acc.partition_point(|a| *a < s).clamp(1, n - 1);
+        let (a, b) = (self.pts[i - 1], self.pts[i]);
+        let len = (self.acc[i] - self.acc[i - 1]).max(1e-9);
+        let t = ((s - self.acc[i - 1]) / len).clamp(0.0, 1.0);
+        let d = (b - a) / len;
+        (a.lerp(b, t), kurbo::Vec2::new(-d.y, d.x))
+    }
+
+    /// Maps art lying in `frame` onto the spine: x across the frame becomes distance along the spine's length,
+    /// y from the frame's centre line becomes offset along the normal, times `across`.
+    fn bend(&self, art: &BezPath, frame: Rect, across: f64, flip: bool) -> BezPath {
+        let total = self.acc.last().copied().unwrap_or(0.0);
+        let map = |p: Point| {
+            let u = (p.x - frame.x0) / frame.width();
+            let v = (p.y - frame.center().y) * across * if flip { -1.0 } else { 1.0 };
+            let (q, nrm) = self.at(u * total);
+            q + nrm * v
+        };
+        let mut out = BezPath::new();
+        let mut last = Point::ZERO;
+        let mut first = Point::ZERO;
+        let step = (frame.width() / 200.0).max(0.25);
+        let run = |out: &mut BezPath, a: Point, b: Point| {
+            let steps = ((b.distance(a) / step).ceil() as usize).clamp(1, 400);
+            for j in 1..=steps {
+                out.line_to(map(a.lerp(b, j as f64 / steps as f64)));
+            }
+        };
+        kurbo::flatten(art.iter(), 0.05, |el| match el {
+            kurbo::PathEl::MoveTo(p) => {
+                out.move_to(map(p));
+                last = p;
+                first = p;
+            }
+            kurbo::PathEl::LineTo(p) => {
+                run(&mut out, last, p);
+                last = p;
+            }
+            kurbo::PathEl::ClosePath => {
+                if last.distance(first) > 1e-6 {
+                    run(&mut out, last, first);
+                }
+                out.close_path();
+                last = first;
+            }
+            _ => {}
+        });
+        out
+    }
+}
+
 /// Points every `step` along a path's length with the path's direction there (radians), each subpath from its start.
 fn along(path: &BezPath, step: f64) -> Vec<(Point, f64)> {
     let mut out = Vec::new();
@@ -917,6 +1002,35 @@ impl Ctx<'_> {
                 "calligraphic" => {
                     let shape = formdes_model::widths::nib(path, n("size", st.weight) * k, n("angle", 45.0), n("roundness", 30.0), it.shape.closed());
                     self.ops.push(Op::Fill { path: shape, brush: b, even_odd: true });
+                    return;
+                }
+                "art" => {
+                    if let Some(m) = br.get("symbol").and_then(|v| v.as_str()).and_then(|s| symbol_master(self.doc, s))
+                        && let Some(mb) = self.doc.bounds(m)
+                        && mb.width() > 0.0
+                    {
+                        let spine = Spine::new(path);
+                        let across = n("width", 100.0) / 100.0 * k;
+                        let flip = br.get("flip").and_then(|v| v.as_bool()).unwrap_or(false);
+                        for leaf in self.doc.walk(&[m]) {
+                            let Some(li) = self.doc.item(leaf) else { continue };
+                            if matches!(li.kind, ItemKind::Group { .. } | ItemKind::States { .. }) || !self.visible(li) {
+                                continue;
+                            }
+                            let world = self.doc.world_xf(leaf) * formdes_model::effects::apply(&li.extra, li.shape.to_path(&li.corner));
+                            let bent = spine.bend(&world, mb, across, flip);
+                            if li.shape.closed()
+                                && let Some(fb) = brush_of(self.doc, &li.fill, 1.0, kurbo::Shape::bounding_box(&bent), Affine::IDENTITY)
+                            {
+                                self.ops.push(Op::Fill { path: bent.clone(), brush: fb, even_odd: li.extra.get("fillRule").and_then(|v| v.as_str()) == Some("evenodd") });
+                            }
+                            if li.stroke.weight > 0.0
+                                && let Some(sb) = brush_of(self.doc, &li.stroke.paint, 1.0, kurbo::Shape::bounding_box(&bent), Affine::IDENTITY)
+                            {
+                                self.ops.push(Op::Stroke { path: bent, brush: sb, style: StrokeStyle { width: li.stroke.weight * across, cap: li.stroke.cap.clone(), join: li.stroke.join.clone(), dash: Vec::new() } });
+                            }
+                        }
+                    }
                     return;
                 }
                 "scatter" => {

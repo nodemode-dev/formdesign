@@ -834,9 +834,9 @@ fn recolor(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 fn brush(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
-    let kind = args::opt_str(p, "kind").filter(|k| ["calligraphic", "scatter", "none"].contains(k)).ok_or_else(|| EngineError::new("kind is calligraphic, scatter or none"))?;
-    if kind == "scatter" {
-        let name = args::str_(p, "symbol", "the symbol to scatter (symbol.list shows them)")?;
+    let kind = args::opt_str(p, "kind").filter(|k| ["calligraphic", "scatter", "art", "none"].contains(k)).ok_or_else(|| EngineError::new("kind is calligraphic, scatter, art or none"))?;
+    if kind == "scatter" || kind == "art" {
+        let name = args::str_(p, "symbol", "the symbol the brush draws (symbol.list shows them)")?;
         if formdes_render::scene::symbol_master(c.doc()?, name).is_none() {
             return Err(EngineError::new(format!("no symbol named {name}")));
         }
@@ -864,8 +864,8 @@ fn brush(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 pub fn register(r: &mut Registry) {
     cmd("object.brush", "Apply Brush").menu(&["Object", "Brush..."]).needs(Needs::Items)
-        .sig("{kind: calligraphic {size?: pt (default the stroke weight), angle?: deg (45), roundness?: percent (30)} | scatter {symbol, spacing?: pt (default the symbol's size), scale?: percent, rotate?: bool (follow the path, default true)} | none, ids?}")
-        .help("Draws the stroke with a brush, as Illustrator's brushes do: calligraphic strokes vary in width with the direction of the path like an angled pen nib; scatter brushes place copies of a symbol along the path; none restores the plain stroke. The stroke's colour paints calligraphic strokes.").reg(r, brush);
+        .sig("{kind: calligraphic {size?: pt (default the stroke weight), angle?: deg (45), roundness?: percent (30)} | scatter {symbol, spacing?: pt (default the symbol's size), scale?: percent, rotate?: bool (follow the path, default true)} | art {symbol, width?: percent, flip?: bool} | none, ids?}")
+        .help("Draws the stroke with a brush, as Illustrator's brushes do: calligraphic strokes vary in width with the direction of the path like an angled pen nib; scatter brushes place copies of a symbol along the path; art brushes stretch a symbol's art along the whole path; none restores the plain stroke. The stroke's colour paints calligraphic strokes.").reg(r, brush);
     cmd("object.recolor", "Recolor Artwork").menu(&["Edit", "Edit Colors", "Recolor Artwork..."]).needs(Needs::Items)
         .sig("{map?: [[from, to], ...] (swatch names or #rrggbb), tolerance?: percent (default 2), hue?: degrees, saturation?: percent, brightness?: percent, ids?}")
         .help("Changes the colours of the selected art at once, inside groups too: map swaps each listed colour for another (a swatch stays linked), and hue, saturation and brightness shift every other colour, as Illustrator's Recolor Artwork does; fills, strokes, extra fills and strokes and freeform gradient points all follow.").reg(r, recolor);
