@@ -29,6 +29,8 @@ if /i "%CMD%"=="tools" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="actions" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="tool" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py & goto :eof )
+if /i "%CMD%"=="claude" ( python setup\claude_launch.py %2 %3 %4 %5 %6 & goto :eof )
+if /i "%CMD%"=="build-app" ( call build_app.bat %2 %3 & goto :eof )
 if /i "%CMD%"=="agents" (
   if exist backend\venv\Scripts\python.exe ( backend\venv\Scripts\python.exe setup\agents.py %2 %3 %4 %5 ) else ( python setup\agents.py %2 %3 %4 %5 )
   goto :eof
@@ -43,6 +45,6 @@ exit /b 2
 :usage
 echo formdes.bat [command]
 echo   boot ^| install [--lite] ^| install-core ^| install-fonts ^| install-desktop ^| backend ^| frontend
-echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| cmd ^| commands ^| actions ^| tools ^| tool ^| mcp ^| agents
+echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| cmd ^| commands ^| actions ^| tools ^| tool ^| mcp ^| claude ^| agents ^| build-app
 echo   doctor ^| counts ^| clean [--all] ^| help
 exit /b 0

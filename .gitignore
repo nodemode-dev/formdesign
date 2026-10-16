@@ -22,3 +22,4 @@ src-tauri/binaries/*
 *.cer
 *.certSigningRequest
 .claude/settings.local.json
+build_app.log

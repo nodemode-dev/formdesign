@@ -27,6 +27,8 @@ usage: ./formdes [command] [options]
   actions [--q T]     every action in one list: engine commands, tools, window actions, MCP tools
   tools | tool NAME   list the MCP tools, or call one: ./formdes tool preview '{"page": 1}'
   mcp                formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
+  claude [args]       Claude Code connected to formdes's tools (starts the engine when needed)
+  build-app [flags]   compile the desktop app in one step (same as ./build_app)
   agents install|sync set up Claude Code, Codex and Cursor (install), or refresh the harness skill's tool reference (sync)
   doctor              check the toolchain, installs and ports
   counts [--check]    the README's code sizes and template count
@@ -60,6 +62,8 @@ case "$cmd" in
   templates) exec setup/cli templates "$@" ;;
   cmd|commands|actions|tools|tool) exec setup/cli "$cmd" "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
+  claude) exec python3 setup/claude_launch.py "$@" ;;
+  build-app) exec ./build_app "$@" ;;
   agents) if [ -x backend/venv/bin/python ]; then exec backend/venv/bin/python setup/agents.py "$@"; else exec python3 setup/agents.py "$@"; fi ;;
   doctor) exec setup/doctor "$@" ;;
   counts) exec setup/counts "$@" ;;
