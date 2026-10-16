@@ -18,7 +18,7 @@ import { toolIcon } from './tool-icons';
 import type { MenuAddition, MenuName, PanelSpec, Workspace } from './workspace';
 import { VERSION } from '../version';
 
-const MENUS: MenuName[] = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'View', 'Window', 'Help'];
+const MENUS: MenuName[] = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'Effect', 'View', 'Window', 'Help'];
 const LAYOUT_EXTS = /\.(fdes|fdoc|idml|pub|qxd|qxp|pmd|p65|indd)$/i;
 
 export function coreCombo(shortcut: string | null): string | null {

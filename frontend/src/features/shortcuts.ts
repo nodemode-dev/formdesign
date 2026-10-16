@@ -15,7 +15,7 @@ interface Row { id: string; label: string; area: string; keys: string }
 
 const SET_KEY = 'formdes.shortcuts.set';
 const CACHE_KEY = 'formdes.shortcuts.keys';
-const AREAS = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'View', 'Window', 'Help', 'Tools', 'Other'];
+const AREAS = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'Effect', 'View', 'Window', 'Help', 'Tools', 'Other'];
 
 const stored = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
 const store = (k: string, v: string): void => { try { localStorage.setItem(k, v); } catch { } };
