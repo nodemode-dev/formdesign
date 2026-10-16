@@ -203,7 +203,7 @@
 "object.rename": {"group": "object", "description": "Renames an object.", "when": "Use when giving an object a recognizable name."},
 "object.setFlags": {"group": "object", "description": "Hides or locks objects.", "when": "Use when objects should be out of the way or protected from edits."},
 "object.setLayer": {"group": "object", "description": "Moves objects to a given layer.", "when": "Use when objects belong on a different layer."},
-"object.stroke": {"group": "object", "description": "Sets stroke swatch, tint, weight, type, cap, join and alignment of objects.", "when": "Use when outlining objects or editing their border style."},
+"object.stroke": {"group": "object", "description": "Sets stroke swatch, tint, weight, type, cap, join and alignment of objects, and how a gradient swatch runs on the stroke (gradientMode within, along or across).", "when": "Use when outlining objects or editing their border style, or when a gradient should follow a line's length or run across its width."},
 "object.textFrameOptions": {"group": "object", "description": "Sets text frame options: columns, gutter, inset, vertical justification, autosize, balanced columns, footnotes spanning all columns and text orientation.", "when": "Use when changing how text sits inside a frame, not the text itself."},
 "object.textWrap": {"group": "object", "description": "Sets text wrap around an object: none, bounding box, contour, jump object or jump to next column, with offset.", "when": "Use when text should flow around a picture or shape."},
 "object.ungroup": {"group": "object", "description": "Ungroups the selected groups back into separate objects.", "when": "Use when objects in a group need to be edited independently."},
