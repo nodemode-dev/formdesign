@@ -851,3 +851,10 @@ Puppet Warp is a third envelope kind, `puppet`, from Illustrator's Puppet Warp t
 
 From the InDesign UserVoice request to apply several character styles to the same text (503 votes, the fourth most voted). A run keeps one style name, so the stack is written into it bottom first, joined by " + " (`CHAR_STACK`); no model type, file field or existing caller changes, and a run with one style is exactly what it was. Everywhere a run's style is resolved goes through `char_stack_names`, which splits the name, so each style's chain is layered in order and a later style wins only for what it sets (the paragraph's style below, the run's own overrides above). The composer resolved the run's style with its own direct `chain(cs)` lookup, which found no style named "Emph + Hot" and drew stacked text plain until it was changed. Add moves a style already present to the top, Remove keeps the others, Apply still replaces the whole stack with one style. InDesign cannot stack, so IDML export writes the top style as applied and folds the lower styles into the range's local attributes, which keeps the look in InDesign. The window's Character Styles panel shows the combined name; a panel control to reorder the stack is open.
 
+### underline and strikethrough · no colour drew nothing
+- refers-to: native/formdes-model/src/attrs.rs :: Deco::resolve
+- kind: fix
+- logged: v0.38.0 · 2026-10-16
+
+Found while checking stacked styles: no underline or strikethrough was drawn anywhere, from a style or set directly. `underlineColor` and `strikeColor` have no default, so the stack lookup returned null, `Paint::from_value(null)` is `Paint::None`, and the renderer drew the line with a paint that has no brush. A missing or None colour now means the text's own colour, which is what the renderer's fallback was written for.
+

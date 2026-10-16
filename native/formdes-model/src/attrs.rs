@@ -530,7 +530,7 @@ impl Deco {
         Deco {
             weight: opt("Weight").filter(|w| *w > 0.0),
             offset: opt("Offset"),
-            color: Paint::from_value(&stack.get(&format!("{base}Color"))),
+            color: Paint::from_value(&stack.get(&format!("{base}Color"))).filter(|p| !matches!(p, Paint::None)),
             tint: stack.num(&format!("{base}Tint")).clamp(0.0, 1.0),
         }
     }
