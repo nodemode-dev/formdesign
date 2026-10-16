@@ -87,6 +87,9 @@ impl Core {
     }
 
     fn settle(&mut self) {
+        if let Some(st) = self.ses.active_mut() {
+            formdes_engine::cmd::draw::refresh_blends(&mut st.doc);
+        }
         let k = self.key_now();
         if k != self.seen {
             self.rev += 1;
