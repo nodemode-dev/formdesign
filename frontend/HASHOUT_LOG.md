@@ -458,3 +458,10 @@ File > Place with one .docx offers it to `onPlaceFile` handlers before the plain
 - logged: v0.26.0 · 2026-10-12
 
 The Character panel's axis sliders are built once per set of axes (a signature of tag, minimum and maximum), not per selection: moving between two fonts with the same axes only rewrites the slider values and readouts, and a font without axes hides the block. `type.fontAxes` answers are cached per family and style, and a slow answer for an earlier selection is dropped. A slider's readout follows the pointer; the change is sent on release or a key step as `fontVariations` (only axes that differ from the named style's coordinates, plus any already set), and Reset sends null.
+
+### features/claude.ts, ui/markdown.ts · the Claude Code panel
+- refers-to: frontend/src/features/claude.ts :: ClaudePanel; frontend/src/ui/markdown.ts :: MarkdownStream; frontend/src/features/terminal.ts :: claudeTerminal
+- kind: rationale
+- logged: v0.26.0 · 2026-10-16
+
+The panel shares the Terminal's group in the left column (Claude Code first), as formlit's dock puts its Chat tab beside the terminals; the group no longer starts minimised. It never rebuilds its log: a user line and a reply container are appended per turn, streamed text goes through MarkdownStream (finished blocks are rendered once and inserted; only the unfinished tail paragraph's text changes), tool chips are appended and only their class changes on completion, and images keep fixed 160 by 120 boxes. Clearing the log happens only on New chat and adopt, which are a deliberate reset. Events arrive on the engine socket (`claude` type) rather than a per-request stream, so a reload, a second window or a turn started from another window all show the same conversation. The open document, the page in view and the selected item ids are appended to the prompt in parentheses, with a short note under the message. Shift+Mod+J opens a connected Claude Code terminal, Alt+Mod+J the panel; neither was bound in the engine or the window.

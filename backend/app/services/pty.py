@@ -41,7 +41,11 @@ def shell_argv() -> list[str]:
 def presets() -> list[dict]:
     out = []
     for p in PRESETS:
-        found = True if p["cmd"] is None else bool(shutil.which(p["cmd"]))
+        if p["id"] == "claude":
+            from app.services import claude_code
+            found = claude_code.info()["installed"]
+        else:
+            found = True if p["cmd"] is None else bool(shutil.which(p["cmd"]))
         out.append({"id": p["id"], "label": p["label"], "available": found, "install": None if found else p.get("install")})
     return out
 
@@ -101,14 +105,26 @@ class Terminals:
     def list(self) -> list[dict]:
         return [{"id": s.id, "preset": s.preset, "exited": s.exited} for s in self.sessions.values()]
 
-    async def create(self, preset: str, cols: int, rows: int) -> Session:
+    async def create(self, preset: str, cols: int, rows: int, prompt: str | None = None, resume: str | None = None) -> Session:
         if len(self.sessions) >= MAX_SESSIONS:
             raise ValueError(f"at most {MAX_SESSIONS} terminals can be open")
         spec = next((p for p in PRESETS if p["id"] == preset), None)
         if spec is None:
             raise ValueError(f"unknown preset `{preset}`")
+        env, cwd = environment(), str(workdir())
         if spec["cmd"] is None:
             argv = shell_argv()
+        elif preset == "claude":
+            from app.services import claude_code
+            found = claude_code.info(fresh=True)
+            if not found["installed"]:
+                raise ValueError(claude_code.INSTALL)
+            try:
+                cwd = str(claude_code.workdir())
+            except claude_code.ClaudeError as exc:
+                raise ValueError(str(exc)) from None
+            argv = claude_code.argv(found["path"], prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
+            env = claude_code.child_env()
         else:
             exe = shutil.which(spec["cmd"])
             if not exe:
@@ -118,7 +134,7 @@ class Terminals:
         loop = asyncio.get_running_loop()
         if sys.platform == "win32":
             from winpty import PtyProcess
-            proc = PtyProcess.spawn(argv, cwd=str(workdir()), env=environment(), dimensions=(rows, cols))
+            proc = PtyProcess.spawn(argv, cwd=cwd, env=env, dimensions=(rows, cols))
             s = Session(sid, preset, proc, win=proc)
             self.sessions[sid] = s
             threading.Thread(target=self._pump_win, args=(s, loop), daemon=True).start()
@@ -128,7 +144,7 @@ class Terminals:
             master, slave = pty.openpty()
             s = Session(sid, preset, None, fd=master)
             s.resize(cols, rows)
-            proc = subprocess.Popen(argv, stdin=slave, stdout=slave, stderr=slave, cwd=str(workdir()), env=environment(),
+            proc = subprocess.Popen(argv, stdin=slave, stdout=slave, stderr=slave, cwd=cwd, env=env,
                                     start_new_session=True, close_fds=True)
             os.close(slave)
             s.proc = proc

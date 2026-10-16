@@ -15,6 +15,9 @@ POLICIES = ("allow", "ask", "deny")
 APPROVAL_WAIT = 300.0
 KNOWN = {"claude-code": "Claude Code", "claude": "Claude Code", "codex": "Codex", "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor"}
 GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print": "prints", "file.printBooklet": "prints a booklet"}
+INAPP_TOKEN = secrets.token_urlsafe(24)
+INAPP_HEADER = "x-formdes-inapp"
+INAPP_CLIENT = "Claude Code in FormDesign"
 
 sessions: dict[str, dict] = {}
 clients: dict[str, dict] = {}
@@ -48,7 +51,7 @@ def set_enabled(on: bool) -> None:
 
 
 def policy(client: str) -> str:
-    p = (_read().get("policies") or {}).get(client, "ask")
+    p = (_read().get("policies") or {}).get(client, "allow" if client == INAPP_CLIENT else "ask")
     return p if p in POLICIES else "ask"
 
 
@@ -101,13 +104,18 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
         info = info or sessions[sid]["info"]
         transport = sessions[sid]["transport"]
     ua = (headers.get("user-agent") or "").split("/")[0].strip()
-    name = display(info, ua or "Unknown client")
+    name = INAPP_CLIENT if inapp(headers) else display(info, ua or "Unknown client")
     c = clients.setdefault(name, {"name": name, "version": None, "transport": transport, "firstSeen": time.time(), "lastSeen": 0.0, "calls": 0})
     c["lastSeen"] = time.time()
     c["transport"] = transport
     if info and info.get("version"):
         c["version"] = str(info["version"])
     return name, new_sid
+
+
+def inapp(headers) -> bool:
+    got = headers.get(INAPP_HEADER) or ""
+    return bool(got) and secrets.compare_digest(got, INAPP_TOKEN)
 
 
 def gate_reason(name: str, args: dict) -> str | None:
@@ -178,7 +186,7 @@ def snapshot() -> dict:
         "enabled": d.get("enabled", True),
         "endpoint": f"http://{config.HOST}:{config.PORT}/mcp",
         "stdio": "./formdes mcp",
-        "clients": [{**clients.get(n, {"name": n, "version": None, "transport": None, "lastSeen": None, "calls": 0}), "policy": pol.get(n, "ask")} for n in names],
+        "clients": [{**clients.get(n, {"name": n, "version": None, "transport": None, "lastSeen": None, "calls": 0}), "policy": policy(n)} for n in names],
         "approvals": [{k: v for k, v in a.items() if k != "future"} for a in approvals.values()],
         "activity": list(activity)[:60],
     }

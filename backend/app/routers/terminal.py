@@ -27,6 +27,8 @@ class NewTerminal(BaseModel):
     preset: str = "shell"
     cols: int = 100
     rows: int = 30
+    prompt: str | None = None
+    resume: str | None = None
 
 
 @router.get("/term")
@@ -39,7 +41,7 @@ async def term_info(request: Request):
 async def term_new(body: NewTerminal, request: Request):
     _guard(request)
     try:
-        s = await terminals.create(body.preset, body.cols, body.rows)
+        s = await terminals.create(body.preset, body.cols, body.rows, body.prompt, body.resume)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return {"id": s.id, "preset": s.preset}

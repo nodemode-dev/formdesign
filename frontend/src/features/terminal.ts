@@ -69,11 +69,11 @@ class TerminalPanel {
     this.preset.value = 'shell';
   }
 
-  async create(preset: string): Promise<void> {
+  async create(preset: string, extra: { resume?: string; prompt?: string } = {}): Promise<void> {
     const p = this.info?.presets.find((x) => x.id === preset);
     if (p && !p.available) { toast(`${p.label} is not installed. Install it with: ${p.install}`, 'error'); return; }
     try {
-      const r = await api<{ id: string; preset: string }>('/term', { method: 'POST', json: { preset, cols: 100, rows: 30 } });
+      const r = await api<{ id: string; preset: string }>('/term', { method: 'POST', json: { preset, cols: 100, rows: 30, ...extra } });
       await this.attach(r.id, r.preset);
     } catch (err) { toast((err as Error).message, 'error'); }
   }
@@ -170,5 +170,15 @@ export function installTerminal(ws: Workspace): void {
   let panel: TerminalPanel | null = null;
   ws.registerPanel({ id: 'terminal', label: 'Terminal', group: 'terminal', column: 'left', order: 10, create: () => (panel = new TerminalPanel()).root, onShow: () => void panel?.onShow() });
   ws.addCommands({ id: 'ui.terminal.new', label: 'New Terminal', run: () => { const was = panel?.isStarted ?? false; ws.showPanel('terminal'); if (was) void panel?.create('shell'); } });
-  ws.addMenuItems({ menu: 'Window', items: ['ui.terminal.new'], at: 'end' });
+  claudeTerminal = async (resume?: string) => {
+    ws.showPanel('terminal');
+    for (let i = 0; i < 40 && !panel; i += 1) await new Promise((r) => setTimeout(r, 50));
+    if (!panel) return;
+    if (!panel.isStarted) await panel.onShow();
+    await panel.create('claude', resume ? { resume } : {});
+  };
+  ws.addCommands({ id: 'ui.terminal.claude', label: 'Claude Code in Terminal', keys: ['Shift+Mod+J'], run: () => void claudeTerminal?.() });
+  ws.addMenuItems({ menu: 'Window', items: ['ui.terminal.new', 'ui.terminal.claude'], at: 'end' });
 }
+
+export let claudeTerminal: ((resume?: string) => Promise<void>) | null = null;

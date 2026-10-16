@@ -172,7 +172,7 @@ export class PreferencesDialog {
       .then(() => toast(this.agentsOn.checked ? 'Agents can work in formdes' : 'Agent access is off'))
       .catch((e) => { toast((e as Error).message, 'error'); this.agentsOn.checked = !this.agentsOn.checked; }));
     access.appendChild(toggle);
-    pg.append(access, mcp);
+    pg.append(access, mcp, this.claudeSection());
     const rows: Array<{ id: string; title: string; note: string }> = [
       { id: 'claude', title: 'Claude Code', note: 'Adds formdes as an MCP server over stdio.' },
       { id: 'codex', title: 'Codex', note: 'Run in the formdes folder: installs the MCP server and the skill.' },
@@ -188,6 +188,35 @@ export class PreferencesDialog {
       pg.appendChild(s);
     }
     return pg;
+  }
+
+  private claudeSection(): HTMLElement {
+    const s = this.section('Claude Code inside FormDesign', 'The Claude Code panel and the Claude Code terminal use your own Claude Code sign-in, connected to FormDesign’s tools. Leave a field empty for the default.');
+    const state = el('<p class="cv-note fd-pr-claude-state">Checking for Claude Code…</p>');
+    const fields: Array<[string, string, string]> = [
+      ['claudeBin', 'Program', 'Found on this computer'],
+      ['claudeFolder', 'Starts in', 'The FormDesign folder'],
+      ['claudeFirstMessage', 'First message in a new terminal', 'None'],
+    ];
+    const inputs = new Map<string, HTMLInputElement>();
+    for (const [key, label, ph] of fields) {
+      const row = el('<label class="fd-pr-field"><span></span></label>');
+      setText(q(row, 'span'), label);
+      const input = el<HTMLInputElement>('<input class="cv-input" type="text" spellcheck="false">');
+      input.placeholder = ph;
+      input.addEventListener('change', () => void api<{ installed: boolean; version: string | null; path: string | null }>('/claude/prefs', { json: { [key]: input.value } })
+        .then((r) => { setText(state, r.installed ? `Claude Code ${r.version ?? ''} at ${r.path ?? ''}` : 'Claude Code was not found'); toast('Saved'); })
+        .catch((e) => toast((e as Error).message, 'error')));
+      row.appendChild(input);
+      inputs.set(key, input);
+      s.appendChild(row);
+    }
+    s.appendChild(state);
+    void api<Record<string, string | boolean | null>>('/claude/status').then((r) => {
+      for (const [key, input] of inputs) input.value = String(r[key] ?? '');
+      setText(state, r.installed ? `Claude Code ${r.version ?? ''} at ${r.path ?? ''}` : String(r.install ?? 'Claude Code was not found'));
+    }).catch(() => setText(state, 'The engine is not answering'));
+    return s;
   }
 
   private copyBtn(text: () => string): HTMLButtonElement {
