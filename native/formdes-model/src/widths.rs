@@ -162,8 +162,19 @@ pub fn locate(path: &BezPath, weight: f64, closed_shape: bool, p: Point) -> Opti
     best
 }
 
-fn outline_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64, Vec2) -> (f64, f64)) -> BezPath {
-    let mut out = BezPath::new();
+/// Per subpath: the stroke's left and right edges, each point's position 0..1 along the subpath, and whether it closes.
+pub type Sides = Vec<(Vec<Point>, Vec<Point>, Vec<f64>, bool)>;
+
+/// The edges of a stroke of `weight`, following `prof` when there is one, for painting along or across it.
+pub fn sides(path: &BezPath, prof: Option<&Profile>, weight: f64, closed_shape: bool) -> Sides {
+    match prof {
+        Some(p) => sides_by(path, weight, closed_shape, &|t, _| at(p, t)),
+        None => sides_by(path, weight, closed_shape, &|_, _| (1.0, 1.0)),
+    }
+}
+
+fn sides_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64, Vec2) -> (f64, f64)) -> Sides {
+    let mut out = Vec::new();
     for (raw, closed) in subpaths(path, (weight * 0.01).clamp(0.01, 0.25)) {
         let closed = closed || (closed_shape && raw.len() > 2);
         let pts = densify(&raw, closed);
@@ -198,6 +209,14 @@ fn outline_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64
             left.push(pts[i] + nm * (l * h));
             right.push(pts[i] - nm * (r * h));
         }
+        out.push((left, right, acc.iter().map(|a| a / total).collect(), closed));
+    }
+    out
+}
+
+fn outline_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64, Vec2) -> (f64, f64)) -> BezPath {
+    let mut out = BezPath::new();
+    for (left, right, _, closed) in sides_by(path, weight, closed_shape, half) {
         if closed {
             for ring in [&left, &right] {
                 out.move_to(ring[0]);

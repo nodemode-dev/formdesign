@@ -989,6 +989,63 @@ impl Ctx<'_> {
         }
     }
 
+    /// Paints a stroke's gradient along its length (bands across the stroke, each a step along it) or across it
+    /// (bands running the length, each a step from the left edge to the right). With opaque stops each band
+    /// reaches into the next so no seam shows between them.
+    fn gradient_ribbon(&mut self, g: &formdes_model::color::Gradient, along: bool, left: &[Point], right: &[Point], ts: &[f64], closed: bool) {
+        let n = left.len();
+        if n < 2 {
+            return;
+        }
+        let overlap = g.stops.iter().all(|s| s.opacity >= 0.999);
+        if along {
+            let segs = if closed { n } else { n - 1 };
+            for i in 0..segs {
+                let j = (i + 1) % n;
+                let k = if overlap && i + 1 < segs { (i + 2) % n } else { j };
+                let mut p = BezPath::new();
+                p.move_to(left[i]);
+                p.line_to(left[j]);
+                p.line_to(left[k]);
+                p.line_to(right[k]);
+                p.line_to(right[j]);
+                p.line_to(right[i]);
+                p.close_path();
+                let t = if j == 0 { (ts[i] + 1.0) / 2.0 } else { (ts[i] + ts[j]) / 2.0 };
+                if let Some((c, a)) = g.at(t) {
+                    self.ops.push(Op::Fill { path: p, brush: Brush::Solid(c, a), even_odd: false });
+                }
+            }
+        } else {
+            const BANDS: usize = 24;
+            let at = |f: f64, i: usize| left[i] + (right[i] - left[i]) * f;
+            for b in 0..BANDS {
+                let f0 = b as f64 / BANDS as f64;
+                let f1 = ((b + if overlap { 2 } else { 1 }) as f64 / BANDS as f64).min(1.0);
+                let mut p = BezPath::new();
+                p.move_to(at(f0, 0));
+                for i in 1..n {
+                    p.line_to(at(f0, i));
+                }
+                if closed {
+                    p.close_path();
+                    p.move_to(at(f1, 0));
+                    for i in 1..n {
+                        p.line_to(at(f1, i));
+                    }
+                } else {
+                    for i in (0..n).rev() {
+                        p.line_to(at(f1, i));
+                    }
+                }
+                p.close_path();
+                if let Some((c, a)) = g.at((b as f64 + 0.5) / BANDS as f64) {
+                    self.ops.push(Op::Fill { path: p, brush: Brush::Solid(c, a), even_odd: closed });
+                }
+            }
+        }
+    }
+
     fn stroke(&mut self, it: &Item, path: &BezPath, xf: Affine) {
         let st = &it.stroke;
         if st.weight <= 0.0 || st.paint.is_none() {
@@ -1057,6 +1114,15 @@ impl Ctx<'_> {
                 }
                 _ => {}
             }
+        }
+        if let Some(mode) = it.extra.get("strokeGradient").and_then(|v| v.as_str()).filter(|m| *m == "along" || *m == "across")
+            && let Some(g) = self.doc.gradient_of(&st.paint)
+        {
+            let prof = formdes_model::widths::profile_of(&it.extra);
+            for (left, right, ts, closed) in formdes_model::widths::sides(path, prof.as_ref(), w, it.shape.closed()) {
+                self.gradient_ribbon(&g, mode == "along", &left, &right, &ts, closed);
+            }
+            return;
         }
         if let Some(prof) = formdes_model::widths::profile_of(&it.extra) {
             let shape = formdes_model::widths::outline(path, &prof, w, it.shape.closed());

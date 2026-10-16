@@ -470,6 +470,12 @@ fn stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
     let start_scale = args::opt_f64(p, "startScale");
     let end_scale = args::opt_f64(p, "endScale");
     let align_dashes = args::opt_bool(p, "alignDashes");
+    let gradient_mode = args::opt_str(p, "gradientMode").map(str::to_string);
+    if let Some(m) = &gradient_mode
+        && !["within", "along", "across"].contains(&m.as_str())
+    {
+        return Err(EngineError::new("gradientMode is within, along or across"));
+    }
     let dash: Option<Vec<f64>> = p.get("type").map(|t| match t.get("kind").and_then(Value::as_str) {
         Some("dashed" | "dotted") => t.get("pattern").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_else(|| vec![4.0, 4.0]),
         _ => Vec::new(),
@@ -520,6 +526,11 @@ fn stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         if let Some(b) = align_dashes {
             st.align_dashes = b;
+        }
+        match gradient_mode.as_deref() {
+            Some("along" | "across") => { it.extra.insert("strokeGradient".into(), json!(gradient_mode)); }
+            Some(_) => { it.extra.remove("strokeGradient"); }
+            None => {}
         }
     })?;
     ok()
@@ -1370,7 +1381,7 @@ pub fn register(r: &mut Registry) {
     cmd("object.gradientFeather", "Gradient Feather").menu(&["Object", "Effects", "Gradient Feather..."]).needs(Needs::Items).sig("{on?, type?: linear|radial, angle?: deg, stops?: [{opacity: 0..100, location: 0..100}], ids?}").reg(r, gradient_feather);
     cmd("object.directionalFeather","Directional Feather").menu(&["Object", "Effects", "Directional Feather..."]).needs(Needs::Items).sig("{on?, top?: pt, bottom?: pt, left?: pt, right?: pt, choke?: 0..100, angle?: deg, ids?}").reg(r, directional_feather);
     cmd("object.fill", "Fill").needs(Needs::Items).sig("{swatch, tint?: 0..1, ids?}").reg(r, fill);
-    cmd("object.stroke", "Stroke").needs(Needs::Items).sig("{swatch?, tint?, weight?: pt, type?: {kind, pattern?}, cap?, join?, miterLimit?: 1..500, align?, start?: none|simple|simpleWide|triangle|triangleWide|barbed|curved|circle|circleSolid|square|squareSolid|bar, end?: same, startScale?: percent, endScale?: percent, alignDashes?: bool, ids?}").help("Sets the stroke: colour, weight, dashes (alignDashes fits the pattern so dashes meet corners and path ends), caps, joins and miter limit, inside or outside alignment, and arrowheads at the start and end of open paths with their size in percent.").reg(r, stroke);
+    cmd("object.stroke", "Stroke").needs(Needs::Items).sig("{swatch?, tint?, weight?: pt, type?: {kind, pattern?}, cap?, join?, miterLimit?: 1..500, align?, start?: none|simple|simpleWide|triangle|triangleWide|barbed|curved|circle|circleSolid|square|squareSolid|bar, end?: same, startScale?: percent, endScale?: percent, alignDashes?: bool, gradientMode?: within|along|across (how a gradient swatch on the stroke runs: across the bounds, along the path, or from one edge of the stroke to the other), ids?}").help("Sets the stroke: colour, weight, dashes (alignDashes fits the pattern so dashes meet corners and path ends), caps, joins and miter limit, inside or outside alignment, and arrowheads at the start and end of open paths with their size in percent.").reg(r, stroke);
     cmd("object.fit", "Fit").menu(&["Object", "Fitting"]).needs(Needs::Items).sig("{mode: fillProportionally|fitProportionally|fitContentToFrame|centerContent|fitFrameToContent, ids?}").reg(r, fit);
     cmd("object.fittingOptions", "Frame Fitting Options").menu(&["Object", "Fitting", "Frame Fitting Options..."]).needs(Needs::Items).sig("{autoFit?, fitting?, align?: 0..8, ids?}").reg(r, fitting_options);
     cmd("object.gradient", "Gradient").needs(Needs::Items).sig("{kind?: linear|radial, angle?: deg, stops: [{location: 0..100, color, opacity?: 0..100}], target?, ids?}").reg(r, gradient);

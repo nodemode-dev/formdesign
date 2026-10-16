@@ -163,6 +163,35 @@ pub struct Gradient {
     pub angle: f64,
 }
 
+impl Gradient {
+    /// The colour and opacity at `t` (0..1), between the stops around it; the same space is kept when both
+    /// stops are CMYK or both grey, otherwise the mix is in RGB.
+    pub fn at(&self, t: f64) -> Option<(Color, f64)> {
+        let mut stops: Vec<&Stop> = self.stops.iter().collect();
+        stops.sort_by(|a, b| a.at.total_cmp(&b.at));
+        let (first, last) = (*stops.first()?, *stops.last()?);
+        if t <= first.at {
+            return Some((first.color, first.opacity));
+        }
+        for w in stops.windows(2) {
+            let (a, b) = (w[0], w[1]);
+            if t <= b.at {
+                let u = ((t - a.at) / (b.at - a.at).max(1e-9)).clamp(0.0, 1.0);
+                let color = match (a.color, b.color) {
+                    (Color::Cmyk(x), Color::Cmyk(y)) => Color::Cmyk([0, 1, 2, 3].map(|i| x[i] + (y[i] - x[i]) * u)),
+                    (Color::Gray(x), Color::Gray(y)) => Color::Gray(x + (y - x) * u),
+                    _ => {
+                        let (x, y) = (a.color.to_rgb(), b.color.to_rgb());
+                        Color::Rgb([0, 1, 2].map(|i| x[i] + (y[i] - x[i]) * u))
+                    }
+                };
+                return Some((color, a.opacity + (b.opacity - a.opacity) * u));
+            }
+        }
+        Some((last.color, last.opacity))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum SwatchValue {
