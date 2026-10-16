@@ -27,6 +27,97 @@ pub struct StrokeStyle {
     pub dash: Vec<f64>,
 }
 
+pub fn join_parts(join: &str) -> (&str, f64) {
+    let mut it = join.split_whitespace();
+    let kind = it.next().unwrap_or("miter");
+    let limit = it.next().and_then(|v| v.parse::<f64>().ok()).unwrap_or(4.0).max(1.0);
+    (kind, limit)
+}
+
+fn aligned_dashes(path: &BezPath, dash: &[f64], closed: bool) -> Vec<f64> {
+    use kurbo::ParamCurveArclen;
+    let pattern: Vec<f64> = if dash.len() % 2 == 1 { dash.iter().chain(dash.iter()).copied().collect() } else { dash.to_vec() };
+    let period: f64 = pattern.iter().sum();
+    let len: f64 = path.segments().map(|s| s.arclen(0.05)).sum();
+    if period <= 1e-6 || len <= 1e-6 {
+        return dash.to_vec();
+    }
+    let last_gap = *pattern.last().unwrap_or(&0.0);
+    let target = |n: f64| if closed { n * period } else { n * period - last_gap };
+    let n = ((len + if closed { 0.0 } else { last_gap }) / period).round().max(1.0);
+    let k = len / target(n).max(1e-6);
+    pattern.iter().map(|d| d * k).collect()
+}
+
+fn path_end(path: &BezPath, at_start: bool) -> Option<(Point, kurbo::Vec2)> {
+    use kurbo::{ParamCurve, ParamCurveDeriv, PathSeg};
+    let segs: Vec<PathSeg> = path.segments().collect();
+    let seg = if at_start { segs.first()? } else { segs.last()? };
+    let t = if at_start { 0.0 } else { 1.0 };
+    let d = match seg {
+        PathSeg::Line(l) => l.p1 - l.p0,
+        PathSeg::Quad(q) => q.deriv().eval(t).to_vec2(),
+        PathSeg::Cubic(c) => c.deriv().eval(t).to_vec2(),
+    };
+    let d = if d.hypot() > 1e-9 { d.normalize() } else { (seg.end() - seg.start()).normalize() };
+    Some((seg.eval(t), if at_start { -d } else { d }))
+}
+
+fn arrowhead(kind: &str, tip: Point, dir: kurbo::Vec2, s: f64) -> (BezPath, bool) {
+    let n = kurbo::Vec2::new(-dir.y, dir.x);
+    let s = s.max(0.25);
+    let mut p = BezPath::new();
+    let wide = kind.ends_with("Wide");
+    match kind {
+        "simple" | "simpleWide" => {
+            let back = tip - dir * (4.5 * s);
+            let half = if wide { 3.2 } else { 2.2 } * s;
+            p.move_to(back + n * half);
+            p.line_to(tip);
+            p.line_to(back - n * half);
+            (p, false)
+        }
+        "circle" | "circleSolid" => {
+            let c = tip - dir * (2.0 * s);
+            p.extend(kurbo::Shape::path_elements(&kurbo::Circle::new(c, 2.0 * s), 0.05));
+            (p, kind == "circleSolid")
+        }
+        "square" | "squareSolid" => {
+            let c = tip - dir * (2.0 * s);
+            let (a, b) = (dir * (2.0 * s), n * (2.0 * s));
+            p.move_to(c + a + b);
+            p.line_to(c + a - b);
+            p.line_to(c - a - b);
+            p.line_to(c - a + b);
+            p.close_path();
+            (p, kind == "squareSolid")
+        }
+        "bar" => {
+            p.move_to(tip + n * (2.5 * s));
+            p.line_to(tip - n * (2.5 * s));
+            (p, false)
+        }
+        "barbed" | "curved" => {
+            let back = tip - dir * (5.0 * s);
+            let half = 2.6 * s;
+            p.move_to(tip);
+            p.line_to(back + n * half);
+            if kind == "curved" { p.quad_to(tip - dir * (3.2 * s), back - n * half) } else { p.line_to(tip - dir * (3.6 * s)); p.line_to(back - n * half) }
+            p.close_path();
+            (p, true)
+        }
+        _ => {
+            let back = tip - dir * (4.5 * s);
+            let half = if wide { 3.2 } else { 2.2 } * s;
+            p.move_to(tip);
+            p.line_to(back + n * half);
+            p.line_to(back - n * half);
+            p.close_path();
+            (p, true)
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct GlyphOp {
     pub face: Arc<Face>,
@@ -603,7 +694,13 @@ impl Ctx<'_> {
             (c[0] * c[3] - c[1] * c[2]).abs().sqrt()
         };
         let w = st.weight * k;
-        let style = |width: f64| StrokeStyle { width, cap: st.cap.clone(), join: st.join.clone(), dash: st.dash.iter().map(|d| d * k).collect() };
+        let join = if st.join == "miter" && (st.miter - 4.0).abs() > 1e-6 { format!("miter {}", st.miter.max(1.0)) } else { st.join.clone() };
+        let mut dash: Vec<f64> = st.dash.iter().map(|d| d * k).collect();
+        if st.align_dashes && !dash.is_empty() {
+            dash = aligned_dashes(path, &dash, it.shape.closed());
+        }
+        let style = |width: f64| StrokeStyle { width, cap: st.cap.clone(), join: join.clone(), dash: dash.clone() };
+        let head = b.clone();
         match st.align {
             StrokeAlign::Inside if it.shape.closed() => {
                 self.ops.push(Op::PushClip(path.clone()));
@@ -611,6 +708,21 @@ impl Ctx<'_> {
                 self.ops.push(Op::Pop);
             }
             _ => self.ops.push(Op::Stroke { path: path.clone(), brush: b, style: style(w) }),
+        }
+        if !it.shape.closed() {
+            for (kind, scale, at_start) in [(&st.start, st.start_scale, true), (&st.end, st.end_scale, false)] {
+                if kind.is_empty() || kind == "none" {
+                    continue;
+                }
+                if let Some((p, dir)) = path_end(path, at_start) {
+                    let (shape, filled) = arrowhead(kind, p, dir, w * scale.max(1.0) / 100.0);
+                    if filled {
+                        self.ops.push(Op::Fill { path: shape, brush: head.clone(), even_odd: false });
+                    } else {
+                        self.ops.push(Op::Stroke { path: shape, brush: head.clone(), style: StrokeStyle { width: w, cap: "round".into(), join: "round".into(), dash: Vec::new() } });
+                    }
+                }
+            }
         }
     }
 

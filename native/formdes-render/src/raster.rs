@@ -78,11 +78,13 @@ fn stroke_of(s: &StrokeStyle, k: f64) -> Stroke {
         "square" | "projecting" => Cap::Square,
         _ => Cap::Butt,
     });
-    st = st.with_join(match s.join.as_str() {
+    let (join, limit) = crate::scene::join_parts(&s.join);
+    st = st.with_join(match join {
         "round" => Join::Round,
         "bevel" => Join::Bevel,
         _ => Join::Miter,
     });
+    st = st.with_miter_limit(limit);
     if !s.dash.is_empty() {
         st = st.with_dashes(0.0, s.dash.iter().map(|d| d * k).collect::<Vec<f64>>());
     }

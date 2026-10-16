@@ -615,7 +615,7 @@ fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
             continue;
         }
         let path = it.shape.to_path(&it.corner);
-        let style = stroke_style(it.stroke.weight, &it.stroke.join, &it.stroke.cap, args::opt_f64(p, "miterLimit").unwrap_or(4.0), &it.stroke.dash);
+        let style = stroke_style(it.stroke.weight, &it.stroke.join, &it.stroke.cap, args::opt_f64(p, "miterLimit").unwrap_or(it.stroke.miter), &it.stroke.dash);
         let outline = to_path(&outline_of(&path, &style));
         if outline.elements().is_empty() {
             continue;

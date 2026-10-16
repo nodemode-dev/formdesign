@@ -557,7 +557,7 @@ fn export_svg(c: &mut Ctx, p: &Value) -> Result<Value> {
             Op::Stroke { path, brush, style } => {
                 let (f, a) = paint_attr(brush, &mut defs, &mut n);
                 let dash = if style.dash.is_empty() { String::new() } else { format!(" stroke-dasharray=\"{}\"", style.dash.iter().map(|d| format!("{d:.2}")).collect::<Vec<_>>().join(" ")) };
-                let _ = write!(body, "<path d=\"{}\" fill=\"none\" stroke=\"{f}\" stroke-width=\"{:.3}\" stroke-linecap=\"{}\" stroke-linejoin=\"{}\"{}{dash}/>", svg_path(path), style.width, style.cap, style.join, if a < 0.999 { format!(" stroke-opacity=\"{a:.3}\"") } else { String::new() });
+                let _ = write!(body, "<path d=\"{}\" fill=\"none\" stroke=\"{f}\" stroke-width=\"{:.3}\" stroke-linecap=\"{}\" stroke-linejoin=\"{}\" stroke-miterlimit=\"{}\"{}{dash}/>", svg_path(path), style.width, style.cap, formdes_render::scene::join_parts(&style.join).0, formdes_render::scene::join_parts(&style.join).1, if a < 0.999 { format!(" stroke-opacity=\"{a:.3}\"") } else { String::new() });
             }
             Op::Glyphs(g) => {
                 let mut path = BezPath::new();

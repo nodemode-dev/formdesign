@@ -138,13 +138,13 @@ fn kstroke(b: &Brush, s: &StrokeStyle) -> Stroke {
     Stroke {
         paint,
         width: s.width as f32,
-        miter_limit: 4.0,
+        miter_limit: crate::scene::join_parts(&s.join).1 as f32,
         line_cap: match s.cap.as_str() {
             "round" => LineCap::Round,
             "square" | "projecting" => LineCap::Square,
             _ => LineCap::Butt,
         },
-        line_join: match s.join.as_str() {
+        line_join: match crate::scene::join_parts(&s.join).0 {
             "round" => LineJoin::Round,
             "bevel" => LineJoin::Bevel,
             _ => LineJoin::Miter,

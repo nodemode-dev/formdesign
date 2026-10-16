@@ -216,6 +216,22 @@ pub struct Stroke {
     pub start: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub end: String,
+    #[serde(default = "miter_default")]
+    pub miter: f64,
+    #[serde(default = "scale_default", rename = "startScale")]
+    pub start_scale: f64,
+    #[serde(default = "scale_default", rename = "endScale")]
+    pub end_scale: f64,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not", rename = "alignDashes")]
+    pub align_dashes: bool,
+}
+
+fn miter_default() -> f64 {
+    4.0
+}
+
+fn scale_default() -> f64 {
+    100.0
 }
 
 fn butt() -> String {
@@ -228,7 +244,7 @@ fn miter() -> String {
 
 impl Default for Stroke {
     fn default() -> Self {
-        Stroke { paint: Paint::None, weight: 1.0, align: StrokeAlign::Center, dash: Vec::new(), cap: butt(), join: miter(), start: String::new(), end: String::new() }
+        Stroke { paint: Paint::None, weight: 1.0, align: StrokeAlign::Center, dash: Vec::new(), cap: butt(), join: miter(), start: String::new(), end: String::new(), miter: 4.0, start_scale: 100.0, end_scale: 100.0, align_dashes: false }
     }
 }
 
