@@ -191,7 +191,93 @@ fn each(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"ids": targets}))
 }
 
+fn mix(a: formdes_model::color::Color, b: formdes_model::color::Color, t: f64) -> formdes_model::color::Color {
+    use formdes_model::color::Color;
+    match (a, b) {
+        (Color::Cmyk(x), Color::Cmyk(y)) => Color::Cmyk([0, 1, 2, 3].map(|i| x[i] + (y[i] - x[i]) * t)),
+        (Color::Gray(x), Color::Gray(y)) => Color::Gray(x + (y - x) * t),
+        _ => {
+            let (x, y) = (a.to_rgb(), b.to_rgb());
+            Color::Rgb([0, 1, 2].map(|i| x[i] + (y[i] - x[i]) * t))
+        }
+    }
+}
+
+fn mix_paint(doc: &formdes_model::doc::Doc, a: &formdes_model::color::Paint, b: &formdes_model::color::Paint, t: f64) -> formdes_model::color::Paint {
+    use formdes_model::color::Paint;
+    match (doc.paint_color(a), doc.paint_color(b)) {
+        (Some(x), Some(y)) => Paint::Color { color: mix(x, y, t) },
+        _ => if t < 0.5 { a.clone() } else { b.clone() },
+    }
+}
+
+fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use crate::tools::geo;
+    let ids = items(c, p)?;
+    if ids.len() != 2 {
+        return Err(EngineError::new("Blend needs exactly two objects selected"));
+    }
+    let steps = args::opt_u64(p, "steps").unwrap_or(5).clamp(1, 500) as usize;
+    let doc = c.doc()?;
+    let (ia, ib) = (doc.item(ids[0]).cloned(), doc.item(ids[1]).cloned());
+    let (Some(ia), Some(ib)) = (ia, ib) else { return Err(EngineError::new("both objects must exist")) };
+    if matches!(ia.kind, ItemKind::Group { .. } | ItemKind::States { .. }) || matches!(ib.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
+        return Err(EngineError::new("Blend works on shapes and paths, not groups"));
+    }
+    let wa = doc.world_xf(ids[0]) * ia.shape.to_path(&ia.corner);
+    let wb = doc.world_xf(ids[1]) * ib.shape.to_path(&ib.corner);
+    let (sa, sb) = (geo::anchors_of(&wa), geo::anchors_of(&wb));
+    let same = sa.len() == sb.len() && sa.iter().zip(&sb).all(|(x, y)| x.0.len() == y.0.len() && x.1 == y.1);
+    let (ba, bb) = (kurbo::Shape::bounding_box(&wa), kurbo::Shape::bounding_box(&wb));
+    let morph = !args::opt_bool(p, "noMorph").unwrap_or(false) && same;
+    let mut made = Vec::new();
+    for k in 1..=steps {
+        let t = k as f64 / (steps + 1) as f64;
+        let lp = |a: Point, b: Point| a + (b - a) * t;
+        let world = if morph {
+            let subs: Vec<(Vec<geo::Anchor>, bool)> = sa.iter().zip(&sb).map(|(x, y)| (x.0.iter().zip(&y.0).map(|(u, v)| (lp(u.0, v.0), lp(u.1, v.1), lp(u.2, v.2))).collect(), x.1)).collect();
+            geo::path_of(&subs)
+        } else {
+            let r = Rect::new(ba.x0 + (bb.x0 - ba.x0) * t, ba.y0 + (bb.y0 - ba.y0) * t, ba.x1 + (bb.x1 - ba.x1) * t, ba.y1 + (bb.y1 - ba.y1) * t);
+            formdes_model::item::map_rect(ba, r) * wa.clone()
+        };
+        let doc = c.doc_mut()?;
+        let fill = mix_paint(doc, &ia.fill, &ib.fill, t);
+        let stroke_paint = mix_paint(doc, &ia.stroke.paint, &ib.stroke.paint, t);
+        let Some(nid) = ops::duplicate(doc, ids[0], Vec2::ZERO, None) else { continue };
+        let local = doc.world_xf(nid).inverse() * world;
+        if let Some(it) = doc.item_mut(nid) {
+            it.shape = Shape::Path { path: local, closed: ia.shape.closed() };
+            it.corner = Default::default();
+            it.kind = ItemKind::Plain;
+            it.fill = fill;
+            it.stroke.paint = stroke_paint;
+            it.stroke.weight = ia.stroke.weight + (ib.stroke.weight - ia.stroke.weight) * t;
+            it.opacity = ia.opacity + (ib.opacity - ia.opacity) * t;
+        }
+        made.push(nid);
+    }
+    let doc = c.doc_mut()?;
+    if let Some(home) = doc.home(ids[0]).filter(|h| doc.home(ids[1]).as_ref() == Some(h)) {
+        if let Some(list) = ops::home_list(doc, &home) {
+            list.retain(|x| !made.contains(x));
+            let (pa, pb) = (list.iter().position(|x| *x == ids[0]), list.iter().position(|x| *x == ids[1]));
+            if let (Some(pa), Some(pb)) = (pa, pb) {
+                let mut steps = made.clone();
+                if pa > pb { steps.reverse(); }
+                let at = pa.min(pb) + 1;
+                list.splice(at..at, steps);
+            }
+        }
+    }
+    c.set_selection(Selection::items([vec![ids[0]], made.clone(), vec![ids[1]]].concat()));
+    c.label("Blend");
+    Ok(json!({"ids": made, "morph": morph}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), noMorph?: bool, ids?: two objects}")
+        .help("Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.").reg(r, blend);
     cmd("shape.spiral", "Spiral").menu(&["Object", "Shapes", "Spiral..."]).sig("{center: [x, y], radius?: pt, decay?: percent (default 80), segments?: quarter turns (default 10), clockwise?, weight?, spread?}")
         .help("Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.").reg(r, spiral);
     cmd("shape.arc", "Arc").menu(&["Object", "Shapes", "Arc..."]).sig("{a: [x, y], b: [x, y], slope?: -100..100 (concave to convex), closed?, weight?, spread?}")

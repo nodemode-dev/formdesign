@@ -728,3 +728,17 @@ From Illustrator's Curvature and Knife tools as Adobe documents them. The Curvat
 
 From the InDesign UserVoice request "Opacity of a cell fill" (106 votes). Cell Options passes `fillOpacity` (0 to 100) into the cell's attributes with its other pass-through keys, so cell styles carry it the same way, and the renderer uses it as the solid brush's alpha; alternating row and column fills take it from the cell as well.
 
+### path.shapeBuilder · regions under points
+- refers-to: native/formdes-engine/src/cmd/art.rs :: shape_builder, inside
+- kind: rationale
+- logged: v0.29.0 · 2026-10-16
+
+From Illustrator's Shape Builder as Adobe documents it: a drag across regions merges them, Alt erases them, and the merged shape takes the style of the region where the drag began. The command takes the drag as a list of points. The regions are Divide's arrangement in paint order (each overlap owned by the upper shape), split into single faces; a face is hit when any point falls inside it by the even-odd test; hit faces are unioned (or dropped with mode erase) and every other face stays its own shape. The merged shape copies the owner of the face under the first point, which is what makes it red rather than blue in the test where the drag starts in the lower square.
+
+### object.blend · steps between two objects
+- refers-to: native/formdes-engine/src/cmd/draw.rs :: blend, mix, mix_paint
+- kind: rationale
+- logged: v0.29.0 · 2026-10-16
+
+From Illustrator's Blend (Specified Steps). Steps are copies of the first object at t = k / (steps + 1). When both paths have the same subpath and anchor counts the anchors and handles interpolate in world space (a true morph); otherwise the first object's outline moves and scales between the two bounding boxes, so a square to circle blend steps as squares (Illustrator resamples to match anchors; that is open). Colours mix in CMYK when both are CMYK, in gray when both are gray, otherwise in RGB; stroke weight and opacity interpolate. The steps are spliced into the stacking list between the two objects, nearest-to-top last, as Illustrator stacks a blend; the blend is not live (no spine, no editing the ends) and is undone as one step.
+
