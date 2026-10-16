@@ -823,7 +823,8 @@ impl Ctx<'_> {
                         && let Some(col) = self.doc.paint_color(&paint)
                     {
                         let col = if (tint - 1.0).abs() > 1e-6 { col.tinted(tint) } else { col };
-                        self.ops.push(Op::Fill { path: xf * c.rect.to_path(0.1), brush: Brush::Solid(col, 1.0), even_odd: false });
+                        let alpha = ea.get("fillOpacity").and_then(|v| v.as_f64()).map_or(1.0, |o| (o / 100.0).clamp(0.0, 1.0));
+                        self.ops.push(Op::Fill { path: xf * c.rect.to_path(0.1), brush: Brush::Solid(col, alpha), even_odd: false });
                     }
                 }
                 let diagonal = eff.and_then(|ea| ea.get("diagonal")).and_then(|d| d.as_object());

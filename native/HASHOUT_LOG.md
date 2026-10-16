@@ -721,3 +721,10 @@ From InDesign's and Illustrator's Stroke panels as Adobe documents them. The ren
 
 From Illustrator's Curvature and Knife tools as Adobe documents them. The Curvature tool shares the Pen's in-progress anchors and its finish rules (Enter or Escape ends an open path, clicking the first point closes it, changing tool or spread ends it); every click re-smooths all interior points with the Pencil's chord-based handles, so the curve changes shape as points are added, and Alt-click marks a corner kept without handles. Knife subtracts a 0.05 pt slit stroked along the given polyline from each crossed closed shape and turns every resulting piece into a copy of the original; it is a command with a points list (agents and the dialog) rather than a freehand canvas tool for now.
 
+### table cells · fill opacity
+- refers-to: native/formdes-engine/src/cmd/table.rs :: set_cell; native/formdes-render/src/scene.rs (cell fills)
+- kind: rationale
+- logged: v0.28.0 · 2026-10-16
+
+From the InDesign UserVoice request "Opacity of a cell fill" (106 votes). Cell Options passes `fillOpacity` (0 to 100) into the cell's attributes with its other pass-through keys, so cell styles carry it the same way, and the renderer uses it as the solid brush's alpha; alternating row and column fills take it from the cell as well.
+
