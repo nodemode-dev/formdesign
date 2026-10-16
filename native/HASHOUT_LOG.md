@@ -858,3 +858,10 @@ From the InDesign UserVoice request to apply several character styles to the sam
 
 Found while checking stacked styles: no underline or strikethrough was drawn anywhere, from a style or set directly. `underlineColor` and `strikeColor` have no default, so the stack lookup returned null, `Paint::from_value(null)` is `Paint::None`, and the renderer drew the line with a paint that has no brush. A missing or None colour now means the text's own colour, which is what the renderer's fallback was written for.
 
+### tables · rounded corners, alt text and summary
+- refers-to: native/formdes-engine/src/cmd/table.rs :: options; native/formdes-render/src/scene.rs :: text (table cells); native/formdes-interchange/src/publish.rs (table HTML)
+- kind: rationale
+- logged: v0.39.0 · 2026-10-16
+
+From the InDesign UserVoice requests for rounded table corners (233 votes) and alt text and summaries on tables (accessibility). Table Options takes `cornerRadius`, `alt` and `summary` into the table's own attributes (not table-style keys, so the style validator is untouched; a radius of 0 or less, or an empty string, clears them). The renderer clips the table's part in each frame to a rounded rectangle around that part's cells (the radius capped at half the smaller side), draws fills, edges, images and text inside the clip, then strokes the rounded outline in the table's border weight and colour, so the corner cells' square edges never show. A table split across frames rounds every part on all four corners; rounding only the outer corners of the first and last parts is open. HTML, EPUB and website exports write `alt` as the table's aria-label and `summary` as its caption; a Table structure element with the summary in tagged PDF is open.
+

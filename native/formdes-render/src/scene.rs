@@ -1174,6 +1174,14 @@ impl Ctx<'_> {
             let alt_row_strokes = table.and_then(|tb| tb.style_attr(&self.doc.styles, "altRowStrokes"));
             let alt_col_strokes = table.and_then(|tb| tb.style_attr(&self.doc.styles, "altColStrokes"));
             let eff_all: Vec<formdes_model::attrs::Attrs> = table.map(|tb| tb.cells.iter().map(|cell| tb.cell_attrs(&self.doc.styles, cell)).collect()).unwrap_or_default();
+            let radius = table.and_then(|tb| tb.attrs.get("cornerRadius")).and_then(|v| v.as_f64()).filter(|r| *r > 0.0);
+            let round = radius.and_then(|r| {
+                let area = t.cells.iter().map(|c| c.rect).reduce(|a, b| a.union(b))?;
+                Some(kurbo::RoundedRect::from_rect(area, r.min(area.width() / 2.0).min(area.height() / 2.0)).to_path(0.1))
+            });
+            if let Some(rp) = &round {
+                self.ops.push(Op::PushClip(xf * rp.clone()));
+            }
             for c in &t.cells {
                 let eff: Option<&formdes_model::attrs::Attrs> = table.and_then(|tb| tb.cells.iter().position(|cell| c.row >= cell.row && c.row < cell.row + cell.rows && c.col >= cell.col && c.col < cell.col + cell.cols)).and_then(|i| eff_all.get(i));
                 if let Some(tb) = table
@@ -1246,6 +1254,12 @@ impl Ctx<'_> {
                     && d.get("front").and_then(|f| f.as_bool()).unwrap_or(false)
                 {
                     self.diagonals(d, c.rect, xf, bw, bcol);
+                }
+            }
+            if let Some(rp) = round {
+                self.ops.push(Op::Pop);
+                if bw > 0.0 {
+                    self.ops.push(Op::Stroke { path: xf * rp, brush: Brush::Solid(bcol, 1.0), style: StrokeStyle { width: bw, cap: "butt".into(), join: "round".into(), dash: Vec::new() } });
                 }
             }
         }

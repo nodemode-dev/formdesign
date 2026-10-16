@@ -190,6 +190,20 @@ fn options(c: &mut Ctx, p: &Value) -> Result<Value> {
                 t.attrs.insert("border".into(), Value::Object(cur));
             }
         }
+        if let Some(v) = p.get("cornerRadius") {
+            match v.as_f64().filter(|r| *r > 0.0) {
+                Some(r) => { t.attrs.insert("cornerRadius".into(), json!(r.min(500.0))); }
+                None => { t.attrs.remove("cornerRadius"); }
+            }
+        }
+        for k in ["alt", "summary"] {
+            if let Some(v) = p.get(k) {
+                match v.as_str().map(str::trim).filter(|s| !s.is_empty()) {
+                    Some(s) => { t.attrs.insert(k.into(), json!(s)); }
+                    None => { t.attrs.remove(k); }
+                }
+            }
+        }
         for k in TABLE_STYLE_KEYS.iter().filter(|k| **k != "border") {
             if let Some(a) = p.get(*k) {
                 if a.is_null() || a.as_str() == Some("") {
@@ -1008,7 +1022,7 @@ pub fn register(r: &mut Registry) {
     cmd("table.get", "Table").needs(Needs::Text).query().sig("{}").reg(r, get);
     cmd("table.select", "Select Cells").needs(Needs::Text).query().sig("{row, col, r1?, c1?}").reg(r, select);
     cmd("table.insert", "Insert Table...").menu(&["Table", "Insert Table..."]).key("Mod+Alt+Shift+T").needs(Needs::Text).sig("{rows, cols, headerRows?, footerRows?, style?}").reg(r, insert);
-    cmd("table.options", "Table Options").menu(&["Table", "Table Options..."]).needs(Needs::Text).sig("{headerRows?, footerRows?, border?: {weight, color}, altRows?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altCols?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altRowStrokes?: {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}, altColStrokes?: {same as altRowStrokes}, headerCellStyle?: cell style name, footerCellStyle?: cell style name, leftColumnCellStyle?: cell style name, rightColumnCellStyle?: cell style name, bodyCellStyle?: cell style name}").help("Table options of the selected table; each key overrides the applied table style and null clears it. Alternating patterns count rows or columns in groups of first then next, skipFirst and skipLast leave rows at the start and end of the body out; row strokes own a row's top and bottom edges, column strokes the left and right edges.").reg(r, options);
+    cmd("table.options", "Table Options").menu(&["Table", "Table Options..."]).needs(Needs::Text).sig("{headerRows?, footerRows?, border?: {weight, color}, altRows?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altCols?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altRowStrokes?: {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}, altColStrokes?: {same as altRowStrokes}, headerCellStyle?: cell style name, footerCellStyle?: cell style name, leftColumnCellStyle?: cell style name, rightColumnCellStyle?: cell style name, bodyCellStyle?: cell style name, cornerRadius?: pt (rounded table corners; 0 square), alt?: alternative text, summary?: a summary or caption for readers and screen readers}").help("Table options of the selected table; each key overrides the applied table style and null clears it. cornerRadius rounds the table's outer corners in every frame it runs through; alt and summary describe the table in HTML, EPUB and website exports. Alternating patterns count rows or columns in groups of first then next, skipFirst and skipLast leave rows at the start and end of the body out; row strokes own a row's top and bottom edges, column strokes the left and right edges.").reg(r, options);
     cmd("table.setCell", "Cell Options").menu(&["Table", "Cell Options..."]).needs(Needs::Text).sig("{vj?, insets?, fill?, tint?, fillOpacity?: 0..100, rotate?: 0|90|180|270, diagonal?: {down?: stroke, up?: stroke, front?}, paraStyle?}").reg(r, set_cell);
     cmd("table.setRowHeight", "Row Height").needs(Needs::Text).sig("{height, mode?: atLeast|exactly}").reg(r, row_height);
     cmd("table.setColumnWidth", "Column Width").needs(Needs::Text).sig("{width}").reg(r, col_width);

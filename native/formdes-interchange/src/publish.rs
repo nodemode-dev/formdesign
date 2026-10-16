@@ -139,7 +139,14 @@ fn para_html(doc: &Doc, p: &Para, out: &mut String, notes: &mut Vec<String>) {
                 }
                 Inline::RightTab => out.push(' '),
                 Inline::Table { table } => {
-                    out.push_str("</p><table>");
+                    let attr = |k: &str| table.attrs.get(k).and_then(|v| v.as_str()).map(str::to_string).filter(|s| !s.is_empty());
+                    match attr("alt") {
+                        Some(a) => { let _ = write!(out, "</p><table aria-label=\"{}\">", esc(&a)); }
+                        None => out.push_str("</p><table>"),
+                    }
+                    if let Some(s) = attr("summary") {
+                        let _ = write!(out, "<caption>{}</caption>", esc(&s));
+                    }
                     for r in 0..table.rows() {
                         out.push_str("<tr>");
                         for c in 0..table.cols() {
