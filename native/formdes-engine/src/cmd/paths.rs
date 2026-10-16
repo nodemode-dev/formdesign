@@ -359,6 +359,162 @@ fn round_corners(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"changed": changed}))
 }
 
+fn turn_deg(prev: Point, at: Point, next: Point) -> f64 {
+    let a = at - prev;
+    let b = next - at;
+    if a.hypot() < 1e-9 || b.hypot() < 1e-9 {
+        return 0.0;
+    }
+    (a.normalize().dot(b.normalize())).clamp(-1.0, 1.0).acos().to_degrees()
+}
+
+fn simplify(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use crate::tools::{draw, geo};
+    let ids = shapes(c, p)?;
+    let tol = args::opt_f64(p, "tolerance").unwrap_or(1.0).max(0.01);
+    let corner = args::opt_f64(p, "cornerAngle").unwrap_or(50.0).clamp(1.0, 179.0);
+    let straight = args::opt_bool(p, "straightLines").unwrap_or(false);
+    let doc = c.doc_mut()?;
+    let (mut before, mut after) = (0usize, 0usize);
+    for id in &ids {
+        let Some((path, _)) = path_of(doc, *id) else { continue };
+        before += geo::anchors_of(&path).iter().map(|s| s.0.len()).sum::<usize>();
+        if !straight {
+            let opts = kurbo::simplify::SimplifyOptions::default().angle_thresh((corner.to_radians() / 2.0).tan());
+            let mut out = BezPath::new();
+            for sp in subpaths(&path) {
+                let s = kurbo::simplify::simplify_bezpath(sp.iter(), tol, &opts);
+                out.extend(s.iter());
+            }
+            let n_after: usize = geo::anchors_of(&out).iter().map(|s| s.0.len()).sum();
+            let n_before: usize = geo::anchors_of(&path).iter().map(|s| s.0.len()).sum();
+            if n_after == 0 || n_after >= n_before {
+                after += n_before;
+                continue;
+            }
+            after += n_after;
+            let closed = is_closed(&out) || subpaths(&out).iter().all(is_closed);
+            set_path(doc, *id, out, closed);
+            continue;
+        }
+        let mut subs: Vec<(Vec<geo::Anchor>, bool)> = Vec::new();
+        for sp in subpaths(&path) {
+            let closed = is_closed(&sp);
+            let mut pts: Vec<Point> = Vec::new();
+            kurbo::flatten(sp.iter(), 0.05, |el| match el {
+                PathEl::MoveTo(q) | PathEl::LineTo(q) => pts.push(q),
+                _ => {}
+            });
+            if closed && pts.len() > 2 && (pts[0] - pts[pts.len() - 1]).hypot() < 1e-6 {
+                pts.pop();
+            }
+            let mut kept = draw::rdp(&pts, tol);
+            if closed && kept.len() > 2 && (kept[0] - kept[kept.len() - 1]).hypot() < 1e-6 {
+                kept.pop();
+            }
+            if kept.len() < 2 {
+                continue;
+            }
+            let mut anchors = if straight { kept.iter().map(|q| (*q, *q, *q)).collect() } else { draw::smooth_anchors(&kept, closed) };
+            let n = kept.len();
+            for i in 0..n {
+                if !closed && (i == 0 || i == n - 1) {
+                    continue;
+                }
+                let (pv, nx) = (kept[(i + n - 1) % n], kept[(i + 1) % n]);
+                if turn_deg(pv, kept[i], nx) > corner {
+                    anchors[i] = (kept[i], kept[i], kept[i]);
+                }
+            }
+            if !closed {
+                anchors[0].1 = anchors[0].0;
+                let last = anchors.len() - 1;
+                anchors[last].2 = anchors[last].0;
+            }
+            after += anchors.len();
+            subs.push((anchors, closed));
+        }
+        if subs.is_empty() {
+            continue;
+        }
+        let closed = subs.iter().all(|s| s.1);
+        set_path(doc, *id, geo::path_of(&subs), closed);
+    }
+    Ok(json!({"anchorsBefore": before, "anchorsAfter": after}))
+}
+
+fn smooth(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use crate::tools::geo;
+    let ids = shapes(c, p)?;
+    let amount = args::opt_f64(p, "amount").unwrap_or(100.0).clamp(0.0, 100.0) / 100.0;
+    let picked = c.selection().anchors;
+    let doc = c.doc_mut()?;
+    let mut changed = 0usize;
+    for id in &ids {
+        let Some((mut subs, _)) = geo::editable_anchors(doc, *id) else { continue };
+        let mine: Vec<(usize, usize)> = picked.iter().filter(|a| a.0 == *id).map(|a| (a.1, a.2)).collect();
+        for (si, (anchors, closed)) in subs.iter_mut().enumerate() {
+            let n = anchors.len();
+            let pts: Vec<Point> = anchors.iter().map(|a| a.0).collect();
+            for i in 0..n {
+                if !mine.is_empty() && !mine.contains(&(si, i)) {
+                    continue;
+                }
+                if !*closed && (i == 0 || i + 1 == n) {
+                    continue;
+                }
+                let (pv, nx) = (pts[(i + n - 1) % n], pts[(i + 1) % n]);
+                let t = (nx - pv) / 6.0 * amount;
+                anchors[i] = (pts[i], pts[i] - t, pts[i] + t);
+                changed += 1;
+            }
+        }
+        geo::set_anchors(doc, *id, &subs);
+    }
+    Ok(json!({"smoothed": changed}))
+}
+
+fn average(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use crate::tools::geo;
+    let ids = shapes(c, p)?;
+    let axis = args::opt_str(p, "axis").unwrap_or("both").to_string();
+    let picked = c.selection().anchors;
+    let doc = c.doc_mut()?;
+    let mut chosen: Vec<(ItemId, usize, usize, Point)> = Vec::new();
+    for id in &ids {
+        let Some((subs, xf)) = geo::editable_anchors(doc, *id) else { continue };
+        let mine: Vec<(usize, usize)> = picked.iter().filter(|a| a.0 == *id).map(|a| (a.1, a.2)).collect();
+        for (si, (anchors, _)) in subs.iter().enumerate() {
+            for (ai, a) in anchors.iter().enumerate() {
+                if mine.is_empty() || mine.contains(&(si, ai)) {
+                    chosen.push((*id, si, ai, xf * a.0));
+                }
+            }
+        }
+    }
+    if chosen.len() < 2 {
+        return Err(EngineError::new("Average needs two or more anchor points: pick them with Direct Selection, or select paths to average all their points"));
+    }
+    let k = chosen.len() as f64;
+    let mean = Point::new(chosen.iter().map(|c| c.3.x).sum::<f64>() / k, chosen.iter().map(|c| c.3.y).sum::<f64>() / k);
+    for id in &ids {
+        let Some((mut subs, xf)) = geo::editable_anchors(doc, *id) else { continue };
+        let inv = xf.inverse();
+        for (cid, si, ai, w) in &chosen {
+            if cid != id {
+                continue;
+            }
+            let target = Point::new(if axis == "horizontal" { w.x } else { mean.x }, if axis == "vertical" { w.y } else { mean.y });
+            if let Some(a) = subs.get_mut(*si).and_then(|s| s.0.get_mut(*ai)) {
+                let d = inv * target - a.0;
+                *a = (a.0 + d, a.1 + d, a.2 + d);
+            }
+        }
+        geo::set_anchors(doc, *id, &subs);
+    }
+    Ok(json!({"averaged": chosen.len(), "at": [mean.x, mean.y]}))
+}
+
 fn expand_corners(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = shapes(c, p)?;
     let doc = c.doc_mut()?;
@@ -374,6 +530,13 @@ pub fn register(r: &mut Registry) {
         .sig("{radius: pt, kind?: round|invertedRound|chamfer|inset, anchors?: [index], ids?}")
         .help("Rounds corners at anchor points and keeps them live: the selected anchors (Direct Selection), the listed anchor indices, or every corner. Paths, rectangles, frames and polygons; editing the anchors keeps the corners.")
         .reg(r, round_corners);
+    cmd("path.simplify", "Simplify").menu(&["Object", "Paths", "Simplify..."]).needs(Needs::Items)
+        .sig("{tolerance?: pt (default 1), cornerAngle?: deg (default 50), straightLines?: bool, ids?}")
+        .help("Reduces the anchor points of the selected paths while keeping their shape within the tolerance; turns sharper than the corner angle stay corners. straightLines makes every segment straight.").reg(r, simplify);
+    cmd("path.smooth", "Smooth Points").menu(&["Object", "Paths", "Smooth Points"]).needs(Needs::Items).sig("{amount?: 0..100, ids?}")
+        .help("Turns the anchors picked with Direct Selection (or every anchor of the selected paths) into smooth points with handles along the path.").reg(r, smooth);
+    cmd("path.average", "Average").menu(&["Object", "Paths", "Average..."]).needs(Needs::Items).sig("{axis?: horizontal|vertical|both, ids?}")
+        .help("Moves the anchors picked with Direct Selection (or every anchor of the selected paths) to their average position: horizontal lines them up on one y, vertical on one x, both stacks them.").reg(r, average);
     cmd("path.expandCorners", "Expand Corners").menu(&["Object", "Paths", "Expand Corners"]).needs(Needs::Items).sig("{ids?}")
         .help("Turns live corners (and Corner Options) into ordinary path geometry.").reg(r, expand_corners);
     cmd("path.join", "Join Path").menu(&["Object", "Paths", "Join"]).needs(Needs::Items).sig("{ids?: two open paths}").reg(r, join);

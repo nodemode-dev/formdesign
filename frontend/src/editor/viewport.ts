@@ -691,6 +691,19 @@ export class Viewport {
         o.fillRect(ax - r, ay - r, r * 2, r * 2);
         o.strokeRect(ax - r + 0.5, ay - r + 0.5, r * 2 - 1, r * 2 - 1);
       }
+      for (const c of sel.corners ?? []) {
+        const vx = X(c.v[0]), vy = Y(c.v[1]);
+        const dx = X(c.p[0]) - vx, dy = Y(c.p[1]) - vy, len = Math.hypot(dx, dy);
+        if (len < 1e-3) continue;
+        const reach = Math.max(len, 14 * dpr);
+        const cx = vx + (dx / len) * reach, cy = vy + (dy / len) * reach;
+        o.strokeStyle = col;
+        o.fillStyle = '#ffffff';
+        o.beginPath(); o.arc(cx, cy, 4 * dpr, 0, Math.PI * 2); o.fill(); o.stroke();
+        o.fillStyle = c.picked ? col : '#ffffff';
+        o.beginPath(); o.arc(cx, cy, 1.6 * dpr, 0, Math.PI * 2); o.fill();
+        if (!c.picked) { o.fillStyle = col; o.beginPath(); o.arc(cx, cy, 1 * dpr, 0, Math.PI * 2); o.fill(); }
+      }
     }
     if (t?.caret && editor.wantsText) {
       o.strokeStyle = '#111111';

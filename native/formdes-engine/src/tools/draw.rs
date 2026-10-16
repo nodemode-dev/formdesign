@@ -211,7 +211,7 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
     }
 }
 
-fn rdp(pts: &[Point], tol: f64) -> Vec<Point> {
+pub fn rdp(pts: &[Point], tol: f64) -> Vec<Point> {
     if pts.len() < 3 {
         return pts.to_vec();
     }

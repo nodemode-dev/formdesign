@@ -216,6 +216,89 @@ pub fn editable_anchors(doc: &Doc, id: ItemId) -> Option<(Subpaths, Affine)> {
     Some((anchors_of(&path), doc.world_xf(id)))
 }
 
+pub struct CornerHandle {
+    pub sub: usize,
+    pub idx: usize,
+    pub flat: usize,
+    pub vertex: Point,
+    pub dir: kurbo::Vec2,
+    pub half: f64,
+    pub radius: f64,
+    pub widget: Point,
+}
+
+pub fn corner_handles(doc: &Doc, id: ItemId) -> Vec<CornerHandle> {
+    let Some(it) = doc.item(id) else { return Vec::new() };
+    if matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) || matches!(it.shape, Shape::Ellipse { .. } | Shape::Line { .. }) {
+        return Vec::new();
+    }
+    let base = it.shape.to_path(&Default::default());
+    let subs = anchors_of(&base);
+    let uniform = if it.corner.live() { None } else { Some(it.corner.radius) };
+    let mut out = Vec::new();
+    let mut flat = 0usize;
+    for (si, (list, closed)) in subs.iter().enumerate() {
+        let n = list.len();
+        for (ai, an) in list.iter().enumerate() {
+            let here = flat + ai;
+            if n < 3 && !*closed || (!*closed && (ai == 0 || ai + 1 == n)) {
+                continue;
+            }
+            if (an.1 - an.0).hypot() > 1e-6 || (an.2 - an.0).hypot() > 1e-6 {
+                continue;
+            }
+            let prev = list[(ai + n - 1) % n];
+            let next = list[(ai + 1) % n];
+            let a = if (prev.2 - an.0).hypot() > 1e-6 { prev.2 } else { prev.0 } - an.0;
+            let b = if (next.1 - an.0).hypot() > 1e-6 { next.1 } else { next.0 } - an.0;
+            if a.hypot() < 1e-6 || b.hypot() < 1e-6 {
+                continue;
+            }
+            let (ua, ub) = (a.normalize(), b.normalize());
+            let interior = ua.dot(ub).clamp(-1.0, 1.0).acos();
+            if interior < 0.05 || interior > std::f64::consts::PI - 0.05 {
+                continue;
+            }
+            let dir = (ua + ub).normalize();
+            let half = (interior / 2.0).sin();
+            let radius = uniform.unwrap_or_else(|| it.corner.each.get(here).map_or(0.0, |c| c.radius));
+            let dist = if radius > 0.0 { radius / half - radius } else { 0.0 }.max(10.0);
+            out.push(CornerHandle { sub: si, idx: ai, flat: here, vertex: an.0, dir, half, radius, widget: an.0 + dir * dist });
+        }
+        flat += n;
+    }
+    out
+}
+
+pub fn radius_for(h: &CornerHandle, local: Point) -> f64 {
+    let t = (local - h.vertex).dot(h.dir).max(0.0);
+    let k = 1.0 / h.half - 1.0;
+    if k <= 1e-6 { t } else { t / k }
+}
+
+pub fn apply_corners(doc: &mut Doc, id: ItemId, flats: &[usize], radius: Option<f64>, kind: Option<&str>) {
+    let Some(it) = doc.item_mut(id) else { return };
+    let base = it.shape.to_path(&Default::default());
+    let total: usize = anchors_of(&base).iter().map(|s| s.0.len()).sum();
+    let mut each = if it.corner.live() && it.corner.each.len() == total {
+        it.corner.each.clone()
+    } else {
+        (0..total).map(|_| formdes_model::corners::CornerAt { radius: it.corner.radius, kind: it.corner.kind.clone() }).collect()
+    };
+    for f in flats {
+        if let Some(e) = each.get_mut(*f) {
+            if let Some(r) = radius {
+                e.radius = r.max(0.0);
+            }
+            if let Some(k) = kind {
+                e.kind = k.to_string();
+            }
+        }
+    }
+    let k = it.corner.kind.clone();
+    it.corner = formdes_model::item::Corner { radius: 0.0, kind: k, each };
+}
+
 pub fn set_anchors(doc: &mut Doc, id: ItemId, subs: &[(Vec<Anchor>, bool)]) {
     let closed = subs.iter().all(|s| s.1);
     if let Some(it) = doc.item_mut(id) {

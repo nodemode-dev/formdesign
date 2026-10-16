@@ -415,6 +415,18 @@ pub fn direct(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
             let sel = sel_in(ses, h.slot);
             let tol = view.tol(5.0);
             let hit = geo::hit_deep(&doc, h.slot, h.p, view.tol(4.0));
+            let picked_now = ses.active().map(|s| s.selection.anchors.clone()).unwrap_or_default();
+            for id in &sel {
+                let xf = doc.world_xf(*id);
+                let handles = geo::corner_handles(&doc, *id);
+                let shown = |hd: &geo::CornerHandle| hd.vertex + hd.dir * (hd.widget - hd.vertex).hypot().max(view.tol(14.0));
+                if let Some(hd) = handles.iter().find(|hd| (xf * shown(hd) - h.p).hypot() <= view.tol(6.0)) {
+                    let mine: Vec<usize> = handles.iter().filter(|o| picked_now.contains(&(*id, o.sub, o.idx))).map(|o| o.flat).collect();
+                    let flats = if mine.contains(&hd.flat) { mine } else { vec![hd.flat] };
+                    start(ses, ev, &h, G::Corner { item: *id, flat: hd.flat, flats }, true);
+                    return Ok(());
+                }
+            }
             let found = anchor_at(&doc, &sel, h.p, tol).map(|a| (a, sel.clone())).or_else(|| {
                 let id = hit.filter(|i| !sel.contains(i))?;
                 anchor_at(&doc, &[id], h.p, tol).map(|a| (a, vec![id]))
@@ -445,6 +457,45 @@ pub fn direct(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
             }
         }
         Kind::Drag | Kind::Up => {
+            if let Some(g) = ses.tools.gesture.clone()
+                && let G::Corner { item, flat, ref flats } = g.kind
+            {
+                let Some(before) = g.before.clone() else { return Ok(()) };
+                let moved = (ev.pos - g.start).hypot() > view.tol(2.0);
+                if moved {
+                    let p = g.slot_xf.inverse() * ev.pos;
+                    let flats = flats.clone();
+                    ses.preview(&before, |doc| {
+                        let xf = doc.world_xf(item);
+                        let Some(hd) = geo::corner_handles(doc, item).into_iter().find(|o| o.flat == flat) else { return };
+                        let r = geo::radius_for(&hd, xf.inverse() * p);
+                        geo::apply_corners(doc, item, &flats, Some(r), None);
+                    });
+                    if let Some(gg) = ses.tools.gesture.as_mut() {
+                        gg.moved = true;
+                    }
+                }
+                if ev.kind == Kind::Up {
+                    let g = ses.tools.gesture.take();
+                    let did_move = g.as_ref().is_some_and(|g| g.moved);
+                    if did_move {
+                        ses.commit(&before, "Round Corners");
+                    } else if g.as_ref().is_some_and(|g| g.mods.alt) {
+                        let flats = flats.clone();
+                        ses.preview(&before, |doc| {
+                            let cur = doc.item(item).and_then(|it| if it.corner.live() { it.corner.each.get(flat).map(|c| c.kind.clone()) } else { Some(it.corner.kind.clone()) }).unwrap_or_default();
+                            let next = match cur.as_str() { "rounded" => "inverse", "inverse" => "bevel", _ => "rounded" };
+                            let hd = geo::corner_handles(doc, item).into_iter().find(|o| o.flat == flat);
+                            let r = hd.map(|h| if h.radius > 0.0 { h.radius } else { 12.0 });
+                            geo::apply_corners(doc, item, &flats, r, Some(next));
+                        });
+                        ses.commit(&before, "Corner Type");
+                    } else {
+                        ses.restore(&before);
+                    }
+                }
+                return Ok(());
+            }
             if let Some(g) = ses.tools.gesture.clone()
                 && let G::Anchor { item, sub, idx, part } = g.kind
             {

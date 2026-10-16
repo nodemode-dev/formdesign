@@ -222,6 +222,7 @@ fn selection_json(ses: &Session, doc: &Doc, cv: &Canvas, lay: &DocLayout, tol: f
     let mut color = EDGE.to_string();
     let mut bounds: Option<Rect> = None;
     let (mut outlines, mut ports, mut threads, mut anchors) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let mut corners: Vec<Value> = Vec::new();
     let mut content_box = Value::Null;
     for &id in &sel.items {
         let (Some(it), Some(m)) = (doc.item(id), slot_of(doc, cv, id)) else { continue };
@@ -264,6 +265,9 @@ fn selection_json(ses: &Session, doc: &Doc, cv: &Canvas, lay: &DocLayout, tol: f
                     anchors.push(json!({"p": xy(w * an.0), "in": handle(an.1), "out": handle(an.2), "picked": sel.anchors.contains(&(id, si, ai))}));
                 }
             }
+            for hd in geo::corner_handles(doc, id).into_iter().take(64) {
+                corners.push(json!({"p": xy(w * hd.widget), "v": xy(w * hd.vertex), "r": hd.radius, "picked": sel.anchors.contains(&(id, hd.sub, hd.idx))}));
+            }
         }
     }
     let pen = &ses.tools.pen;
@@ -277,7 +281,7 @@ fn selection_json(ses: &Session, doc: &Doc, cv: &Canvas, lay: &DocLayout, tol: f
     let only = if sel.items.len() == 1 { doc.item(sel.items[0]) } else { None };
     json!({
         "count": sel.items.len(), "content": sel.content, "color": color, "outlines": outlines,
-        "bounds": bounds.map_or(Value::Null, boxed), "ports": ports, "threads": threads, "anchors": anchors,
+        "bounds": bounds.map_or(Value::Null, boxed), "ports": ports, "threads": threads, "anchors": anchors, "corners": corners,
         "direct": direct || !pen.anchors.is_empty(), "contentBox": content_box,
         "liveCorner": only.is_some_and(|i| matches!(i.shape, formdes_model::item::Shape::Rect { .. }) && i.children().is_empty()),
         "grabber": only.is_some_and(|i| matches!(i.kind, ItemKind::Graphic(_))),

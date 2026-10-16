@@ -162,6 +162,7 @@ pub enum G {
     TextSelect { story: formdes_model::ids::StoryId, anchor: usize },
     Thread { from: ItemId, loaded: bool },
     Anchor { item: ItemId, sub: usize, idx: usize, part: u8 },
+    Corner { item: ItemId, flat: usize, flats: Vec<usize> },
     Content { item: ItemId },
     Pen { idx: usize },
     Pencil { points: Vec<Point> },

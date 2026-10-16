@@ -93,7 +93,10 @@ fn paint_order(doc: &Doc, ids: &[ItemId]) -> Vec<ItemId> {
 }
 
 fn pathfinder(c: &mut Ctx, p: &Value) -> Result<Value> {
-    let op = args::str_(p, "op", "add, subtract, intersect, excludeOverlap or minusBack")?.to_string();
+    let op = args::str_(p, "op", "add, subtract, intersect, excludeOverlap, minusBack, divide, trim, merge, crop or outline")?.to_string();
+    if matches!(op.as_str(), "divide" | "trim" | "merge" | "crop" | "outline") {
+        return pathfinder_pieces(c, p, &op);
+    }
     let ids = items(c, p)?;
     let doc = c.doc()?;
     let ids = paint_order(doc, &ids);
@@ -450,6 +453,99 @@ fn anchored_release(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"ids": out}))
 }
 
+fn nonempty(s: &Shapes) -> bool {
+    s.iter().any(|shape| shape.iter().any(|c| c.len() > 2))
+}
+
+fn pathfinder_pieces(c: &mut Ctx, p: &Value, op: &str) -> Result<Value> {
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    let ids = paint_order(doc, &ids);
+    if ids.len() < 2 {
+        return Err(EngineError::new("Pathfinder needs two or more closed shapes selected"));
+    }
+    let mut shapes = Vec::new();
+    for id in &ids {
+        shapes.push(world_shape(doc, *id).ok_or_else(|| EngineError::new(format!("object {id} is a group, an open path or a line: Pathfinder works on closed shapes")))?);
+    }
+    let fills: Vec<Paint> = ids.iter().map(|id| doc.item(*id).map(|i| i.fill.clone()).unwrap_or(Paint::None)).collect();
+    let n = shapes.len();
+    let mut pieces: Vec<(Shapes, usize)> = Vec::new();
+    match op {
+        "divide" | "outline" => {
+            for (i, s) in shapes.iter().enumerate() {
+                let mut next = Vec::new();
+                let mut rest = s.clone();
+                for (piece, owner) in pieces.drain(..) {
+                    let inside = piece.overlay(s, OverlayRule::Intersect, FillRule::NonZero);
+                    let outside = piece.overlay(s, OverlayRule::Difference, FillRule::NonZero);
+                    rest = rest.overlay(&piece, OverlayRule::Difference, FillRule::NonZero);
+                    if nonempty(&inside) { next.push((inside, i)); }
+                    if nonempty(&outside) { next.push((outside, owner)); }
+                }
+                if nonempty(&rest) { next.push((rest, i)); }
+                pieces = next;
+            }
+        }
+        "trim" | "merge" => {
+            for i in 0..n {
+                let mut visible = shapes[i].clone();
+                for above in &shapes[i + 1..] {
+                    visible = visible.overlay(above, OverlayRule::Difference, FillRule::NonZero);
+                }
+                if nonempty(&visible) { pieces.push((visible, i)); }
+            }
+            if op == "merge" {
+                let mut merged: Vec<(Shapes, usize)> = Vec::new();
+                for (s, owner) in pieces.drain(..) {
+                    if let Some(m) = merged.iter_mut().find(|m| fills[m.1] == fills[owner]) {
+                        m.0 = m.0.overlay(&s, OverlayRule::Union, FillRule::NonZero);
+                    } else {
+                        merged.push((s, owner));
+                    }
+                }
+                pieces = merged;
+            }
+        }
+        _ => {
+            let top = &shapes[n - 1];
+            for i in 0..n - 1 {
+                let kept = shapes[i].overlay(top, OverlayRule::Intersect, FillRule::NonZero);
+                if nonempty(&kept) { pieces.push((kept, i)); }
+            }
+        }
+    }
+    let doc = c.doc_mut()?;
+    let mut made = Vec::new();
+    for (s, owner) in &pieces {
+        let src = ids[*owner];
+        let Some(nid) = ops::duplicate(doc, src, kurbo::Vec2::ZERO, None) else { continue };
+        let local = doc.world_xf(nid).inverse() * to_path(s);
+        if let Some(it) = doc.item_mut(nid) {
+            it.shape = Shape::Path { path: local, closed: true };
+            it.corner = Default::default();
+            it.extra.insert("fillRule".into(), json!("nonzero"));
+            it.kind = ItemKind::Plain;
+            if op == "outline" {
+                let paint = std::mem::replace(&mut it.fill, Paint::None);
+                it.stroke.paint = paint;
+                it.stroke.weight = 0.5;
+            } else if op != "crop" {
+                it.stroke.paint = Paint::None;
+                it.stroke.weight = 0.0;
+            }
+        }
+        made.push(nid);
+    }
+    for id in &ids {
+        doc.remove_item(*id);
+    }
+    let group = made.clone();
+    c.set_selection(Selection::items(group.clone()));
+    c.label("Pathfinder");
+    Ok(json!({"ids": group, "pieces": group.len()}))
+}
+
 fn stroke_style(width: f64, join: &str, cap: &str, miter: f64, dash: &[f64]) -> kurbo::Stroke {
     let join = match join { "round" => kurbo::Join::Round, "bevel" => kurbo::Join::Bevel, _ => kurbo::Join::Miter };
     let cap = match cap { "round" => kurbo::Cap::Round, "projecting" | "square" => kurbo::Cap::Square, _ => kurbo::Cap::Butt };
@@ -607,7 +703,7 @@ pub fn register(r: &mut Registry) {
     cmd("path.outlineStroke", "Outline Stroke").menu(&["Object", "Paths", "Outline Stroke"]).needs(Needs::Items)
         .sig("{miterLimit?, ids?}")
         .help("Turns each selected object's stroke into a filled shape in the stroke's colour (caps, joins and dashes included), so it can be edited and combined with Pathfinder. The fill is replaced.").reg(r, outline_stroke);
-    cmd("object.pathfinder", "Pathfinder").menu(&["Object", "Pathfinder"]).needs(Needs::Items).sig("{op: add|subtract|intersect|excludeOverlap|minusBack, ids?}").help("Combines closed shapes: Add unites them, Subtract cuts the front shapes out of the back one, Intersect keeps their overlap, Exclude Overlap keeps the parts that do not overlap, Minus Back cuts the back shapes out of the front one. Curves come out as fine straight segments.").reg(r, pathfinder);
+    cmd("object.pathfinder", "Pathfinder").menu(&["Object", "Pathfinder"]).needs(Needs::Items).sig("{op: add|subtract|intersect|excludeOverlap|minusBack|divide|trim|merge|crop|outline, ids?}").help("Combines closed shapes: Add unites them, Subtract cuts the front shapes out of the back one, Intersect keeps their overlap, Exclude Overlap keeps the parts that do not overlap, Minus Back cuts the back shapes out of the front one. Divide splits them into every separate face, each in the colour of the shape on top there; Trim removes the hidden parts of each shape; Merge trims and joins touching shapes of the same fill; Crop keeps what lies inside the front shape; Outline gives each face's edges as strokes in its fill colour. Curves come out as fine straight segments.").reg(r, pathfinder);
     cmd("object.qrCode", "Generate QR Code").menu(&["Object", "Generate QR Code..."]).sig("{text, swatch?, quietZone?: modules, ids?: a frame to fill or a QR code to edit, spread?, rect?}").reg(r, qr_code);
     cmd("type.createOutlines", "Create Outlines").menu(&["Type", "Create Outlines"]).key("Mod+Shift+O").needs(Needs::Items).sig("{ids?}").help("Turns the selected text frames into filled paths, one per text colour, grouped when there are several. Anchored objects in the text are not kept.").reg(r, create_outlines);
     cmd("anchored.insert", "Anchor Object").sig("{ids, position?: inline|aboveLine|custom}").help("Moves the objects into the text at the text cursor as anchored objects.").reg(r, anchored_insert);
