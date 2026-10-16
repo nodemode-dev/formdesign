@@ -211,6 +211,78 @@ fn mix_paint(doc: &formdes_model::doc::Doc, a: &formdes_model::color::Paint, b: 
     }
 }
 
+fn cubics(path: &BezPath) -> Option<(Vec<kurbo::CubicBez>, bool)> {
+    use kurbo::ParamCurveArclen;
+    let closed = path.elements().iter().any(|e| matches!(e, kurbo::PathEl::ClosePath));
+    if path.elements().iter().filter(|e| matches!(e, kurbo::PathEl::MoveTo(_))).count() != 1 {
+        return None;
+    }
+    let segs: Vec<kurbo::CubicBez> = path.segments().filter(|s| s.arclen(0.1) > 1e-3).map(|s| s.to_cubic()).collect();
+    let closed = closed || segs.first().zip(segs.last()).is_some_and(|(a, b)| a.p0.distance(b.p3) < 1e-3);
+    (!segs.is_empty()).then_some((segs, closed))
+}
+
+fn signed_area(segs: &[kurbo::CubicBez]) -> f64 {
+    segs.iter().map(|s| kurbo::ParamCurveArea::signed_area(s)).sum()
+}
+
+fn fractions(segs: &[kurbo::CubicBez]) -> Vec<f64> {
+    use kurbo::ParamCurveArclen;
+    let lens: Vec<f64> = segs.iter().map(|s| s.arclen(0.01)).collect();
+    let total: f64 = lens.iter().sum::<f64>().max(1e-9);
+    let mut acc = 0.0;
+    lens.iter().map(|l| { acc += l; acc / total }).collect()
+}
+
+fn cut_at(segs: &[kurbo::CubicBez], cuts: &[f64]) -> Vec<kurbo::CubicBez> {
+    use kurbo::{ParamCurve, ParamCurveArclen};
+    let lens: Vec<f64> = segs.iter().map(|s| s.arclen(0.01)).collect();
+    let total: f64 = lens.iter().sum::<f64>().max(1e-9);
+    let mut out = Vec::new();
+    let mut start = 0.0;
+    for (s, l) in segs.iter().zip(&lens) {
+        let (f0, f1) = (start / total, (start + l) / total);
+        let mut ts = vec![0.0];
+        for c in cuts.iter().filter(|c| **c > f0 + 1e-6 && **c < f1 - 1e-6) {
+            ts.push(s.inv_arclen((c - f0) * total, 0.01));
+        }
+        ts.push(1.0);
+        for w in ts.windows(2) {
+            out.push(s.subsegment(w[0]..w[1]));
+        }
+        start += l;
+    }
+    out
+}
+
+fn matched(a: &BezPath, b: &BezPath) -> Option<(Vec<kurbo::CubicBez>, Vec<kurbo::CubicBez>, bool)> {
+    let (sa, ca) = cubics(a)?;
+    let (mut sb, cb) = cubics(b)?;
+    if ca != cb {
+        return None;
+    }
+    if ca {
+        if signed_area(&sa).signum() != signed_area(&sb).signum() {
+            sb = sb.iter().rev().map(|s| kurbo::CubicBez::new(s.p3, s.p2, s.p1, s.p0)).collect();
+        }
+        let (ba, bb) = (kurbo::Shape::bounding_box(a), kurbo::Shape::bounding_box(b));
+        let rel = sa[0].p0 - ba.center();
+        let want = bb.center() + kurbo::Vec2::new(rel.x * bb.width() / ba.width().max(1e-9), rel.y * bb.height() / ba.height().max(1e-9));
+        let (i, t) = sb.iter().enumerate().map(|(i, s)| (i, kurbo::ParamCurveNearest::nearest(s, want, 1e-3))).min_by(|x, y| x.1.distance_sq.total_cmp(&y.1.distance_sq)).map(|(i, n)| (i, n.t)).unwrap_or((0, 0.0));
+        if t > 1e-3 && t < 1.0 - 1e-3 {
+            let s = sb[i];
+            sb.splice(i..=i, [kurbo::ParamCurve::subsegment(&s, 0.0..t), kurbo::ParamCurve::subsegment(&s, t..1.0)]);
+            sb.rotate_left(i + 1);
+        } else {
+            let k = if t >= 1.0 - 1e-3 { (i + 1) % sb.len() } else { i };
+            sb.rotate_left(k);
+        }
+    }
+    let (fa, fb) = (fractions(&sa), fractions(&sb));
+    let (sa, sb) = (cut_at(&sa, &fb), cut_at(&sb, &fa));
+    (sa.len() == sb.len()).then_some((sa, sb, ca))
+}
+
 fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
     use crate::tools::geo;
     let ids = items(c, p)?;
@@ -229,7 +301,9 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
     let (sa, sb) = (geo::anchors_of(&wa), geo::anchors_of(&wb));
     let same = sa.len() == sb.len() && sa.iter().zip(&sb).all(|(x, y)| x.0.len() == y.0.len() && x.1 == y.1);
     let (ba, bb) = (kurbo::Shape::bounding_box(&wa), kurbo::Shape::bounding_box(&wb));
-    let morph = !args::opt_bool(p, "noMorph").unwrap_or(false) && same;
+    let no_morph = args::opt_bool(p, "noMorph").unwrap_or(false);
+    let morph = !no_morph && same;
+    let resampled = if no_morph || same { None } else { matched(&wa, &wb) };
     let mut made = Vec::new();
     for k in 1..=steps {
         let t = k as f64 / (steps + 1) as f64;
@@ -237,6 +311,16 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
         let world = if morph {
             let subs: Vec<(Vec<geo::Anchor>, bool)> = sa.iter().zip(&sb).map(|(x, y)| (x.0.iter().zip(&y.0).map(|(u, v)| (lp(u.0, v.0), lp(u.1, v.1), lp(u.2, v.2))).collect(), x.1)).collect();
             geo::path_of(&subs)
+        } else if let Some((ca, cb, closed)) = &resampled {
+            let mut bp = BezPath::new();
+            bp.move_to(lp(ca[0].p0, cb[0].p0));
+            for (x, y) in ca.iter().zip(cb) {
+                bp.curve_to(lp(x.p1, y.p1), lp(x.p2, y.p2), lp(x.p3, y.p3));
+            }
+            if *closed {
+                bp.close_path();
+            }
+            bp
         } else {
             let r = Rect::new(ba.x0 + (bb.x0 - ba.x0) * t, ba.y0 + (bb.y0 - ba.y0) * t, ba.x1 + (bb.x1 - ba.x1) * t, ba.y1 + (bb.y1 - ba.y1) * t);
             formdes_model::item::map_rect(ba, r) * wa.clone()
@@ -272,10 +356,47 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
     }
     c.set_selection(Selection::items([vec![ids[0]], made.clone(), vec![ids[1]]].concat()));
     c.label("Blend");
-    Ok(json!({"ids": made, "morph": morph}))
+    Ok(json!({"ids": made, "morph": morph || resampled.is_some()}))
+}
+
+fn width_profile(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use formdes_model::widths;
+    let ids = items(c, p)?;
+    let clear = args::opt_bool(p, "clear").unwrap_or(false) || args::opt_str(p, "profile") == Some("uniform");
+    let mut prof: Option<widths::Profile> = None;
+    if !clear {
+        if let Some(name) = args::opt_str(p, "profile") {
+            prof = Some(widths::preset(name).ok_or_else(|| EngineError::new(format!("profile is one of {}", widths::PRESETS.join(", "))))?);
+        } else if p.get("points").is_some() {
+            let mut a = formdes_model::Attrs::new();
+            a.insert("widthProfile".into(), p["points"].clone());
+            prof = Some(widths::profile_of(&a).ok_or_else(|| EngineError::new("`points` is a list of [position 0..1, width] or [position, left, right], widths as multiples of the stroke weight"))?);
+        } else {
+            return Err(EngineError::new("give a `profile` name, `points`, or clear: true"));
+        }
+    }
+    if args::opt_bool(p, "flip").unwrap_or(false) {
+        if let Some(pr) = prof.as_mut() {
+            *pr = pr.iter().rev().map(|(t, l, r)| (1.0 - t, *r, *l)).collect();
+        }
+    }
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for id in &ids {
+        let Some(it) = doc.item_mut(*id) else { continue };
+        match &prof {
+            None => { it.extra.remove("widthProfile"); }
+            Some(pr) => { it.extra.insert("widthProfile".into(), json!(pr.iter().map(|(t, l, r)| json!([t, l, r])).collect::<Vec<_>>())); }
+        }
+        n += 1;
+    }
+    c.label("Width Profile");
+    Ok(json!({"items": n}))
 }
 
 pub fn register(r: &mut Registry) {
+    cmd("object.widthProfile", "Width Profile").menu(&["Object", "Paths", "Width Profile..."]).needs(Needs::Items).sig("{profile?: uniform|lens|taperStart|taperEnd|bulge|pinch|wave, points?: [[at 0..1, width] or [at, left, right], ...] (multiples of the stroke weight), flip?: bool, clear?: bool, ids?}")
+        .help("Gives the stroke a variable width along the path, from a named profile or width points (position along the path and the width on each side as multiples of the stroke weight), as Illustrator's Width tool and width profiles do; uniform or clear restores an even stroke.").reg(r, width_profile);
     cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), noMorph?: bool, ids?: two objects}")
         .help("Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.").reg(r, blend);
     cmd("shape.spiral", "Spiral").menu(&["Object", "Shapes", "Spiral..."]).sig("{center: [x, y], radius?: pt, decay?: percent (default 80), segments?: quarter turns (default 10), clockwise?, weight?, spread?}")

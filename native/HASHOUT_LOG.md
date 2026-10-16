@@ -742,3 +742,17 @@ From Illustrator's Shape Builder as Adobe documents it: a drag across regions me
 
 From Illustrator's Blend (Specified Steps). Steps are copies of the first object at t = k / (steps + 1). When both paths have the same subpath and anchor counts the anchors and handles interpolate in world space (a true morph); otherwise the first object's outline moves and scales between the two bounding boxes, so a square to circle blend steps as squares (Illustrator resamples to match anchors; that is open). Colours mix in CMYK when both are CMYK, in gray when both are gray, otherwise in RGB; stroke weight and opacity interpolate. The steps are spliced into the stacking list between the two objects, nearest-to-top last, as Illustrator stacks a blend; the blend is not live (no spine, no editing the ends) and is undone as one step.
 
+### object.blend · unlike shapes resampled (0.30.0)
+- refers-to: native/formdes-engine/src/cmd/draw.rs :: cubics, fractions, cut_at, matched
+- kind: rationale
+- logged: v0.30.0 · 2026-10-16
+
+When the anchor structures differ but both are single subpaths, both open or both closed, each becomes a list of cubics. Closed ones are first given the same winding (signed area) and the second is restarted at its point nearest the first's start, mapped through the two bounding boxes (a square's top-left corner meets a circle at its upper-left diagonal, not its top). Each is then cut at the other's anchor arc-length fractions, so both have the same segments at the same fractions and corners land at the same fraction on the other shape; the steps interpolate the cubic control points. Splitting the longest segment until the counts matched (the first try) paired a square's sides with uneven arcs and the steps came out twisted. Several subpaths fall back to moving and scaling.
+
+### widthProfile · variable-width strokes
+- refers-to: native/formdes-model/src/widths.rs; native/formdes-render/src/scene.rs :: stroke; native/formdes-engine/src/cmd/draw.rs :: width_profile; native/formdes-engine/src/cmd/art.rs :: outline_stroke
+- kind: rationale
+- logged: v0.30.0 · 2026-10-16
+
+From Illustrator's Width tool and width profiles. The profile lives in the item's `extra.widthProfile` (a preset name, or [at, left, right] entries with the sides as multiples of the stroke weight) so files without it are unchanged and no StrokeStyle literal had to change. The renderer draws such a stroke as a filled outline: each subpath flattened (tolerance 1 percent of the weight), widths interpolated by arc length with a smoothstep between entries, normals averaged at vertices with a miter factor capped at 4, open subpaths closed into one polygon, closed ones as an outer and an inner ring filled even-odd. Because it is a fill, raster, PDF and SVG all draw it with no exporter changes; dashes, caps, joins and stroke alignment do not apply to a width-profiled stroke. A flattened subpath whose last point repeats the first (Ellipse paths carry no ClosePath) drops the repeat, which removed a spike at the seam. Outline Stroke turns a profiled stroke into the same outline, filled even-odd. The canvas Width tool (dragging width points) is not built yet; the command sets profiles.
+
