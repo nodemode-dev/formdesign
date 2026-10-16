@@ -129,6 +129,23 @@ pub fn drag(ses: &mut Session, ev: &Ev, view: View) {
             }
             ses.tools.overlays = vec![Overlay::Path { path, color: SEL_COLOR.into(), dashed: false }];
         }
+        G::Width { item, prof, idx, foot, left, weight, .. } => {
+            let Some(st) = ses.active() else { return };
+            let xf = g.slot_xf * st.doc.world_xf(*item);
+            let local = st.doc.world_xf(*item).inverse() * p;
+            let next = width_drag(prof, *idx, *foot, *left, *weight, local, ev.mods.alt);
+            let (l, r) = (next[*idx].1, next[*idx].2);
+            let id = *item;
+            ses.tools.overlays = vec![
+                Overlay::Line { a: xf * (*foot + *left * (l * *weight * 0.5)), b: xf * (*foot - *left * (r * *weight * 0.5)), color: SEL_COLOR.into(), dashed: false },
+                Overlay::Measure { p: ev.pos, text: format!("W: {:.2} pt  Side 1: {:.2} pt  Side 2: {:.2} pt", (l + r) * *weight * 0.5, l * *weight * 0.5, r * *weight * 0.5) },
+            ];
+            if g.moved
+                && let Some(b) = g.before.clone()
+            {
+                ses.preview(&b, |doc| set_width_profile(doc, id, &next));
+            }
+        }
         _ => {
             ses.tools.gesture = Some(g);
             return super::misc::drag(ses, ev, view);
@@ -186,7 +203,7 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
         G::Pen { .. } => {}
         G::Pencil { points } => {
             let pts = points.clone();
-            if pts.len() < 2 {
+            if pts.len() < 2 && tool_now != "shapeBuilder" {
                 return;
             }
             let simple = rdp(&pts, view.tol(1.5));
@@ -200,9 +217,30 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                     let (id, _) = make_item(doc, layer, "pencil", Shape::Path { path, closed }, slot);
                     *sel = Selection::items(vec![id]);
                 });
+            } else if tool_now == "shapeBuilder" {
+                let points: Vec<[f64; 2]> = pts.iter().map(|q| [q.x, q.y]).collect();
+                let params = serde_json::json!({"points": points, "mode": if ev.mods.alt { "erase" } else { "merge" }});
+                if let Err(e) = ses.execute("path.shapeBuilder", &params) {
+                    ses.requests.push(serde_json::json!({"kind": "toast", "text": e.to_string()}));
+                }
             } else {
                 edit_touched(ses, &pts, view, tool_now == "erase");
             }
+        }
+        G::Width { item, prof, idx, fresh, .. } => {
+            let Some(b) = g.before.clone() else { return };
+            if g.moved {
+                ses.commit(&b, "Width Tool");
+            } else if ev.mods.alt && !*fresh && prof.len() > 2 {
+                let mut next = prof.clone();
+                next.remove(*idx);
+                let id = *item;
+                ses.preview(&b, |doc| set_width_profile(doc, id, &next));
+                ses.commit(&b, "Delete Width Point");
+            } else {
+                ses.restore(&b);
+            }
+            ses.sel_rev += 1;
         }
         _ => {
             ses.tools.gesture = Some(g);
@@ -313,6 +351,64 @@ pub fn pencil(ses: &mut Session, ev: &Ev, view: View, _tool: &str) -> Result<()>
                 let p = h.p;
                 start(ses, ev, &h, G::Pencil { points: vec![p] }, false);
             }
+        }
+        Kind::Drag => drag(ses, ev, view),
+        Kind::Up => {
+            drag(ses, ev, view);
+            finish(ses, ev, view);
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn width_drag(prof: &[(f64, f64, f64)], idx: usize, foot: Point, left: formdes_model::geom::Vec2, weight: f64, local: Point, one_side: bool) -> Vec<(f64, f64, f64)> {
+    let d = local - foot;
+    let w = 2.0 * d.hypot() / weight;
+    let mut next = prof.to_vec();
+    if let Some(q) = next.get_mut(idx) {
+        match (one_side, d.dot(left) >= 0.0) {
+            (false, _) => { q.1 = w; q.2 = w; }
+            (true, true) => q.1 = w,
+            (true, false) => q.2 = w,
+        }
+    }
+    next
+}
+
+fn set_width_profile(doc: &mut Doc, id: ItemId, prof: &[(f64, f64, f64)]) {
+    if let Some(it) = doc.item_mut(id) {
+        it.extra.insert("widthProfile".into(), serde_json::json!(prof.iter().map(|(t, l, r)| serde_json::json!([t, l, r])).collect::<Vec<_>>()));
+    }
+}
+
+pub fn width(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
+    use formdes_model::widths;
+    match ev.kind {
+        Kind::Down => {
+            let Some(h) = here(ses, ev.pos) else { return Ok(()) };
+            let Some(st) = ses.active() else { return Ok(()) };
+            let doc = &st.doc;
+            let tol = view.tol(5.0);
+            let stroked = |id: ItemId| doc.item(id).filter(|it| !matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. } | ItemKind::Text(_)) && it.stroke.weight > 0.0 && !it.stroke.paint.is_none() && geo::selectable(doc, id) && geo::near_path(&geo::item_path(doc, id), h.p, tol + it.stroke.weight / 2.0)).is_some();
+            let pick = st.selection.items.iter().copied().find(|id| stroked(*id)).or_else(|| geo::hit_deep(doc, h.slot, h.p, tol).filter(|id| stroked(*id)));
+            let Some(id) = pick else { return Ok(()) };
+            let Some(it) = doc.item(id) else { return Ok(()) };
+            let local = doc.world_xf(id).inverse() * h.p;
+            let Some((t, foot, left, _)) = widths::locate(&it.shape.to_path(&it.corner), it.stroke.weight, it.shape.closed(), local) else { return Ok(()) };
+            let mut prof = widths::profile_of(&it.extra).unwrap_or_else(|| vec![(0.0, 1.0, 1.0), (1.0, 1.0, 1.0)]);
+            let weight = it.stroke.weight;
+            let (idx, fresh) = match prof.iter().position(|q| (q.0 - t).abs() < 0.015) {
+                Some(i) => (i, false),
+                None => {
+                    let (l, r) = widths::at(&prof, t);
+                    let i = prof.iter().position(|q| q.0 > t).unwrap_or(prof.len());
+                    prof.insert(i, (t, l, r));
+                    (i, true)
+                }
+            };
+            ses.select(Selection::items(vec![id]));
+            start(ses, ev, &h, G::Width { item: id, prof, idx, foot, left, weight, fresh }, true);
         }
         Kind::Drag => drag(ses, ev, view),
         Kind::Up => {
