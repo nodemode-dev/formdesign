@@ -694,6 +694,11 @@ impl Ctx<'_> {
             (c[0] * c[3] - c[1] * c[2]).abs().sqrt()
         };
         let w = st.weight * k;
+        if let Some(prof) = formdes_model::widths::profile_of(&it.extra) {
+            let shape = formdes_model::widths::outline(path, &prof, w, it.shape.closed());
+            self.ops.push(Op::Fill { path: shape, brush: b, even_odd: true });
+            return;
+        }
         let join = if st.join == "miter" && (st.miter - 4.0).abs() > 1e-6 { format!("miter {}", st.miter.max(1.0)) } else { st.join.clone() };
         let mut dash: Vec<f64> = st.dash.iter().map(|d| d * k).collect();
         if st.align_dashes && !dash.is_empty() {

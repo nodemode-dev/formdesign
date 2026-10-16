@@ -10,6 +10,7 @@ pub mod item;
 pub mod page;
 pub mod story;
 pub mod style;
+pub mod widths;
 
 pub use attrs::{Attrs, CharProps, ParaProps};
 pub use color::{Color, Paint, Swatch};

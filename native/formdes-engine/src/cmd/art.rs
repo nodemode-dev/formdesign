@@ -763,7 +763,11 @@ fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         let path = it.shape.to_path(&it.corner);
         let style = stroke_style(it.stroke.weight, &it.stroke.join, &it.stroke.cap, args::opt_f64(p, "miterLimit").unwrap_or(it.stroke.miter), &it.stroke.dash);
-        let outline = to_path(&outline_of(&path, &style));
+        let prof = formdes_model::widths::profile_of(&it.extra);
+        let outline = match &prof {
+            Some(pr) => formdes_model::widths::outline(&path, pr, it.stroke.weight, it.shape.closed()),
+            None => to_path(&outline_of(&path, &style)),
+        };
         if outline.elements().is_empty() {
             continue;
         }
@@ -782,8 +786,14 @@ fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
             it.fill = paint;
             it.stroke.paint = Paint::None;
             it.stroke.weight = 0.0;
-            it.extra.insert("fillRule".into(), json!("nonzero"));
+            it.extra.insert("fillRule".into(), json!(if prof.is_some() { "evenodd" } else { "nonzero" }));
+            it.extra.remove("widthProfile");
             it.kind = ItemKind::Plain;
+        }
+        if target != *id
+            && let Some(orig) = doc.item_mut(*id)
+        {
+            orig.extra.remove("widthProfile");
         }
         done.push(target);
     }
