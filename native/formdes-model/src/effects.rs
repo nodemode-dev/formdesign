@@ -3,7 +3,9 @@ use serde_json::Value;
 
 use crate::attrs::Attrs;
 
-pub const KINDS: [&str; 6] = ["roundCorners", "zigZag", "roughen", "puckerBloat", "twist", "transform"];
+pub const KINDS: [&str; 7] = ["roundCorners", "zigZag", "roughen", "puckerBloat", "twist", "transform", "warp"];
+
+pub const WARPS: [&str; 13] = ["arc", "arcLower", "arcUpper", "arch", "bulge", "shellLower", "shellUpper", "flag", "wave", "rise", "fisheye", "inflate", "squeeze"];
 
 fn num(e: &Value, k: &str, d: f64) -> f64 {
     e.get(k).and_then(Value::as_f64).unwrap_or(d)
@@ -36,8 +38,75 @@ pub fn one(e: &Value, path: &BezPath) -> BezPath {
         "puckerBloat" => pucker_bloat(path, num(e, "amount", 30.0).clamp(-200.0, 200.0) / 100.0),
         "twist" => twist(path, num(e, "angle", 45.0)),
         "transform" => transform(path, e),
+        "warp" => warp(path, e.get("style").and_then(Value::as_str).unwrap_or("arc"), num(e, "bend", 50.0).clamp(-100.0, 100.0) / 100.0, e.get("horizontal").and_then(Value::as_bool).unwrap_or(true)),
         _ => path.clone(),
     }
+}
+
+fn dense(segs: &[PathSeg], closed: bool) -> Vec<Point> {
+    let mut pts = Vec::new();
+    for seg in segs {
+        let len = kurbo::ParamCurveArclen::arclen(seg, 0.1);
+        let n = match seg {
+            PathSeg::Line(_) => ((len / 2.0).ceil() as usize).clamp(1, 400),
+            _ => ((len / 2.0).ceil() as usize).clamp(2, 400),
+        };
+        for j in 0..n {
+            pts.push(seg.eval(j as f64 / n as f64));
+        }
+    }
+    if !closed {
+        pts.push(segs[segs.len() - 1].end());
+    }
+    pts
+}
+
+fn warp(path: &BezPath, style: &str, b: f64, horizontal: bool) -> BezPath {
+    let bb0 = path.bounding_box();
+    if b.abs() < 1e-6 || bb0.width() <= 0.0 || bb0.height() <= 0.0 {
+        return path.clone();
+    }
+    let flip = |p: Point| if horizontal { p } else { Point::new(p.y, p.x) };
+    let bb = if horizontal { bb0 } else { kurbo::Rect::new(bb0.y0, bb0.x0, bb0.y1, bb0.x1) };
+    let (cx, cy, w, h) = (bb.center().x, bb.center().y, bb.width(), bb.height());
+    let map = |p: Point| -> Point {
+        let (x, y) = (p.x, p.y);
+        let u = (x - cx) / (w / 2.0);
+        let v = (y - cy) / (h / 2.0);
+        let hump = 1.0 - u * u;
+        match style {
+            "arc" => {
+                let a = b * std::f64::consts::PI;
+                let r0 = w / a;
+                let phi = (x - cx) / r0;
+                let rho = r0 - (y - cy);
+                Point::new(cx + rho * phi.sin(), cy + r0 - rho * phi.cos())
+            }
+            "arch" => Point::new(x, y - b * h * 0.5 * hump),
+            "arcLower" => Point::new(x, y - b * h * 0.5 * hump * (v + 1.0) / 2.0),
+            "arcUpper" => Point::new(x, y - b * h * 0.5 * hump * (1.0 - v) / 2.0),
+            "bulge" => Point::new(x, cy + (y - cy) * (1.0 + b * hump)),
+            "shellLower" => Point::new(x, if v > 0.0 { cy + (y - cy) * (1.0 + b * hump) } else { y }),
+            "shellUpper" => Point::new(x, if v < 0.0 { cy + (y - cy) * (1.0 + b * hump) } else { y }),
+            "flag" => Point::new(x, y - b * h * 0.5 * (u * std::f64::consts::PI).sin()),
+            "wave" => Point::new(x, y - b * h * 0.5 * (u * std::f64::consts::PI).sin() * (1.0 - 0.5 * v.abs())),
+            "rise" => Point::new(x, y - b * h * 0.5 * u),
+            "fisheye" => {
+                let r2 = (u * u + v * v) / 2.0;
+                let k = 1.0 + b * (1.0 - r2).max(0.0);
+                Point::new(cx + (x - cx) * k, cy + (y - cy) * k)
+            }
+            "inflate" => Point::new(cx + (x - cx) * (1.0 + b * 0.5 * (1.0 - v * v)), cy + (y - cy) * (1.0 + b * 0.5 * hump)),
+            "squeeze" => Point::new(cx + (x - cx) * (1.0 - b * 0.5 * (1.0 - v * v)), y),
+            _ => p,
+        }
+    };
+    let mut out = BezPath::new();
+    for (segs, closed) in subpaths(path) {
+        let pts: Vec<Point> = dense(&segs, closed).into_iter().map(|p| flip(map(flip(p)))).collect();
+        emit(&mut out, &pts, closed, false);
+    }
+    out
 }
 
 fn subpaths(path: &BezPath) -> Vec<(Vec<PathSeg>, bool)> {

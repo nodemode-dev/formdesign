@@ -784,3 +784,17 @@ From Illustrator's Make Opacity Mask, Make Clipping Mask (and Draw Inside, which
 
 From Illustrator's freeform gradient in Points mode. The command resolves each point's colour (a swatch or #rrggbb) to RGB once and stores `extra.freeform` as [u, v, r, g, b] in the object's bounds, so a later swatch edit does not change it (Illustrator's freeform stops are fixed colours too). The renderer replaces the ordinary fill with a grid of solid cells clipped to the path: inverse-distance weighting with power `freeformSpread` (default 2), a cell size of about 3 device points capped at 96 cells a side, each cell grown by 30 percent on every side so antialiased edges overlap and no seams show. Plain fills keep raster, PDF and SVG output identical without a mesh-shading writer; the cost is size (up to 9,216 small fills per object in PDF). A PDF type 6 or 7 mesh shading is the better encoding and is open, as are Lines mode and on-canvas point editing.
 
+### warp · Effect > Warp styles
+- refers-to: native/formdes-model/src/effects.rs :: warp, dense, WARPS
+- kind: rationale
+- logged: v0.33.0 · 2026-10-16
+
+From Illustrator's Effect > Warp (and Object > Envelope Distort > Make with Warp, which uses the same styles). Thirteen of the fifteen styles as one `warp` kind in the effect stack, with `bend` -100..100 and `horizontal`; fish and twist are left out (Twist already exists as its own effect). The path is sampled every 2 points and each point mapped in the bounds normalised to -1..1: Arc is a true polar bend (the width becomes an arc of bend times 180 degrees), Arch, Arc Lower and Arc Upper move points vertically by a parabola weighted by row, Bulge and the Shells scale distance from the centre line, Flag and Wave move by a sine of the column, Rise shears, Fisheye scales by the distance from the centre normalised so the corners sit at 1 (the plain unit circle missed every edge of a rectangle), Inflate and Squeeze scale both or one axis. Vertical mode swaps the axes before and after. The result is a polyline, so Expand Appearance gives many points; fitting curves back (Simplify) is the follow-up. Warping applies per object with its own bounds; a warp on a group as one envelope is open.
+
+### repeat · Repeat radial, grid, mirror
+- refers-to: native/formdes-render/src/scene.rs :: repeat_xfs, emit (group branch); native/formdes-engine/src/cmd/draw.rs :: repeat
+- kind: rationale
+- logged: v0.33.0 · 2026-10-16
+
+From Illustrator's Object > Repeat. A Repeat is a group whose `extra.repeat` holds the kind and its values; the renderer draws the group's children once per placement from `repeat_xfs`, composing each placement in spread space before the children's own transforms, so editing the original changes every copy at once. Radial turns `count` copies about a centre `radius` below the art (Illustrator's default puts the art at the top of the ring); Grid steps by the art's size plus the gaps with optional mirroring of alternate rows or columns; Mirror adds a reflection across an axis at `angle` through a point `gap / 2` beyond the right edge. One object is grouped by grouping it with a temporary duplicate and removing the duplicate, since group() refuses a single item. Expand writes the copies as real children with the placement folded into their transforms through the group's world transform. Selecting and hit testing see only the original; on-canvas handles for the ring and grid are open.
+
