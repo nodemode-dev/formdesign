@@ -546,6 +546,57 @@ fn pathfinder_pieces(c: &mut Ctx, p: &Value, op: &str) -> Result<Value> {
     Ok(json!({"ids": group, "pieces": group.len()}))
 }
 
+fn knife(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let pts: Vec<kurbo::Point> = p.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(|q| {
+        let q = q.as_array()?;
+        Some(kurbo::Point::new(q.first()?.as_f64()?, q.get(1)?.as_f64()?))
+    }).collect()).unwrap_or_default();
+    if pts.len() < 2 {
+        return Err(EngineError::new("`points` needs two or more [x, y] points in spread coordinates: the line to cut along"));
+    }
+    let mut blade = BezPath::new();
+    blade.move_to(pts[0]);
+    for q in &pts[1..] {
+        blade.line_to(*q);
+    }
+    let slit = outline_of(&blade, &stroke_style(0.05, "miter", "butt", 4.0, &[]));
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    let mut cut: Vec<(ItemId, Shapes)> = Vec::new();
+    for id in &ids {
+        let Some(s) = world_shape(doc, *id) else { continue };
+        let parts = s.overlay(&slit, OverlayRule::Difference, FillRule::NonZero);
+        let pieces: Shapes = parts.into_iter().filter(|sh| sh.iter().any(|c| c.len() > 2)).collect();
+        if pieces.len() > 1 {
+            cut.push((*id, pieces));
+        }
+    }
+    if cut.is_empty() {
+        return Err(EngineError::new("the line does not cut through any selected closed shape"));
+    }
+    let doc = c.doc_mut()?;
+    let mut made = Vec::new();
+    for (id, pieces) in &cut {
+        for piece in pieces {
+            let Some(nid) = ops::duplicate(doc, *id, kurbo::Vec2::ZERO, None) else { continue };
+            let local = doc.world_xf(nid).inverse() * to_path(&vec![piece.clone()]);
+            if let Some(it) = doc.item_mut(nid) {
+                it.shape = Shape::Path { path: local, closed: true };
+                it.corner = Default::default();
+                it.extra.insert("fillRule".into(), json!("nonzero"));
+                if matches!(it.kind, ItemKind::Text(_)) {
+                    it.kind = ItemKind::Plain;
+                }
+            }
+            made.push(nid);
+        }
+        doc.remove_item(*id);
+    }
+    c.set_selection(Selection::items(made.clone()));
+    c.label("Knife");
+    Ok(json!({"ids": made, "pieces": made.len()}))
+}
+
 fn stroke_style(width: f64, join: &str, cap: &str, miter: f64, dash: &[f64]) -> kurbo::Stroke {
     let join = match join { "round" => kurbo::Join::Round, "bevel" => kurbo::Join::Bevel, _ => kurbo::Join::Miter };
     let cap = match cap { "round" => kurbo::Cap::Round, "projecting" | "square" => kurbo::Cap::Square, _ => kurbo::Cap::Butt };
@@ -697,6 +748,8 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
 }
 
 pub fn register(r: &mut Registry) {
+    cmd("path.knife", "Knife").menu(&["Object", "Paths", "Knife..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (a line or polyline in spread points), ids?}")
+        .help("Cuts every selected closed shape that the line crosses into separate shapes along it, each keeping its fill and stroke, as Illustrator's Knife tool does.").reg(r, knife);
     cmd("path.offset", "Offset Path").menu(&["Object", "Paths", "Offset Path..."]).needs(Needs::Items)
         .sig("{offset: pt (negative insets), join?: miter|round|bevel, miterLimit?, copy?: bool (default true), ids?}")
         .help("Makes a new path a set distance outside (or, with a negative offset, inside) each selected shape, with mitred, round or bevelled corners, as Illustrator's Object > Path > Offset Path does. An open path gets the closed outline around it.").reg(r, offset_path);
