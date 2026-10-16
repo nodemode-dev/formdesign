@@ -619,7 +619,7 @@ pub fn register(r: &mut Registry) {
     cmd("variables.delete", "Delete Text Variable").sig("{name}").reg(r, variables_delete);
     cmd("variables.insert", "Insert Variable").menu(&["Type", "Text Variables", "Insert Variable"]).needs(Needs::Text).sig("{name}").reg(r, variables_insert);
     cmd("footnote.options", "Document Footnote Options").menu(&["Type", "Document Footnote Options..."]).sig("{numbering?: arabic|roman|ROMAN|alpha|ALPHA|01|001|symbols, start?: number, prefix?, suffix?, separator?: text after the number in the note (default a space)}")
-        .help("Sets how footnotes are numbered across the document: the number style (including symbols * \u{2020} \u{2021} \u{a7}), the first number, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
+        .help("Sets how footnotes are numbered across the document: the number style (including symbols * † ‡ §), the first number, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
     cmd("footnote.insert", "Insert Footnote").menu(&["Type", "Insert Footnote"]).needs(Needs::Text).sig("{text?, style?}").reg(r, footnote_insert);
     cmd("footnote.list", "Footnotes").query().sig("{story?}").reg(r, footnote_list);
     cmd("footnote.set", "Edit Footnote").sig("{story, at, text}").reg(r, footnote_set);
