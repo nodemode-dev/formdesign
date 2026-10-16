@@ -82,6 +82,8 @@ def collect() -> list[str]:
                 found.add(seg.strip())
         for m in HELP.finditer(text):
             found.add(m.group(1).replace('\\"', '"').strip())
+        for m in re.finditer(r'\bt\(\s*"[A-Za-z]+"\s*,\s*"([^"]+)"', text):
+            found.add(m.group(1).strip())
     return sorted(s for s in found if keep(s))
 
 
