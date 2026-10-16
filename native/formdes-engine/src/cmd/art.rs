@@ -560,6 +560,116 @@ fn inside(shape: &Contours, x: f64, y: f64) -> bool {
     odd
 }
 
+/// The regions of overlapping closed shapes in paint order (each overlap owned by the upper shape), cut along
+/// `cuts` when given, as single faces with their owner's index.
+fn faces_of(shapes: &[Shapes], cuts: Option<&Shapes>) -> Vec<(Shapes, usize)> {
+    let mut pieces: Vec<(Shapes, usize)> = Vec::new();
+    for (i, s) in shapes.iter().enumerate() {
+        let mut next = Vec::new();
+        let mut rest = s.clone();
+        for (piece, owner) in pieces.drain(..) {
+            let a = piece.overlay(s, OverlayRule::Intersect, FillRule::NonZero);
+            let b = piece.overlay(s, OverlayRule::Difference, FillRule::NonZero);
+            rest = rest.overlay(&piece, OverlayRule::Difference, FillRule::NonZero);
+            if nonempty(&a) { next.push((a, i)); }
+            if nonempty(&b) { next.push((b, owner)); }
+        }
+        if nonempty(&rest) { next.push((rest, i)); }
+        pieces = next;
+    }
+    let mut faces: Vec<(Shapes, usize)> = Vec::new();
+    for (s, owner) in pieces {
+        let s = match cuts {
+            Some(k) => s.overlay(k, OverlayRule::Difference, FillRule::NonZero),
+            None => s,
+        };
+        for shape in s {
+            if shape.iter().any(|c| c.len() > 2) {
+                faces.push((vec![shape], owner));
+            }
+        }
+    }
+    faces
+}
+
+fn live_paint(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let pts: Vec<[f64; 2]> = p.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(|q| {
+        let q = q.as_array()?;
+        Some([q.first()?.as_f64()?, q.get(1)?.as_f64()?])
+    }).collect()).unwrap_or_default();
+    if pts.is_empty() {
+        return Err(EngineError::new("`points` needs one or more [x, y] points in spread coordinates: the regions to fill"));
+    }
+    let name = args::str_(p, "swatch", "the fill colour (a swatch name or #rrggbb)")?;
+    let paint = crate::wire::paint_in(name, args::opt_f64(p, "tint"));
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    if doc.paint_color(&paint).is_none() && doc.gradient_of(&paint).is_none() {
+        return Err(EngineError::new(format!("no colour for {name}")));
+    }
+    let ids = paint_order(doc, &ids);
+    let mut shapes = Vec::new();
+    let mut blades: Vec<BezPath> = Vec::new();
+    for id in &ids {
+        match world_shape(doc, *id) {
+            Some(s) => shapes.push(s),
+            None => {
+                if let Some(it) = doc.item(*id)
+                    && !matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. })
+                {
+                    blades.push(doc.world_xf(*id) * it.shape.to_path(&it.corner));
+                }
+            }
+        }
+    }
+    if shapes.is_empty() {
+        return Err(EngineError::new("Live Paint needs at least one closed shape among the selection; open paths then divide its regions"));
+    }
+    let mut cuts: Shapes = Vec::new();
+    for b in &blades {
+        let slit = outline_of(b, &stroke_style(0.05, "miter", "butt", 4.0, &[]));
+        cuts = if cuts.is_empty() { slit } else { cuts.overlay(&slit, OverlayRule::Union, FillRule::NonZero) };
+    }
+    let faces = faces_of(&shapes, if cuts.is_empty() { None } else { Some(&cuts) });
+    let mut chosen: Vec<usize> = Vec::new();
+    for q in &pts {
+        if let Some(i) = faces.iter().position(|(s, _)| s.iter().any(|shape| inside(shape, q[0], q[1])))
+            && !chosen.contains(&i)
+        {
+            chosen.push(i);
+        }
+    }
+    if chosen.is_empty() {
+        return Err(EngineError::new("none of the points falls inside a region of the selection"));
+    }
+    let bottom = ids[0];
+    let doc = c.doc_mut()?;
+    let mut made = Vec::new();
+    for i in chosen {
+        let Some(nid) = ops::duplicate(doc, bottom, kurbo::Vec2::ZERO, None) else { continue };
+        let local = doc.world_xf(nid).inverse() * to_path(&faces[i].0);
+        if let Some(it) = doc.item_mut(nid) {
+            it.kind = ItemKind::Plain;
+            it.shape = Shape::Path { path: local, closed: true };
+            it.corner = Default::default();
+            it.fill = paint.clone();
+            it.stroke = ops::default_stroke(0.0);
+            it.extra.clear();
+        }
+        made.push(nid);
+    }
+    if let Some(home) = doc.home(bottom)
+        && let Some(list) = ops::home_list(doc, &home)
+    {
+        list.retain(|x| !made.contains(x));
+        let at = list.iter().position(|x| *x == bottom).unwrap_or(0);
+        list.splice(at..at, made.iter().copied());
+    }
+    c.set_selection(Selection::items(made.clone()));
+    c.label("Live Paint");
+    Ok(json!({"ids": made}))
+}
+
 fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
     let pts: Vec<[f64; 2]> = p.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(|q| {
         let q = q.as_array()?;
@@ -579,28 +689,7 @@ fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
     for id in &ids {
         shapes.push(world_shape(doc, *id).ok_or_else(|| EngineError::new(format!("object {id} is a group, an open path or a line: Shape Builder works on closed shapes")))?);
     }
-    let mut pieces: Vec<(Shapes, usize)> = Vec::new();
-    for (i, s) in shapes.iter().enumerate() {
-        let mut next = Vec::new();
-        let mut rest = s.clone();
-        for (piece, owner) in pieces.drain(..) {
-            let a = piece.overlay(s, OverlayRule::Intersect, FillRule::NonZero);
-            let b = piece.overlay(s, OverlayRule::Difference, FillRule::NonZero);
-            rest = rest.overlay(&piece, OverlayRule::Difference, FillRule::NonZero);
-            if nonempty(&a) { next.push((a, i)); }
-            if nonempty(&b) { next.push((b, owner)); }
-        }
-        if nonempty(&rest) { next.push((rest, i)); }
-        pieces = next;
-    }
-    let mut faces: Vec<(Shapes, usize)> = Vec::new();
-    for (s, owner) in pieces {
-        for shape in s {
-            if shape.iter().any(|c| c.len() > 2) {
-                faces.push((vec![shape], owner));
-            }
-        }
-    }
+    let faces = faces_of(&shapes, None);
     let hit: Vec<bool> = faces.iter().map(|(s, _)| pts.iter().any(|q| s.iter().any(|shape| inside(shape, q[0], q[1])))).collect();
     if !hit.iter().any(|h| *h) {
         return Err(EngineError::new("none of the points falls inside the selected shapes"));
@@ -862,6 +951,8 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
 }
 
 pub fn register(r: &mut Registry) {
+    cmd("path.livePaint", "Live Paint Bucket").menu(&["Object", "Live Paint", "Fill Regions..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (inside the regions to fill), swatch, tint?, ids?}")
+        .help("Fills the regions under the given points with a colour, where regions are formed by the selected closed shapes overlapping and by open paths crossing them, as Illustrator's Live Paint Bucket does; each fill is a new shape placed behind the selection, so the lines stay on top.").reg(r, live_paint);
     cmd("path.shapeBuilder", "Shape Builder").menu(&["Object", "Paths", "Shape Builder..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (spread points inside the regions), mode?: merge|erase, ids?}")
         .help("Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.").reg(r, shape_builder);
     cmd("path.knife", "Knife").menu(&["Object", "Paths", "Knife..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (a line or polyline in spread points), ids?}")
