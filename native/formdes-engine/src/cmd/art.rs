@@ -450,7 +450,163 @@ fn anchored_release(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"ids": out}))
 }
 
+fn stroke_style(width: f64, join: &str, cap: &str, miter: f64, dash: &[f64]) -> kurbo::Stroke {
+    let join = match join { "round" => kurbo::Join::Round, "bevel" => kurbo::Join::Bevel, _ => kurbo::Join::Miter };
+    let cap = match cap { "round" => kurbo::Cap::Round, "projecting" | "square" => kurbo::Cap::Square, _ => kurbo::Cap::Butt };
+    let s = kurbo::Stroke::new(width).with_join(join).with_caps(cap).with_miter_limit(miter.max(1.0));
+    if dash.iter().any(|d| *d > 0.0) { s.with_dashes(0.0, dash.iter().copied()) } else { s }
+}
+
+fn seam_mid(path: &BezPath) -> BezPath {
+    use kurbo::{ParamCurve, PathSeg};
+    let mut out = BezPath::new();
+    let mut sub: Vec<PathEl> = Vec::new();
+    let flush = |sub: &mut Vec<PathEl>, out: &mut BezPath, closed: bool| {
+        let els = std::mem::take(sub);
+        let Some(PathEl::MoveTo(p0)) = els.first().copied() else { for e in els { out.push(e) } return };
+        if !closed || els.len() < 2 {
+            for e in els { out.push(e) }
+            if closed { out.close_path() }
+            return;
+        }
+        let seg = match els[1] {
+            PathEl::LineTo(p) => PathSeg::Line(kurbo::Line::new(p0, p)),
+            PathEl::QuadTo(c, p) => PathSeg::Quad(kurbo::QuadBez::new(p0, c, p)),
+            PathEl::CurveTo(a, b, p) => PathSeg::Cubic(kurbo::CubicBez::new(p0, a, b, p)),
+            _ => { for e in els { out.push(e) } out.close_path(); return }
+        };
+        let (h1, h2) = seg.subdivide();
+        let push = |out: &mut BezPath, s: PathSeg| match s {
+            PathSeg::Line(l) => out.line_to(l.p1),
+            PathSeg::Quad(q) => out.quad_to(q.p1, q.p2),
+            PathSeg::Cubic(c) => out.curve_to(c.p1, c.p2, c.p3),
+        };
+        out.move_to(h2.start());
+        push(out, h2);
+        let mut last = seg.end();
+        for e in &els[2..] {
+            out.push(*e);
+            if let PathEl::LineTo(p) | PathEl::QuadTo(_, p) | PathEl::CurveTo(_, _, p) = *e { last = p; }
+        }
+        if (last - p0).hypot() > 1e-9 { out.line_to(p0); }
+        push(out, h1);
+        out.close_path();
+    };
+    for el in path.elements() {
+        match el {
+            PathEl::MoveTo(_) => { if !sub.is_empty() { flush(&mut sub, &mut out, false); } sub.push(*el); }
+            PathEl::ClosePath => flush(&mut sub, &mut out, true),
+            e => sub.push(*e),
+        }
+    }
+    if !sub.is_empty() { flush(&mut sub, &mut out, false); }
+    out
+}
+
+fn outline_of(path: &BezPath, style: &kurbo::Stroke) -> Shapes {
+    let out = kurbo::stroke(seam_mid(path).iter(), style, &kurbo::StrokeOpts::default(), 0.02);
+    let empty: Contours = Vec::new();
+    contours(&out).overlay(&empty, OverlayRule::Subject, FillRule::NonZero)
+}
+
+fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let doc = c.doc_mut()?;
+    let mut done = Vec::new();
+    for id in &ids {
+        let Some(it) = doc.item(*id) else { continue };
+        if matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. } | ItemKind::Text(_)) || it.stroke.weight <= 0.0 || matches!(it.stroke.paint, Paint::None) {
+            continue;
+        }
+        let path = it.shape.to_path(&it.corner);
+        let style = stroke_style(it.stroke.weight, &it.stroke.join, &it.stroke.cap, args::opt_f64(p, "miterLimit").unwrap_or(4.0), &it.stroke.dash);
+        let outline = to_path(&outline_of(&path, &style));
+        if outline.elements().is_empty() {
+            continue;
+        }
+        let paint = it.stroke.paint.clone();
+        let keep = !matches!(it.fill, Paint::None) || !matches!(it.kind, ItemKind::Plain);
+        let target = if keep { ops::duplicate(doc, *id, kurbo::Vec2::ZERO, None).unwrap_or(*id) } else { *id };
+        if target != *id
+            && let Some(orig) = doc.item_mut(*id)
+        {
+            orig.stroke.paint = Paint::None;
+            orig.stroke.weight = 0.0;
+        }
+        if let Some(it) = doc.item_mut(target) {
+            it.shape = Shape::Path { path: outline, closed: true };
+            it.corner = Default::default();
+            it.fill = paint;
+            it.stroke.paint = Paint::None;
+            it.stroke.weight = 0.0;
+            it.extra.insert("fillRule".into(), json!("nonzero"));
+            it.kind = ItemKind::Plain;
+        }
+        done.push(target);
+    }
+    if done.is_empty() {
+        return Err(EngineError::new("Outline Stroke needs a selected path or frame with a visible stroke"));
+    }
+    c.set_selection(Selection::items(done.clone()));
+    c.label("Outline Stroke");
+    Ok(json!({"ids": done}))
+}
+
+fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let distance = args::opt_f64(p, "offset").or_else(|| args::opt_f64(p, "distance")).unwrap_or(6.0);
+    if distance.abs() < 1e-6 {
+        return Err(EngineError::new("`offset` must not be 0"));
+    }
+    let join = args::opt_str(p, "join").unwrap_or("miter").to_string();
+    let miter = args::opt_f64(p, "miterLimit").unwrap_or(4.0);
+    let copy = args::opt_bool(p, "copy").unwrap_or(true);
+    let doc = c.doc_mut()?;
+    let mut made = Vec::new();
+    for id in &ids {
+        let Some(it) = doc.item(*id) else { continue };
+        if matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
+            continue;
+        }
+        let path = it.shape.to_path(&it.corner);
+        let ring = outline_of(&path, &stroke_style(distance.abs() * 2.0, &join, "butt", miter, &[]));
+        let result = if it.shape.closed() {
+            let empty: Contours = Vec::new();
+            let base = contours(&path).overlay(&empty, OverlayRule::Subject, FillRule::NonZero);
+            base.overlay(&ring, if distance > 0.0 { OverlayRule::Union } else { OverlayRule::Difference }, FillRule::NonZero)
+        } else {
+            ring
+        };
+        let out = to_path(&result);
+        if out.elements().is_empty() {
+            continue;
+        }
+        let target = if copy { ops::duplicate(doc, *id, kurbo::Vec2::ZERO, None).unwrap_or(*id) } else { *id };
+        if let Some(t) = doc.item_mut(target) {
+            t.shape = Shape::Path { path: out, closed: true };
+            t.corner = Default::default();
+            t.extra.insert("fillRule".into(), json!("nonzero"));
+            if matches!(t.kind, ItemKind::Text(_) | ItemKind::Graphic { .. }) {
+                t.kind = ItemKind::Plain;
+            }
+        }
+        made.push(target);
+    }
+    if made.is_empty() {
+        return Err(EngineError::new("Offset Path needs a selected path, frame or shape; an inset larger than the shape leaves nothing"));
+    }
+    c.set_selection(Selection::items(made.clone()));
+    c.label("Offset Path");
+    Ok(json!({"ids": made}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("path.offset", "Offset Path").menu(&["Object", "Paths", "Offset Path..."]).needs(Needs::Items)
+        .sig("{offset: pt (negative insets), join?: miter|round|bevel, miterLimit?, copy?: bool (default true), ids?}")
+        .help("Makes a new path a set distance outside (or, with a negative offset, inside) each selected shape, with mitred, round or bevelled corners, as Illustrator's Object > Path > Offset Path does. An open path gets the closed outline around it.").reg(r, offset_path);
+    cmd("path.outlineStroke", "Outline Stroke").menu(&["Object", "Paths", "Outline Stroke"]).needs(Needs::Items)
+        .sig("{miterLimit?, ids?}")
+        .help("Turns each selected object's stroke into a filled shape in the stroke's colour (caps, joins and dashes included), so it can be edited and combined with Pathfinder. The fill is replaced.").reg(r, outline_stroke);
     cmd("object.pathfinder", "Pathfinder").menu(&["Object", "Pathfinder"]).needs(Needs::Items).sig("{op: add|subtract|intersect|excludeOverlap|minusBack, ids?}").help("Combines closed shapes: Add unites them, Subtract cuts the front shapes out of the back one, Intersect keeps their overlap, Exclude Overlap keeps the parts that do not overlap, Minus Back cuts the back shapes out of the front one. Curves come out as fine straight segments.").reg(r, pathfinder);
     cmd("object.qrCode", "Generate QR Code").menu(&["Object", "Generate QR Code..."]).sig("{text, swatch?, quietZone?: modules, ids?: a frame to fill or a QR code to edit, spread?, rect?}").reg(r, qr_code);
     cmd("type.createOutlines", "Create Outlines").menu(&["Type", "Create Outlines"]).key("Mod+Shift+O").needs(Needs::Items).sig("{ids?}").help("Turns the selected text frames into filled paths, one per text colour, grouped when there are several. Anchored objects in the text are not kept.").reg(r, create_outlines);
