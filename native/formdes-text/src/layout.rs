@@ -54,6 +54,27 @@ struct DocCtx<'a> {
     pages: Vec<Option<usize>>,
     frame_items: Vec<ItemId>,
     exc: crate::compose::Exceptions,
+    notes: std::collections::HashMap<usize, usize>,
+}
+
+/// Footnote numbers that restart on every page or section, from where the previous flow placed each note.
+fn note_numbers(doc: &Doc, flow: &Flow, pages: &[Option<usize>], restart: &str) -> std::collections::HashMap<usize, usize> {
+    let mut placed: Vec<(usize, usize)> = flow.notes.iter().map(|n| (n.ordinal, n.frame)).collect();
+    placed.sort_unstable();
+    placed.dedup_by_key(|p| p.0);
+    let mut count: std::collections::HashMap<Option<usize>, usize> = std::collections::HashMap::new();
+    let mut out = std::collections::HashMap::new();
+    for (ordinal, frame) in placed {
+        let page = pages.get(frame).copied().flatten();
+        let key = match restart {
+            "section" => page.map(|p| doc.section_for(p).map(|s| s.start).unwrap_or(0)),
+            _ => page,
+        };
+        let n = count.entry(key).or_insert(0);
+        *n += 1;
+        out.insert(ordinal, *n);
+    }
+    out
 }
 
 impl Context for DocCtx<'_> {
@@ -89,7 +110,7 @@ impl Context for DocCtx<'_> {
         let o = self.doc.prefs.get("footnotes");
         let style = o.and_then(|v| v.get("numbering")).and_then(|v| v.as_str()).unwrap_or("arabic");
         let start = o.and_then(|v| v.get("start")).and_then(|v| v.as_u64()).unwrap_or(1).max(1) as usize;
-        let n = ordinal + start - 1;
+        let n = self.notes.get(&ordinal).copied().unwrap_or(ordinal + start - 1);
         if style == "symbols" {
             const SYM: [&str; 6] = ["*", "\u{2020}", "\u{2021}", "\u{a7}", "\u{2016}", "\u{b6}"];
             let i = n.saturating_sub(1);
@@ -253,7 +274,7 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         None => frames.iter().map(|f| doc.page_of(*f)).collect(),
     };
     let words: Vec<String> = doc.prefs.get("hyphenationExceptions").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|w| w.as_str().map(str::to_string)).collect()).unwrap_or_default();
-    let ctx = DocCtx { doc, pages, frame_items: frames.clone(), exc: crate::compose::parse_exceptions(&words) };
+    let mut ctx = DocCtx { doc, pages, frame_items: frames.clone(), exc: crate::compose::parse_exceptions(&words), notes: Default::default() };
     let path_frame = frames.first().and_then(|f| doc.item(*f)).and_then(|it| match &it.kind {
         ItemKind::Text(t) => t.on_path.clone().map(|p| (it.shape.to_path(&it.corner), p)),
         _ => None,
@@ -283,6 +304,17 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         }
         last = key;
         flow = Flower::new(fonts, &doc.styles, &specs, &ctx).flow(&story.paras);
+    }
+    let restart = doc.prefs.get("footnotes").and_then(|v| v.get("restart")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+    if (restart == "page" || restart == "section") && !flow.notes.is_empty() {
+        for _ in 0..2 {
+            let map = note_numbers(doc, &flow, &ctx.pages, &restart);
+            if map == ctx.notes {
+                break;
+            }
+            ctx.notes = map;
+            flow = Flower::new(fonts, &doc.styles, &specs, &ctx).flow(&story.paras);
+        }
     }
     Some(StoryLayout { story: sid, frames, specs, flow, on_path: None })
 }

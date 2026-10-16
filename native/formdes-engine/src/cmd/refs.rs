@@ -304,8 +304,19 @@ fn footnote_options(c: &mut Ctx, p: &Value) -> Result<Value> {
     {
         return Err(EngineError::new(format!("numbering is one of {}", STYLES.join(", "))));
     }
+    if let Some(s) = args::opt_str(p, "restart")
+        && !["continuous", "page", "section"].contains(&s)
+    {
+        return Err(EngineError::new("restart is continuous, page or section"));
+    }
     let doc = c.doc_mut()?;
     let mut cur = doc.prefs.get("footnotes").and_then(Value::as_object).cloned().unwrap_or_default();
+    if let Some(v) = p.get("restart") {
+        match v.as_str().filter(|s| *s != "continuous") {
+            Some(s) => { cur.insert("restart".into(), json!(s)); }
+            None => { cur.remove("restart"); }
+        }
+    }
     for k in ["numbering", "prefix", "suffix", "separator"] {
         if let Some(v) = p.get(k) {
             if v.is_null() { cur.remove(k); } else if let Some(s) = v.as_str() { cur.insert(k.into(), json!(s)); }
@@ -618,8 +629,8 @@ pub fn register(r: &mut Registry) {
     cmd("variables.define", "Define Text Variables").menu(&["Type", "Text Variables", "Define..."]).sig("{name, kind?: custom|runningHeader|chapterNumber|creationDate|modificationDate|outputDate|fileName|lastPageNumber|liveCaption, text?, number?, style?, date?, value?: {field, image, prefix}}").reg(r, variables_define);
     cmd("variables.delete", "Delete Text Variable").sig("{name}").reg(r, variables_delete);
     cmd("variables.insert", "Insert Variable").menu(&["Type", "Text Variables", "Insert Variable"]).needs(Needs::Text).sig("{name}").reg(r, variables_insert);
-    cmd("footnote.options", "Document Footnote Options").menu(&["Type", "Document Footnote Options..."]).sig("{numbering?: arabic|roman|ROMAN|alpha|ALPHA|01|001|symbols, start?: number, prefix?, suffix?, separator?: text after the number in the note (default a space)}")
-        .help("Sets how footnotes are numbered across the document: the number style (including symbols * † ‡ §), the first number, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
+    cmd("footnote.options", "Document Footnote Options").menu(&["Type", "Document Footnote Options..."]).sig("{numbering?: arabic|roman|ROMAN|alpha|ALPHA|01|001|symbols, start?: number, restart?: continuous|page|section, prefix?, suffix?, separator?: text after the number in the note (default a space)}")
+        .help("Sets how footnotes are numbered across the document: the number style (including symbols * † ‡ §), the first number, whether numbering restarts on every page or section, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
     cmd("footnote.insert", "Insert Footnote").menu(&["Type", "Insert Footnote"]).needs(Needs::Text).sig("{text?, style?}").reg(r, footnote_insert);
     cmd("footnote.list", "Footnotes").query().sig("{story?}").reg(r, footnote_list);
     cmd("footnote.set", "Edit Footnote").sig("{story, at, text}").reg(r, footnote_set);
