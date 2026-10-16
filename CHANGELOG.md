@@ -2,6 +2,16 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.27.0 · 2026-10-16
+
+- One command catalogue, as formvis and formlit have: every engine and window command with what it does and when to use it, at `/api/commands`, through MCP `list_commands` and `run_command` (window commands included), and `./formdes cli list|describe|run`; commands Undo cannot reverse ask first. `./formdes counts --commands --check`.
+- Corner handles under Direct Selection: drag to round a corner (or every picked corner), Alt-click to change its kind.
+- Pathfinder has all ten operations: Divide, Trim, Merge, Crop and Outline join Add, Subtract, Intersect, Exclude Overlap and Minus Back.
+- Object > Paths: Simplify, Smooth Points, Average. Object > Shapes: Spiral, Arc, Rectangular Grid, Polar Grid. Object > Transform: Reflect, Shear, Transform Each.
+- Window > Actions: record a series of changes, save it by name and play it back as one undo step.
+- Every interface string translated in all 26 languages.
+- The formdes-harness skill gains a path-artist sub-skill.
+
 ## 0.26.0 · 2026-10-16
 
 - Claude Code inside the window: a Claude Code panel beside the Terminal runs your own Claude Code sign-in, connected to FormDesign's tools, with streamed replies, tool steps, usage, Stop, New chat, and hand-off to and from a Claude Code terminal. The Terminal's Claude Code preset now starts connected. Window > Claude Code (Alt+Mod+J) and Claude Code in Terminal (Shift+Mod+J); settings in Preferences > Agents; `./formdes claude` in a shell.
