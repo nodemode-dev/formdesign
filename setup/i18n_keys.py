@@ -57,6 +57,8 @@ def collect() -> list[str]:
         if "i18n" in f.parts:
             continue
         text = f.read_text(encoding="utf-8")
+        for m in re.finditer(r"const MENUS[^=]*=\s*\[([^\]]*)\]", text):
+            found.update(re.findall(r"'([^']+)'", m.group(1)))
         for rx in (TEXT_NODE, ATTR, PROP, CALL, OPTION, TUPLE):
             for m in rx.finditer(text):
                 s = unescape(m.group(1))
