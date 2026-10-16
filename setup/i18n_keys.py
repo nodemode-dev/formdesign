@@ -38,7 +38,7 @@ CODEISH = re.compile(r"^[\w.-]+$|^[a-z]+[A-Z]\w*$|^--|^#|^\.|^[\d\s.,:%x×-]+$|^
 
 def keep(s: str) -> bool:
     s = s.strip()
-    if len(s) < 2 or len(s) > 300 or not WORD.search(s):
+    if len(s) < 2 or len(s) > 800 or not WORD.search(s):
         return False
     if CODEISH.match(s) and not (s[:1].isupper() and " " not in s and s.isalpha()):
         return False
