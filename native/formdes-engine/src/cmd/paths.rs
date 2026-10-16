@@ -267,10 +267,10 @@ fn convert(c: &mut Ctx, p: &Value) -> Result<Value> {
         let b: Rect = it.shape.bbox();
         let (shape, corner) = match to.as_str() {
             "rectangle" => (Shape::Rect { rect: b }, Corner::default()),
-            "roundedRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "rounded".into() }),
-            "bevelRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "bevel".into() }),
-            "insetRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "inset".into() }),
-            "invertedRoundedRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "inverse".into() }),
+            "roundedRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "rounded".into(), each: Vec::new() }),
+            "bevelRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "bevel".into(), each: Vec::new() }),
+            "insetRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "inset".into(), each: Vec::new() }),
+            "invertedRoundedRectangle" => (Shape::Rect { rect: b }, Corner { radius, kind: "inverse".into(), each: Vec::new() }),
             "ellipse" => (Shape::Ellipse { rect: b }, Corner::default()),
             "triangle" => (Shape::Polygon { rect: b, sides: 3, inset: 0.0 }, Corner::default()),
             "polygon" => (Shape::Polygon { rect: b, sides, inset }, Corner::default()),
@@ -300,7 +300,82 @@ fn convert(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"ids": ids}))
 }
 
+fn corner_kind(p: &Value) -> Result<String> {
+    Ok(match args::opt_str(p, "kind").unwrap_or("round") {
+        "round" | "rounded" | "fancy" => "rounded",
+        "invertedRound" | "inverseRounded" | "inverse" => "inverse",
+        "chamfer" | "bevel" => "bevel",
+        "inset" => "inset",
+        other => return Err(EngineError::new(format!("kind is round, invertedRound, chamfer or inset, not {other}"))),
+    }
+    .to_string())
+}
+
+fn round_corners(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = shapes(c, p)?;
+    let radius = args::opt_f64(p, "radius").unwrap_or(12.0).max(0.0);
+    let kind = corner_kind(p)?;
+    let picked = c.selection().anchors;
+    let listed: Option<Vec<usize>> = p.get("anchors").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|x| x.as_u64().map(|n| n as usize)).collect());
+    let doc = c.doc_mut()?;
+    let mut changed = 0usize;
+    for id in &ids {
+        let Some(it) = doc.item_mut(*id) else { continue };
+        if matches!(it.shape, Shape::Ellipse { .. } | Shape::Line { .. }) {
+            continue;
+        }
+        let base = it.shape.to_path(&Corner::default());
+        let subs = crate::tools::geo::anchors_of(&base);
+        let total: usize = subs.iter().map(|s| s.0.len()).sum();
+        let mut offsets = Vec::with_capacity(subs.len());
+        let mut at = 0usize;
+        for s in &subs {
+            offsets.push(at);
+            at += s.0.len();
+        }
+        let targets: Vec<usize> = if let Some(l) = &listed {
+            l.iter().copied().filter(|i| *i < total).collect()
+        } else {
+            let mine: Vec<usize> = picked.iter().filter(|a| a.0 == *id).filter_map(|a| offsets.get(a.1).map(|o| o + a.2)).filter(|i| *i < total).collect();
+            if mine.is_empty() { (0..total).collect() } else { mine }
+        };
+        let mut each = if it.corner.live() && it.corner.each.len() == total {
+            it.corner.each.clone()
+        } else {
+            (0..total).map(|_| formdes_model::corners::CornerAt { radius: it.corner.radius, kind: it.corner.kind.clone() }).collect()
+        };
+        for i in targets {
+            if let Some(e) = each.get_mut(i) {
+                e.radius = radius;
+                e.kind = kind.clone();
+            }
+        }
+        it.corner = Corner { radius: 0.0, kind: kind.clone(), each };
+        changed += 1;
+    }
+    if changed == 0 {
+        return Err(EngineError::new("rounds paths, rectangles and polygons; ellipses and lines have no corners"));
+    }
+    Ok(json!({"changed": changed}))
+}
+
+fn expand_corners(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = shapes(c, p)?;
+    let doc = c.doc_mut()?;
+    for id in &ids {
+        let Some((path, closed)) = path_of(doc, *id) else { continue };
+        set_path(doc, *id, path, closed);
+    }
+    Ok(json!({"expanded": ids.len()}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("path.roundCorners", "Round Corners").menu(&["Object", "Paths", "Round Corners..."]).needs(Needs::Items)
+        .sig("{radius: pt, kind?: round|invertedRound|chamfer|inset, anchors?: [index], ids?}")
+        .help("Rounds corners at anchor points and keeps them live: the selected anchors (Direct Selection), the listed anchor indices, or every corner. Paths, rectangles, frames and polygons; editing the anchors keeps the corners.")
+        .reg(r, round_corners);
+    cmd("path.expandCorners", "Expand Corners").menu(&["Object", "Paths", "Expand Corners"]).needs(Needs::Items).sig("{ids?}")
+        .help("Turns live corners (and Corner Options) into ordinary path geometry.").reg(r, expand_corners);
     cmd("path.join", "Join Path").menu(&["Object", "Paths", "Join"]).needs(Needs::Items).sig("{ids?: two open paths}").reg(r, join);
     cmd("path.open", "Open Path").menu(&["Object", "Paths", "Open Path"]).needs(Needs::Items).sig("{ids?}").reg(r, open);
     cmd("path.close", "Close Path").menu(&["Object", "Paths", "Close Path"]).needs(Needs::Items).sig("{ids?}").reg(r, close);

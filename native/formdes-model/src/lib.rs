@@ -1,6 +1,7 @@
 pub mod attrs;
 pub mod captionmeta;
 pub mod color;
+pub mod corners;
 pub mod doc;
 pub mod format;
 pub mod geom;

@@ -90,6 +90,14 @@ impl Shape {
     }
 
     pub fn to_path(&self, corner: &Corner) -> BezPath {
+        if corner.live() {
+            let base = self.to_path(&Corner::default());
+            return crate::corners::round_vertices(&base, &|i| corner.each.get(i).map(|c| (c.radius, c.kind.clone())));
+        }
+        if corner.radius > 0.0 && matches!(self, Shape::Polygon { .. } | Shape::Path { .. }) {
+            let base = self.to_path(&Corner::default());
+            return crate::corners::round_vertices(&base, &|_| Some((corner.radius, corner.kind.clone())));
+        }
         match self {
             Shape::Rect { rect } if corner.radius > 0.0 && corner.kind == "rounded" => RoundedRect::from_rect(*rect, corner.radius.min(rect.width().abs() / 2.0).min(rect.height().abs() / 2.0)).to_path(0.1),
             Shape::Rect { rect } if corner.radius > 0.0 => corner_path(*rect, corner),
@@ -169,11 +177,19 @@ fn corner_path(r: Rect, corner: &Corner) -> BezPath {
 pub struct Corner {
     pub radius: f64,
     pub kind: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub each: Vec<crate::corners::CornerAt>,
 }
 
 impl Default for Corner {
     fn default() -> Self {
-        Corner { radius: 0.0, kind: "rounded".into() }
+        Corner { radius: 0.0, kind: "rounded".into(), each: Vec::new() }
+    }
+}
+
+impl Corner {
+    pub fn live(&self) -> bool {
+        !self.each.is_empty()
     }
 }
 

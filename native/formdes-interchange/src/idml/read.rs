@@ -424,6 +424,7 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
                 _ => "rounded",
             }
             .into(),
+            each: Vec::new(),
         };
     }
     if let Some(w) = el.child("TextWrapPreference") {

@@ -212,14 +212,19 @@ pub fn editable_anchors(doc: &Doc, id: ItemId) -> Option<(Subpaths, Affine)> {
     if matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
         return None;
     }
-    Some((anchors_of(&it.shape.to_path(&it.corner)), doc.world_xf(id)))
+    let path = if it.corner.live() { it.shape.to_path(&Default::default()) } else { it.shape.to_path(&it.corner) };
+    Some((anchors_of(&path), doc.world_xf(id)))
 }
 
 pub fn set_anchors(doc: &mut Doc, id: ItemId, subs: &[(Vec<Anchor>, bool)]) {
     let closed = subs.iter().all(|s| s.1);
     if let Some(it) = doc.item_mut(id) {
         it.shape = Shape::Path { path: path_of(subs), closed };
-        it.corner.radius = 0.0;
+        let count: usize = subs.iter().map(|s| s.0.len()).sum();
+        if !it.corner.live() || it.corner.each.len() != count {
+            it.corner.each.clear();
+            it.corner.radius = 0.0;
+        }
     }
 }
 
