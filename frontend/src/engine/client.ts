@@ -30,7 +30,7 @@ export class EngineClient {
   rev = 0;
   selRev = 0;
 
-  on(event: 'changed' | 'open' | 'close' | 'hello' | 'agents' | 'view' | 'motion' | 'workflow' | 'claude', fn: Listener): () => void {
+  on(event: 'changed' | 'open' | 'close' | 'hello' | 'agents' | 'view' | 'motion' | 'workflow' | 'claude' | 'command', fn: Listener): () => void {
     let set = this.listeners.get(event);
     if (!set) { set = new Set(); this.listeners.set(event, set); }
     set.add(fn);
@@ -78,7 +78,7 @@ export class EngineClient {
         return;
       }
       if (msg.type === 'hello') { this.rev = msg.rev; this.selRev = msg.selRev; this.emit('hello', msg); return; }
-      if (msg.type === 'agents' || msg.type === 'view' || msg.type === 'motion' || msg.type === 'workflow' || msg.type === 'claude') { this.emit(msg.type, msg); return; }
+      if (msg.type === 'agents' || msg.type === 'view' || msg.type === 'motion' || msg.type === 'workflow' || msg.type === 'claude' || msg.type === 'command') { this.emit(msg.type, msg); return; }
       this.settle(msg, null);
       return;
     }

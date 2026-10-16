@@ -164,6 +164,10 @@ TOOLS = [
            "panel": {"type": "string", "description": "Panel id: pages, layers, links, properties, character, paragraph, swatches, styles, preflight, make, slots, terminal, connect, find..."},
            "tool": {"type": "string", "description": "Tool id from the engine's tool list, e.g. selection, type, rectangle-frame."},
            "select": {"type": "array", "items": {"type": "integer"}, "description": "Object ids to select (get_document lists them)."}}, [], idempotent=True),
+    _tool("list_commands", "The one command catalogue the menus, the search box, the CLI and agents share: engine commands and the window's own commands, each with id, label, menu, group, what it does, when to use it, its parameters, whether it changes the document and whether Undo can reverse it. q filters by word; group filters by group (file, edit, layout, type, object, path, table, style, swatch, window...).",
+          {"q": {"type": "string"}, "group": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 60}}, [], read=True, idempotent=True),
+    _tool("run_command", "Runs one command from list_commands by id, including the window's own commands (panels, view, workspaces), with its parameters. Commands Undo cannot reverse wait for the person's approval. For several layout steps as one undo step, run_commands is cheaper.",
+          {"id": {"type": "string"}, "params": {"type": "object"}}, ["id"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
 _status = {"calls": 0, "last": None, "at": 0.0}
@@ -511,6 +515,21 @@ async def _run(name: str, a: dict) -> dict:
             return _fail(await _hint(str(exc), a["commands"]))
         results = res.get("results", []) if isinstance(res, dict) else res
         return _text({"completed": len(results), "results": results[-20:]})
+    if name == "list_commands":
+        from app.services import commands as C
+        rows = await C.catalogue(str(a.get("q") or ""))
+        grp = str(a.get("group") or "").strip().lower()
+        if grp:
+            rows = [r for r in rows if r["group"].lower() == grp]
+        lim = int(a.get("limit", 60))
+        keys = ("id", "kind", "label", "menu", "group", "description", "when", "params", "mutates", "risky", "keys")
+        return _text({"count": len(rows), "showing": min(lim, len(rows)), "commands": [{k: r.get(k) for k in keys if r.get(k) not in (None, "", [], {})} for r in rows[:lim]]})
+    if name == "run_command":
+        from app.services import commands as C
+        try:
+            return _text(await C.run(str(a["id"]), a.get("params") or {}, "mcp"))
+        except C.CommandError as exc:
+            return _fail(str(exc))
     if name == "find_commands":
         cmds = await _all_commands()
         q, dom = str(a.get("query") or "").lower().strip(), str(a.get("domain") or "").lower().strip()

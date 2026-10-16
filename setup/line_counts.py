@@ -28,9 +28,30 @@ def lines(root: Path, sub: str, exts: tuple[str, ...]) -> tuple[int, int]:
     return files, n
 
 
+def command_words(root: Path, check: bool) -> int:
+    import json
+    ids: dict[str, bool] = {}
+    for f in (root / "native/formdes-engine/src").rglob("*.rs"):
+        text = f.read_text(encoding="utf-8")
+        for m in re.finditer(r'cmd\(\s*"([^"]+)"\s*,\s*"[^"]*"\s*\)((?:\s*\.\w+\((?:"(?:[^"\\]|\\.)*"|[^()])*\))*)', text):
+            ids[m.group(1)] = ".help(" in m.group(2)
+    try:
+        meta = json.loads((root / "backend/app/command_meta.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        meta = {}
+    lacking = sorted(i for i, has_help in ids.items() if not has_help and not (meta.get(i) or {}).get("description"))
+    no_when = sorted(i for i in ids if not (meta.get(i) or {}).get("when"))
+    print(f"{len(ids)} engine commands: {len(ids) - len(lacking)} with a description, {len(ids) - len(no_when)} with a when sentence")
+    for i in lacking[:20]:
+        print(f"  no description: {i}")
+    return 1 if check and lacking else 0
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else ".").resolve()
     check = "--check" in sys.argv
+    if "--commands" in sys.argv:
+        return command_words(root, check)
     print(f"{'Layer':<24}{'files':>7}{'lines':>9}")
     total = 0
     for label, sub, exts in LAYERS:

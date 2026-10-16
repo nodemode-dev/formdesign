@@ -459,12 +459,35 @@ export class Shell implements Workspace {
   }
 
   private published = false;
+  private publishTimer = 0;
   private publishActions(): void {
-    if (this.published || !this.menubar) return;
-    this.published = true;
+    if (!this.menubar) return;
+    if (!this.published) {
+      this.published = true;
+      this.commands.onChange = () => { window.clearTimeout(this.publishTimer); this.publishTimer = window.setTimeout(() => this.sendCatalogue(), 400); };
+      engine.on('command', (m) => void this.runForAgent(m as { id: string; params?: Record<string, unknown>; rid: string }));
+      engine.on('open', () => this.sendCatalogue());
+    }
+    this.sendCatalogue();
+  }
+
+  private sendCatalogue(): void {
     const areas = this.menuAreas();
-    const actions = this.commands.all().filter((c) => !editor.command(c.id)).map((c) => ({ id: c.id, label: this.commands.label(c), keys: c.keys ?? [], menu: areas.get(c.id) ?? '' }));
-    void api('/actions/window', { method: 'POST', json: { actions } }).catch(() => { this.published = false; });
+    const own = this.commands.all().filter((c) => !editor.command(c.id));
+    const actions = own.map((c) => ({ id: c.id, label: this.commands.label(c), keys: c.keys ?? [], menu: areas.get(c.id) ?? '' }));
+    const commands = own.map((c) => ({ ...actions.find((a) => a.id === c.id), group: c.group ?? (c.id.startsWith('tool.') ? 'tool' : c.id.split('.')[0] === 'ui' ? 'window' : c.id.split('.')[0]),
+      description: c.description ?? '', when: c.when ?? '', params: c.params ?? {}, mutates: c.mutates ?? false, risky: c.risky ?? false }));
+    void api('/actions/window', { method: 'POST', json: { actions } }).catch(() => undefined);
+    void api('/commands/catalogue', { method: 'POST', json: { commands } }).catch(() => undefined);
+  }
+
+  private async runForAgent(m: { id: string; params?: Record<string, unknown>; rid: string }): Promise<void> {
+    let body: { ran: boolean; result?: unknown; error?: string };
+    try {
+      const cmd = this.commands.get(m.id);
+      body = !cmd ? { ran: false, error: `no window command ${m.id}` } : !this.commands.enabled(cmd) ? { ran: false, error: this.commands.why(cmd) || `${m.id} is not available right now` } : await this.commands.call(m.id, m.params);
+    } catch (e) { body = { ran: false, error: (e as Error).message }; }
+    await api(`/commands/reply/${m.rid}`, { method: 'POST', json: body }).catch(() => undefined);
   }
 
   private agentView(v: { page?: number; zoom?: string; panel?: string; tool?: string }): void {

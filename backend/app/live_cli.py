@@ -109,7 +109,57 @@ def cmd_tool(a) -> int:
     return 1 if res.get("isError") else 0
 
 
+def _get(path: str) -> dict:
+    try:
+        with urllib.request.urlopen(ENGINE + path, timeout=60) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")
+        try:
+            detail = json.loads(detail).get("detail", detail)
+        except ValueError:
+            pass
+        raise SystemExit(f"formdes: {detail}")
+    except urllib.error.URLError:
+        raise SystemExit(f"formdes: no engine at {ENGINE}. Start one with ./formdes or ./formdes backend.")
+
+
+def cmd_cli(a) -> int:
+    if a.action == "list":
+        data = _get("/api/commands?q=" + urllib.parse.quote(a.target or ""))
+        if a.json:
+            print(json.dumps(data, indent=1, ensure_ascii=False))
+            return 0
+        for c in data["commands"]:
+            flag = "!" if c.get("risky") else " "
+            print(f"{flag} {c['id']:<36} {str(c.get('label') or ''):<34} {c.get('group') or ''}")
+        print(f"{data['count']} commands (! = Undo cannot reverse it)", file=sys.stderr)
+        return 0
+    if not a.target:
+        raise SystemExit("formdes: name a command id")
+    if a.action == "describe":
+        c = _get("/api/commands/" + urllib.parse.quote(a.target))
+        if a.json:
+            print(json.dumps(c, indent=1, ensure_ascii=False))
+            return 0
+        for k in ("id", "kind", "label", "menu", "group", "description", "when", "params", "keys", "mutates", "risky"):
+            if c.get(k) not in (None, "", [], {}):
+                print(f"{k:<12} {c[k]}")
+        return 0
+    body = {"params": params_of(a.pairs, a.params), "yes": a.yes}
+    res = _post("/api/commands/" + urllib.parse.quote(a.target), body)
+    print(json.dumps(res, indent=1, ensure_ascii=False) if a.json else json.dumps(res.get("result"), ensure_ascii=False))
+    return 0 if res.get("ran") else 1
+
+
 def add_parsers(sub) -> dict:
+    k = sub.add_parser("cli", help="the shared command catalogue: list [word], describe ID, run ID key=value... (--yes for commands Undo cannot reverse)")
+    k.add_argument("action", choices=["list", "describe", "run"])
+    k.add_argument("target", nargs="?")
+    k.add_argument("pairs", nargs="*")
+    k.add_argument("--params")
+    k.add_argument("--yes", action="store_true")
+    k.add_argument("--json", action="store_true")
     c = sub.add_parser("cmd", help="run one engine command on the running engine's open document, e.g. formdes cmd layout.pages.add count=2")
     c.add_argument("id")
     c.add_argument("pairs", nargs="*", help="key=value parameters; values are read as JSON when they parse")
@@ -127,4 +177,4 @@ def add_parsers(sub) -> dict:
     o.add_argument("name")
     o.add_argument("args", nargs="?")
     o.add_argument("--json", action="store_true")
-    return {"cmd": cmd_run, "commands": cmd_commands, "actions": cmd_actions, "tools": cmd_tools, "tool": cmd_tool}
+    return {"cmd": cmd_run, "commands": cmd_commands, "actions": cmd_actions, "tools": cmd_tools, "tool": cmd_tool, "cli": cmd_cli}

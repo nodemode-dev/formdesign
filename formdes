@@ -26,6 +26,7 @@ usage: ./formdes [command] [options]
   commands [--q T]    list the engine's commands with their menus and parameters
   actions [--q T]     every action in one list: engine commands, tools, window actions, MCP tools
   tools | tool NAME   list the MCP tools, or call one: ./formdes tool preview '{"page": 1}'
+  cli list|describe|run  the shared command catalogue (engine and window commands): ./formdes cli run path.offset offset=6
   mcp                formdes over MCP's stdio transport, for Claude Desktop and other MCP clients
   claude [args]       Claude Code connected to formdes's tools (starts the engine when needed)
   build-app [flags]   compile the desktop app in one step (same as ./build_app)
@@ -61,7 +62,7 @@ case "$cmd" in
   make) exec setup/cli make "$@" ;;
   export) exec setup/cli export "$@" ;;
   templates) exec setup/cli templates "$@" ;;
-  cmd|commands|actions|tools|tool) exec setup/cli "$cmd" "$@" ;;
+  cmd|commands|actions|tools|tool|cli) exec setup/cli "$cmd" "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   claude) exec python3 setup/claude_launch.py "$@" ;;
   build-app) exec ./build_app "$@" ;;

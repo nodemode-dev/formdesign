@@ -485,7 +485,7 @@ impl Session {
             self.registry
                 .specs()
                 .into_iter()
-                .map(|s| json!({"id": s.id, "label": s.label, "menu": s.menu, "params": s.sig, "shortcut": s.shortcut, "enabled": self.enabled(s), "undoable": s.undoable}))
+                .map(|s| json!({"id": s.id, "label": s.label, "menu": s.menu, "params": s.sig, "shortcut": s.shortcut, "enabled": self.enabled(s), "undoable": s.undoable, "help": s.help}))
                 .collect(),
         )
     }

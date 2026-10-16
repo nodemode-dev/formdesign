@@ -132,6 +132,11 @@ def gate_reason(name: str, args: dict) -> str | None:
     if name == "book" and args.get("action") == "export" and args.get("path"):
         if Path(str(args["path"])).expanduser().exists():
             return f"overwrites {args['path']}"
+    if name == "run_command":
+        from app.services import commands as C
+        cid = str(args.get("id") or "")
+        if C.risky(cid) or (C.meta().get(cid) or {}).get("risky"):
+            return f"runs {cid}, which Undo cannot reverse"
     if name == "run_commands":
         for c in args.get("commands") or []:
             cid = c.get("command") if isinstance(c, dict) else None

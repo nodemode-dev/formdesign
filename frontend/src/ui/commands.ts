@@ -5,10 +5,18 @@ export interface Command {
   label: string | (() => string);
   keys?: string[];
   icon?: string;
-  run: () => void;
+  run: (params?: Record<string, unknown>) => unknown;
   enabled?: () => boolean;
   checked?: () => boolean;
+  group?: string;
+  description?: string;
+  when?: string;
+  params?: Record<string, CommandParam>;
+  mutates?: boolean;
+  risky?: boolean;
 }
+
+export interface CommandParam { type: 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object'; required?: boolean; enum?: ReadonlyArray<string | number>; min?: number; max?: number; description?: string }
 
 const CODE_KEYS: Record<string, string> = {
   BracketLeft: '[', BracketRight: ']', Equal: '=', Minus: '-', NumpadAdd: '=', NumpadSubtract: '-', Backspace: 'Backspace', Delete: 'Delete',
@@ -52,7 +60,10 @@ export class Commands {
       this.defaults.set(cmd.id, [...(cmd.keys ?? [])]);
       for (const k of cmd.keys ?? []) this.byKey.set(k, cmd);
     }
+    this.onChange?.();
   }
+
+  onChange: (() => void) | null = null;
 
   /** Rebinds a command (1.53.4, Edit > Keyboard Shortcuts): its keys replaced, each taken from whichever command had it. */
   setKeys(id: string, keys: string[]): void {
@@ -90,23 +101,34 @@ export class Commands {
   resetKeys(): void { this.byKey.clear(); for (const [id, cmd] of this.map) { cmd.keys = [...(this.defaults.get(id) ?? [])]; for (const k of cmd.keys) this.byKey.set(k, cmd); } }
 
   /** Takes a command away (1.52.6: a plugin turned off or removed). */
-  remove(id: string): void { const c = this.map.get(id); if (!c) return; this.map.delete(id); for (const k of c.keys ?? []) if (this.byKey.get(k) === c) this.byKey.delete(k); }
+  remove(id: string): void { const c = this.map.get(id); if (!c) return; this.map.delete(id); for (const k of c.keys ?? []) if (this.byKey.get(k) === c) this.byKey.delete(k); this.onChange?.(); }
 
   get(id: string): Command | undefined { return this.map.get(id); }
   all(): Command[] { return [...this.map.values()]; }
   label(cmd: Command): string { return typeof cmd.label === 'function' ? cmd.label() : cmd.label; }
   /** What the document allows before a command's own test (1.53.6: a 16-bit document allows its 16-bit commands). */
   gate: ((cmd: Command) => boolean) | null = null;
-  enabled(cmd: Command): boolean { return (!this.gate || this.gate(cmd)) && (cmd.enabled ? cmd.enabled() : true); }
+  enabled(cmd: Command): boolean { return !this.why(cmd) && (!this.gate || this.gate(cmd)) && (cmd.enabled ? cmd.enabled() : true); }
+  blocked: ((cmd: Command) => string) | null = null;
+  why(cmd: Command): string { return this.blocked ? this.blocked(cmd) : ''; }
   keyLabel(cmd: Command): string { const k = cmd.keys?.[0]; return k ? formatKeys(k) : ''; }
   forEvent(e: KeyboardEvent): Command | undefined { return this.byKey.get(comboOf(e)); }
 
-  run(id: string): boolean {
+  run(id: string, params?: Record<string, unknown>): boolean {
     const cmd = this.map.get(id);
     if (!cmd || !this.enabled(cmd)) return false;
     const label = this.label(cmd);
-    cmd.run();
+    cmd.run(params);
     this.onRun?.(cmd, label);
     return true;
+  }
+
+  async call(id: string, params?: Record<string, unknown>): Promise<{ ran: boolean; result?: unknown }> {
+    const cmd = this.map.get(id);
+    if (!cmd || !this.enabled(cmd)) return { ran: false };
+    const label = this.label(cmd);
+    const result = await cmd.run(params);
+    this.onRun?.(cmd, label);
+    return { ran: true, result };
   }
 }
