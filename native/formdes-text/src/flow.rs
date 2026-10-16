@@ -925,6 +925,7 @@ impl<'a> Flower<'a> {
         let mut frag = TableFrag { para: pi, frame: c.frame, column: c.column, rows: Vec::new(), cells: Vec::new() };
         let headers: Vec<usize> = (0..t.header_rows.min(rows)).collect();
         let split_rows = t.attrs.get("splitRows").and_then(|v| v.as_bool()).unwrap_or(false);
+        let continued = t.attrs.get("continued").and_then(|v| v.as_str()).map(str::to_string).filter(|s| !s.trim().is_empty());
         let mut r = 0;
         let mut guard = 0;
         while r < rows {
@@ -971,6 +972,9 @@ impl<'a> Flower<'a> {
                     frag.frame = c.frame;
                     frag.column = c.column;
                     y = self.frames[c.frame].inner.y0;
+                    if let Some(label) = &continued {
+                        y += self.continued_row(label, &col_x, c, y, &mut frag);
+                    }
                     if r >= headers.len() {
                         for hr in &headers {
                             self.table_row(t, &heights, *hr, y, heights[*hr], &col_x, &cell_lines, c, &mut frag);
@@ -986,6 +990,9 @@ impl<'a> Flower<'a> {
                 frag.frame = c.frame;
                 frag.column = c.column;
                 y = self.frames[c.frame].inner.y0;
+                if let Some(label) = &continued {
+                    y += self.continued_row(label, &col_x, c, y, &mut frag);
+                }
                 if r >= headers.len() {
                     for hr in &headers {
                         self.table_row(t, &heights, *hr, y, heights[*hr], &col_x, &cell_lines, c, &mut frag);
@@ -1000,6 +1007,37 @@ impl<'a> Flower<'a> {
         }
         out.tables.push(frag);
         Some(Cursor { frame: c.frame, column: c.column, y: y + 4.0, baseline: Some(y + 4.0), top: false })
+    }
+
+    /// The "continued" row at the top of a table's later frames: one cell across the table holding `label`,
+    /// recorded with row index usize::MAX so styles, fills and edges of real rows never apply to it.
+    fn continued_row(&self, label: &str, col_x: &[f64], c: Cursor, y: f64, frag: &mut TableFrag) -> f64 {
+        let (x0, _) = self.column_x(c.frame, c.column);
+        let width = col_x.last().copied().unwrap_or(0.0);
+        let ins = 4.0;
+        let para = Para::from_text(formdes_model::style::BASIC_PARA, label);
+        let b = para::build(self.styles, &para, None, 0, self.ctx, c.frame);
+        let composer = Composer { fonts: self.fonts };
+        let composed = composer.compose(&b.input, &|_| Slot { left: 0.0, width: (width - 2.0 * ins).max(4.0) }, 1, self.frames[c.frame].right_page);
+        let h: f64 = composed.lines.iter().map(|l| l.leading).sum::<f64>() + 2.0 * ins;
+        let rect = Rect::new(x0, y, x0 + width, y + h);
+        let mut base = y + ins;
+        let mut lines = Vec::new();
+        for l in composed.lines {
+            base += l.leading;
+            let mut l = l;
+            for run in l.runs.iter_mut().chain(l.adorn.iter_mut()) {
+                for g in &mut run.glyphs {
+                    g.x += x0 + ins;
+                }
+                run.x0 += x0 + ins;
+                run.x1 += x0 + ins;
+            }
+            lines.push(PlacedLine { para: 0, frame: c.frame, column: c.column, baseline: base, line: l });
+        }
+        frag.rows.push((usize::MAX, rect));
+        frag.cells.push(CellOut { row: usize::MAX, col: 0, rect, lines, rotate: 0 });
+        h
     }
 
     #[allow(clippy::too_many_arguments)]

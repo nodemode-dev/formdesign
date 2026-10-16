@@ -86,7 +86,7 @@ pub fn hit(doc: &Doc, lay: &DocLayout, frame: ItemId, p: Point) -> Option<CellTe
     let local = doc.world_xf(frame).inverse() * p;
     let st = doc.story(sid)?;
     for frag in sl.flow.tables.iter().filter(|t| t.frame == fi) {
-        let Some(cell) = frag.cells.iter().find(|c| c.rect.contains(local)) else { continue };
+        let Some(cell) = frag.cells.iter().find(|c| c.row != usize::MAX && c.rect.contains(local)) else { continue };
         let at = st.inlines().into_iter().filter(|(_, i)| matches!(i, Inline::Table { .. })).map(|(a, _)| a).find(|a| sl.flow.para_byte(*a).is_some_and(|(pp, _)| pp == frag.para))?;
         let mut ct = CellText { story: sid, at, row: cell.row, col: cell.col, anchor: 0, focus: 0 };
         let ps = paras(doc, &ct)?;
