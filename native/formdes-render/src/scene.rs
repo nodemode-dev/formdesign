@@ -1295,8 +1295,11 @@ impl Ctx<'_> {
             let text = flow.para_texts.get(d.para).map(String::as_str).unwrap_or("");
             self.run(&run, d.baseline, xf, text);
         }
+        let mut ruled: Vec<usize> = Vec::new();
         for n in flow.notes.iter().filter(|n| n.frame == fi) {
-            if let Some(first) = n.lines.first() {
+            let rule = !ruled.contains(&n.column);
+            ruled.push(n.column);
+            if rule && let Some(first) = n.lines.first() {
                 let y = first.baseline - first.line.ascent - 4.0;
                 let x0 = first.line.left;
                 let mut p = BezPath::new();

@@ -836,9 +836,9 @@ impl<'a> Flower<'a> {
         for (k, p) in paras.iter().enumerate() {
             let mut b = para::build(self.styles, p, None, 0, self.ctx, f);
             if k == 0 {
-                let mark = self.ctx.footnote_number(ordinal);
-                let len = mark.len() + 1;
-                b.input.text.insert_str(0, &format!("{mark} "));
+                let mark = self.ctx.footnote_label(ordinal);
+                let len = mark.len();
+                b.input.text.insert_str(0, &mark);
                 for r in &mut b.input.runs {
                     r.range = r.range.start + len..r.range.end + len;
                 }
@@ -1012,9 +1012,12 @@ impl<'a> Flower<'a> {
             if fr.grow {
                 out.frames[fi].grown_height = Some(used - fr.inner.y0);
             }
+            let mut stacked: HashMap<usize, f64> = HashMap::new();
             for n in out.notes.iter_mut().filter(|n| n.frame == fi) {
                 let total = self.note_height.borrow().get(&(fi, n.column)).copied().unwrap_or(0.0);
-                let top = fr.inner.y1 - total;
+                let above = stacked.entry(n.column).or_insert(0.0);
+                let top = fr.inner.y1 - total + *above;
+                *above += n.lines.last().map(|l| l.baseline).unwrap_or(0.0) + 4.0;
                 for l in &mut n.lines {
                     l.baseline += top;
                 }
