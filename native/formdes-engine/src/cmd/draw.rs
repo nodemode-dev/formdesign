@@ -715,7 +715,127 @@ fn repeat(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"id": gid}))
 }
 
+fn hsl_adjust(rgb: [f64; 3], hue: f64, sat: f64, light: f64) -> [f64; 3] {
+    let (r, g, b) = (rgb[0], rgb[1], rgb[2]);
+    let (mx, mn) = (r.max(g).max(b), r.min(g).min(b));
+    let l = (mx + mn) / 2.0;
+    let d = mx - mn;
+    let mut s = if d < 1e-9 { 0.0 } else { d / (1.0 - (2.0 * l - 1.0).abs()).max(1e-9) };
+    let mut h = if d < 1e-9 {
+        0.0
+    } else if mx == r {
+        60.0 * (((g - b) / d).rem_euclid(6.0))
+    } else if mx == g {
+        60.0 * ((b - r) / d + 2.0)
+    } else {
+        60.0 * ((r - g) / d + 4.0)
+    };
+    h = (h + hue).rem_euclid(360.0);
+    s = (s * (1.0 + sat / 100.0)).clamp(0.0, 1.0);
+    let l = if light >= 0.0 { l + (1.0 - l) * light / 100.0 } else { l * (1.0 + light / 100.0) }.clamp(0.0, 1.0);
+    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
+    let x = c * (1.0 - ((h / 60.0).rem_euclid(2.0) - 1.0).abs());
+    let m = l - c / 2.0;
+    let (r1, g1, b1) = match (h / 60.0) as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    [r1 + m, g1 + m, b1 + m]
+}
+
+fn recolor(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use formdes_model::color::{Color, Paint};
+    let ids = items(c, p)?;
+    let (hue, sat, light) = (args::opt_f64(p, "hue").unwrap_or(0.0), args::opt_f64(p, "saturation").unwrap_or(0.0), args::opt_f64(p, "brightness").unwrap_or(0.0));
+    let doc = c.doc()?;
+    let mut map: Vec<([f64; 3], Paint)> = Vec::new();
+    if let Some(list) = p.get("map").and_then(Value::as_array) {
+        for pair in list {
+            let pair = pair.as_array().filter(|a| a.len() == 2).ok_or_else(|| EngineError::new("each map entry is [from, to] (swatch names or #rrggbb)"))?;
+            let (Some(from), Some(to)) = (pair[0].as_str(), pair[1].as_str()) else { return Err(EngineError::new("each map entry is [from, to]")) };
+            let fc = doc.paint_color(&wire::paint_in(from, None)).ok_or_else(|| EngineError::new(format!("no colour for {from}")))?;
+            let tp = wire::paint_in(to, None);
+            if doc.paint_color(&tp).is_none() {
+                return Err(EngineError::new(format!("no colour for {to}")));
+            }
+            map.push((fc.to_rgb(), tp));
+        }
+    }
+    if map.is_empty() && hue == 0.0 && sat == 0.0 && light == 0.0 {
+        return Err(EngineError::new("give map: [[from, to], ...] or a hue, saturation or brightness change"));
+    }
+    let tol = args::opt_f64(p, "tolerance").unwrap_or(2.0) / 100.0;
+    let all = doc.walk(&ids);
+    let close = |a: [f64; 3], b: [f64; 3]| (0..3).all(|i| (a[i] - b[i]).abs() <= tol);
+    let swap = |doc: &formdes_model::doc::Doc, paint: &Paint| -> Option<Paint> {
+        let col = doc.paint_color(paint)?;
+        let rgb = col.to_rgb();
+        if let Some((_, to)) = map.iter().find(|(f, _)| close(*f, rgb)) {
+            return Some(to.clone());
+        }
+        if hue != 0.0 || sat != 0.0 || light != 0.0 {
+            return Some(Paint::Color { color: Color::Rgb(hsl_adjust(rgb, hue, sat, light)) });
+        }
+        None
+    };
+    let mut plan: Vec<(ItemId, Option<Paint>, Option<Paint>, Option<Value>, Option<Value>)> = Vec::new();
+    for id in &all {
+        let Some(it) = doc.item(*id) else { continue };
+        let fill = swap(doc, &it.fill);
+        let stroke = swap(doc, &it.stroke.paint);
+        let app = it.extra.get("appearance").and_then(Value::as_array).map(|list| {
+            Value::Array(list.iter().map(|e| {
+                let mut e = e.clone();
+                if let Some(pt) = e.get("paint").and_then(|v| serde_json::from_value::<Paint>(v.clone()).ok())
+                    && let Some(np) = swap(doc, &pt)
+                {
+                    e["paint"] = serde_json::to_value(np).unwrap_or(Value::Null);
+                }
+                e
+            }).collect())
+        });
+        let free = it.extra.get("freeform").and_then(Value::as_array).map(|pts| {
+            Value::Array(pts.iter().map(|q| {
+                let a: Vec<f64> = q.as_array().map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
+                if a.len() < 5 {
+                    return q.clone();
+                }
+                let rgb = [a[2], a[3], a[4]];
+                let out = match map.iter().find(|(f, _)| close(*f, rgb)) {
+                    Some((_, to)) => doc.paint_color(to).map(|c| c.to_rgb()).unwrap_or(rgb),
+                    None if hue != 0.0 || sat != 0.0 || light != 0.0 => hsl_adjust(rgb, hue, sat, light),
+                    None => rgb,
+                };
+                json!([a[0], a[1], out[0], out[1], out[2]])
+            }).collect())
+        });
+        if fill.is_some() || stroke.is_some() || app.is_some() || free.is_some() {
+            plan.push((*id, fill, stroke, app, free));
+        }
+    }
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for (id, fill, stroke, app, free) in plan {
+        let Some(it) = doc.item_mut(id) else { continue };
+        let mut hit = false;
+        if let Some(f) = fill { it.fill = f; hit = true; }
+        if let Some(s) = stroke { it.stroke.paint = s; hit = true; }
+        if let Some(a) = app { it.extra.insert("appearance".into(), a); }
+        if let Some(f) = free { it.extra.insert("freeform".into(), f); hit = true; }
+        if hit { n += 1; }
+    }
+    c.label("Recolor Artwork");
+    Ok(json!({"objects": n}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.recolor", "Recolor Artwork").menu(&["Edit", "Edit Colors", "Recolor Artwork..."]).needs(Needs::Items)
+        .sig("{map?: [[from, to], ...] (swatch names or #rrggbb), tolerance?: percent (default 2), hue?: degrees, saturation?: percent, brightness?: percent, ids?}")
+        .help("Changes the colours of the selected art at once, inside groups too: map swaps each listed colour for another (a swatch stays linked), and hue, saturation and brightness shift every other colour, as Illustrator's Recolor Artwork does; fills, strokes, extra fills and strokes and freeform gradient points all follow.").reg(r, recolor);
     cmd("object.repeat", "Repeat").menu(&["Object", "Repeat", "Make..."]).needs(Needs::Items)
         .sig("{kind: radial {count, radius} | grid {cols, rows, gapX, gapY, flip: none|rows|cols|both} | mirror {angle (axis, default 90 = vertical), gap}, release?: bool, expand?: bool, ids?}")
         .help("Repeats the selected art live as a radial ring, a grid or a mirrored pair, as Illustrator's Repeat does; editing the original updates every copy; release removes the repeat, expand turns the copies into real objects.").reg(r, repeat);
