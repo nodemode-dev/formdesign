@@ -888,3 +888,10 @@ The same request asks for continued headers. The table's `continued` text is com
 
 Found while testing split rows: Markdown pipe tables were placed as lines of text with their pipes. The importer now recognises a pipe row followed by a separator of dashes (colons and spaces allowed) and the pipe rows after it, and builds the table with the same `table_of` the CSV importer uses (first row as header when there are two or more rows). Bold and underscore markers inside cells are dropped rather than styled; column alignment from the colons is not applied yet.
 
+### anchored objects · text wrap where the flow places them
+- refers-to: native/formdes-text/src/layout.rs :: layout_story_at, anchored_wraps
+- kind: rationale
+- logged: v0.41.0 · 2026-10-16
+
+From the InDesign UserVoice request to make text wrap work for anchored objects placed before their anchor (299 votes). Wrap exclusions are built before the flow from objects' stored positions and skip the story's own anchored objects, whose real position is only known once the flow places their anchors, so a custom-positioned anchored object with wrap pushed no text aside. `layout_story_at` now flows once, takes every custom-positioned anchored object with a wrap mode, sets its bounds at the anchor point in the frame's coordinates (the same corner the renderer uses) grown by its offsets, adds them to the frames' exclusions and flows again, up to three passes and stopping when the anchored positions stop moving (text before the anchor can reflow and move the anchor itself). Text both before and after the anchor wraps, which is what the request asks for. Contour wrap on anchored objects uses the bounds; inline and above-line anchored objects are unchanged; vertical frames are skipped.
+

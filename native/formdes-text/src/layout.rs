@@ -164,6 +164,25 @@ fn exclusions(doc: &Doc, frame: ItemId, inv: Affine) -> Vec<Exclusion> {
     out
 }
 
+/// Text wrap for the story's own custom-positioned anchored objects, where the flow placed them: the object's
+/// bounds set at its anchor point in the frame's coordinates, grown by its wrap offsets. Contour wrap uses the bounds.
+fn anchored_wraps(doc: &Doc, flow: &Flow, specs: &[FrameSpec]) -> Vec<(usize, ItemId, Exclusion)> {
+    let mut out = Vec::new();
+    for a in flow.anchors.iter().filter(|a| !a.inline) {
+        let Some(it) = doc.item(a.item) else { continue };
+        let Some(w) = &it.wrap else { continue };
+        if w.mode == WrapMode::None || it.hidden || specs.get(a.frame).is_none_or(|s| s.vertical) {
+            continue;
+        }
+        let b = it.xf.transform_rect_bbox(it.shape.bbox());
+        let o = &w.offsets;
+        let rect = Rect::new(a.x - o.inside, a.y - o.top, a.x + b.width() + o.outside, a.y + b.height() + o.bottom);
+        let mode = if w.mode == WrapMode::Contour { WrapMode::BoundingBox } else { w.mode };
+        out.push((a.frame, a.item, Exclusion { rect, mode, side: w.side.clone(), path: None, pad: o.max(), invert: w.invert }));
+    }
+    out
+}
+
 pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
     let it = doc.item(id)?;
     let ItemKind::Text(t) = &it.kind else { return None };
@@ -244,9 +263,27 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         let lay = onpath::lay(fonts, &inputs, &path, pt.start, pt.flip, &pt.align);
         return Some(StoryLayout { story: sid, frames, specs: Vec::new(), flow: Flow::default(), on_path: Some(lay) });
     }
-    let specs: Vec<FrameSpec> = frames.iter().filter_map(|f| frame_spec(doc, *f)).collect();
-    let flower = Flower::new(fonts, &doc.styles, &specs, &ctx);
-    let flow = flower.flow(&story.paras);
+    let mut specs: Vec<FrameSpec> = frames.iter().filter_map(|f| frame_spec(doc, *f)).collect();
+    let base: Vec<usize> = specs.iter().map(|s| s.exclusions.len()).collect();
+    let mut flow = Flower::new(fonts, &doc.styles, &specs, &ctx).flow(&story.paras);
+    let mut last: Vec<(ItemId, usize, i64, i64)> = Vec::new();
+    for _ in 0..3 {
+        let wraps = anchored_wraps(doc, &flow, &specs);
+        let key: Vec<(ItemId, usize, i64, i64)> = wraps.iter().map(|(f, item, e)| (*item, *f, e.rect.x0.round() as i64, e.rect.y0.round() as i64)).collect();
+        if wraps.is_empty() || key == last {
+            break;
+        }
+        for (s, n) in specs.iter_mut().zip(&base) {
+            s.exclusions.truncate(*n);
+        }
+        for (f, _, e) in wraps {
+            if let Some(s) = specs.get_mut(f) {
+                s.exclusions.push(e);
+            }
+        }
+        last = key;
+        flow = Flower::new(fonts, &doc.styles, &specs, &ctx).flow(&story.paras);
+    }
     Some(StoryLayout { story: sid, frames, specs, flow, on_path: None })
 }
 
