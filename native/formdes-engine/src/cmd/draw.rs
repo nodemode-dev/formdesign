@@ -862,6 +862,32 @@ fn brush(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+/// Moving-least-squares rigid deformation (Schaefer, McPhail and Warren 2006) of `v` by pins moved from p to q:
+/// the best rotation and translation for the pins weighted by 1 / distance squared, in complex form.
+fn puppet_point(pins: &[(kurbo::Point, kurbo::Point)], v: kurbo::Point) -> kurbo::Point {
+    let mut ws = Vec::with_capacity(pins.len());
+    for (p, _) in pins {
+        let d2 = p.distance_squared(v);
+        if d2 < 1e-9 {
+            return pins.iter().find(|(a, _)| a.distance_squared(v) < 1e-9).map(|x| x.1).unwrap_or(v);
+        }
+        ws.push(1.0 / d2);
+    }
+    let wsum: f64 = ws.iter().sum();
+    let ps = pins.iter().zip(&ws).fold(Vec2::ZERO, |m, ((p, _), w)| m + p.to_vec2() * *w) / wsum;
+    let qs = pins.iter().zip(&ws).fold(Vec2::ZERO, |m, ((_, q), w)| m + q.to_vec2() * *w) / wsum;
+    let (mut re, mut im) = (0.0, 0.0);
+    for ((p, q), w) in pins.iter().zip(&ws) {
+        let (ph, qh) = (p.to_vec2() - ps, q.to_vec2() - qs);
+        re += w * (ph.x * qh.x + ph.y * qh.y);
+        im += w * (ph.x * qh.y - ph.y * qh.x);
+    }
+    let mag = (re * re + im * im).sqrt();
+    let (a, b) = if mag < 1e-12 { (1.0, 0.0) } else { (re / mag, im / mag) };
+    let d = v.to_vec2() - ps;
+    (Vec2::new(a * d.x - b * d.y, a * d.y + b * d.x) + qs).to_point()
+}
+
 fn envelope(c: &mut Ctx, p: &Value) -> Result<Value> {
     use formdes_model::effects;
     let ids = items(c, p)?;
@@ -947,7 +973,28 @@ fn envelope(c: &mut Ctx, p: &Value) -> Result<Value> {
             }
             (ids.clone(), frame, cols, rows, grid, None)
         }
-        _ => return Err(EngineError::new("kind is topObject or mesh")),
+        "puppet" => {
+            let pins: Vec<(kurbo::Point, kurbo::Point)> = p.get("pins").and_then(Value::as_array).map(|a| a.iter().filter_map(|m| {
+                let m = m.as_array()?;
+                let (x, y) = (m.first()?.as_f64()?, m.get(1)?.as_f64()?);
+                let (dx, dy) = (m.get(2).and_then(Value::as_f64).unwrap_or(0.0), m.get(3).and_then(Value::as_f64).unwrap_or(0.0));
+                Some((kurbo::Point::new(x, y), kurbo::Point::new(x + dx, y + dy)))
+            }).collect()).unwrap_or_default();
+            if pins.is_empty() {
+                return Err(EngineError::new("pins is a list of [x, y, dx, dy] in spread points: where each pin sits and how far it moves (0, 0 holds it)"));
+            }
+            let frame = ops::union_bounds(doc, &ids).ok_or_else(|| EngineError::new("nothing to warp"))?;
+            let n = args::opt_u64(p, "cols").unwrap_or(16).clamp(2, 64) as usize;
+            let mut grid = Vec::new();
+            for j in 0..=n {
+                for i in 0..=n {
+                    let v = kurbo::Point::new(frame.x0 + frame.width() * i as f64 / n as f64, frame.y0 + frame.height() * j as f64 / n as f64);
+                    grid.push(puppet_point(&pins, v));
+                }
+            }
+            (ids.clone(), frame, n, n, grid, None)
+        }
+        _ => return Err(EngineError::new("kind is topObject, mesh or puppet")),
     };
     let leaves = leaves_of(doc, &targets);
     let env = json!({"frame": [frame.x0, frame.y0, frame.x1, frame.y1], "cols": cols, "rows": rows, "grid": grid.iter().map(|q| json!([q.x, q.y])).collect::<Vec<_>>()});
@@ -967,8 +1014,8 @@ fn envelope(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 pub fn register(r: &mut Registry) {
     cmd("object.envelope", "Envelope Distort").menu(&["Object", "Envelope Distort", "Make..."]).needs(Needs::Items)
-        .sig("{kind: topObject {cols?: grid detail (16)} | mesh {cols?, rows? (4)}, moves?: [[col, row, dx, dy], ...] (move mesh points; on an existing envelope edits it), release?: bool, expand?: bool, ids?}")
-        .help("Bends the selected art to a shape, as Illustrator's Envelope Distort does: with topObject the topmost closed shape becomes the envelope and the art beneath fills it; with mesh the art is laid on a grid whose points can be moved; release removes the distortion and expand bakes it into the paths.").reg(r, envelope);
+        .sig("{kind: topObject {cols?: grid detail (16)} | mesh {cols?, rows? (4)} | puppet {pins: [[x, y, dx, dy], ...] (spread points; 0, 0 holds a pin), cols?}, moves?: [[col, row, dx, dy], ...] (move mesh points; on an existing envelope edits it), release?: bool, expand?: bool, ids?}")
+        .help("Bends the selected art to a shape, as Illustrator's Envelope Distort does: with topObject the topmost closed shape becomes the envelope and the art beneath fills it; with mesh the art is laid on a grid whose points can be moved; with puppet the art bends around pins, moved pins dragging it and still pins holding it, as Puppet Warp does; release removes the distortion and expand bakes it into the paths.").reg(r, envelope);
     cmd("object.brush", "Apply Brush").menu(&["Object", "Brush..."]).needs(Needs::Items)
         .sig("{kind: calligraphic {size?: pt (default the stroke weight), angle?: deg (45), roundness?: percent (30)} | scatter {symbol, spacing?: pt (default the symbol's size), scale?: percent, rotate?: bool (follow the path, default true)} | art {symbol, width?: percent, flip?: bool} | none, ids?}")
         .help("Draws the stroke with a brush, as Illustrator's brushes do: calligraphic strokes vary in width with the direction of the path like an angled pen nib; scatter brushes place copies of a symbol along the path; art brushes stretch a symbol's art along the whole path; none restores the plain stroke. The stroke's colour paints calligraphic strokes.").reg(r, brush);
