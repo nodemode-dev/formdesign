@@ -603,7 +603,9 @@ impl Ctx<'_> {
                 self.shadow(it, &path);
                 let masks = self.feather(it, &path);
                 self.appearance(it, &local, xf, false);
+                let free = it.shape.closed() && self.freeform(it, &local, &path, xf);
                 if it.shape.closed()
+                    && !free
                     && let Some(b) = brush_of(self.doc, &it.fill, 1.0, bbox, xf)
                 {
                     let even_odd = it.extra.get("fillRule").and_then(|v| v.as_str()) == Some("evenodd");
@@ -712,6 +714,57 @@ impl Ctx<'_> {
         if blended {
             self.ops.push(Op::Pop);
         }
+    }
+
+    fn freeform(&mut self, it: &Item, local: &BezPath, path: &BezPath, xf: Affine) -> bool {
+        let Some(pts) = it.extra.get("freeform").and_then(|v| v.as_array()) else { return false };
+        let pts: Vec<[f64; 5]> = pts.iter().filter_map(|q| {
+            let q = q.as_array()?;
+            let n = |i: usize| q.get(i).and_then(|v| v.as_f64());
+            Some([n(0)?, n(1)?, n(2)?, n(3)?, n(4)?])
+        }).collect();
+        if pts.is_empty() {
+            return false;
+        }
+        let bb = local.bounding_box();
+        if bb.width() <= 0.0 || bb.height() <= 0.0 {
+            return false;
+        }
+        let k = {
+            let c = xf.as_coeffs();
+            (c[0] * c[3] - c[1] * c[2]).abs().sqrt()
+        };
+        let n = ((bb.width().max(bb.height()) * k / 3.0).ceil() as usize).clamp(16, 96);
+        let (cw, ch) = (bb.width() / n as f64, bb.height() / n as f64);
+        let power = it.extra.get("freeformSpread").and_then(|v| v.as_f64()).unwrap_or(2.0).clamp(0.5, 8.0);
+        self.ops.push(Op::PushClip(path.clone()));
+        for j in 0..n {
+            for i in 0..n {
+                let (u, v) = ((i as f64 + 0.5) / n as f64, (j as f64 + 0.5) / n as f64);
+                let mut acc = [0.0; 3];
+                let mut wsum = 0.0;
+                let mut exact = None;
+                for p in &pts {
+                    let d2 = ((u - p[0]) * bb.width()).powi(2) + ((v - p[1]) * bb.height()).powi(2);
+                    if d2 < 1e-9 {
+                        exact = Some([p[2], p[3], p[4]]);
+                        break;
+                    }
+                    let w = 1.0 / d2.powf(power / 2.0);
+                    for c in 0..3 {
+                        acc[c] += p[2 + c] * w;
+                    }
+                    wsum += w;
+                }
+                let rgb = exact.unwrap_or([acc[0] / wsum, acc[1] / wsum, acc[2] / wsum]);
+                let x0 = bb.x0 + i as f64 * cw;
+                let y0 = bb.y0 + j as f64 * ch;
+                let cell = Rect::new(x0 - cw * 0.3, y0 - ch * 0.3, x0 + cw * 1.3, y0 + ch * 1.3);
+                self.ops.push(Op::Fill { path: xf * cell.to_path(0.1), brush: Brush::Solid(Color::Rgb(rgb), 1.0), even_odd: false });
+            }
+        }
+        self.ops.push(Op::Pop);
+        true
     }
 
     fn appearance(&mut self, it: &Item, local: &BezPath, xf: Affine, above: bool) {

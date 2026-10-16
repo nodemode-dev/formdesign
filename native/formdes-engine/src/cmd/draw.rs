@@ -613,7 +613,50 @@ fn isolate_blending(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+fn freeform_gradient(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let clear = args::opt_bool(p, "clear").unwrap_or(false);
+    let mut pts = Vec::new();
+    if !clear {
+        let doc = c.doc()?;
+        let list = p.get("points").and_then(Value::as_array).ok_or_else(|| EngineError::new("`points` is a list of [x 0..1, y 0..1, colour] across the object's bounds (colour a swatch name or #rrggbb), or clear: true"))?;
+        for q in list {
+            let q = q.as_array().filter(|q| q.len() >= 3).ok_or_else(|| EngineError::new("each point is [x, y, colour]"))?;
+            let (Some(u), Some(v), Some(name)) = (q[0].as_f64(), q[1].as_f64(), q[2].as_str()) else {
+                return Err(EngineError::new("each point is [x 0..1, y 0..1, colour]"));
+            };
+            let col = doc.paint_color(&wire::paint_in(name, None)).ok_or_else(|| EngineError::new(format!("no colour for {name}: use a swatch name or #rrggbb")))?;
+            let rgb = col.to_rgb();
+            pts.push(json!([u.clamp(0.0, 1.0), v.clamp(0.0, 1.0), rgb[0], rgb[1], rgb[2]]));
+        }
+        if pts.is_empty() {
+            return Err(EngineError::new("give at least one point"));
+        }
+    }
+    let spread = args::opt_f64(p, "spread");
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for id in &ids {
+        let Some(it) = doc.item_mut(*id) else { continue };
+        if clear {
+            it.extra.remove("freeform");
+            it.extra.remove("freeformSpread");
+        } else {
+            it.extra.insert("freeform".into(), Value::Array(pts.clone()));
+            match spread {
+                Some(s) => { it.extra.insert("freeformSpread".into(), json!(s)); }
+                None => { it.extra.remove("freeformSpread"); }
+            }
+        }
+        n += 1;
+    }
+    c.label("Freeform Gradient");
+    Ok(json!({"items": n}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.freeformGradient", "Freeform Gradient").menu(&["Object", "Freeform Gradient..."]).needs(Needs::Items).sig("{points: [[x 0..1, y 0..1, colour (swatch or #rrggbb)], ...] across the object's bounds, spread?: 0.5..8 (how far each colour reaches; default 2), clear?: bool, ids?}")
+        .help("Fills the shape with colours placed at points that blend smoothly into each other, as Illustrator's freeform gradient in Points mode does; a lower spread mixes the colours more evenly, a higher one keeps each colour around its point; clear goes back to the ordinary fill.").reg(r, freeform_gradient);
     cmd("object.opacityMask", "Make Opacity Mask").menu(&["Object", "Opacity Mask", "Make Opacity Mask"]).needs(Needs::Items).sig("{clip?: bool (default true: outside the mask is hidden), release?: bool, ids?}")
         .help("Groups the selected objects and uses the topmost one's brightness as their opacity (white shows, black hides, greys fade), as Illustrator's opacity masks do; clip false keeps what lies outside the mask visible; release turns the mask back into a visible object in the group.").reg(r, opacity_mask);
     cmd("object.clippingMask", "Make Clipping Mask").menu(&["Object", "Clipping Mask", "Make"]).needs(Needs::Items).sig("{release?: bool, ids?}")
