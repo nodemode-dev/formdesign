@@ -876,8 +876,16 @@ impl<'a> Flower<'a> {
 
     fn place_table(&self, pi: usize, t: &Table, cur: Cursor, out: &mut Flow) -> Option<Cursor> {
         let composer = Composer { fonts: self.fonts };
+        let mut widths = t.widths.clone();
+        for cell in t.cells.iter().filter(|cl| cl.cols == 1) {
+            if let Some(w) = t.cell_attrs(self.styles, cell).get("width").and_then(|v| v.as_f64()).filter(|w| *w > 0.0)
+                && let Some(slot) = widths.get_mut(cell.col)
+            {
+                *slot = w;
+            }
+        }
         let mut col_x = vec![0.0];
-        for w in &t.widths {
+        for w in &widths {
             col_x.push(col_x.last().copied().unwrap_or(0.0) + w);
         }
         let mut cell_lines: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
@@ -926,6 +934,16 @@ impl<'a> Flower<'a> {
                 if let Some(h) = h {
                     heights[cell.row] = heights[cell.row].max(h);
                 }
+            }
+        }
+        for cell in t.cells.iter().filter(|cl| cl.rows == 1) {
+            let Some(attrs) = eff.get(&(cell.row, cell.col)) else { continue };
+            let num = |k: &str| attrs.get(k).and_then(|v| v.as_f64()).filter(|v| *v > 0.0);
+            if let Some(mh) = num("minHeight") {
+                heights[cell.row] = heights[cell.row].max(mh);
+            }
+            if let Some(h) = num("height") {
+                heights[cell.row] = h;
             }
         }
         for cell in &t.cells {

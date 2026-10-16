@@ -294,6 +294,11 @@ pub fn validate_cell_style(doc: &formdes_model::doc::Doc, o: &serde_json::Map<St
                     return Err(EngineError::new(format!("`paraStyle`: no paragraph style named {name}")));
                 }
             }
+            "width" | "minHeight" | "height" => {
+                if !v.as_f64().is_some_and(|d| d > 0.0 && d < 5000.0) {
+                    return Err(EngineError::new(format!("`{k}` expects a size in points above 0")));
+                }
+            }
             "rotate" => {
                 if !v.as_f64().is_some_and(|d| matches!(d.round() as i64, 0 | 90 | 180 | 270 | -90 | -180 | -270)) {
                     return Err(EngineError::new("`rotate` expects 0, 90, 180 or 270 degrees"));
