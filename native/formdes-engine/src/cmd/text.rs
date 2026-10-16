@@ -690,7 +690,7 @@ fn object_style_attrs(it: &formdes_model::item::Item) -> Map<String, Value> {
         m.insert("wrap".into(), serde_json::to_value(w).unwrap_or(Value::Null));
     }
     if let Some(t) = it.text() {
-        m.insert("textFrame".into(), json!({"columns": t.columns, "gutter": t.gutter, "insets": t.insets, "vjust": t.vjust, "autosize": t.autosize, "ignoreWrap": t.ignore_wrap}));
+        m.insert("textFrame".into(), json!({"columns": t.columns, "gutter": t.gutter, "insets": t.insets, "vjust": t.vjust, "autosize": t.autosize, "ignoreWrap": t.ignore_wrap, "spanFootnotes": t.span_notes}));
     }
     m
 }
@@ -735,6 +735,9 @@ pub fn apply_object_style(doc: &mut formdes_model::doc::Doc, id: ItemId, attrs: 
         }
         if let Some(v) = tf.get("ignoreWrap").and_then(Value::as_bool) {
             t.ignore_wrap = v;
+        }
+        if let Some(v) = tf.get("spanFootnotes").and_then(Value::as_bool) {
+            t.span_notes = v;
         }
     }
     let sid = it.story();

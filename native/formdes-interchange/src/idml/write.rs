@@ -452,7 +452,7 @@ impl W<'_> {
                 let i = &tf.insets;
                 let _ = write!(
                     out,
-                    "<TextFrame{common} ParentStory=\"{}\" PreviousTextFrame=\"{prev}\" NextTextFrame=\"{next}\" ContentType=\"TextType\">{geo}{}<TextFramePreference TextColumnCount=\"{}\" TextColumnGutter=\"{}\" InsetSpacing=\"{} {} {} {}\" VerticalJustification=\"{vj}\" FirstBaselineOffset=\"{fb}\" MinimumFirstBaselineOffset=\"{}\" AutoSizingType=\"{auto}\" IgnoreWrap=\"{}\" UseFixedColumnWidth=\"{}\" UseFlexibleColumnWidth=\"{}\" TextColumnFixedWidth=\"{}\" TextColumnMaxWidth=\"{}\"/>",
+                    "<TextFrame{common} ParentStory=\"{}\" PreviousTextFrame=\"{prev}\" NextTextFrame=\"{next}\" ContentType=\"TextType\">{geo}{}<TextFramePreference TextColumnCount=\"{}\" TextColumnGutter=\"{}\" InsetSpacing=\"{} {} {} {}\" VerticalJustification=\"{vj}\" FirstBaselineOffset=\"{fb}\" MinimumFirstBaselineOffset=\"{}\" AutoSizingType=\"{auto}\" IgnoreWrap=\"{}\" UseFixedColumnWidth=\"{}\" UseFlexibleColumnWidth=\"{}\" TextColumnFixedWidth=\"{}\" TextColumnMaxWidth=\"{}\" FootnotesSpanAcrossColumns=\"{}\"/>",
                     uid(tf.story.0),
                     self.wrap(it),
                     tf.column_plan((it.shape.bbox().width() - i.inside - i.outside).max(1.0)).0,
@@ -466,7 +466,8 @@ impl W<'_> {
                     tf.column_rule == formdes_model::item::ColumnRule::Fixed,
                     tf.column_rule == formdes_model::item::ColumnRule::Flexible,
                     num(tf.fixed_column_width.unwrap_or(0.0)),
-                    num(tf.max_column_width)
+                    num(tf.max_column_width),
+                    tf.span_notes
                 );
                 if let Some(pt) = &tf.on_path {
                     let _ = write!(out, "<TextPath Self=\"{}tp\" ParentStory=\"{}\" StartBracket=\"{}\" FlipPathEffect=\"{}\" PathAlignment=\"{}\"/>", uid(id.0), uid(tf.story.0), num(pt.start), if pt.flip { "Flipped" } else { "NotFlipped" }, esc(&pt.align));

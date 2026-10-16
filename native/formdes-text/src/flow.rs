@@ -41,6 +41,8 @@ pub struct FrameSpec {
     pub page: usize,
     pub shape: Option<BezPath>,
     pub vertical: bool,
+    pub span_notes: bool,
+    pub note_reserve: f64,
 }
 
 #[derive(Clone)]
@@ -115,6 +117,7 @@ pub struct FrameOut {
     pub first_para: Option<usize>,
     pub last_para: Option<usize>,
     pub grown_height: Option<f64>,
+    pub note_room: f64,
 }
 
 #[derive(Clone, Default)]
@@ -262,10 +265,17 @@ impl<'a> Flower<'a> {
         (x, w)
     }
 
+    fn note_key(&self, f: usize, c: usize) -> (usize, usize) {
+        if self.frames[f].span_notes { (f, 0) } else { (f, c) }
+    }
+
     fn bottom(&self, f: usize, c: usize) -> f64 {
         let fr = &self.frames[f];
         let base = if fr.grow { fr.inner.y0 + GROW_LIMIT } else { fr.inner.y1 };
-        let notes = self.note_height.borrow().get(&(f, c)).copied().unwrap_or(0.0);
+        let mut notes = self.note_height.borrow().get(&self.note_key(f, c)).copied().unwrap_or(0.0);
+        if fr.span_notes {
+            notes = notes.max(fr.note_reserve);
+        }
         base - if notes > 0.0 { notes + NOTE_GAP } else { 0.0 }
     }
 
@@ -678,7 +688,7 @@ impl<'a> Flower<'a> {
                             && *at < line.end.max(line.start + 1)
                         {
                             let h = self.place_note(*ordinal, paras, slot.frame, slot.column, out);
-                            *self.note_height.borrow_mut().entry((slot.frame, slot.column)).or_insert(0.0) += h;
+                            *self.note_height.borrow_mut().entry(self.note_key(slot.frame, slot.column)).or_insert(0.0) += h;
                             added.push(h);
                         }
                     }
@@ -686,7 +696,7 @@ impl<'a> Flower<'a> {
                     if not_first && baseline + line.descent > self.bottom(slot.frame, slot.column) + 0.5 {
                         for h in added.iter().rev() {
                             out.notes.pop();
-                            *self.note_height.borrow_mut().entry((slot.frame, slot.column)).or_insert(0.0) -= h;
+                            *self.note_height.borrow_mut().entry(self.note_key(slot.frame, slot.column)).or_insert(0.0) -= h;
                         }
                         let next = Cursor { frame: slot.frame, column: slot.column, y: 0.0, baseline: None, top: true };
                         match self.next_column(next) {
@@ -847,7 +857,9 @@ impl<'a> Flower<'a> {
     }
 
     fn place_note(&self, ordinal: usize, paras: &[Para], f: usize, c: usize, out: &mut Flow) -> f64 {
-        let (x, w) = self.column_x(f, c);
+        let span = self.frames[f].span_notes;
+        let (x, w) = if span { (self.frames[f].inner.x0, self.frames[f].inner.width().max(1.0)) } else { self.column_x(f, c) };
+        let c = if span { 0 } else { c };
         let mut lines = Vec::new();
         let mut y = 0.0;
         let composer = Composer { fonts: self.fonts };
@@ -1146,6 +1158,9 @@ impl<'a> Flower<'a> {
             out.frames[fi].used = used - fr.inner.y0;
             if fr.grow {
                 out.frames[fi].grown_height = Some(used - fr.inner.y0);
+            }
+            if fr.span_notes {
+                out.frames[fi].note_room = self.note_height.borrow().get(&(fi, 0)).copied().unwrap_or(0.0);
             }
             let mut stacked: HashMap<usize, f64> = HashMap::new();
             for n in out.notes.iter_mut().filter(|n| n.frame == fi) {

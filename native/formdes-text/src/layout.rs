@@ -248,6 +248,8 @@ pub fn frame_spec(doc: &Doc, id: ItemId) -> Option<FrameSpec> {
         page: page.unwrap_or(0),
         shape,
         vertical: t.vertical,
+        span_notes: t.span_notes && !t.vertical && t.column_plan(inner.width()).0 > 1,
+        note_reserve: 0.0,
     })
 }
 
@@ -304,6 +306,22 @@ pub fn layout_story_at(doc: &Doc, fonts: &FontBook, sid: StoryId, page: Option<u
         }
         last = key;
         flow = Flower::new(fonts, &doc.styles, &specs, &ctx).flow(&story.paras);
+    }
+    if specs.iter().any(|s| s.span_notes) && !flow.notes.is_empty() {
+        for _ in 0..3 {
+            let mut moved = false;
+            for (i, s) in specs.iter_mut().enumerate().filter(|(_, s)| s.span_notes) {
+                let want = flow.frames.get(i).map(|f| f.note_room).unwrap_or(0.0);
+                if (want - s.note_reserve).abs() > 0.5 {
+                    s.note_reserve = want;
+                    moved = true;
+                }
+            }
+            if !moved {
+                break;
+            }
+            flow = Flower::new(fonts, &doc.styles, &specs, &ctx).flow(&story.paras);
+        }
     }
     let restart = doc.prefs.get("footnotes").and_then(|v| v.get("restart")).and_then(|v| v.as_str()).unwrap_or("").to_string();
     if (restart == "page" || restart == "section") && !flow.notes.is_empty() {

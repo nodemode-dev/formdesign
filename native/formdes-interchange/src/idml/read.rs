@@ -487,6 +487,7 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
             _ => AutoSize::Off,
         };
         tf.ignore_wrap = p.flag("IgnoreWrap") == Some(true);
+        tf.span_notes = p.flag("FootnotesSpanAcrossColumns") == Some(true);
     }
     if let ItemKind::Text(tf) = &mut it.kind
         && let Some(tp) = el.child("TextPath")

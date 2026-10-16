@@ -730,6 +730,7 @@ fn text_frame_options(c: &mut Ctx, p: &Value) -> Result<Value> {
     });
     let ignore = args::opt_bool(p, "ignoreWrap");
     let balance = args::opt_bool(p, "balanceColumns");
+    let span_notes = args::opt_bool(p, "spanFootnotes");
     let vertical = match args::opt_str(p, "orientation") {
         None => args::opt_bool(p, "vertical"),
         Some("vertical") => Some(true),
@@ -788,6 +789,9 @@ fn text_frame_options(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         if let Some(b) = balance {
             t.balance = b;
+        }
+        if let Some(s) = span_notes {
+            t.span_notes = s;
         }
         if let Some(v) = vertical {
             t.vertical = v;
@@ -1377,7 +1381,7 @@ pub fn register(r: &mut Registry) {
     cmd("object.rename", "Rename").needs(Needs::Items).sig("{id, name}").reg(r, rename);
     cmd("object.setFlags", "Object Flags").needs(Needs::Items).sig("{hidden? | locked?, ids?}").reg(r, set_flags);
     cmd("object.setLayer", "Move to Layer").needs(Needs::Items).sig("{layer: layer id, ids?}").reg(r, set_layer);
-    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, orientation?: horizontal|vertical (vertical lines run top to bottom, columns right to left), columnRule?: fixedNumber|fixedWidth|flexibleWidth, columnWidth?: pt (fixedWidth), maxColumnWidth?: pt (flexibleWidth), ids?}").reg(r, text_frame_options);
+    cmd("object.textFrameOptions", "Text Frame Options").menu(&["Object", "Text Frame Options..."]).key("Mod+B").needs(Needs::Items).sig("{columns?, gutter?, inset?: pt|[t,l,b,r], verticalJustification?, autoSize?, ignoreWrap?, balanceColumns?, spanFootnotes?: bool (footnotes run across all columns at the bottom of the frame), orientation?: horizontal|vertical (vertical lines run top to bottom, columns right to left), columnRule?: fixedNumber|fixedWidth|flexibleWidth, columnWidth?: pt (fixedWidth), maxColumnWidth?: pt (flexibleWidth), ids?}").reg(r, text_frame_options);
     cmd("object.textWrap", "Text Wrap").menu(&["Object", "Text Wrap..."]).needs(Needs::Items).sig("{mode: none|boundingBox|contour|jumpObject|jumpToNextColumn, offset?: pt, invert?, ids?}").reg(r, text_wrap);
     cmd("object.duplicate", "Duplicate").menu(&["Edit", "Duplicate"]).key("Mod+Alt+Shift+D").needs(Needs::Items).sig("{dx?, dy?, ids?}").reg(r, duplicate);
     cmd("transform.flip", "Flip").menu(&["Object", "Transform"]).needs(Needs::Items).sig("{axis: horizontal|vertical, ids?}").reg(r, flip);

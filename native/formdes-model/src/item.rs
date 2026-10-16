@@ -299,6 +299,8 @@ pub struct TextFrame {
     pub balance: bool,
     #[serde(default)]
     pub ignore_wrap: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub span_notes: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_path: Option<PathText>,
     #[serde(default)]
@@ -322,7 +324,7 @@ pub enum ColumnRule {
 
 impl TextFrame {
     pub fn new(story: StoryId) -> TextFrame {
-        TextFrame { story, columns: 1, gutter: 12.0, insets: Edges::default(), vjust: VJust::Top, first_baseline: FirstBaseline::Ascent, first_baseline_min: 0.0, autosize: AutoSize::Off, balance: false, ignore_wrap: false, on_path: None, fixed_column_width: None, column_rule: ColumnRule::Number, max_column_width: 0.0, vertical: false }
+        TextFrame { story, columns: 1, gutter: 12.0, insets: Edges::default(), vjust: VJust::Top, first_baseline: FirstBaseline::Ascent, first_baseline_min: 0.0, autosize: AutoSize::Off, balance: false, ignore_wrap: false, span_notes: false, on_path: None, fixed_column_width: None, column_rule: ColumnRule::Number, max_column_width: 0.0, vertical: false }
     }
 
     pub fn column_plan(&self, inner_width: f64) -> (u32, Option<f64>) {
