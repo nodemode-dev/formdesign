@@ -654,7 +654,71 @@ fn freeform_gradient(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+fn repeat(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let release = args::opt_bool(p, "release").unwrap_or(false);
+    let expand = args::opt_bool(p, "expand").unwrap_or(false);
+    let doc = c.doc_mut()?;
+    let single_group = ids.len() == 1 && doc.item(ids[0]).is_some_and(|i| matches!(i.kind, ItemKind::Group { .. }));
+    if release || expand {
+        let gid = if single_group { ids[0] } else { match doc.item(ids[0]).and_then(|i| i.group) { Some(g) => g, None => ids[0] } };
+        let Some(spec) = doc.item(gid).and_then(|g| g.extra.get("repeat").cloned()) else {
+            return Err(EngineError::new("the selection is not a Repeat"));
+        };
+        if expand {
+            let g_world = doc.world_xf(gid);
+            let xfs = formdes_render::scene::repeat_xfs(&spec, doc.bounds(gid));
+            let kids = doc.item(gid).map(|g| g.children()).unwrap_or_default();
+            let mut made = Vec::new();
+            for t in xfs.iter().skip(1) {
+                for k in &kids {
+                    let Some(nid) = ops::duplicate(doc, *k, Vec2::ZERO, None) else { continue };
+                    if let Some(it) = doc.item_mut(nid) {
+                        it.xf = g_world.inverse() * *t * g_world * it.xf;
+                    }
+                    made.push(nid);
+                }
+            }
+            if let Some(g) = doc.item_mut(gid) {
+                g.extra.remove("repeat");
+            }
+            c.label("Expand Repeat");
+            return Ok(json!({"id": gid, "added": made.len()}));
+        }
+        if let Some(g) = doc.item_mut(gid) {
+            g.extra.remove("repeat");
+        }
+        c.label("Release Repeat");
+        return Ok(json!({"id": gid}));
+    }
+    let kind = args::opt_str(p, "kind").filter(|k| ["radial", "grid", "mirror"].contains(k)).ok_or_else(|| EngineError::new("kind is radial, grid or mirror (or release: true, expand: true)"))?;
+    let mut spec = p.as_object().cloned().unwrap_or_default();
+    for k in ["ids", "release", "expand"] {
+        spec.remove(k);
+    }
+    spec.insert("kind".into(), json!(kind));
+    let gid = if single_group {
+        ids[0]
+    } else if ids.len() == 1 {
+        let dummy = ops::duplicate(doc, ids[0], Vec2::ZERO, None).ok_or_else(|| EngineError::new("cannot group the object"))?;
+        let g = ops::group(doc, &[ids[0], dummy])?;
+        doc.remove_item(dummy);
+        g
+    } else {
+        ops::group(doc, &super::art::paint_order(doc, &ids))?
+    };
+    if let Some(g) = doc.item_mut(gid) {
+        g.extra.insert("repeat".into(), Value::Object(spec));
+    }
+    c.set_selection(Selection::items(vec![gid]));
+    c.label("Repeat");
+    Ok(json!({"id": gid}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.repeat", "Repeat").menu(&["Object", "Repeat", "Make..."]).needs(Needs::Items)
+        .sig("{kind: radial {count, radius} | grid {cols, rows, gapX, gapY, flip: none|rows|cols|both} | mirror {angle (axis, default 90 = vertical), gap}, release?: bool, expand?: bool, ids?}")
+        .help("Repeats the selected art live as a radial ring, a grid or a mirrored pair, as Illustrator's Repeat does; editing the original updates every copy; release removes the repeat, expand turns the copies into real objects.").reg(r, repeat);
     cmd("object.freeformGradient", "Freeform Gradient").menu(&["Object", "Freeform Gradient..."]).needs(Needs::Items).sig("{points: [[x 0..1, y 0..1, colour (swatch or #rrggbb)], ...] across the object's bounds, spread?: 0.5..8 (how far each colour reaches; default 2), clear?: bool, ids?}")
         .help("Fills the shape with colours placed at points that blend smoothly into each other, as Illustrator's freeform gradient in Points mode does; a lower spread mixes the colours more evenly, a higher one keeps each colour around its point; clear goes back to the ordinary fill.").reg(r, freeform_gradient);
     cmd("object.opacityMask", "Make Opacity Mask").menu(&["Object", "Opacity Mask", "Make Opacity Mask"]).needs(Needs::Items).sig("{clip?: bool (default true: outside the mask is hidden), release?: bool, ids?}")
@@ -667,8 +731,8 @@ pub fn register(r: &mut Registry) {
         .sig("{kind: fill|stroke, swatch, tint?, opacity?: percent, weight?, cap?, join?, dash?: [pt...], effects?: [{kind, ...}], above?: bool (over the main fill and stroke), evenOdd?, on?, index? (replace), remove?: index, clear?: bool, ids?}")
         .help("Adds another fill or stroke to the object's appearance, each with its own colour, opacity, weight and effects, drawn under the main fill or over the main stroke, as Illustrator's Appearance panel does; index replaces an entry, remove takes one out, clear empties the list.").reg(r, appearance);
     cmd("object.effect", "Add Effect").menu(&["Effect", "Distort & Transform", "Add Effect..."]).needs(Needs::Items)
-        .sig("{kind: roundCorners {radius} | zigZag {size, ridges, smooth} | roughen {size, detail (per inch), smooth, seed} | puckerBloat {amount: -200..200} | twist {angle} | transform {scaleX, scaleY, moveX, moveY, rotate, copies}, on?: bool, index? (replace), remove?: index, clear?: bool, ids?}")
-        .help("Adds a live effect to the object's appearance stack, applied in order when it is drawn and kept editable, as Illustrator's Effect menu does: Round Corners, Zig Zag, Roughen, Pucker & Bloat, Twist and Transform (with copies); index replaces an entry, remove takes one out, clear empties the stack.").reg(r, effect);
+        .sig("{kind: roundCorners {radius} | zigZag {size, ridges, smooth} | roughen {size, detail (per inch), smooth, seed} | puckerBloat {amount: -200..200} | twist {angle} | transform {scaleX, scaleY, moveX, moveY, rotate, copies} | warp {style: arc|arcLower|arcUpper|arch|bulge|shellLower|shellUpper|flag|wave|rise|fisheye|inflate|squeeze, bend: -100..100, horizontal?: bool}, on?: bool, index? (replace), remove?: index, clear?: bool, ids?}")
+        .help("Adds a live effect to the object's appearance stack, applied in order when it is drawn and kept editable, as Illustrator's Effect menu does: Round Corners, Zig Zag, Roughen, Pucker & Bloat, Twist, Transform (with copies) and the Warp styles; index replaces an entry, remove takes one out, clear empties the stack.").reg(r, effect);
     cmd("object.expandAppearance", "Expand Appearance").menu(&["Object", "Expand Appearance"]).needs(Needs::Items).sig("{ids?}")
         .help("Bakes the live effects into the object's path so it can be edited point by point, and turns extra fills and strokes into separate objects grouped with it, as Illustrator's Expand Appearance does.").reg(r, expand_appearance);
     cmd("object.widthProfile", "Width Profile").menu(&["Object", "Paths", "Width Profile..."]).needs(Needs::Items).sig("{profile?: uniform|lens|taperStart|taperEnd|bulge|pinch|wave, points?: [[at 0..1, width] or [at, left, right], ...] (multiples of the stroke weight), flip?: bool, clear?: bool, ids?}")

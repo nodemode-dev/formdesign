@@ -254,6 +254,48 @@ fn fcolor(s: &FxMap, d: Color) -> Color {
     s.get("color").and_then(Color::from_value).unwrap_or(d)
 }
 
+/// The placements of a Repeat group in spread coordinates, the original first. Radial copies turn about a centre
+/// `radius` below the art's centre; grid copies step by the art's size plus the gaps, mirrored on alternate rows or
+/// columns when asked; a mirror adds one copy reflected across an axis `gap / 2` beyond the art's right edge.
+pub fn repeat_xfs(r: &serde_json::Value, bounds: Option<Rect>) -> Vec<Affine> {
+    let Some(bb) = bounds else { return vec![Affine::IDENTITY] };
+    let n = |k: &str, d: f64| r.get(k).and_then(|v| v.as_f64()).unwrap_or(d);
+    let c = bb.center();
+    match r.get("kind").and_then(|v| v.as_str()).unwrap_or("") {
+        "radial" => {
+            let count = n("count", 8.0).round().clamp(1.0, 360.0) as usize;
+            let radius = n("radius", bb.width().max(bb.height()));
+            let centre = Point::new(c.x, c.y + radius);
+            (0..count).map(|i| Affine::rotate_about(std::f64::consts::TAU * i as f64 / count as f64, centre)).collect()
+        }
+        "grid" => {
+            let (cols, rows) = (n("cols", 3.0).round().clamp(1.0, 100.0) as usize, n("rows", 3.0).round().clamp(1.0, 100.0) as usize);
+            let (sx, sy) = (bb.width() + n("gapX", 10.0), bb.height() + n("gapY", 10.0));
+            let flip = r.get("flip").and_then(|v| v.as_str()).unwrap_or("none");
+            let mut out = Vec::new();
+            for j in 0..rows {
+                for i in 0..cols {
+                    let mut t = Affine::translate((i as f64 * sx, j as f64 * sy));
+                    let fx = (flip == "cols" || flip == "both") && i % 2 == 1;
+                    let fy = (flip == "rows" || flip == "both") && j % 2 == 1;
+                    if fx || fy {
+                        t = t * Affine::translate(c.to_vec2()) * Affine::scale_non_uniform(if fx { -1.0 } else { 1.0 }, if fy { -1.0 } else { 1.0 }) * Affine::translate(-c.to_vec2());
+                    }
+                    out.push(t);
+                }
+            }
+            out
+        }
+        "mirror" => {
+            let a = n("angle", 90.0).to_radians();
+            let p = Point::new(bb.x1 + n("gap", 0.0) / 2.0, c.y);
+            let reflect = Affine::translate(p.to_vec2()) * Affine::rotate(a) * Affine::scale_non_uniform(1.0, -1.0) * Affine::rotate(-a) * Affine::translate(-p.to_vec2());
+            vec![Affine::IDENTITY, reflect]
+        }
+        _ => vec![Affine::IDENTITY],
+    }
+}
+
 fn smooth(t: f64) -> f64 {
     let t = t.clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)
@@ -586,9 +628,12 @@ impl Ctx<'_> {
                     self.ops.push(Op::PushMask(mops));
                     wrap += 1;
                 }
-                for c in it.children() {
-                    if Some(c) != omask && Some(c) != cmask {
-                        self.emit(c, base);
+                let copies = it.extra.get("repeat").map(|r| repeat_xfs(r, self.doc.bounds(id))).unwrap_or_else(|| vec![Affine::IDENTITY]);
+                for t in &copies {
+                    for c in it.children() {
+                        if Some(c) != omask && Some(c) != cmask {
+                            self.emit(c, base * *t);
+                        }
                     }
                 }
                 for _ in 0..wrap {
