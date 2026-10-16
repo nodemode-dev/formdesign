@@ -255,7 +255,7 @@ pub fn build_with(styles: &Styles, para: &Para, list_number: Option<&ListNo>, fo
                 .or_insert_with(|| {
                     let mut stack = styles.char_stack(&para.style, &para.over, applied.as_deref(), &over);
                     if let Some(cs) = style.as_deref() {
-                        let extra = styles.chain(formdes_model::style::StyleKind::Character, cs);
+                        let extra: Vec<_> = formdes_model::style::char_stack_names(cs).iter().flat_map(|n| styles.chain(formdes_model::style::StyleKind::Character, n)).collect();
                         let at = stack.0.len() - 1;
                         for (k, s) in extra.into_iter().enumerate() {
                             stack.0.insert(at + k, s);

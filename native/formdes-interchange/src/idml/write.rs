@@ -589,8 +589,21 @@ impl W<'_> {
         let _ = write!(out, "<ParagraphStyleRange AppliedParagraphStyle=\"{}\"{pa}>{}", esc(&style_ref(StyleKind::Paragraph, &p.style)), props_wrap(&pp));
         let n = p.segs.len();
         for (i, seg) in p.segs.iter().enumerate() {
-            let (ca, cp) = char_attrs(self.doc, seg.over(), &mut self.colors);
-            let cs = seg.style().unwrap_or(NO_CHAR);
+            let names = seg.style().map(formdes_model::style::char_stack_names).unwrap_or_default();
+            let (ca, cp) = if names.len() > 1 {
+                let mut merged = formdes_model::Attrs::new();
+                for n in &names[..names.len() - 1] {
+                    for a in self.doc.styles.chain(StyleKind::Character, n) {
+                        merged.extend(a.iter().map(|(k, v)| (k.clone(), v.clone())));
+                    }
+                }
+                merged.extend(seg.over().iter().map(|(k, v)| (k.clone(), v.clone())));
+                char_attrs(self.doc, &merged, &mut self.colors)
+            } else {
+                char_attrs(self.doc, seg.over(), &mut self.colors)
+            };
+            let top = names.last().cloned();
+            let cs = top.as_deref().unwrap_or(NO_CHAR);
             let _ = write!(out, "<CharacterStyleRange AppliedCharacterStyle=\"{}\"{ca}>{}", esc(&style_ref(StyleKind::Character, cs)), props_wrap(&cp));
             match seg {
                 Seg::Text { text, .. } => {

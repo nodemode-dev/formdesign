@@ -425,7 +425,7 @@ fn selection_overrides(c: &Ctx, kind: StyleKind) -> Result<(Option<String>, Map<
             m.insert(k.clone(), v.clone());
         }
         if let Some(cs) = &cstyle {
-            for a in doc.styles.chain(StyleKind::Character, cs) {
+            for a in formdes_model::style::char_stack_names(cs).iter().flat_map(|n| doc.styles.chain(StyleKind::Character, n)) {
                 for (k, v) in a {
                     m.insert(k.clone(), v.clone());
                 }
@@ -591,6 +591,32 @@ fn char_style_apply(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
     }
     ok()
+}
+
+fn char_style_stack(c: &mut Ctx, p: &Value, remove: bool) -> Result<Value> {
+    let name = style_key(args::str_(p, "name", "a character style name")?);
+    if !c.doc()?.styles.exists(StyleKind::Character, &name) {
+        return Err(EngineError::new(format!("no character style named {name}")));
+    }
+    let targets = text_targets(c)?;
+    if targets.iter().all(|(_, r)| r.is_empty()) {
+        return Err(EngineError::new("select some text to add or remove a character style on"));
+    }
+    let doc = c.doc_mut()?;
+    for (sid, range) in targets {
+        if let Some(st) = doc.story_mut(sid) {
+            st.stack_char_style(range, &name, remove);
+        }
+    }
+    ok()
+}
+
+fn char_style_add(c: &mut Ctx, p: &Value) -> Result<Value> {
+    char_style_stack(c, p, false)
+}
+
+fn char_style_remove(c: &mut Ctx, p: &Value) -> Result<Value> {
+    char_style_stack(c, p, true)
 }
 
 fn flatten(doc: &formdes_model::doc::Doc, kind: StyleKind, name: &str) -> Attrs {
@@ -841,6 +867,10 @@ pub fn register(r: &mut Registry) {
     cmd("style.character.create", "New Character Style").sig("{name, chars?, basedOn?, fromSelection?}").reg(r, char_style_create);
     cmd("style.character.edit", "Character Style Options").sig("{name, rename?, basedOn?, chars?}").reg(r, char_style_edit);
     cmd("style.character.apply", "Apply Character Style").needs(Needs::Text).sig("{name}").reg(r, char_style_apply);
+    cmd("style.character.add", "Add Character Style").menu(&["Type", "Character Styles", "Add Character Style..."]).needs(Needs::Text).sig("{name}")
+        .help("Adds a character style on top of the ones already on the selected text, so several styles combine, each setting only what it defines and the later one winning where two set the same thing (InDesign allows one; this is the most-voted request to change that). Adding a style already there moves it to the top.").reg(r, char_style_add);
+    cmd("style.character.remove", "Remove Character Style").menu(&["Type", "Character Styles", "Remove Character Style..."]).needs(Needs::Text).sig("{name}")
+        .help("Takes one character style off the selected text and keeps the others.").reg(r, char_style_remove);
     cmd("style.character.delete", "Delete Character Style").sig("{name, replaceWith?}").reg(r, char_style_delete);
     cmd("style.object.create", "New Object Style").needs(Needs::Items).sig("{name, fromSelection?, attrs?, basedOn?}").reg(r, object_style_create);
     cmd("style.object.apply", "Apply Object Style").needs(Needs::Items).sig("{name, ids?}").reg(r, object_style_apply);

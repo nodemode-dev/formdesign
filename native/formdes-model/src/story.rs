@@ -598,6 +598,20 @@ impl Story {
         });
     }
 
+    /// Adds a character style on top of the ones already on the text (moving it to the top if present), or removes it.
+    pub fn stack_char_style(&mut self, range: std::ops::Range<TextPos>, style: &str, remove: bool) {
+        let add = crate::style::style_key(style);
+        self.for_segs_in(range, |seg| {
+            let (s, _) = seg.format_mut();
+            let mut names = s.as_deref().map(crate::style::char_stack_names).unwrap_or_default();
+            names.retain(|n| *n != add);
+            if !remove {
+                names.push(add.clone());
+            }
+            *s = if names.is_empty() { None } else { Some(names.join(crate::style::CHAR_STACK)) };
+        });
+    }
+
     pub fn set_para_style(&mut self, paras: std::ops::RangeInclusive<usize>, style: &str, clear: bool) {
         let st = crate::style::style_key(style);
         for i in paras {

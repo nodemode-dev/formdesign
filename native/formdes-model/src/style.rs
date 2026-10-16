@@ -100,6 +100,14 @@ pub fn style_key(name: &str) -> String {
     swatch_key(name)
 }
 
+/// Several character styles on the same text are kept in the run's one style name, bottom first, joined by this.
+pub const CHAR_STACK: &str = " + ";
+
+/// The character styles of a run's style name, bottom first, without [None].
+pub fn char_stack_names(name: &str) -> Vec<String> {
+    name.split(CHAR_STACK).map(style_key).filter(|s| !s.is_empty() && s != NO_CHAR).collect()
+}
+
 impl Styles {
     pub fn list(&self, kind: StyleKind) -> &Vec<NamedStyle> {
         match kind {
@@ -185,8 +193,8 @@ impl Styles {
 
     pub fn char_stack<'a>(&'a self, para_style: &str, para_over: &'a Attrs, char_style: Option<&str>, run_over: &'a Attrs) -> Stack<'a> {
         let mut s = self.para_stack(para_style, para_over);
-        if let Some(cs) = char_style.filter(|c| style_key(c) != NO_CHAR) {
-            s.0.extend(self.chain(StyleKind::Character, cs));
+        for cs in char_style.map(char_stack_names).unwrap_or_default() {
+            s.0.extend(self.chain(StyleKind::Character, &cs));
         }
         s.0.push(run_over);
         s
