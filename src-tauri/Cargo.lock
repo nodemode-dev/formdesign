@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "formdes"
-version = "0.28.0"
+version = "0.29.0"
 dependencies = [
  "formdes-gpu",
  "regex",
@@ -999,7 +999,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-gpu"
-version = "0.28.0"
+version = "0.29.0"
 dependencies = [
  "bytemuck",
  "pollster",
