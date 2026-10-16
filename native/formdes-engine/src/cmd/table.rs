@@ -75,6 +75,49 @@ fn norm(cs: &CellSel, t: &Table) -> (usize, usize, usize, usize) {
     (cs.r0.min(r1), cs.c0.min(c1), r1, c1)
 }
 
+fn ranges(c: &Ctx, cs: &CellSel) -> Vec<CellSel> {
+    let mut out = vec![*cs];
+    for m in c.selection().more_cells {
+        if m.story == cs.story && m.at == cs.at && !out.contains(&m) {
+            out.push(m);
+        }
+    }
+    out
+}
+
+fn each(c: &mut Ctx, p: &Value, f: crate::registry::Handler, key: fn(&CellSel) -> usize, keep: bool) -> Result<Value> {
+    let cs = current(c)?;
+    let mut list = ranges(c, &cs);
+    if list.len() == 1 {
+        return f(c, p);
+    }
+    list.sort_by_key(|r| std::cmp::Reverse(key(r)));
+    let saved = c.selection();
+    let mut done = Vec::new();
+    for r in list {
+        let mut sel = saved.clone();
+        sel.cells = Some(r);
+        sel.more_cells.clear();
+        sel.cell_text = None;
+        c.set_selection(sel);
+        match f(c, p) {
+            Ok(v) => done.push(v),
+            Err(e) => {
+                c.set_selection(saved);
+                return Err(e);
+            }
+        }
+    }
+    if keep {
+        c.set_selection(saved);
+    } else {
+        let mut sel = c.selection();
+        sel.more_cells.clear();
+        c.set_selection(sel);
+    }
+    Ok(json!({"ranges": done.len(), "results": done}))
+}
+
 fn cell_value(c: &TableCell) -> Value {
     let ins = formdes_text::flow::cell_insets(c);
     json!({
@@ -110,6 +153,7 @@ fn get(c: &mut Ctx, _: &Value) -> Result<Value> {
         "cells": t.cells.iter().map(cell_value).collect::<Vec<_>>(), "headerRows": t.header_rows, "footerRows": t.footer_rows,
         "style": wire::style_name(StyleKind::Table, t.style.as_deref().unwrap_or("Basic Table")),
         "range": {"r0": r0, "r1": r1, "c0": c0, "c1": c1}, "options": opts,
+        "ranges": ranges(c, &cs).iter().map(|r| { let (a, b, x, y) = norm(r, t); json!({"r0": a, "c0": b, "r1": x, "c1": y}) }).collect::<Vec<_>>(),
     }))
 }
 
@@ -122,9 +166,39 @@ fn select(c: &mut Ctx, p: &Value) -> Result<Value> {
     cs.r1 = args::opt_u64(p, "r1").map(|v| v as usize).unwrap_or(cs.r0).min(rows - 1);
     cs.c1 = args::opt_u64(p, "c1").map(|v| v as usize).unwrap_or(cs.c0).min(cols - 1);
     let mut sel = c.selection();
+    let mut more = Vec::new();
+    if let Some(list) = p.get("rows").and_then(Value::as_array) {
+        let mut picked: Vec<usize> = list.iter().filter_map(Value::as_u64).map(|v| v as usize).filter(|r| *r < rows).collect();
+        picked.sort_unstable();
+        picked.dedup();
+        if picked.len() != list.len() || picked.is_empty() {
+            return Err(EngineError::new(format!("rows must be distinct row numbers from 0 to {}", rows - 1)));
+        }
+        let base = cs;
+        let whole = move |r: usize| CellSel { r0: r, r1: r, c0: 0, c1: cols - 1, ..base };
+        cs = whole(picked[0]);
+        more = picked[1..].iter().map(|r| whole(*r)).collect();
+    } else if p.get("add").and_then(Value::as_bool).unwrap_or(false)
+        && let Some(prev) = sel.cells.filter(|x| x.story == cs.story && x.at == cs.at)
+    {
+        let same = |a: &CellSel, b: &CellSel| norm(a, t) == norm(b, t);
+        more = std::iter::once(prev).chain(sel.more_cells.iter().copied()).filter(|m| m.story == cs.story && m.at == cs.at).collect();
+        if let Some(i) = more.iter().position(|m| same(m, &cs)) {
+            more.remove(i);
+            if more.is_empty() {
+                return Err(EngineError::new("that is the only selected range; select another range to replace it"));
+            }
+            cs = more.remove(0);
+        }
+    }
     sel.cells = Some(cs);
+    if !more.is_empty() {
+        sel.cell_text = None;
+    }
+    sel.more_cells = more.clone();
     c.set_selection(sel);
-    Ok(json!({"range": {"r0": cs.r0, "c0": cs.c0, "r1": cs.r1, "c1": cs.c1}}))
+    let all: Vec<Value> = std::iter::once(cs).chain(more).map(|r| json!({"r0": r.r0, "c0": r.c0, "r1": r.r1, "c1": r.c1})).collect();
+    Ok(json!({"range": all[0], "ranges": all}))
 }
 
 fn insert(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -1039,28 +1113,28 @@ fn cell_style_apply(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 pub fn register(r: &mut Registry) {
     cmd("table.get", "Table").needs(Needs::Text).query().sig("{}").reg(r, get);
-    cmd("table.select", "Select Cells").needs(Needs::Text).query().sig("{row, col, r1?, c1?}").reg(r, select);
+    cmd("table.select", "Select Cells").needs(Needs::Text).query().sig("{row, col, r1?, c1?, add?: bool (add this range to the selection, or remove it if already selected), rows?: [row numbers] (select whole rows that need not be adjacent)}").help("Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.").reg(r, select);
     cmd("table.insert", "Insert Table...").menu(&["Table", "Insert Table..."]).key("Mod+Alt+Shift+T").needs(Needs::Text).sig("{rows, cols, headerRows?, footerRows?, style?}").reg(r, insert);
     cmd("table.options", "Table Options").menu(&["Table", "Table Options..."]).needs(Needs::Text).sig("{headerRows?, footerRows?, border?: {weight, color}, altRows?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altCols?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altRowStrokes?: {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}, altColStrokes?: {same as altRowStrokes}, headerCellStyle?: cell style name, footerCellStyle?: cell style name, leftColumnCellStyle?: cell style name, rightColumnCellStyle?: cell style name, bodyCellStyle?: cell style name, cornerRadius?: pt (rounded table corners; 0 square), splitRows?: bool (let a row break across frames and pages), continued?: label shown at the top of each later frame (for example Table 3, continued), alt?: alternative text, summary?: a summary or caption for readers and screen readers}").help("Table options of the selected table; each key overrides the applied table style and null clears it. cornerRadius rounds the table's outer corners in every frame it runs through; splitRows lets a row that does not fit break at a line of text and continue in the next frame, under repeated header rows, instead of moving whole; continued adds a full-width label row above the repeated headers in every frame after the first; alt and summary describe the table in HTML, EPUB and website exports. Alternating patterns count rows or columns in groups of first then next, skipFirst and skipLast leave rows at the start and end of the body out; row strokes own a row's top and bottom edges, column strokes the left and right edges.").reg(r, options);
-    cmd("table.setCell", "Cell Options").menu(&["Table", "Cell Options..."]).needs(Needs::Text).sig("{vj?, insets?, fill?, tint?, fillOpacity?: 0..100, rotate?: 0|90|180|270, slant?: 10..80 degrees (angled header text; 0 straight),diagonal?: {down?: stroke, up?: stroke, front?}, paraStyle?}").reg(r, set_cell);
-    cmd("table.setRowHeight", "Row Height").needs(Needs::Text).sig("{height, mode?: atLeast|exactly}").reg(r, row_height);
-    cmd("table.setColumnWidth", "Column Width").needs(Needs::Text).sig("{width}").reg(r, col_width);
+    cmd("table.setCell", "Cell Options").menu(&["Table", "Cell Options..."]).needs(Needs::Text).sig("{vj?, insets?, fill?, tint?, fillOpacity?: 0..100, rotate?: 0|90|180|270, slant?: 10..80 degrees (angled header text; 0 straight),diagonal?: {down?: stroke, up?: stroke, front?}, paraStyle?}").reg(r, |c, p| each(c, p, set_cell, |_| 0, true));
+    cmd("table.setRowHeight", "Row Height").needs(Needs::Text).sig("{height, mode?: atLeast|exactly}").reg(r, |c, p| each(c, p, row_height, |_| 0, true));
+    cmd("table.setColumnWidth", "Column Width").needs(Needs::Text).sig("{width}").reg(r, |c, p| each(c, p, col_width, |_| 0, true));
     cmd("table.insertRowAbove", "Insert Row Above").menu(&["Table", "Insert", "Row Above"]).needs(Needs::Text).sig("{count?}").reg(r, row_above);
     cmd("table.insertRowBelow", "Insert Row Below").menu(&["Table", "Insert", "Row Below"]).key("Mod+9").needs(Needs::Text).sig("{count?}").reg(r, row_below);
     cmd("table.insertColumnLeft", "Insert Column Left").menu(&["Table", "Insert", "Column Left"]).needs(Needs::Text).sig("{count?}").reg(r, col_left);
     cmd("table.insertColumnRight", "Insert Column Right").menu(&["Table", "Insert", "Column Right"]).key("Mod+Alt+9").needs(Needs::Text).sig("{count?}").reg(r, col_right);
-    cmd("table.deleteRow", "Delete Row").menu(&["Table", "Delete", "Row"]).needs(Needs::Text).sig("{}").reg(r, delete_rows);
-    cmd("table.deleteColumn", "Delete Column").menu(&["Table", "Delete", "Column"]).needs(Needs::Text).sig("{}").reg(r, delete_cols);
+    cmd("table.deleteRow", "Delete Row").menu(&["Table", "Delete", "Row"]).needs(Needs::Text).sig("{}").reg(r, |c, p| each(c, p, delete_rows, |s| s.r0.min(s.r1), false));
+    cmd("table.deleteColumn", "Delete Column").menu(&["Table", "Delete", "Column"]).needs(Needs::Text).sig("{}").reg(r, |c, p| each(c, p, delete_cols, |s| s.c0.min(s.c1), false));
     cmd("table.merge", "Merge Cells").menu(&["Table", "Merge Cells"]).needs(Needs::Text).sig("{}").reg(r, merge);
     cmd("table.unmerge", "Unmerge Cells").menu(&["Table", "Unmerge Cells"]).needs(Needs::Text).sig("{}").reg(r, unmerge);
     cmd("table.splitCell", "Split Cell").menu(&["Table", "Split Cell"]).needs(Needs::Text).sig("{direction?: horizontal|vertical}").reg(r, split_cell);
     cmd("table.convertCell", "Convert Cell Type").menu(&["Table", "Convert Cell Type"]).needs(Needs::Text).sig("{to: graphic|text, fitting?: fill|fit|center}").reg(r, convert_cell);
     cmd("table.placeInCell", "Place Image in Cell...").menu(&["Table", "Place Image in Cell..."]).needs(Needs::Text).sig("{path, fitting?: fill|fit|center, alt?, page?}").reg(r, place_in_cell);
-    cmd("table.cellStrokes", "Cell Strokes").menu(&["Table", "Cell Strokes..."]).needs(Needs::Text).sig("{sides?: [top|bottom|left|right|innerHorizontal|innerVertical|outside|inside|all], weight?: pt, color?: swatch, tint?: 0..100, type?: solid|dashed|dotted|none, clear?}").reg(r, cell_strokes);
+    cmd("table.cellStrokes", "Cell Strokes").menu(&["Table", "Cell Strokes..."]).needs(Needs::Text).sig("{sides?: [top|bottom|left|right|innerHorizontal|innerVertical|outside|inside|all], weight?: pt, color?: swatch, tint?: 0..100, type?: solid|dashed|dotted|none, clear?}").reg(r, |c, p| each(c, p, cell_strokes, |_| 0, true));
     cmd("table.distributeColumns", "Distribute Columns Evenly").menu(&["Table", "Distribute Columns Evenly"]).needs(Needs::Text).sig("{}").reg(r, distribute);
     cmd("table.sortRows", "Sort").menu(&["Table", "Sort"]).needs(Needs::Text).sig("{column?, descending?}").reg(r, sort_rows);
     cmd("style.table.create", "New Table Style").sig("{name, border?: {weight, color}, altRows?: {first, next, firstColor, firstTint, nextColor, nextTint, skipFirst, skipLast}, altCols?: {same as altRows}, altRowStrokes?: {first, next, firstWeight, firstColor, firstTint, firstType, nextWeight, nextColor, nextTint, nextType, skipFirst, skipLast}, altColStrokes?: {same as altRowStrokes}, headerCellStyle?: cell style name, footerCellStyle?: cell style name, leftColumnCellStyle?: cell style name, rightColumnCellStyle?: cell style name, bodyCellStyle?: cell style name}").reg(r, table_style_create);
     cmd("style.table.apply", "Apply Table Style").needs(Needs::Text).sig("{name}").reg(r, table_style_apply);
     cmd("style.cell.create", "New Cell Style").sig("{name, fromSelection?, attrs?}").reg(r, cell_style_create);
-    cmd("style.cell.apply", "Apply Cell Style").needs(Needs::Text).sig("{name}").reg(r, cell_style_apply);
+    cmd("style.cell.apply", "Apply Cell Style").needs(Needs::Text).sig("{name}").reg(r, |c, p| each(c, p, cell_style_apply, |_| 0, true));
 }

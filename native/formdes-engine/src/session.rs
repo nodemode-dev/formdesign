@@ -46,6 +46,8 @@ pub struct Selection {
     pub text: Option<TextSel>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cells: Option<CellSel>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub more_cells: Vec<CellSel>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub content: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -452,6 +454,10 @@ impl Session {
         }
         if let Some(c) = sel.cells {
             out["cells"] = json!({"story": c.story, "table": c.at, "r0": c.r0, "c0": c.c0, "r1": c.r1, "c1": c.c1});
+            let more: Vec<Value> = sel.more_cells.iter().filter(|m| m.story == c.story && m.at == c.at).map(|m| json!({"r0": m.r0, "c0": m.c0, "r1": m.r1, "c1": m.c1})).collect();
+            if !more.is_empty() {
+                out["cells"]["more"] = json!(more);
+            }
         }
         if let Some(t) = sel.cell_text {
             out["cellText"] = json!({"story": t.story, "table": t.at, "row": t.row, "col": t.col, "anchor": t.anchor, "focus": t.focus});

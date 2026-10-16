@@ -31,7 +31,26 @@ pub fn type_tool(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
                 if let Some(st) = ses.active_mut() {
                     let lay = st.layout(&r);
                     if let Some(ct) = crate::celltext::hit(&st.doc, &lay, id, h.p) {
-                        ses.select(ct.selection());
+                        let mut sel = ct.selection();
+                        if ev.mods.cmd
+                            && let Some(prev) = st.selection.cells.filter(|x| x.story == ct.story && x.at == ct.at)
+                            && let Some(cs) = sel.cells
+                        {
+                            let has = |r: &crate::session::CellSel| (r.r0.min(r.r1)..=r.r0.max(r.r1)).contains(&ct.row) && (r.c0.min(r.c1)..=r.c0.max(r.c1)).contains(&ct.col);
+                            let mut more: Vec<_> = std::iter::once(prev).chain(st.selection.more_cells.iter().copied()).filter(|m| m.story == ct.story && m.at == ct.at).collect();
+                            let before = more.len();
+                            more.retain(|m| !has(m));
+                            sel.cell_text = None;
+                            if more.len() == before {
+                                sel.more_cells = more;
+                            } else if let Some(first) = more.first().copied() {
+                                sel.cells = Some(first);
+                                sel.more_cells = more[1..].to_vec();
+                            } else {
+                                sel.cells = Some(cs);
+                            }
+                        }
+                        ses.select(sel);
                         return Ok(());
                     }
                 }

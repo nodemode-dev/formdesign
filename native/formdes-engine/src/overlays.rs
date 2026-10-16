@@ -326,7 +326,9 @@ fn text_json(ses: &Session, doc: &Doc, cv: &Canvas, lay: &DocLayout, tol: f64) -
         for frag in sl.flow.tables.iter().filter(|t| t.para == para) {
             let Some(&fid) = sl.frames.get(frag.frame) else { continue };
             let Some(m) = slot_of(doc, cv, fid).map(|s| s * doc.world_xf(fid)) else { continue };
-            for cell in frag.cells.iter().filter(|x| (c.r0..=c.r1).contains(&x.row) && (c.c0..=c.c1).contains(&x.col)) {
+            let ranges: Vec<_> = std::iter::once(c).chain(st.selection.more_cells.iter().copied().filter(|m| m.story == c.story && m.at == c.at)).collect();
+            let inside = |r: &crate::session::CellSel, row: usize, col: usize| (r.r0.min(r.r1)..=r.r0.max(r.r1)).contains(&row) && (r.c0.min(r.c1)..=r.c0.max(r.c1)).contains(&col);
+            for cell in frag.cells.iter().filter(|x| ranges.iter().any(|r| inside(r, x.row, x.col))) {
                 quads.push(quad(m, cell.rect.x0, cell.rect.x1, cell.rect.y0, cell.rect.y1));
             }
         }
