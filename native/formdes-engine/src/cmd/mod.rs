@@ -3,6 +3,7 @@ pub mod book;
 pub mod clip;
 pub mod draw;
 pub mod edit;
+pub mod symbol;
 pub mod generate;
 pub mod guides;
 pub mod imaging;
@@ -43,6 +44,7 @@ pub fn registry() -> Registry {
     generate::register(&mut r);
     art::register(&mut r);
     draw::register(&mut r);
+    symbol::register(&mut r);
     prod::register(&mut r);
     inks::register(&mut r);
     more::register(&mut r);

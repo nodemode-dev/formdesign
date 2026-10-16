@@ -202,6 +202,11 @@ struct Ctx<'a> {
     ops: Vec<Op>,
     page: Option<usize>,
     vert: bool,
+    depth: u8,
+}
+
+pub fn symbol_master(doc: &Doc, name: &str) -> Option<ItemId> {
+    doc.prefs.get("symbols").and_then(|s| s.get(name)).and_then(|v| v.as_u64()).map(ItemId).filter(|id| doc.item(*id).is_some())
 }
 
 pub fn brush_of(doc: &Doc, paint: &Paint, tint: f64, local: Rect, xf: Affine) -> Option<Brush> {
@@ -700,6 +705,13 @@ impl Ctx<'_> {
                     self.ops.push(Op::Pop);
                 }
                 self.appearance(it, &local, xf, true);
+                if let Some(m) = it.extra.get("symbol").and_then(|v| v.as_str()).and_then(|n| symbol_master(self.doc, n))
+                    && self.depth < 6
+                {
+                    self.depth += 1;
+                    self.emit(m, xf);
+                    self.depth -= 1;
+                }
                 for _ in 0..masks {
                     self.ops.push(Op::Pop);
                 }
@@ -1496,7 +1508,7 @@ pub fn page_scene(doc: &Doc, lay: &DocLayout, abs: usize, opts: &SceneOpts) -> O
         let use_right = doc.settings.facing && right;
         parents = parent_items(doc, pid, use_right, 0).into_iter().filter(|(id, _)| !page.detached.contains(id)).collect();
     }
-    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false };
+    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false, depth: 0 };
     for layer in layer_order(doc) {
         ctx.page = Some(abs);
         for (id, base) in &parents {
@@ -1529,7 +1541,7 @@ pub enum Target {
 }
 
 pub fn spread_ops(doc: &Doc, lay: &DocLayout, target: Target, opts: &SceneOpts) -> Vec<Op> {
-    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false };
+    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false, depth: 0 };
     match target {
         Target::Spread(si) => {
             let Some(spread) = doc.spreads.get(si) else { return Vec::new() };
