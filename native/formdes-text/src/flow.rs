@@ -8,7 +8,7 @@ use formdes_model::item::{FirstBaseline, VJust, WrapMode};
 use formdes_model::story::{BreakKind, Para, Table};
 use formdes_model::style::Styles;
 
-use crate::compose::{Composer, DropCap, Line, ParaInput, Slot, shift_line, slice_input};
+use crate::compose::{Composer, DropCap, Line, ObjBox, ParaInput, Slot, TextRun, shift_line, slice_input};
 use crate::fonts::FontBook;
 use crate::para::{self, Built, Context, Special};
 use crate::region;
@@ -45,6 +45,7 @@ pub struct FrameSpec {
     pub note_reserve: f64,
     pub note_columns: u32,
     pub note_split: Vec<usize>,
+    pub note_join: Option<String>,
 }
 
 #[derive(Clone)]
@@ -105,6 +106,32 @@ pub struct NoteOut {
     pub sub: usize,
     pub top: f64,
     pub height: f64,
+    pub run_in: Option<ParaInput>,
+}
+
+fn join_inputs(parts: &[&ParaInput], sep: &str) -> Option<ParaInput> {
+    let mut it = parts.iter();
+    let mut out = (*it.next()?).clone();
+    for p in it {
+        let at = out.text.trim_end().len();
+        out.text.truncate(at);
+        out.runs.retain(|r| r.range.start < at);
+        for r in &mut out.runs {
+            r.range.end = r.range.end.min(at);
+        }
+        out.objects.retain(|o| o.at < at);
+        out.text.push_str(sep);
+        if let Some(r) = out.runs.last_mut()
+            && r.range.end == at
+        {
+            r.range.end = out.text.len();
+        }
+        let off = out.text.len();
+        out.text.push_str(&p.text);
+        out.runs.extend(p.runs.iter().map(|r| TextRun { range: r.range.start + off..r.range.end + off, props: r.props.clone() }));
+        out.objects.extend(p.objects.iter().map(|o| ObjBox { at: o.at + off, ..o.clone() }));
+    }
+    Some(out)
 }
 
 fn split_height(heights: &[f64], n: usize) -> f64 {
@@ -909,11 +936,26 @@ impl<'a> Flower<'a> {
         }
     }
 
+    fn run_in_lines(&self, f: usize, c: usize, out: &Flow) -> (Vec<PlacedLine>, f64) {
+        let sep = self.frames[f].note_join.as_deref().unwrap_or("\u{2003}");
+        let parts: Vec<&ParaInput> = out.notes.iter().filter(|n| n.frame == f && n.column == c).filter_map(|n| n.run_in.as_ref()).collect();
+        let Some(input) = join_inputs(&parts, sep) else { return (Vec::new(), 0.0) };
+        let (x, w) = if self.frames[f].span_notes { (self.frames[f].inner.x0, self.frames[f].inner.width().max(1.0)) } else { self.column_x(f, c) };
+        let composed = Composer { fonts: self.fonts }.compose(&input, &|_| Slot { left: x, width: w }, 1, self.frames[f].right_page);
+        let mut y = 0.0;
+        let mut lines = Vec::new();
+        for line in composed.lines {
+            y += line.leading;
+            lines.push(PlacedLine { para: 0, frame: f, column: c, baseline: y, line });
+        }
+        (lines, y + 4.0)
+    }
+
     fn place_note(&self, ordinal: usize, paras: &[Para], f: usize, c: usize, out: &mut Flow) -> f64 {
         let span = self.frames[f].span_notes;
         let (mut x, mut w) = if span { (self.frames[f].inner.x0, self.frames[f].inner.width().max(1.0)) } else { self.column_x(f, c) };
         let c = if span { 0 } else { c };
-        let n_sub = if span { self.frames[f].note_columns.max(1) as usize } else { 1 };
+        let n_sub = if span && self.frames[f].note_join.is_none() { self.frames[f].note_columns.max(1) as usize } else { 1 };
         let mut sub = 0;
         let mut top = 0.0;
         if n_sub > 1 {
@@ -932,6 +974,7 @@ impl<'a> Flower<'a> {
             w = sw;
         }
         let mut lines = Vec::new();
+        let mut parts: Vec<ParaInput> = Vec::new();
         let mut y = 0.0;
         let composer = Composer { fonts: self.fonts };
         for (k, p) in paras.iter().enumerate() {
@@ -952,8 +995,16 @@ impl<'a> Flower<'a> {
                 y += line.leading;
                 lines.push(PlacedLine { para: k, frame: f, column: c, baseline: y, line });
             }
+            if self.frames[f].note_join.is_some() {
+                parts.push(b.input);
+            }
         }
-        out.notes.push(NoteOut { ordinal, frame: f, column: c, lines, sub, top, height: y + 4.0 });
+        let run_in = join_inputs(&parts.iter().collect::<Vec<_>>(), " ");
+        out.notes.push(NoteOut { ordinal, frame: f, column: c, lines, sub, top, height: y + 4.0, run_in });
+        if self.frames[f].note_join.is_some() {
+            let old = self.note_height.borrow().get(&self.note_key(f, c)).copied().unwrap_or(0.0);
+            return self.run_in_lines(f, c, out).1 - old;
+        }
         if n_sub > 1 {
             let mut cols = self.note_cols.borrow_mut();
             let hs = cols.entry(f).or_insert_with(|| vec![0.0; n_sub]);
@@ -1241,6 +1292,21 @@ impl<'a> Flower<'a> {
             }
             if fr.span_notes {
                 out.frames[fi].note_room = self.note_height.borrow().get(&(fi, 0)).copied().unwrap_or(0.0);
+            }
+            if fr.note_join.is_some() {
+                let mut done: Vec<usize> = Vec::new();
+                for k in 0..out.notes.len() {
+                    if out.notes[k].frame != fi {
+                        continue;
+                    }
+                    let c = out.notes[k].column;
+                    if done.contains(&c) {
+                        out.notes[k].lines.clear();
+                        continue;
+                    }
+                    done.push(c);
+                    out.notes[k].lines = self.run_in_lines(fi, c, out).0;
+                }
             }
             let mut stacked: HashMap<usize, f64> = HashMap::new();
             for n in out.notes.iter_mut().filter(|n| n.frame == fi) {
