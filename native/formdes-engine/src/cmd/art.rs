@@ -546,6 +546,102 @@ fn pathfinder_pieces(c: &mut Ctx, p: &Value, op: &str) -> Result<Value> {
     Ok(json!({"ids": group, "pieces": group.len()}))
 }
 
+fn inside(shape: &Contours, x: f64, y: f64) -> bool {
+    let mut odd = false;
+    for c in shape {
+        let n = c.len();
+        for i in 0..n {
+            let (a, b) = (c[i], c[(i + 1) % n]);
+            if (a[1] > y) != (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0] {
+                odd = !odd;
+            }
+        }
+    }
+    odd
+}
+
+fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let pts: Vec<[f64; 2]> = p.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(|q| {
+        let q = q.as_array()?;
+        Some([q.first()?.as_f64()?, q.get(1)?.as_f64()?])
+    }).collect()).unwrap_or_default();
+    if pts.is_empty() {
+        return Err(EngineError::new("`points` needs one or more [x, y] points in spread coordinates: the regions to merge or erase"));
+    }
+    let erase = args::opt_str(p, "mode") == Some("erase");
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    let ids = paint_order(doc, &ids);
+    if ids.len() < 2 {
+        return Err(EngineError::new("Shape Builder needs two or more overlapping closed shapes selected"));
+    }
+    let mut shapes = Vec::new();
+    for id in &ids {
+        shapes.push(world_shape(doc, *id).ok_or_else(|| EngineError::new(format!("object {id} is a group, an open path or a line: Shape Builder works on closed shapes")))?);
+    }
+    let mut pieces: Vec<(Shapes, usize)> = Vec::new();
+    for (i, s) in shapes.iter().enumerate() {
+        let mut next = Vec::new();
+        let mut rest = s.clone();
+        for (piece, owner) in pieces.drain(..) {
+            let a = piece.overlay(s, OverlayRule::Intersect, FillRule::NonZero);
+            let b = piece.overlay(s, OverlayRule::Difference, FillRule::NonZero);
+            rest = rest.overlay(&piece, OverlayRule::Difference, FillRule::NonZero);
+            if nonempty(&a) { next.push((a, i)); }
+            if nonempty(&b) { next.push((b, owner)); }
+        }
+        if nonempty(&rest) { next.push((rest, i)); }
+        pieces = next;
+    }
+    let mut faces: Vec<(Shapes, usize)> = Vec::new();
+    for (s, owner) in pieces {
+        for shape in s {
+            if shape.iter().any(|c| c.len() > 2) {
+                faces.push((vec![shape], owner));
+            }
+        }
+    }
+    let hit: Vec<bool> = faces.iter().map(|(s, _)| pts.iter().any(|q| s.iter().any(|shape| inside(shape, q[0], q[1])))).collect();
+    if !hit.iter().any(|h| *h) {
+        return Err(EngineError::new("none of the points falls inside the selected shapes"));
+    }
+    let mut out: Vec<(Shapes, usize)> = Vec::new();
+    let mut merged: Option<(Shapes, usize)> = None;
+    let first = faces.iter().find(|(s, _)| s.iter().any(|shape| inside(shape, pts[0][0], pts[0][1]))).map(|f| f.1);
+    for ((s, owner), h) in faces.into_iter().zip(hit) {
+        if !h {
+            out.push((s, owner));
+        } else if !erase {
+            merged = Some(match merged.take() {
+                None => (s, owner),
+                Some((m, o)) => (m.overlay(&s, OverlayRule::Union, FillRule::NonZero), o),
+            });
+        }
+    }
+    if let Some((m, o)) = merged {
+        out.push((m, first.unwrap_or(o)));
+    }
+    let doc = c.doc_mut()?;
+    let mut made = Vec::new();
+    for (s, owner) in &out {
+        let Some(nid) = ops::duplicate(doc, ids[*owner], kurbo::Vec2::ZERO, None) else { continue };
+        let local = doc.world_xf(nid).inverse() * to_path(s);
+        if let Some(it) = doc.item_mut(nid) {
+            it.shape = Shape::Path { path: local, closed: true };
+            it.corner = Default::default();
+            it.extra.insert("fillRule".into(), json!("nonzero"));
+            it.kind = ItemKind::Plain;
+        }
+        made.push(nid);
+    }
+    for id in &ids {
+        doc.remove_item(*id);
+    }
+    c.set_selection(Selection::items(made.clone()));
+    c.label("Shape Builder");
+    Ok(json!({"ids": made, "shapes": made.len()}))
+}
+
 fn knife(c: &mut Ctx, p: &Value) -> Result<Value> {
     let pts: Vec<kurbo::Point> = p.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(|q| {
         let q = q.as_array()?;
@@ -748,6 +844,8 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
 }
 
 pub fn register(r: &mut Registry) {
+    cmd("path.shapeBuilder", "Shape Builder").menu(&["Object", "Paths", "Shape Builder..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (spread points inside the regions), mode?: merge|erase, ids?}")
+        .help("Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.").reg(r, shape_builder);
     cmd("path.knife", "Knife").menu(&["Object", "Paths", "Knife..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (a line or polyline in spread points), ids?}")
         .help("Cuts every selected closed shape that the line crosses into separate shapes along it, each keeping its fill and stroke, as Illustrator's Knife tool does.").reg(r, knife);
     cmd("path.offset", "Offset Path").menu(&["Object", "Paths", "Offset Path..."]).needs(Needs::Items)
