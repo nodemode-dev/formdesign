@@ -340,5 +340,13 @@
 "xml.validate": {"group": "xml", "description": "Validates the document's XML structure against the loaded DTD.", "when": "Use when checking the structure before exporting XML."},
 "xref.insert": {"group": "xref", "description": "Inserts a cross-reference to an anchor in a format such as page, paragraph text or paragraph and page.", "when": "Use when text should refer to another place with an automatic page or paragraph reference."},
 "xref.list": {"group": "xref", "description": "Lists the cross-references in the document.", "when": "Use when reviewing cross-references."},
-"xref.update": {"group": "xref", "description": "Updates all cross-references to current page numbers and text.", "when": "Use when pages or text changed and references may be stale."}
+"xref.update": {"group": "xref", "description": "Updates all cross-references to current page numbers and text.", "when": "Use when pages or text changed and references may be stale."},
+"path.knife": {"group": "path", "description": "Cuts every selected closed shape a line or polyline crosses into separate shapes that keep their fill and stroke.", "when": "Use when a shape must be split along a line, like slicing a circle in two."},
+"shape.spiral": {"group": "shape", "description": "Draws an open spiral with a radius, a decay percentage per quarter turn and a number of segments.", "when": "Use when the person asks for a spiral or swirl."},
+"shape.arc": {"group": "shape", "description": "Draws an open or closed arc between two points, bowed by a slope from concave to convex.", "when": "Use when the person asks for an arc, a curved corner line or a quarter shape."},
+"shape.grid": {"group": "shape", "description": "Draws a rectangular grid of evenly spaced lines with its frame as one path.", "when": "Use when a drawn grid or table-like line pattern is needed, not a real table."},
+"shape.polarGrid": {"group": "shape", "description": "Draws concentric rings and radial dividers inside a rectangle as one path.", "when": "Use when the person asks for a target, radar or polar grid."},
+"transform.reflect": {"group": "transform", "description": "Mirrors the selection across a horizontal, vertical or angled axis through its centre, optionally as a copy.", "when": "Use when a mirrored copy or reflection at an angle is needed; transform.flip only flips in place."},
+"transform.shear": {"group": "transform", "description": "Slants the selection by an angle along the horizontal or vertical axis, optionally as a copy.", "when": "Use when the person asks to skew or slant objects."},
+"transform.each": {"group": "transform", "description": "Scales, rotates, reflects and moves each selected object about its own centre.", "when": "Use when several objects must each turn or shrink in place rather than as one group."}
 }
