@@ -1,0 +1,246 @@
+use kurbo::{Affine, BezPath, CubicBez, ParamCurve, ParamCurveDeriv, PathEl, PathSeg, Point, Shape, Vec2};
+use serde_json::Value;
+
+use crate::attrs::Attrs;
+
+pub const KINDS: [&str; 6] = ["roundCorners", "zigZag", "roughen", "puckerBloat", "twist", "transform"];
+
+fn num(e: &Value, k: &str, d: f64) -> f64 {
+    e.get(k).and_then(Value::as_f64).unwrap_or(d)
+}
+
+fn flag(e: &Value, k: &str) -> bool {
+    e.get(k).and_then(Value::as_bool).unwrap_or(false)
+}
+
+pub fn stack(extra: &Attrs) -> Vec<Value> {
+    extra.get("effects").and_then(Value::as_array).map(|a| a.iter().filter(|e| e.get("on").and_then(Value::as_bool) != Some(false)).cloned().collect()).unwrap_or_default()
+}
+
+pub fn apply(extra: &Attrs, path: BezPath) -> BezPath {
+    let fx = stack(extra);
+    if fx.is_empty() {
+        return path;
+    }
+    fx.iter().fold(path, |p, e| one(e, &p))
+}
+
+pub fn one(e: &Value, path: &BezPath) -> BezPath {
+    match e.get("kind").and_then(Value::as_str).unwrap_or("") {
+        "roundCorners" => {
+            let r = num(e, "radius", 10.0).max(0.0);
+            crate::corners::round_vertices(path, &|_| Some((r, "round".to_string())))
+        }
+        "zigZag" => zig_zag(path, num(e, "size", 5.0), num(e, "ridges", 4.0).round().clamp(0.0, 100.0) as usize, flag(e, "smooth")),
+        "roughen" => roughen(path, num(e, "size", 5.0), num(e, "detail", 10.0).clamp(0.0, 100.0), flag(e, "smooth"), num(e, "seed", 1.0) as u64),
+        "puckerBloat" => pucker_bloat(path, num(e, "amount", 30.0).clamp(-200.0, 200.0) / 100.0),
+        "twist" => twist(path, num(e, "angle", 45.0)),
+        "transform" => transform(path, e),
+        _ => path.clone(),
+    }
+}
+
+fn subpaths(path: &BezPath) -> Vec<(Vec<PathSeg>, bool)> {
+    let mut out: Vec<(Vec<PathSeg>, bool)> = Vec::new();
+    let mut start = Point::ZERO;
+    let mut last = Point::ZERO;
+    for el in path.elements() {
+        match *el {
+            PathEl::MoveTo(p) => {
+                out.push((Vec::new(), false));
+                start = p;
+                last = p;
+            }
+            PathEl::LineTo(p) => {
+                if let Some(s) = out.last_mut() { s.0.push(PathSeg::Line(kurbo::Line::new(last, p))); }
+                last = p;
+            }
+            PathEl::QuadTo(a, p) => {
+                if let Some(s) = out.last_mut() { s.0.push(PathSeg::Quad(kurbo::QuadBez::new(last, a, p))); }
+                last = p;
+            }
+            PathEl::CurveTo(a, b, p) => {
+                if let Some(s) = out.last_mut() { s.0.push(PathSeg::Cubic(CubicBez::new(last, a, b, p))); }
+                last = p;
+            }
+            PathEl::ClosePath => {
+                if let Some(s) = out.last_mut() {
+                    if last.distance(start) > 1e-6 {
+                        s.0.push(PathSeg::Line(kurbo::Line::new(last, start)));
+                    }
+                    s.1 = true;
+                }
+                last = start;
+            }
+        }
+    }
+    for s in out.iter_mut() {
+        if !s.1 && s.0.len() > 1 && s.0[0].start().distance(s.0[s.0.len() - 1].end()) < 1e-6 {
+            s.1 = true;
+        }
+    }
+    out.retain(|s| !s.0.is_empty());
+    out
+}
+
+fn normal(seg: &PathSeg, t: f64) -> Vec2 {
+    let d = match seg {
+        PathSeg::Line(l) => l.p1 - l.p0,
+        PathSeg::Quad(q) => q.deriv().eval(t).to_vec2(),
+        PathSeg::Cubic(c) => c.deriv().eval(t).to_vec2(),
+    };
+    let h = d.hypot();
+    if h < 1e-12 { Vec2::ZERO } else { Vec2::new(-d.y / h, d.x / h) }
+}
+
+fn emit(out: &mut BezPath, pts: &[Point], closed: bool, smooth: bool) {
+    if pts.len() < 2 {
+        return;
+    }
+    out.move_to(pts[0]);
+    let n = pts.len();
+    if !smooth {
+        for p in &pts[1..] {
+            out.line_to(*p);
+        }
+    } else {
+        let at = |i: isize| -> Point {
+            if closed { pts[i.rem_euclid(n as isize) as usize] } else { pts[i.clamp(0, n as isize - 1) as usize] }
+        };
+        let segs = if closed { n } else { n - 1 };
+        for i in 0..segs as isize {
+            let (p0, p1, p2, p3) = (at(i - 1), at(i), at(i + 1), at(i + 2));
+            out.curve_to(p1 + (p2 - p0) / 6.0, p2 - (p3 - p1) / 6.0, p2);
+        }
+    }
+    if closed {
+        out.close_path();
+    }
+}
+
+fn zig_zag(path: &BezPath, size: f64, ridges: usize, smooth: bool) -> BezPath {
+    let mut out = BezPath::new();
+    for (segs, closed) in subpaths(path) {
+        let mut pts = Vec::new();
+        let mut sign = 1.0;
+        let parts = ridges + 1;
+        for seg in &segs {
+            for j in 0..parts {
+                let t = j as f64 / parts as f64;
+                pts.push(seg.eval(t) + normal(seg, t) * (size * sign));
+                sign = -sign;
+            }
+        }
+        if !closed {
+            let last = segs[segs.len() - 1];
+            pts.push(last.end() + normal(&last, 1.0) * (size * sign));
+        } else if pts.len() % 2 == 1 {
+            pts.pop();
+        }
+        emit(&mut out, &pts, closed, smooth);
+    }
+    out
+}
+
+fn hash(seed: u64, i: u64) -> f64 {
+    let mut x = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ i.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    x ^= x >> 31;
+    x = x.wrapping_mul(0x94D0_49BB_1331_11EB);
+    x ^= x >> 29;
+    (x >> 11) as f64 / (1u64 << 53) as f64 * 2.0 - 1.0
+}
+
+fn roughen(path: &BezPath, size: f64, detail: f64, smooth: bool, seed: u64) -> BezPath {
+    let mut out = BezPath::new();
+    let mut k = 0u64;
+    for (segs, closed) in subpaths(path) {
+        let mut pts = Vec::new();
+        for seg in &segs {
+            let len = kurbo::ParamCurveArclen::arclen(seg, 0.1);
+            let n = ((len / 72.0 * detail).round() as usize).max(1);
+            for j in 0..n {
+                let t = j as f64 / n as f64;
+                pts.push(seg.eval(t) + Vec2::new(hash(seed, k), hash(seed ^ 0x5555, k)) * size);
+                k += 1;
+            }
+        }
+        if !closed {
+            pts.push(segs[segs.len() - 1].end() + Vec2::new(hash(seed, k), hash(seed ^ 0x5555, k)) * size);
+            k += 1;
+        }
+        emit(&mut out, &pts, closed, smooth);
+    }
+    out
+}
+
+fn as_cubic(seg: &PathSeg) -> CubicBez {
+    match seg {
+        PathSeg::Line(l) => CubicBez::new(l.p0, l.p0.lerp(l.p1, 1.0 / 3.0), l.p0.lerp(l.p1, 2.0 / 3.0), l.p1),
+        PathSeg::Quad(q) => q.raise(),
+        PathSeg::Cubic(c) => *c,
+    }
+}
+
+fn pucker_bloat(path: &BezPath, a: f64) -> BezPath {
+    let c = path.bounding_box().center();
+    let anchor = |p: Point| p + (c - p) * (a * 0.5);
+    let handle = |p: Point| p - (c - p) * (a * 0.5);
+    let mut out = BezPath::new();
+    for (segs, closed) in subpaths(path) {
+        let first = as_cubic(&segs[0]);
+        out.move_to(anchor(first.p0));
+        for s in &segs {
+            let cb = as_cubic(s);
+            out.curve_to(handle(cb.p1), handle(cb.p2), anchor(cb.p3));
+        }
+        if closed {
+            out.close_path();
+        }
+    }
+    out
+}
+
+fn twist(path: &BezPath, angle: f64) -> BezPath {
+    let bb = path.bounding_box();
+    let c = bb.center();
+    let r = (bb.width().hypot(bb.height()) / 2.0).max(1e-9);
+    let mut out = BezPath::new();
+    for (segs, closed) in subpaths(path) {
+        let mut pts = Vec::new();
+        for seg in &segs {
+            let len = kurbo::ParamCurveArclen::arclen(seg, 0.1);
+            let n = ((len / 3.0).ceil() as usize).clamp(1, 400);
+            for j in 0..n {
+                pts.push(seg.eval(j as f64 / n as f64));
+            }
+        }
+        if !closed {
+            pts.push(segs[segs.len() - 1].end());
+        }
+        let pts: Vec<Point> = pts.into_iter().map(|p| {
+            let d = (p - c).hypot() / r;
+            Affine::rotate_about((angle * (1.0 - d).max(0.0)).to_radians(), c) * p
+        }).collect();
+        emit(&mut out, &pts, closed, false);
+    }
+    out
+}
+
+fn transform(path: &BezPath, e: &Value) -> BezPath {
+    let c = path.bounding_box().center();
+    let step = Affine::translate(Vec2::new(num(e, "moveX", 0.0), num(e, "moveY", 0.0)))
+        * Affine::rotate_about(num(e, "rotate", 0.0).to_radians(), c)
+        * Affine::translate(c.to_vec2())
+        * Affine::scale_non_uniform(num(e, "scaleX", 100.0) / 100.0, num(e, "scaleY", 100.0) / 100.0)
+        * Affine::translate(-c.to_vec2());
+    let copies = num(e, "copies", 0.0).round().clamp(0.0, 200.0) as usize;
+    let mut out = BezPath::new();
+    let mut xf = if copies == 0 { step } else { Affine::IDENTITY };
+    for _ in 0..=copies {
+        for el in (xf * path.clone()).elements() {
+            out.push(*el);
+        }
+        xf = step * xf;
+    }
+    out
+}

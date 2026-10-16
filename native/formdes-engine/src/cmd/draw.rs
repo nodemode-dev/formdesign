@@ -394,7 +394,70 @@ fn width_profile(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+fn effect(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use formdes_model::effects::KINDS;
+    let ids = items(c, p)?;
+    let clear = args::opt_bool(p, "clear").unwrap_or(false);
+    let remove = args::opt_u64(p, "remove").map(|v| v as usize);
+    let kind = args::opt_str(p, "kind");
+    if !clear && remove.is_none() && !kind.is_some_and(|k| KINDS.contains(&k)) {
+        return Err(EngineError::new(format!("kind is one of {} (or clear: true, or remove: index)", KINDS.join(", "))));
+    }
+    let mut entry = p.as_object().cloned().unwrap_or_default();
+    for k in ["ids", "index", "clear", "remove"] {
+        entry.remove(k);
+    }
+    let index = args::opt_u64(p, "index").map(|v| v as usize);
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for id in &ids {
+        let Some(it) = doc.item_mut(*id) else { continue };
+        let mut list = it.extra.get("effects").and_then(Value::as_array).cloned().unwrap_or_default();
+        if clear {
+            list.clear();
+        } else if let Some(i) = remove {
+            if i < list.len() { list.remove(i); }
+        } else if let Some(i) = index.filter(|i| *i < list.len()) {
+            list[i] = Value::Object(entry.clone());
+        } else {
+            list.push(Value::Object(entry.clone()));
+        }
+        if list.is_empty() { it.extra.remove("effects"); } else { it.extra.insert("effects".into(), Value::Array(list)); }
+        n += 1;
+    }
+    c.label(if clear { "Clear Effects" } else { "Effect" });
+    Ok(json!({"items": n}))
+}
+
+fn expand_appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for id in &ids {
+        let Some(it) = doc.item_mut(*id) else { continue };
+        if !it.extra.contains_key("effects") || matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
+            continue;
+        }
+        let closed = it.shape.closed();
+        let path = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
+        it.shape = Shape::Path { path, closed };
+        it.corner = Default::default();
+        it.extra.remove("effects");
+        n += 1;
+    }
+    if n == 0 {
+        return Err(EngineError::new("none of the selected objects has live effects to expand"));
+    }
+    c.label("Expand Appearance");
+    Ok(json!({"items": n}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.effect", "Add Effect").menu(&["Effect", "Distort & Transform", "Add Effect..."]).needs(Needs::Items)
+        .sig("{kind: roundCorners {radius} | zigZag {size, ridges, smooth} | roughen {size, detail (per inch), smooth, seed} | puckerBloat {amount: -200..200} | twist {angle} | transform {scaleX, scaleY, moveX, moveY, rotate, copies}, on?: bool, index? (replace), remove?: index, clear?: bool, ids?}")
+        .help("Adds a live effect to the object's appearance stack, applied in order when it is drawn and kept editable, as Illustrator's Effect menu does: Round Corners, Zig Zag, Roughen, Pucker & Bloat, Twist and Transform (with copies); index replaces an entry, remove takes one out, clear empties the stack.").reg(r, effect);
+    cmd("object.expandAppearance", "Expand Appearance").menu(&["Object", "Expand Appearance"]).needs(Needs::Items).sig("{ids?}")
+        .help("Bakes the live effects into the object's path so it can be edited point by point, as Illustrator's Expand Appearance does.").reg(r, expand_appearance);
     cmd("object.widthProfile", "Width Profile").menu(&["Object", "Paths", "Width Profile..."]).needs(Needs::Items).sig("{profile?: uniform|lens|taperStart|taperEnd|bulge|pinch|wave, points?: [[at 0..1, width] or [at, left, right], ...] (multiples of the stroke weight), flip?: bool, clear?: bool, ids?}")
         .help("Gives the stroke a variable width along the path, from a named profile or width points (position along the path and the width on each side as multiples of the stroke weight), as Illustrator's Width tool and width profiles do; uniform or clear restores an even stroke.").reg(r, width_profile);
     cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), noMorph?: bool, ids?: two objects}")

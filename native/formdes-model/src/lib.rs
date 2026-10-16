@@ -3,6 +3,7 @@ pub mod captionmeta;
 pub mod color;
 pub mod corners;
 pub mod doc;
+pub mod effects;
 pub mod format;
 pub mod geom;
 pub mod ids;

@@ -567,7 +567,7 @@ impl Ctx<'_> {
                 }
             }
             _ => {
-                let local = it.shape.to_path(&it.corner);
+                let local = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
                 let path = xf * local.clone();
                 let bbox = it.shape.bbox();
                 self.outer_glow(it, &path);
