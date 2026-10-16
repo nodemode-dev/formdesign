@@ -881,3 +881,10 @@ From the most-voted InDesign UserVoice request, "Split table rows across pages a
 
 The same request asks for continued headers. The table's `continued` text is composed in Basic Paragraph and placed as a full-width row above the repeated header rows in every frame after the first (`continued_row`). It is recorded with row index usize::MAX, so table styles, alternating fills, cell edges and cell hit testing (celltext.rs skips it) never treat it as a real row, and it draws as a plain bordered box. A paragraph or cell style for the label and an automatic table number are open.
 
+### markdown import · pipe tables
+- refers-to: native/formdes-interchange/src/text.rs :: markdown, pipe_table, pipe_cells
+- kind: fix
+- logged: v0.41.0 · 2026-10-16
+
+Found while testing split rows: Markdown pipe tables were placed as lines of text with their pipes. The importer now recognises a pipe row followed by a separator of dashes (colons and spaces allowed) and the pipe rows after it, and builds the table with the same `table_of` the CSV importer uses (first row as header when there are two or more rows). Bold and underscore markers inside cells are dropped rather than styled; column alignment from the colons is not applied yet.
+

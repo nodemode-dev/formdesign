@@ -175,9 +175,43 @@ pub fn html(text: &str) -> Imported {
     out
 }
 
+fn pipe_cells(line: &str) -> Vec<String> {
+    let t = line.trim();
+    let t = t.strip_prefix('|').unwrap_or(t);
+    let t = t.strip_suffix('|').unwrap_or(t);
+    t.split('|').map(|c| c.trim().replace("**", "").replace("__", "")).collect()
+}
+
+/// A Markdown pipe table starting at `i`: a row of cells, a separator of dashes (with optional colons), then rows.
+/// Returns the rows without the separator and how many lines it used.
+fn pipe_table(lines: &[&str], i: usize) -> Option<(Vec<Vec<String>>, usize)> {
+    let head = lines.get(i)?.trim();
+    let sep = lines.get(i + 1)?.trim();
+    if !head.starts_with('|') || !sep.starts_with('|') || !sep.contains('-') || !sep.chars().all(|c| matches!(c, '|' | '-' | ':' | ' ')) {
+        return None;
+    }
+    let mut rows = vec![pipe_cells(head)];
+    let mut k = i + 2;
+    while k < lines.len() && lines[k].trim().starts_with('|') {
+        rows.push(pipe_cells(lines[k]));
+        k += 1;
+    }
+    Some((rows, k - i))
+}
+
 pub fn markdown(text: &str) -> Imported {
     let mut out = Imported { paras: Vec::new(), para_styles: Vec::new(), char_styles: Vec::new() };
-    for line in text.replace("\r\n", "\n").split('\n') {
+    let src = text.replace("\r\n", "\n");
+    let lines: Vec<&str> = src.split('\n').collect();
+    let mut li = 0;
+    while li < lines.len() {
+        if let Some((rows, used)) = pipe_table(&lines, li) {
+            out.paras.extend(table_of(rows).paras);
+            li += used;
+            continue;
+        }
+        let line = lines[li];
+        li += 1;
         let t = line.trim_end();
         let hashes = t.chars().take_while(|c| *c == '#').count();
         let (style, body) = if hashes > 0 && hashes <= 6 && t[hashes..].starts_with(' ') {
