@@ -2,6 +2,14 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.28.0 · 2026-10-16
+
+- Stroke: miter limit, arrowheads at the start and end of open paths (simple, triangle, barbed, curved, circle, square, bar and wide variants) with their size in percent, and dashes fitted to path ends. Arrowheads now draw on screen, in PDF and in SVG.
+- The Curvature tool in the Pen flyout (Shift+`).
+- Object > Paths > Knife cuts closed shapes along a line or polyline.
+- Table > Cell Options: fill opacity.
+- Tool names are translated too; every string in all 26 languages.
+
 ## 0.27.0 · 2026-10-16
 
 - One command catalogue, as formvis and formlit have: every engine and window command with what it does and when to use it, at `/api/commands`, through MCP `list_commands` and `run_command` (window commands included), and `./formdes cli list|describe|run`; commands Undo cannot reverse ask first. `./formdes counts --commands --check`.
