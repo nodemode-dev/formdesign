@@ -924,6 +924,7 @@ impl<'a> Flower<'a> {
         let mut y = if c.top { self.frames[c.frame].inner.y0 } else { c.y + 4.0 };
         let mut frag = TableFrag { para: pi, frame: c.frame, column: c.column, rows: Vec::new(), cells: Vec::new() };
         let headers: Vec<usize> = (0..t.header_rows.min(rows)).collect();
+        let split_rows = t.attrs.get("splitRows").and_then(|v| v.as_bool()).unwrap_or(false);
         let mut r = 0;
         let mut guard = 0;
         while r < rows {
@@ -932,6 +933,53 @@ impl<'a> Flower<'a> {
                 return None;
             }
             let h = heights[r];
+            let room = self.bottom(c.frame, c.column) - y;
+            if h > room + 0.5
+                && split_rows
+                && !t.cells.iter().any(|cl| cl.rows > 1 && cl.row <= r && r < cl.row + cl.rows)
+                && !t.cells.iter().any(|cl| cl.row == r && need.contains_key(&(cl.row, cl.col)))
+            {
+                let mut first: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
+                let mut rest: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
+                let mut moved = false;
+                let mut kept = false;
+                for cell in t.cells.iter().filter(|cl| cl.row == r) {
+                    let ins = eff.get(&(cell.row, cell.col)).map(cell_insets_of).unwrap_or([0.0; 4]);
+                    let lines = cell_lines.get(&(cell.row, cell.col)).map(|(ls, _)| ls.clone()).unwrap_or_default();
+                    let mut used = ins[0];
+                    let mut k = 0;
+                    while k < lines.len() && used + lines[k].leading + lines[k].descent + ins[2] <= room {
+                        used += lines[k].leading;
+                        k += 1;
+                    }
+                    let (a, b) = lines.split_at(k);
+                    kept |= k > 0;
+                    moved |= !b.is_empty();
+                    let sum = |ls: &[Line]| ls.iter().map(|l| l.leading).sum::<f64>() + ins[0] + ins[2];
+                    first.insert((cell.row, cell.col), (a.to_vec(), sum(a)));
+                    rest.insert((cell.row, cell.col), (b.to_vec(), sum(b)));
+                }
+                if kept && moved && room > 0.0 {
+                    let mut part = cell_lines.clone();
+                    part.extend(first);
+                    self.table_row(t, &heights, r, y, room, &col_x, &part, c, &mut frag);
+                    let rest_h = rest.values().map(|(_, h)| *h).fold(0.0, f64::max);
+                    cell_lines.extend(rest);
+                    heights[r] = rest_h.max(4.0);
+                    out.tables.push(std::mem::replace(&mut frag, TableFrag { para: pi, frame: 0, column: 0, rows: Vec::new(), cells: Vec::new() }));
+                    c = self.next_column(c)?;
+                    frag.frame = c.frame;
+                    frag.column = c.column;
+                    y = self.frames[c.frame].inner.y0;
+                    if r >= headers.len() {
+                        for hr in &headers {
+                            self.table_row(t, &heights, *hr, y, heights[*hr], &col_x, &cell_lines, c, &mut frag);
+                            y += heights[*hr];
+                        }
+                    }
+                    continue;
+                }
+            }
             if y + h > self.bottom(c.frame, c.column) + 0.5 && !frag.rows.is_empty() {
                 out.tables.push(std::mem::replace(&mut frag, TableFrag { para: pi, frame: 0, column: 0, rows: Vec::new(), cells: Vec::new() }));
                 c = self.next_column(c)?;
