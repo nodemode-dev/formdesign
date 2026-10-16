@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use crate::registry::{Needs, Registry, cmd};
 use crate::session::{Ctx, Selection};
 use crate::target::items;
-use crate::{EngineError, Result, args, ops};
+use crate::{EngineError, Result, args, ops, wire};
 
 const K: f64 = 0.552_284_749_8;
 
@@ -429,30 +429,134 @@ fn effect(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
-fn expand_appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
+fn appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
+    let clear = args::opt_bool(p, "clear").unwrap_or(false);
+    let remove = args::opt_u64(p, "remove").map(|v| v as usize);
+    let index = args::opt_u64(p, "index").map(|v| v as usize);
+    let entry = if clear || remove.is_some() {
+        None
+    } else {
+        let kind = args::opt_str(p, "kind").filter(|k| *k == "fill" || *k == "stroke").ok_or_else(|| EngineError::new("kind is fill or stroke (or clear: true, or remove: index)"))?;
+        let name = args::str_(p, "swatch", "a swatch name such as Accent or #rrggbb")?;
+        if c.doc()?.swatch(name).is_none() && !name.starts_with('#') && !wire::LOCKED.iter().any(|l| l.eq_ignore_ascii_case(&formdes_model::color::swatch_key(name))) {
+            return Err(EngineError::new(format!("no swatch named {name}")));
+        }
+        let mut e = serde_json::Map::new();
+        e.insert("kind".into(), json!(kind));
+        e.insert("paint".into(), serde_json::to_value(wire::paint_in(name, args::opt_f64(p, "tint"))).unwrap_or(Value::Null));
+        for k in ["weight", "opacity", "cap", "join", "dash", "effects", "above", "evenOdd", "on"] {
+            if let Some(v) = p.get(k) {
+                e.insert(k.into(), v.clone());
+            }
+        }
+        Some(Value::Object(e))
+    };
     let doc = c.doc_mut()?;
     let mut n = 0;
     for id in &ids {
         let Some(it) = doc.item_mut(*id) else { continue };
-        if !it.extra.contains_key("effects") || matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
-            continue;
+        let mut list = it.extra.get("appearance").and_then(Value::as_array).cloned().unwrap_or_default();
+        match (&entry, remove) {
+            (_, Some(i)) => { if i < list.len() { list.remove(i); } }
+            (None, None) => list.clear(),
+            (Some(e), None) => match index.filter(|i| *i < list.len()) {
+                Some(i) => list[i] = e.clone(),
+                None => list.push(e.clone()),
+            },
         }
-        let closed = it.shape.closed();
-        let path = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
-        it.shape = Shape::Path { path, closed };
-        it.corner = Default::default();
-        it.extra.remove("effects");
+        if list.is_empty() { it.extra.remove("appearance"); } else { it.extra.insert("appearance".into(), Value::Array(list)); }
         n += 1;
     }
-    if n == 0 {
-        return Err(EngineError::new("none of the selected objects has live effects to expand"));
-    }
-    c.label("Expand Appearance");
+    c.label("Appearance");
     Ok(json!({"items": n}))
 }
 
+fn expand_appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let mut made = Vec::new();
+    for id in &ids {
+        let doc = c.doc_mut()?;
+        let Some(it) = doc.item(*id).cloned() else { continue };
+        let Some(list) = it.extra.get("appearance").and_then(Value::as_array).cloned() else { continue };
+        let base = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
+        let mut below = Vec::new();
+        let mut above = Vec::new();
+        for e in &list {
+            let Some(paint) = e.get("paint").and_then(|v| serde_json::from_value::<formdes_model::color::Paint>(v.clone()).ok()) else { continue };
+            let Some(nid) = ops::duplicate(doc, *id, Vec2::ZERO, None) else { continue };
+            let fx = e.get("effects").and_then(Value::as_array).cloned().unwrap_or_default();
+            let path = fx.iter().fold(base.clone(), |q, f| formdes_model::effects::one(f, &q));
+            if let Some(d) = doc.item_mut(nid) {
+                d.shape = Shape::Path { path, closed: it.shape.closed() };
+                d.corner = Default::default();
+                d.kind = ItemKind::Plain;
+                d.extra.remove("effects");
+                d.extra.remove("appearance");
+                d.extra.remove("widthProfile");
+                d.opacity = it.opacity * e.get("opacity").and_then(Value::as_f64).unwrap_or(100.0) / 100.0;
+                if e.get("kind").and_then(Value::as_str) == Some("stroke") {
+                    d.fill = formdes_model::color::Paint::None;
+                    d.stroke.paint = paint;
+                    d.stroke.weight = e.get("weight").and_then(Value::as_f64).unwrap_or(1.0);
+                    if let Some(s) = e.get("cap").and_then(Value::as_str) { d.stroke.cap = s.into(); }
+                    if let Some(s) = e.get("join").and_then(Value::as_str) { d.stroke.join = s.into(); }
+                    d.stroke.dash = e.get("dash").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
+                } else {
+                    d.fill = paint;
+                    d.stroke.paint = formdes_model::color::Paint::None;
+                    d.stroke.weight = 0.0;
+                }
+            }
+            if e.get("above").and_then(Value::as_bool).unwrap_or(false) { above.push(nid); } else { below.push(nid); }
+        }
+        if let Some(home) = doc.home(*id)
+            && let Some(list) = ops::home_list(doc, &home)
+        {
+            list.retain(|x| !below.contains(x) && !above.contains(x));
+            if let Some(at) = list.iter().position(|x| x == id) {
+                list.splice(at + 1..at + 1, above.iter().copied());
+                list.splice(at..at, below.iter().copied());
+            }
+        }
+        if let Some(d) = doc.item_mut(*id) {
+            d.extra.remove("appearance");
+        }
+        let all: Vec<ItemId> = below.iter().chain([id]).chain(above.iter()).copied().collect();
+        made.push(if all.len() > 1 { ops::group(doc, &all).unwrap_or(*id) } else { *id });
+    }
+    let doc = c.doc_mut()?;
+    let mut n = made.len();
+    for id in made.clone().iter().chain(ids.iter()) {
+        let Some(it) = doc.item(*id) else { continue };
+        let targets: Vec<ItemId> = if matches!(it.kind, ItemKind::Group { .. }) { it.children() } else { vec![*id] };
+        for t in targets {
+            let Some(it) = doc.item_mut(t) else { continue };
+            if !it.extra.contains_key("effects") || matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
+                continue;
+            }
+            let closed = it.shape.closed();
+            let path = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
+            it.shape = Shape::Path { path, closed };
+            it.corner = Default::default();
+            it.extra.remove("effects");
+            n += 1;
+        }
+    }
+    if n == 0 {
+        return Err(EngineError::new("none of the selected objects has live effects or extra fills and strokes to expand"));
+    }
+    if !made.is_empty() {
+        c.set_selection(Selection::items(made.clone()));
+    }
+    c.label("Expand Appearance");
+    Ok(json!({"items": n, "ids": made}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.appearance", "Add Fill or Stroke").menu(&["Window", "Appearance", "Add Fill or Stroke..."]).needs(Needs::Items)
+        .sig("{kind: fill|stroke, swatch, tint?, opacity?: percent, weight?, cap?, join?, dash?: [pt...], effects?: [{kind, ...}], above?: bool (over the main fill and stroke), evenOdd?, on?, index? (replace), remove?: index, clear?: bool, ids?}")
+        .help("Adds another fill or stroke to the object's appearance, each with its own colour, opacity, weight and effects, drawn under the main fill or over the main stroke, as Illustrator's Appearance panel does; index replaces an entry, remove takes one out, clear empties the list.").reg(r, appearance);
     cmd("object.effect", "Add Effect").menu(&["Effect", "Distort & Transform", "Add Effect..."]).needs(Needs::Items)
         .sig("{kind: roundCorners {radius} | zigZag {size, ridges, smooth} | roughen {size, detail (per inch), smooth, seed} | puckerBloat {amount: -200..200} | twist {angle} | transform {scaleX, scaleY, moveX, moveY, rotate, copies}, on?: bool, index? (replace), remove?: index, clear?: bool, ids?}")
         .help("Adds a live effect to the object's appearance stack, applied in order when it is drawn and kept editable, as Illustrator's Effect menu does: Round Corners, Zig Zag, Roughen, Pucker & Bloat, Twist and Transform (with copies); index replaces an entry, remove takes one out, clear empties the stack.").reg(r, effect);

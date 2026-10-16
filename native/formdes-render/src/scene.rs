@@ -573,6 +573,7 @@ impl Ctx<'_> {
                 self.outer_glow(it, &path);
                 self.shadow(it, &path);
                 let masks = self.feather(it, &path);
+                self.appearance(it, &local, xf, false);
                 if it.shape.closed()
                     && let Some(b) = brush_of(self.doc, &it.fill, 1.0, bbox, xf)
                 {
@@ -622,6 +623,7 @@ impl Ctx<'_> {
                 if over {
                     self.ops.push(Op::Pop);
                 }
+                self.appearance(it, &local, xf, true);
                 for _ in 0..masks {
                     self.ops.push(Op::Pop);
                 }
@@ -680,6 +682,38 @@ impl Ctx<'_> {
         }
         if blended {
             self.ops.push(Op::Pop);
+        }
+    }
+
+    fn appearance(&mut self, it: &Item, local: &BezPath, xf: Affine, above: bool) {
+        let Some(list) = it.extra.get("appearance").and_then(|v| v.as_array()) else { return };
+        let k = {
+            let c = xf.as_coeffs();
+            (c[0] * c[3] - c[1] * c[2]).abs().sqrt()
+        };
+        for e in list {
+            if e.get("above").and_then(|v| v.as_bool()).unwrap_or(false) != above || e.get("on").and_then(|v| v.as_bool()) == Some(false) {
+                continue;
+            }
+            let Some(paint) = e.get("paint").and_then(|v| serde_json::from_value::<Paint>(v.clone()).ok()) else { continue };
+            let Some(b) = brush_of(self.doc, &paint, 1.0, it.shape.bbox(), xf) else { continue };
+            let fx = e.get("effects").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+            let path = xf * fx.iter().fold(local.clone(), |p, f| formdes_model::effects::one(f, &p));
+            let opacity = e.get("opacity").and_then(|v| v.as_f64()).unwrap_or(100.0) / 100.0;
+            if opacity < 0.999 {
+                self.ops.push(Op::PushOpacity(opacity.clamp(0.0, 1.0)));
+            }
+            if e.get("kind").and_then(|v| v.as_str()) == Some("stroke") {
+                let w = e.get("weight").and_then(|v| v.as_f64()).unwrap_or(1.0) * k;
+                let s = |key: &str, d: &str| e.get(key).and_then(|v| v.as_str()).unwrap_or(d).to_string();
+                let dash = e.get("dash").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|x| x.as_f64()).map(|x| x * k).collect()).unwrap_or_default();
+                self.ops.push(Op::Stroke { path, brush: b, style: StrokeStyle { width: w, cap: s("cap", "butt"), join: s("join", "miter"), dash } });
+            } else {
+                self.ops.push(Op::Fill { path, brush: b, even_odd: e.get("evenOdd").and_then(|v| v.as_bool()).unwrap_or(false) });
+            }
+            if opacity < 0.999 {
+                self.ops.push(Op::Pop);
+            }
         }
     }
 
