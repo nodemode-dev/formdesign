@@ -38,7 +38,7 @@ pub fn profile_of(extra: &Attrs) -> Option<Profile> {
     Some(out)
 }
 
-fn at(prof: &Profile, t: f64) -> (f64, f64) {
+pub fn at(prof: &Profile, t: f64) -> (f64, f64) {
     let first = prof[0];
     if t <= first.0 {
         return (first.1, first.2);
@@ -87,6 +87,25 @@ fn subpaths(path: &BezPath, tol: f64) -> Vec<(Vec<Point>, bool)> {
     out
 }
 
+fn densify(pts: &[Point], closed: bool) -> Vec<Point> {
+    let n = pts.len();
+    let segs = if closed { n } else { n - 1 };
+    let total: f64 = (0..segs).map(|i| pts[(i + 1) % n].distance(pts[i])).sum();
+    let step = (total / 160.0).max(0.5);
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        out.push(pts[i]);
+        if i < segs {
+            let (a, b) = (pts[i], pts[(i + 1) % n]);
+            let k = (a.distance(b) / step).floor() as usize;
+            for j in 1..k.min(400) {
+                out.push(a.lerp(b, j as f64 / k as f64));
+            }
+        }
+    }
+    out
+}
+
 fn unit(v: Vec2) -> Vec2 {
     let h = v.hypot();
     if h < 1e-12 { Vec2::ZERO } else { v / h }
@@ -111,10 +130,43 @@ pub fn nib(path: &BezPath, size: f64, angle: f64, roundness: f64, closed_shape: 
     })
 }
 
-fn outline_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64, Vec2) -> (f64, f64)) -> BezPath {
-    let mut out = BezPath::new();
+/// Where `p` falls along a stroke as `outline` measures it: the position 0..1 along the nearest subpath's
+/// length, the nearest point on the path, the left normal there, and the distance from `p` to that point.
+pub fn locate(path: &BezPath, weight: f64, closed_shape: bool, p: Point) -> Option<(f64, Point, Vec2, f64)> {
+    let mut best: Option<(f64, Point, Vec2, f64)> = None;
     for (pts, closed) in subpaths(path, (weight * 0.01).clamp(0.01, 0.25)) {
         let closed = closed || (closed_shape && pts.len() > 2);
+        let n = pts.len();
+        let segs = if closed { n } else { n - 1 };
+        let total: f64 = (0..segs).map(|i| pts[(i + 1) % n].distance(pts[i])).sum();
+        if total < 1e-9 {
+            continue;
+        }
+        let mut acc = 0.0;
+        for i in 0..segs {
+            let (a, b) = (pts[i], pts[(i + 1) % n]);
+            let d = b - a;
+            let len = d.hypot();
+            if len < 1e-12 {
+                continue;
+            }
+            let u = ((p - a).dot(d) / (len * len)).clamp(0.0, 1.0);
+            let foot = a + d * u;
+            let dist = p.distance(foot);
+            if best.is_none_or(|b| dist < b.3) {
+                best = Some(((acc + u * len) / total, foot, Vec2::new(-d.y, d.x) / len, dist));
+            }
+            acc += len;
+        }
+    }
+    best
+}
+
+fn outline_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64, Vec2) -> (f64, f64)) -> BezPath {
+    let mut out = BezPath::new();
+    for (raw, closed) in subpaths(path, (weight * 0.01).clamp(0.01, 0.25)) {
+        let closed = closed || (closed_shape && raw.len() > 2);
+        let pts = densify(&raw, closed);
         let n = pts.len();
         let mut acc = vec![0.0; n];
         for i in 1..n {
