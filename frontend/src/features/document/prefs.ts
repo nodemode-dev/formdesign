@@ -4,6 +4,7 @@ import { Dialog } from '../../ui/dialogs';
 import { el, escapeHtml, q, setChecked, setClass, setText, setTitle, setValue } from '../../ui/dom';
 import { readChoice, setAccent, setIntensity, setTheme, THEMES } from '../../ui/themes';
 import { toast } from '../../ui/toast';
+import { isLang, language, languages, setLanguage } from '../../ui/i18n';
 import { copyText, Seg } from './form';
 import { docIcon } from './icons';
 import { capabilities, repoDir } from './paths';
@@ -125,7 +126,13 @@ export class PreferencesDialog {
     const r = el('<div class="fd-pr-range"></div>');
     r.append(this.intensity, this.intensityOut);
     inten.appendChild(r);
-    pg.append(theme, accent, inten);
+    const lang = this.section('Language', 'The language of menus, panels and dialogs. Document text is never changed.');
+    const pick = el<HTMLSelectElement>('<select class="cv-select fd-pr-lang" aria-label="Language" translate="no" data-no-i18n></select>');
+    for (const [code, name] of languages()) pick.appendChild(new Option(name, code));
+    pick.value = language();
+    pick.addEventListener('change', () => { if (isLang(pick.value)) void setLanguage(pick.value); });
+    lang.appendChild(pick);
+    pg.append(lang, theme, accent, inten);
     return pg;
   }
 
