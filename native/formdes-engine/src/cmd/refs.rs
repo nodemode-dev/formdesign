@@ -297,6 +297,31 @@ fn footnote_insert(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"at": at}))
 }
 
+fn footnote_options(c: &mut Ctx, p: &Value) -> Result<Value> {
+    const STYLES: [&str; 8] = ["arabic", "roman", "ROMAN", "alpha", "ALPHA", "01", "001", "symbols"];
+    if let Some(s) = args::opt_str(p, "numbering")
+        && !STYLES.contains(&s)
+    {
+        return Err(EngineError::new(format!("numbering is one of {}", STYLES.join(", "))));
+    }
+    let doc = c.doc_mut()?;
+    let mut cur = doc.prefs.get("footnotes").and_then(Value::as_object).cloned().unwrap_or_default();
+    for k in ["numbering", "prefix", "suffix", "separator"] {
+        if let Some(v) = p.get(k) {
+            if v.is_null() { cur.remove(k); } else if let Some(s) = v.as_str() { cur.insert(k.into(), json!(s)); }
+        }
+    }
+    if let Some(v) = p.get("start") {
+        match v.as_u64().filter(|n| *n >= 1) {
+            Some(n) => { cur.insert("start".into(), json!(n)); }
+            None => { cur.remove("start"); }
+        }
+    }
+    doc.prefs.insert("footnotes".into(), Value::Object(cur.clone()));
+    c.label("Document Footnote Options");
+    Ok(Value::Object(cur))
+}
+
 fn footnote_list(c: &mut Ctx, p: &Value) -> Result<Value> {
     let doc = c.doc()?;
     let only: Option<StoryId> = crate::target::story_id(p, "story");
@@ -593,6 +618,8 @@ pub fn register(r: &mut Registry) {
     cmd("variables.define", "Define Text Variables").menu(&["Type", "Text Variables", "Define..."]).sig("{name, kind?: custom|runningHeader|chapterNumber|creationDate|modificationDate|outputDate|fileName|lastPageNumber|liveCaption, text?, number?, style?, date?, value?: {field, image, prefix}}").reg(r, variables_define);
     cmd("variables.delete", "Delete Text Variable").sig("{name}").reg(r, variables_delete);
     cmd("variables.insert", "Insert Variable").menu(&["Type", "Text Variables", "Insert Variable"]).needs(Needs::Text).sig("{name}").reg(r, variables_insert);
+    cmd("footnote.options", "Document Footnote Options").menu(&["Type", "Document Footnote Options..."]).sig("{numbering?: arabic|roman|ROMAN|alpha|ALPHA|01|001|symbols, start?: number, prefix?, suffix?, separator?: text after the number in the note (default a space)}")
+        .help("Sets how footnotes are numbered across the document: the number style (including symbols * \u{2020} \u{2021} \u{a7}), the first number, and the prefix, suffix and separator around the number where the footnote itself begins, as InDesign's Document Footnote Options do.").reg(r, footnote_options);
     cmd("footnote.insert", "Insert Footnote").menu(&["Type", "Insert Footnote"]).needs(Needs::Text).sig("{text?, style?}").reg(r, footnote_insert);
     cmd("footnote.list", "Footnotes").query().sig("{story?}").reg(r, footnote_list);
     cmd("footnote.set", "Edit Footnote").sig("{story, at, text}").reg(r, footnote_set);

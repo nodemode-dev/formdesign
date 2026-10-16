@@ -86,7 +86,22 @@ impl Context for DocCtx<'_> {
     }
 
     fn footnote_number(&self, ordinal: usize) -> String {
-        format_number(ordinal as u32, "arabic")
+        let o = self.doc.prefs.get("footnotes");
+        let style = o.and_then(|v| v.get("numbering")).and_then(|v| v.as_str()).unwrap_or("arabic");
+        let start = o.and_then(|v| v.get("start")).and_then(|v| v.as_u64()).unwrap_or(1).max(1) as usize;
+        let n = ordinal + start - 1;
+        if style == "symbols" {
+            const SYM: [&str; 6] = ["*", "\u{2020}", "\u{2021}", "\u{a7}", "\u{2016}", "\u{b6}"];
+            let i = n.saturating_sub(1);
+            return SYM[i % SYM.len()].repeat(i / SYM.len() + 1);
+        }
+        format_number(n as u32, style)
+    }
+
+    fn footnote_label(&self, ordinal: usize) -> String {
+        let o = self.doc.prefs.get("footnotes");
+        let s = |k: &str, d: &str| o.and_then(|v| v.get(k)).and_then(|v| v.as_str()).unwrap_or(d).to_string();
+        format!("{}{}{}{}", s("prefix", ""), self.footnote_number(ordinal), s("suffix", ""), s("separator", " "))
     }
 
     fn vertical(&self, frame: usize) -> bool {

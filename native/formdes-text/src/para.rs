@@ -14,6 +14,10 @@ pub trait Context {
     fn variable(&self, name: &str, frame: usize) -> String;
     fn marker(&self, marker: Marker, frame: usize) -> String;
     fn footnote_number(&self, ordinal: usize) -> String;
+    /// The number as it starts the footnote itself (with the document's prefix and suffix) and the space after it.
+    fn footnote_label(&self, ordinal: usize) -> String {
+        format!("{} ", self.footnote_number(ordinal))
+    }
     fn hidden(&self, _over: &Attrs) -> bool {
         false
     }
