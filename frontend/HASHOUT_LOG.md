@@ -486,3 +486,10 @@ The registry has formvis's fields and methods (group, description, when, params,
 - logged: v0.27.0 · 2026-10-16
 
 The engine's overlay lists a handle per corner anchor of each item under Direct Selection (`corners`: handle point, vertex, radius, picked). The window draws a ringed dot there, pushed out to at least 14 screen pixels from the vertex so it never sits on the anchor square at low zoom; the engine hit-tests the same pushed-out point, so what is drawn is what is grabbed. Canvas-drawn, no DOM.
+
+### features/actions.ts · the Actions panel
+- refers-to: frontend/src/features/actions.ts :: ActionsPanel; frontend/src/editor/editor.ts :: onExec; frontend/src/ui/shell.ts :: runCore; backend/app/routers/actionsets.py
+- kind: rationale
+- logged: v0.27.0 · 2026-10-16
+
+InDesign's most-requested missing feature after table and footnote fixes (UserVoice "Actions Panel", 432 votes). Recording hooks the two places the window runs engine commands (`editor.exec` and the shell's `runCore`, which menus, the palette and the parameter dialogs use) and keeps undoable commands with their parameters, skipping selection, undo and redo, view and file-writing commands. Saved actions live in the engine's data folder (`actions.json`, `/api/actionsets`), so every window and agent sees the same list. Playing sends the steps as one batch, so an action is one undo step and fails as a whole. The list is patched in place by key. Window commands `actions.record`, `actions.stop` and `actions.play {name}` put it in the catalogue for agents. Recorded steps keep the object ids they acted on; an action whose steps name no ids acts on the selection when played.

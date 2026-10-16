@@ -10,7 +10,7 @@ export interface DocInfo {
   index: number; uid: number; title: string; dirty: boolean; path: string | null; pages: number;
   canUndo: boolean; canRedo: boolean; undoLabel: string | null; redoLabel: string | null; template?: string | null; trackChanges?: boolean;
 }
-export interface CoreCommand { id: string; label: string; menu: string[]; params: string; shortcut: string | null; enabled: boolean }
+export interface CoreCommand { id: string; label: string; menu: string[]; params: string; shortcut: string | null; enabled: boolean; undoable?: boolean; help?: string }
 export interface ToolInfo { id: string; label: string; icon: string; shortcut: string | null }
 export interface SelectionInfo { items: number[]; content?: boolean; text?: unknown; [k: string]: unknown }
 
@@ -157,11 +157,14 @@ export class Editor {
     }
   }
 
+  onExec: ((command: string, params: Record<string, unknown>) => void) | null = null;
+
   async exec<T = any>(command: string, params: Record<string, unknown> = {}, quiet = false): Promise<T | undefined> {
     try {
       const r = await engine.call<T>('exec', { command, params });
       this.handleRequests(r.meta?.requests);
       this.schedule();
+      this.onExec?.(command, params);
       return r.result;
     } catch (err) {
       if (!quiet) toast(friendly((err as Error).message), 'error');

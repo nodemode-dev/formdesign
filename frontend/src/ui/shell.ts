@@ -161,6 +161,7 @@ export class Shell implements Workspace {
       const r = await engine.call('exec', { command: coreId, params });
       editor.handleRequests(r.meta?.requests);
       editor.schedule();
+      editor.onExec?.(coreId, params);
       return r.result;
     } catch (err) {
       const msg = friendly((err as Error).message);
