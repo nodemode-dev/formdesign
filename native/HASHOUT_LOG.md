@@ -909,3 +909,10 @@ The reference number is composed into the text before the flow knows which page 
 
 From the InDesign UserVoice request to keep dimensions in table and cell styles (InDesign's cell styles cannot hold a row height or a column width). A cell style, or a cell's own attributes, may set `width` (the column's width, from any single-column cell in it, the last one read winning), `minHeight` (the row is at least this tall) and `height` (the row is exactly this tall, content or not); the flow applies them when it builds the column positions and the row heights, after content has been measured, so re-applying a style re-sizes every table using it. Values must be above 0 and are refused otherwise. Distributing a fixed table width when a style changes one column, and auto-fit of columns to content, are open.
 
+### table cells · slanted header text
+- refers-to: native/formdes-text/src/flow.rs :: cell_rotation, cell_xf, place_table (slanted measure), table_row (slanted box); native/formdes-engine/src/cmd/table.rs :: set_cell, validate_cell_style
+- kind: rationale
+- logged: v0.43.0 · 2026-10-16
+
+From the InDesign UserVoice request for slanted table headers. A cell's `slant` (10 to 80 degrees, from Cell Options or a cell style) is carried through the existing rotation code as 1000 plus the angle, so CellOut and every consumer keep their types. The cell's text is composed on one unbroken line; the row is sized to the rotated text: (longest line plus the lean) times sin(angle), plus the line height times cos(angle), plus insets. table_row lays the lines in a strip just above the cell's top edge, moved along its baseline by the lean (line height times tan(angle), capped at half the cell width) so the glyph tops do not cross the left border, and cell_xf turns that strip about the cell's top-left onto its bottom-left corner. Borders stay rectangular and long labels at shallow angles run on over the next columns, as in spreadsheets; skewed cell borders, text editing directly inside a slanted cell in the window, and slanted text in IDML export are open.
+

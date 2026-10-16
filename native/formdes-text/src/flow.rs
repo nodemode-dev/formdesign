@@ -919,6 +919,14 @@ impl<'a> Flower<'a> {
             if rot == 90 || rot == 270 {
                 let nat = compose_cell(cell, &attrs, 1.0e5).iter().map(|l| l.width).fold(0.0, f64::max);
                 need.insert((cell.row, cell.col), (nat + ins[1] + ins[3]).min(600.0));
+            } else if rot >= 1000 {
+                let a = ((rot - 1000) as f64).to_radians();
+                let lines = compose_cell(cell, &attrs, 1.0e5);
+                let long = lines.iter().map(|l| l.width).fold(0.0, f64::max);
+                let h: f64 = lines.iter().map(|l| l.leading).sum();
+                let lean = h * a.tan();
+                let total = ((long + lean) * a.sin() + h * a.cos() + ins[0] + ins[2] + 4.0).min(600.0);
+                cell_lines.insert((cell.row, cell.col), (lines, total));
             } else {
                 let lines = compose_cell(cell, &attrs, w);
                 let h: f64 = lines.iter().map(|l| l.leading).sum();
@@ -1089,6 +1097,11 @@ impl<'a> Flower<'a> {
             let rotate = cell_rotation(&attrs);
             let boxr = match rotate {
                 90 | 270 => Rect::new(rect.y0, rect.x0, rect.y1, rect.x1),
+                r if r >= 1000 => {
+                    let h: f64 = cells.get(&(cell.row, cell.col)).map(|(ls, _)| ls.iter().map(|l| l.leading).sum()).unwrap_or(0.0);
+                    let lean = (h * ((r - 1000) as f64).to_radians().tan()).min(rect.width() / 2.0);
+                    Rect::new(rect.x0 + 2.0 + lean - ins[1], rect.y0 - h - 2.0 - ins[0], rect.x1, rect.y0 - 2.0)
+                }
                 _ => rect,
             };
             if let Some((ls, total)) = cells.get(&(cell.row, cell.col)) {
@@ -1240,6 +1253,10 @@ impl<'a> Flower<'a> {
 /// Maps the text of a rotated table cell (composed in a box whose width is the cell's height for 90 and 270
 /// degrees) onto the cell rectangle.
 pub fn cell_xf(rect: Rect, rotate: i32) -> kurbo::Affine {
+    if rotate >= 1000 {
+        let a = ((rotate - 1000) as f64).to_radians();
+        return kurbo::Affine::translate((rect.x0, rect.y1)) * kurbo::Affine::rotate(-a) * kurbo::Affine::translate((-rect.x0, -rect.y0));
+    }
     match rotate {
         90 => kurbo::Affine::new([0.0, 1.0, -1.0, 0.0, rect.x0 + rect.x1, 0.0]),
         270 => kurbo::Affine::new([0.0, -1.0, 1.0, 0.0, 0.0, rect.y0 + rect.y1]),
@@ -1248,7 +1265,11 @@ pub fn cell_xf(rect: Rect, rotate: i32) -> kurbo::Affine {
     }
 }
 
+/// A cell's text rotation: 0, 90, 180 or 270, or 1000 plus the angle for slanted text (10 to 80 degrees).
 pub fn cell_rotation(attrs: &formdes_model::attrs::Attrs) -> i32 {
+    if let Some(s) = attrs.get("slant").and_then(|v| v.as_f64()).filter(|s| *s >= 10.0 && *s <= 80.0) {
+        return 1000 + s.round() as i32;
+    }
     match attrs.get("rotate").and_then(|v| v.as_f64()).map(|d| d.round() as i64) {
         Some(90 | -270) => 90,
         Some(180 | -180) => 180,
