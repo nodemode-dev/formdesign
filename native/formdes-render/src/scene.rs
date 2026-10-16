@@ -562,8 +562,37 @@ impl Ctx<'_> {
         }
         match &it.kind {
             ItemKind::Group { .. } | ItemKind::States { .. } => {
+                let id_of = |k: &str| it.extra.get(k).and_then(|v| v.as_u64()).map(ItemId).filter(|m| it.children().contains(m));
+                let (omask, cmask) = (id_of("opacityMask"), id_of("clipMask"));
+                let mut wrap = 0;
+                if it.extra.get("isolate").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    self.ops.push(Op::PushOpacity(1.0));
+                    wrap += 1;
+                }
+                if let Some(m) = cmask
+                    && let Some(mi) = self.doc.item(m)
+                {
+                    let clip = (base * self.doc.world_xf(m)) * formdes_model::effects::apply(&mi.extra, mi.shape.to_path(&mi.corner));
+                    self.ops.push(Op::PushClip(clip));
+                    wrap += 1;
+                }
+                if let Some(m) = omask {
+                    let saved = std::mem::take(&mut self.ops);
+                    if !it.extra.get("maskClip").and_then(|v| v.as_bool()).unwrap_or(true) {
+                        self.ops.push(Op::Fill { path: Rect::new(-1e5, -1e5, 1e5, 1e5).to_path(0.1), brush: Brush::Solid(Color::Rgb([1.0, 1.0, 1.0]), 1.0), even_odd: false });
+                    }
+                    self.emit(m, base);
+                    let mops = std::mem::replace(&mut self.ops, saved);
+                    self.ops.push(Op::PushMask(mops));
+                    wrap += 1;
+                }
                 for c in it.children() {
-                    self.emit(c, base);
+                    if Some(c) != omask && Some(c) != cmask {
+                        self.emit(c, base);
+                    }
+                }
+                for _ in 0..wrap {
+                    self.ops.push(Op::Pop);
                 }
             }
             _ => {

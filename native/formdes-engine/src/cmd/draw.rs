@@ -553,7 +553,73 @@ fn expand_appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n, "ids": made}))
 }
 
+fn mask_group(c: &mut Ctx, p: &Value, key: &str, label: &str) -> Result<Value> {
+    let ids = items(c, p)?;
+    let release = args::opt_bool(p, "release").unwrap_or(false);
+    let doc = c.doc_mut()?;
+    if release {
+        let mut out = Vec::new();
+        for id in &ids {
+            let gid = if doc.item(*id).is_some_and(|i| i.extra.contains_key(key)) { *id } else { match doc.item(*id).and_then(|i| i.group) { Some(g) => g, None => continue } };
+            let Some(g) = doc.item_mut(gid) else { continue };
+            if g.extra.remove(key).is_none() {
+                continue;
+            }
+            g.extra.remove("maskClip");
+            out.push(gid);
+        }
+        if out.is_empty() {
+            return Err(EngineError::new(format!("the selection has no {} to release", label.to_lowercase())));
+        }
+        c.label(&format!("Release {label}"));
+        return Ok(json!({"groups": out}));
+    }
+    let order = super::art::paint_order(doc, &ids);
+    if order.len() < 2 {
+        return Err(EngineError::new(format!("{label} needs two or more objects: the topmost becomes the mask")));
+    }
+    let mask = order[order.len() - 1];
+    let gid = ops::group(doc, &order)?;
+    if let Some(g) = doc.item_mut(gid) {
+        g.extra.insert(key.into(), json!(mask.0));
+        if key == "opacityMask" {
+            g.extra.insert("maskClip".into(), json!(args::opt_bool(p, "clip").unwrap_or(true)));
+        }
+    }
+    c.set_selection(Selection::items(vec![gid]));
+    c.label(&format!("Make {label}"));
+    Ok(json!({"id": gid, "mask": mask.0}))
+}
+
+fn opacity_mask(c: &mut Ctx, p: &Value) -> Result<Value> {
+    mask_group(c, p, "opacityMask", "Opacity Mask")
+}
+
+fn clipping_mask(c: &mut Ctx, p: &Value) -> Result<Value> {
+    mask_group(c, p, "clipMask", "Clipping Mask")
+}
+
+fn isolate_blending(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let on = args::opt_bool(p, "on").unwrap_or(true);
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for id in &ids {
+        let Some(it) = doc.item_mut(*id) else { continue };
+        if on { it.extra.insert("isolate".into(), json!(true)); } else { it.extra.remove("isolate"); }
+        n += 1;
+    }
+    c.label("Isolate Blending");
+    Ok(json!({"items": n}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.opacityMask", "Make Opacity Mask").menu(&["Object", "Opacity Mask", "Make Opacity Mask"]).needs(Needs::Items).sig("{clip?: bool (default true: outside the mask is hidden), release?: bool, ids?}")
+        .help("Groups the selected objects and uses the topmost one's brightness as their opacity (white shows, black hides, greys fade), as Illustrator's opacity masks do; clip false keeps what lies outside the mask visible; release turns the mask back into a visible object in the group.").reg(r, opacity_mask);
+    cmd("object.clippingMask", "Make Clipping Mask").menu(&["Object", "Clipping Mask", "Make"]).needs(Needs::Items).sig("{release?: bool, ids?}")
+        .help("Groups the selected objects and clips them to the topmost object's shape, which stops drawing its own fill and stroke, as Illustrator's clipping masks and Draw Inside do; release makes the mask an ordinary object again.").reg(r, clipping_mask);
+    cmd("object.isolateBlending", "Isolate Blending").menu(&["Object", "Isolate Blending"]).needs(Needs::Items).sig("{on?: bool (default true), ids?}")
+        .help("Keeps the blend modes inside a group from mixing with what lies behind it, as Illustrator's Isolate Blending option does.").reg(r, isolate_blending);
     cmd("object.appearance", "Add Fill or Stroke").menu(&["Window", "Appearance", "Add Fill or Stroke..."]).needs(Needs::Items)
         .sig("{kind: fill|stroke, swatch, tint?, opacity?: percent, weight?, cap?, join?, dash?: [pt...], effects?: [{kind, ...}], above?: bool (over the main fill and stroke), evenOdd?, on?, index? (replace), remove?: index, clear?: bool, ids?}")
         .help("Adds another fill or stroke to the object's appearance, each with its own colour, opacity, weight and effects, drawn under the main fill or over the main stroke, as Illustrator's Appearance panel does; index replaces an entry, remove takes one out, clear empties the list.").reg(r, appearance);

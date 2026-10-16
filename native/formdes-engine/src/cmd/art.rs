@@ -75,7 +75,7 @@ fn world_shape(doc: &Doc, id: ItemId) -> Option<Shapes> {
     Some(c.overlay(&empty, OverlayRule::Subject, rule))
 }
 
-fn paint_order(doc: &Doc, ids: &[ItemId]) -> Vec<ItemId> {
+pub(crate) fn paint_order(doc: &Doc, ids: &[ItemId]) -> Vec<ItemId> {
     let mut keyed: Vec<((usize, usize), ItemId)> = ids
         .iter()
         .map(|id| {
