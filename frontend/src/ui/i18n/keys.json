@@ -1484,7 +1484,7 @@
 "Table Style Options...",
 "Table of Contents",
 "Table of Contents...",
-"Table options of the selected table; each key overrides the applied table style and null clears it. cornerRadius rounds the table's outer corners in every frame it runs through; alt and summary describe the table in HTML, EPUB and website exports. Alternating patterns count rows or columns in groups of first then next, skipFirst and skipLast leave rows at the start and end of the body out; row strokes own a row's top and bottom edges, column strokes the left and right edges.",
+"Table options of the selected table; each key overrides the applied table style and null clears it. cornerRadius rounds the table's outer corners in every frame it runs through; splitRows lets a row that does not fit break at a line of text and continue in the next frame, under repeated header rows, instead of moving whole; continued adds a full-width label row above the repeated headers in every frame after the first; alt and summary describe the table in HTML, EPUB and website exports. Alternating patterns count rows or columns in groups of first then next, skipFirst and skipLast leave rows at the start and end of the body out; row strokes own a row's top and bottom edges, column strokes the left and right edges.",
 "Table style",
 "Tabloid",
 "Tabs",
