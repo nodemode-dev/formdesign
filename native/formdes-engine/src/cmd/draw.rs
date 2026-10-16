@@ -862,7 +862,113 @@ fn brush(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+fn envelope(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use formdes_model::effects;
+    let ids = items(c, p)?;
+    let release = args::opt_bool(p, "release").unwrap_or(false);
+    let expand = args::opt_bool(p, "expand").unwrap_or(false);
+    let kind = args::opt_str(p, "kind");
+    let moves: Vec<(usize, usize, f64, f64)> = p.get("moves").and_then(Value::as_array).map(|a| a.iter().filter_map(|m| {
+        let m = m.as_array()?;
+        Some((m.first()?.as_u64()? as usize, m.get(1)?.as_u64()? as usize, m.get(2)?.as_f64()?, m.get(3)?.as_f64()?))
+    }).collect()).unwrap_or_default();
+    let doc = c.doc()?;
+    let leaves_of = |doc: &formdes_model::doc::Doc, ids: &[ItemId]| -> Vec<ItemId> {
+        doc.walk(ids).into_iter().filter(|i| doc.item(*i).is_some_and(|it| !matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }))).collect()
+    };
+    if release || expand || (kind.is_none() && !moves.is_empty()) {
+        let leaves: Vec<ItemId> = leaves_of(doc, &ids).into_iter().filter(|i| doc.item(*i).is_some_and(|it| it.extra.contains_key("envelope"))).collect();
+        if leaves.is_empty() {
+            return Err(EngineError::new("the selection has no envelope"));
+        }
+        let doc = c.doc_mut()?;
+        for id in &leaves {
+            let world = doc.world_xf(*id);
+            let Some(it) = doc.item_mut(*id) else { continue };
+            if expand {
+                if let Some((frame, cols, rows, grid)) = effects::envelope_of(&it.extra) {
+                    let base = effects::apply(&it.extra, it.shape.to_path(&it.corner));
+                    let closed = it.shape.closed();
+                    it.shape = Shape::Path { path: world.inverse() * effects::envelope(&(world * base), frame, cols, rows, &grid), closed };
+                    it.corner = Default::default();
+                    it.extra.remove("effects");
+                }
+                it.extra.remove("envelope");
+            } else if release {
+                it.extra.remove("envelope");
+            } else if let Some(env) = it.extra.get_mut("envelope") {
+                let cols = env.get("cols").and_then(Value::as_u64).unwrap_or(0) as usize;
+                if let Some(grid) = env.get_mut("grid").and_then(Value::as_array_mut) {
+                    for (i, j, dx, dy) in &moves {
+                        if let Some(q) = grid.get_mut(j * (cols + 1) + i).and_then(Value::as_array_mut) && q.len() == 2 {
+                            q[0] = json!(q[0].as_f64().unwrap_or(0.0) + dx);
+                            q[1] = json!(q[1].as_f64().unwrap_or(0.0) + dy);
+                        }
+                    }
+                }
+            }
+        }
+        c.label(if expand { "Expand Envelope" } else if release { "Release Envelope" } else { "Edit Envelope" });
+        return Ok(json!({"items": leaves.len()}));
+    }
+    let kind = kind.ok_or_else(|| EngineError::new("kind is topObject or mesh (or release, expand, or moves on an existing envelope)"))?;
+    let (targets, frame, cols, rows, grid, consumed) = match kind {
+        "topObject" => {
+            let order = super::art::paint_order(doc, &ids);
+            if order.len() < 2 {
+                return Err(EngineError::new("Make with Top Object needs the art and a closed shape on top of it"));
+            }
+            let top = order[order.len() - 1];
+            let ti = doc.item(top).ok_or_else(|| EngineError::new("no such object"))?;
+            if !ti.shape.closed() || matches!(ti.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
+                return Err(EngineError::new("the topmost object must be a closed shape (it becomes the envelope)"));
+            }
+            let outline = doc.world_xf(top) * effects::apply(&ti.extra, ti.shape.to_path(&ti.corner));
+            let rest: Vec<ItemId> = order[..order.len() - 1].to_vec();
+            let frame = ops::union_bounds(doc, &rest).ok_or_else(|| EngineError::new("nothing to put in the envelope"))?;
+            let n = args::opt_u64(p, "cols").unwrap_or(16).clamp(2, 64) as usize;
+            let grid = effects::coons_grid(&outline, n, n).ok_or_else(|| EngineError::new("the top shape's outline could not be split into four sides"))?;
+            (rest, frame, n, n, grid, Some(top))
+        }
+        "mesh" => {
+            let frame = ops::union_bounds(doc, &ids).ok_or_else(|| EngineError::new("nothing to put in the envelope"))?;
+            let cols = args::opt_u64(p, "cols").unwrap_or(4).clamp(1, 64) as usize;
+            let rows = args::opt_u64(p, "rows").unwrap_or(4).clamp(1, 64) as usize;
+            let mut grid = Vec::new();
+            for j in 0..=rows {
+                for i in 0..=cols {
+                    grid.push(kurbo::Point::new(frame.x0 + frame.width() * i as f64 / cols as f64, frame.y0 + frame.height() * j as f64 / rows as f64));
+                }
+            }
+            for (i, j, dx, dy) in &moves {
+                if let Some(q) = grid.get_mut(j * (cols + 1) + i) {
+                    *q += Vec2::new(*dx, *dy);
+                }
+            }
+            (ids.clone(), frame, cols, rows, grid, None)
+        }
+        _ => return Err(EngineError::new("kind is topObject or mesh")),
+    };
+    let leaves = leaves_of(doc, &targets);
+    let env = json!({"frame": [frame.x0, frame.y0, frame.x1, frame.y1], "cols": cols, "rows": rows, "grid": grid.iter().map(|q| json!([q.x, q.y])).collect::<Vec<_>>()});
+    let doc = c.doc_mut()?;
+    for id in &leaves {
+        if let Some(it) = doc.item_mut(*id) {
+            it.extra.insert("envelope".into(), env.clone());
+        }
+    }
+    if let Some(t) = consumed {
+        doc.remove_item(t);
+    }
+    c.set_selection(Selection::items(targets.clone()));
+    c.label("Envelope");
+    Ok(json!({"items": leaves.len()}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("object.envelope", "Envelope Distort").menu(&["Object", "Envelope Distort", "Make..."]).needs(Needs::Items)
+        .sig("{kind: topObject {cols?: grid detail (16)} | mesh {cols?, rows? (4)}, moves?: [[col, row, dx, dy], ...] (move mesh points; on an existing envelope edits it), release?: bool, expand?: bool, ids?}")
+        .help("Bends the selected art to a shape, as Illustrator's Envelope Distort does: with topObject the topmost closed shape becomes the envelope and the art beneath fills it; with mesh the art is laid on a grid whose points can be moved; release removes the distortion and expand bakes it into the paths.").reg(r, envelope);
     cmd("object.brush", "Apply Brush").menu(&["Object", "Brush..."]).needs(Needs::Items)
         .sig("{kind: calligraphic {size?: pt (default the stroke weight), angle?: deg (45), roundness?: percent (30)} | scatter {symbol, spacing?: pt (default the symbol's size), scale?: percent, rotate?: bool (follow the path, default true)} | art {symbol, width?: percent, flip?: bool} | none, ids?}")
         .help("Draws the stroke with a brush, as Illustrator's brushes do: calligraphic strokes vary in width with the direction of the path like an angled pen nib; scatter brushes place copies of a symbol along the path; art brushes stretch a symbol's art along the whole path; none restores the plain stroke. The stroke's colour paints calligraphic strokes.").reg(r, brush);

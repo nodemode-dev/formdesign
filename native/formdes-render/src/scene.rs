@@ -775,7 +775,11 @@ impl Ctx<'_> {
                 }
             }
             _ => {
-                let local = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
+                let mut local = formdes_model::effects::apply(&it.extra, it.shape.to_path(&it.corner));
+                if let Some((frame, cols, rows, grid)) = formdes_model::effects::envelope_of(&it.extra) {
+                    let w = self.doc.world_xf(id);
+                    local = w.inverse() * formdes_model::effects::envelope(&(w * local), frame, cols, rows, &grid);
+                }
                 let path = xf * local.clone();
                 let bbox = it.shape.bbox();
                 self.outer_glow(it, &path);
