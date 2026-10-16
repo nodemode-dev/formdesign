@@ -17,11 +17,14 @@
 "Document to add": "Documento que agregar",
 "Enter a width and a height": "Ingrese un ancho y un alto",
 "Frame from the video": "Fotograma del video",
+"Gives the stroke a variable width along the path, from a named profile or width points (position along the path and the width on each side as multiples of the stroke weight), as Illustrator's Width tool and width profiles do; uniform or clear restores an even stroke.": "Da al trazo un ancho variable a lo largo de la trayectoria, a partir de un perfil con nombre o de puntos de ancho (posición a lo largo de la trayectoria y ancho de cada lado como múltiplos del grosor del trazo), como lo hacen la herramienta Ancho y los perfiles de ancho de Illustrator; uniform o clear restablece un trazo uniforme.",
 "Make Blend": "Crear fusión",
 "Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.": "Crea pasos con espaciado uniforme entre dos objetos, interpolando los colores de relleno y de trazo, el grosor del trazo y la opacidad; las formas con el mismo número de puntos de ancla se transforman una en otra, las demás se mueven y se escalan, como lo hace la función Fusión de Illustrator.",
 "Paste in Place": "Pegar en su lugar",
 "Save a document to add it": "Guarde un documento para agregarlo",
 "Shape Builder": "Generador de formas",
 "Shape Builder...": "Generador de formas...",
-"Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.": "Divide las formas superpuestas seleccionadas en sus regiones y después une las regiones que están bajo los puntos indicados en una sola forma (o las borra con mode erase), conservando cada una de las demás regiones como una forma independiente, como lo hace el Generador de formas de Illustrator."
+"Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.": "Divide las formas superpuestas seleccionadas en sus regiones y después une las regiones que están bajo los puntos indicados en una sola forma (o las borra con mode erase), conservando cada una de las demás regiones como una forma independiente, como lo hace el Generador de formas de Illustrator.",
+"Width Profile": "Perfil de ancho",
+"Width Profile...": "Perfil de ancho..."
 }

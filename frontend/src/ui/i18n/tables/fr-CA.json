@@ -2,6 +2,7 @@
 "Blend": "Dégradé de formes",
 "Content read earlier into a content pack": "Contenu lu précédemment dans un paquet de contenu",
 "Email": "Courriel",
+"Gives the stroke a variable width along the path, from a named profile or width points (position along the path and the width on each side as multiples of the stroke weight), as Illustrator's Width tool and width profiles do; uniform or clear restores an even stroke.": "Donne au contour une largeur variable le long du tracé, à partir d'un profil nommé ou de points de largeur (position le long du tracé et largeur de chaque côté en multiples de l'épaisseur du contour), comme le font l'outil Largeur et les profils de largeur d'Illustrator; uniform ou clear rétablit un contour uniforme.",
 "Make Blend": "Créer un dégradé de formes",
 "Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.": "Crée des étapes uniformément espacées entre deux objets, en interpolant les couleurs de remplissage et de contour, l'épaisseur du contour et l'opacité; les formes ayant le même nombre de points d'ancrage se transforment l'une en l'autre, les autres se déplacent et changent d'échelle, comme le fait la fonction Dégradé de formes d'Illustrator.",
 "New chat": "Nouveau clavardage",
@@ -10,5 +11,7 @@
 "Return Package": "Paquet de retour",
 "Shape Builder": "Concepteur de formes",
 "Shape Builder...": "Concepteur de formes...",
-"Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.": "Divise les formes superposées sélectionnées en régions, puis fusionne les régions situées sous les points donnés en une seule forme (ou les efface avec mode erase), en conservant chacune des autres régions comme une forme distincte, comme le fait le Concepteur de formes d'Illustrator."
+"Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.": "Divise les formes superposées sélectionnées en régions, puis fusionne les régions situées sous les points donnés en une seule forme (ou les efface avec mode erase), en conservant chacune des autres régions comme une forme distincte, comme le fait le Concepteur de formes d'Illustrator.",
+"Width Profile": "Profil de largeur",
+"Width Profile...": "Profil de largeur..."
 }
