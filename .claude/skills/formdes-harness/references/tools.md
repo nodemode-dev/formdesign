@@ -10,7 +10,7 @@ Generated from the engine's catalogue by `./formdes agents sync`; do not edit by
 - Any command: `run_commands`, `find_commands`, `undo`, `redo`
 - PDF sources: `read_pdf`, `pdf_page_image`
 - Brands and templates: `list_brands`, `save_brand`, `validate_template`, `save_template`, `library`
-- Other: `publish_website`, `outline`, `inspect`, `look`, `use_tool`, `show`
+- Other: `publish_website`, `review`, `place_word`, `outline`, `inspect`, `look`, `use_tool`, `show`, `list_commands`, `run_command`
 
 ## intake
 
@@ -111,9 +111,10 @@ Opens a new document: from a template (with its sample content, or empty slots w
 
 ## open_document
 
-Opens a .fdes, .fdoc or .idml file.
+Opens a .fdes, .fdoc or .idml file. A .pdf, or a Publisher (.pub), QuarkXPress (.qxd, .qxp) or PageMaker (.pmd, .p65) file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. .indd cannot be read: export IDML from InDesign.
 
 - `path`: string; required; Absolute path (~ is expanded).
+- `backdrop`: string (auto | never)
 
 ## save_document
 
@@ -140,6 +141,31 @@ Publish Online: the active document as a website that formdes serves on this com
 - `action`: string (publish | list | unpublish); required
 - `slug`: string
 - `options`: object
+
+Note: writes or replaces files.
+
+## review
+
+Review the active document. import_pdf_comments (path of a PDF this document exported, annotated in Acrobat or Preview): comments, highlights, strike-outs and insert-text marks become Notes at the text under them, returning what was imported and what could not be placed. share: publishes a review site (Share for Review) on this computer and returns its link; reviewers click a page to pin a comment, and each arrives as a Note at that position. comments: the shared review's comments with replies and state. reply (id, text, name) and resolve (id, resolved) answer them. stop: takes the review site down.
+
+- `action`: string (import_pdf_comments | share | comments | reply | resolve | stop); required
+- `path`: string; Absolute path (~ is expanded).
+- `id`: integer
+- `text`: string
+- `name`: string
+- `resolved`: boolean; default true
+
+Note: writes or replaces files.
+
+## place_word
+
+Places a .docx with Microsoft Word Import Options. scan (path): the Word paragraph and character styles in the file (with counts), the document's styles and the mapping used last time. place (path): styleMap {paragraph: {'Heading 1': {mode: existing|new|word, name}}, character: {...}} maps each Word style to a document style, a new style or keeps Word's (use word); options removeStyles, preserveOverrides, footnotes, quotes (booleans). Places into frame (or the selected frame), otherwise loads the Place cursor. The mapping is remembered per document.
+
+- `action`: string (scan | place); required
+- `path`: string; required; Absolute path (~ is expanded).
+- `styleMap`: object
+- `options`: object
+- `frame`: integer
 
 Note: writes or replaces files.
 
@@ -334,3 +360,20 @@ Moves the person's FormDesign window so they can follow what you did: go to a pa
 - `panel`: string; Panel id: pages, layers, links, properties, character, paragraph, swatches, styles, preflight, make, slots, terminal, connect, find...
 - `tool`: string; Tool id from the engine's tool list, e.g. selection, type, rectangle-frame.
 - `select`: array; Object ids to select (get_document lists them).
+
+## list_commands
+
+The one command catalogue the menus, the search box, the CLI and agents share: engine commands and the window's own commands, each with id, label, menu, group, what it does, when to use it, its parameters, whether it changes the document and whether Undo can reverse it. q filters by word; group filters by group (file, edit, layout, type, object, path, table, style, swatch, window...).
+
+- `q`: string
+- `group`: string
+- `limit`: integer; default 60
+
+Note: read-only.
+
+## run_command
+
+Runs one command from list_commands by id, including the window's own commands (panels, view, workspaces), with its parameters. Commands Undo cannot reverse wait for the person's approval. For several layout steps as one undo step, run_commands is cheaper.
+
+- `id`: string; required
+- `params`: object

@@ -25,6 +25,7 @@ Start with `sub-skills/layout-director/SUB-SKILL.md` for any request to make or 
 | Which template, the 71 built-ins, sizes, kinds, why the ranking chose one | `template-picker` |
 | Reading the Make report, fixing kept sample text, swapping images, moving or restyling frames, adding pages | `layout-finisher` |
 | Brand colours and fonts, brand kits, re-skinning | `brand-stylist` |
+| Shapes and paths: rounding corners at anchor points, offset path, outline stroke, Pathfinder, simplify, smooth, average | `path-artist` |
 | Saving, exporting (PDF, IDML, a website, HTML, EPUB, PNG, JPG), publishing online, packaging | `publisher` |
 | Reading, searching or extracting a PDF | `pdf-reader` |
 | No MCP connection: the command line | `cli-fallback` |

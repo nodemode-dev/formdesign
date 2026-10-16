@@ -56,9 +56,22 @@
         "publish_website publish is called and its url is given to the person",
         "The warnings in the export reply are fixed (alt text, button links) or named to the person, and the reply says where the upload-ready folder or .zip is"
       ]
+    },
+    {
+      "id": 6,
+      "name": "round-two-corners-and-outline",
+      "prompt": "On the open flyer, round only the top two corners of the orange box by 18 pt, then give it a 6 pt offset outline in black behind it.",
+      "files": [],
+      "expected_behavior": [
+        "outline (or inspect) is used to find the box's id before changing it",
+        "path.roundCorners is run with radius 18, kind round and anchors [0, 1] (top left and top right), not object.cornerOptions, which would round all four",
+        "path.offset is run with offset 6 on the box, and the new shape gets a black fill and is sent behind (object.arrange) in the same run_commands batch or the next",
+        "look is called afterwards and the reply names the two corners changed"
+      ]
     }
   ],
   "trigger_evals": [
+    { "query": "round the top corners of the box on page 2 in my formdes flyer", "should_trigger": true },
     { "query": "make me a magazine layout from this markdown and these photos", "should_trigger": true },
     { "query": "can u design an instagram post for my bakery opening saturday", "should_trigger": true },
     { "query": "Please typeset the attached report as an A4 white paper and export a PDF.", "should_trigger": true },
