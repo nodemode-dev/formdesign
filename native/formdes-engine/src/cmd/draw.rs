@@ -222,6 +222,19 @@ fn cubics(path: &BezPath) -> Option<(Vec<kurbo::CubicBez>, bool)> {
     (!segs.is_empty()).then_some((segs, closed))
 }
 
+fn spine_point(segs: &[kurbo::CubicBez], f: f64) -> Point {
+    use kurbo::{ParamCurve, ParamCurveArclen};
+    let lens: Vec<f64> = segs.iter().map(|s| s.arclen(0.01)).collect();
+    let mut left = f.clamp(0.0, 1.0) * lens.iter().sum::<f64>();
+    for (s, l) in segs.iter().zip(&lens) {
+        if left <= *l {
+            return s.eval(s.inv_arclen(left, 0.01));
+        }
+        left -= l;
+    }
+    segs.last().map(|s| s.p3).unwrap_or(Point::ZERO)
+}
+
 fn signed_area(segs: &[kurbo::CubicBez]) -> f64 {
     segs.iter().map(|s| kurbo::ParamCurveArea::signed_area(s)).sum()
 }
@@ -289,15 +302,39 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
     if ids.len() != 2 {
         return Err(EngineError::new("Blend needs exactly two objects selected"));
     }
-    let steps = args::opt_u64(p, "steps").unwrap_or(5).clamp(1, 500) as usize;
+    let mut steps = args::opt_u64(p, "steps").unwrap_or(5).clamp(1, 500) as usize;
+    let distance = args::opt_f64(p, "distance");
+    if distance.is_some_and(|d| d.is_nan() || d <= 0.0) {
+        return Err(EngineError::new("distance is the space between steps in points, more than 0"));
+    }
     let doc = c.doc()?;
     let (ia, ib) = (doc.item(ids[0]).cloned(), doc.item(ids[1]).cloned());
     let (Some(ia), Some(ib)) = (ia, ib) else { return Err(EngineError::new("both objects must exist")) };
     if matches!(ia.kind, ItemKind::Group { .. } | ItemKind::States { .. }) || matches!(ib.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
         return Err(EngineError::new("Blend works on shapes and paths, not groups"));
     }
-    let wa = doc.world_xf(ids[0]) * ia.shape.to_path(&ia.corner);
-    let wb = doc.world_xf(ids[1]) * ib.shape.to_path(&ib.corner);
+    let mut wa = doc.world_xf(ids[0]) * ia.shape.to_path(&ia.corner);
+    let mut wb = doc.world_xf(ids[1]) * ib.shape.to_path(&ib.corner);
+    let spine = match args::item(p, "spine") {
+        None => None,
+        Some(sid) if ids.contains(&sid) => return Err(EngineError::new("the spine is a third path, not one of the two blended objects")),
+        Some(sid) => {
+            let it = doc.item(sid).ok_or_else(|| EngineError::new(format!("no object {sid} for the spine")))?;
+            let (segs, _) = cubics(&(doc.world_xf(sid) * it.shape.to_path(&it.corner))).ok_or_else(|| EngineError::new("the spine must be one path of one piece"))?;
+            Some(segs)
+        }
+    };
+    let (mut ends, mut length) = ((Vec2::ZERO, Vec2::ZERO), kurbo::Shape::bounding_box(&wa).center().distance(kurbo::Shape::bounding_box(&wb).center()));
+    if let Some(segs) = &spine {
+        let (start, end) = (spine_point(segs, 0.0), spine_point(segs, 1.0));
+        ends = (start - kurbo::Shape::bounding_box(&wa).center(), end - kurbo::Shape::bounding_box(&wb).center());
+        wa = Affine::translate(ends.0) * wa;
+        wb = Affine::translate(ends.1) * wb;
+        length = segs.iter().map(|s| kurbo::ParamCurveArclen::arclen(s, 0.01)).sum();
+    }
+    if let Some(d) = distance {
+        steps = ((length / d).round() as usize).saturating_sub(1).clamp(1, 500);
+    }
     let (sa, sb) = (geo::anchors_of(&wa), geo::anchors_of(&wb));
     let same = sa.len() == sb.len() && sa.iter().zip(&sb).all(|(x, y)| x.0.len() == y.0.len() && x.1 == y.1);
     let (ba, bb) = (kurbo::Shape::bounding_box(&wa), kurbo::Shape::bounding_box(&wb));
@@ -325,6 +362,10 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
             let r = Rect::new(ba.x0 + (bb.x0 - ba.x0) * t, ba.y0 + (bb.y0 - ba.y0) * t, ba.x1 + (bb.x1 - ba.x1) * t, ba.y1 + (bb.y1 - ba.y1) * t);
             formdes_model::item::map_rect(ba, r) * wa.clone()
         };
+        let world = match &spine {
+            Some(segs) => Affine::translate(spine_point(segs, t) - (ba.center() + (bb.center() - ba.center()) * t)) * world,
+            None => world,
+        };
         let doc = c.doc_mut()?;
         let fill = mix_paint(doc, &ia.fill, &ib.fill, t);
         let stroke_paint = mix_paint(doc, &ia.stroke.paint, &ib.stroke.paint, t);
@@ -342,6 +383,10 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
         made.push(nid);
     }
     let doc = c.doc_mut()?;
+    if spine.is_some() {
+        ops::move_items(doc, &[ids[0]], ends.0);
+        ops::move_items(doc, &[ids[1]], ends.1);
+    }
     if let Some(home) = doc.home(ids[0]).filter(|h| doc.home(ids[1]).as_ref() == Some(h)) {
         if let Some(list) = ops::home_list(doc, &home) {
             list.retain(|x| !made.contains(x));
@@ -1043,7 +1088,7 @@ pub fn register(r: &mut Registry) {
         .help("Bakes the live effects into the object's path so it can be edited point by point, and turns extra fills and strokes into separate objects grouped with it, as Illustrator's Expand Appearance does.").reg(r, expand_appearance);
     cmd("object.widthProfile", "Width Profile").menu(&["Object", "Paths", "Width Profile..."]).needs(Needs::Items).sig("{profile?: uniform|lens|taperStart|taperEnd|bulge|pinch|wave, points?: [[at 0..1, width] or [at, left, right], ...] (multiples of the stroke weight), flip?: bool, clear?: bool, ids?}")
         .help("Gives the stroke a variable width along the path, from a named profile or width points (position along the path and the width on each side as multiples of the stroke weight), as Illustrator's Width tool and width profiles do; uniform or clear restores an even stroke.").reg(r, width_profile);
-    cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), noMorph?: bool, ids?: two objects}")
+    cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), distance?: pt between steps (sets the step count from the distance), spine?: id of a third path the blend follows (the two ends move to its ends), noMorph?: bool, ids?: two objects}")
         .help("Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.").reg(r, blend);
     cmd("shape.spiral", "Spiral").menu(&["Object", "Shapes", "Spiral..."]).sig("{center: [x, y], radius?: pt, decay?: percent (default 80), segments?: quarter turns (default 10), clockwise?, weight?, spread?}")
         .help("Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.").reg(r, spiral);
