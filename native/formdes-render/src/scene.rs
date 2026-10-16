@@ -205,6 +205,50 @@ struct Ctx<'a> {
     depth: u8,
 }
 
+/// Points every `step` along a path's length with the path's direction there (radians), each subpath from its start.
+fn along(path: &BezPath, step: f64) -> Vec<(Point, f64)> {
+    let mut out = Vec::new();
+    let mut prev: Option<Point> = None;
+    let mut start: Option<Point> = None;
+    let mut next_at = 0.0;
+    let mut walked = 0.0;
+    let visit = |a: Point, b: Point, out: &mut Vec<(Point, f64)>, walked: &mut f64, next_at: &mut f64| {
+        let len = a.distance(b);
+        if len < 1e-9 {
+            return;
+        }
+        let ang = (b.y - a.y).atan2(b.x - a.x);
+        while *next_at <= *walked + len && out.len() < 5000 {
+            let t = (*next_at - *walked) / len;
+            out.push((a.lerp(b, t), ang));
+            *next_at += step;
+        }
+        *walked += len;
+    };
+    kurbo::flatten(path.iter(), 0.1, |el| match el {
+        kurbo::PathEl::MoveTo(p) => {
+            prev = Some(p);
+            start = Some(p);
+            walked = 0.0;
+            next_at = 0.0;
+        }
+        kurbo::PathEl::LineTo(p) => {
+            if let Some(a) = prev {
+                visit(a, p, &mut out, &mut walked, &mut next_at);
+            }
+            prev = Some(p);
+        }
+        kurbo::PathEl::ClosePath => {
+            if let (Some(a), Some(s)) = (prev, start) {
+                visit(a, s, &mut out, &mut walked, &mut next_at);
+            }
+            prev = start;
+        }
+        _ => {}
+    });
+    out
+}
+
 pub fn symbol_master(doc: &Doc, name: &str) -> Option<ItemId> {
     doc.prefs.get("symbols").and_then(|s| s.get(name)).and_then(|v| v.as_u64()).map(ItemId).filter(|id| doc.item(*id).is_some())
 }
@@ -867,6 +911,35 @@ impl Ctx<'_> {
             (c[0] * c[3] - c[1] * c[2]).abs().sqrt()
         };
         let w = st.weight * k;
+        if let Some(br) = it.extra.get("brush") {
+            let n = |key: &str, d: f64| br.get(key).and_then(|v| v.as_f64()).unwrap_or(d);
+            match br.get("kind").and_then(|v| v.as_str()).unwrap_or("") {
+                "calligraphic" => {
+                    let shape = formdes_model::widths::nib(path, n("size", st.weight) * k, n("angle", 45.0), n("roundness", 30.0), it.shape.closed());
+                    self.ops.push(Op::Fill { path: shape, brush: b, even_odd: true });
+                    return;
+                }
+                "scatter" => {
+                    if let Some(m) = br.get("symbol").and_then(|v| v.as_str()).and_then(|s| symbol_master(self.doc, s))
+                        && let Some(mb) = self.doc.bounds(m)
+                        && self.depth < 6
+                    {
+                        let size = mb.width().max(mb.height()).max(1e-6);
+                        let s = n("scale", 100.0) / 100.0;
+                        let step = n("spacing", size * s).max(0.5) * k;
+                        let turn = br.get("rotate").and_then(|v| v.as_bool()).unwrap_or(true);
+                        for (p, ang) in along(path, step) {
+                            let t = Affine::translate(p.to_vec2()) * Affine::rotate(if turn { ang } else { 0.0 }) * Affine::scale(s * k) * Affine::translate(-mb.center().to_vec2());
+                            self.depth += 1;
+                            self.emit(m, t);
+                            self.depth -= 1;
+                        }
+                    }
+                    return;
+                }
+                _ => {}
+            }
+        }
         if let Some(prof) = formdes_model::widths::profile_of(&it.extra) {
             let shape = formdes_model::widths::outline(path, &prof, w, it.shape.closed());
             self.ops.push(Op::Fill { path: shape, brush: b, even_odd: true });

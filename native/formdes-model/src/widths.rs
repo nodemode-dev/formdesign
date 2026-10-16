@@ -96,6 +96,22 @@ fn unit(v: Vec2) -> Vec2 {
 /// Each profile entry is (position 0..1, left, right), the sides as multiples of the weight, left being the
 /// side to the left of the path's direction. Closed subpaths give an outer and an inner ring (fill even-odd).
 pub fn outline(path: &BezPath, prof: &Profile, weight: f64, closed_shape: bool) -> BezPath {
+    outline_by(path, weight, closed_shape, &|t, _| at(prof, t))
+}
+
+/// A calligraphic nib: an ellipse `size` across at `angle` degrees with the other axis `roundness` percent of it.
+/// The stroke's width at a point is the nib's extent along the path's normal there.
+pub fn nib(path: &BezPath, size: f64, angle: f64, roundness: f64, closed_shape: bool) -> BezPath {
+    let a = angle.to_radians();
+    let (u, v) = (Vec2::new(a.cos(), -a.sin()), Vec2::new(a.sin(), a.cos()));
+    let (ra, rb) = (0.5, 0.5 * (roundness / 100.0).clamp(0.01, 1.0));
+    outline_by(path, size, closed_shape, &|_, n| {
+        let h = ((ra * n.dot(u)).powi(2) + (rb * n.dot(v)).powi(2)).sqrt() * 2.0;
+        (h, h)
+    })
+}
+
+fn outline_by(path: &BezPath, weight: f64, closed_shape: bool, half: &dyn Fn(f64, Vec2) -> (f64, f64)) -> BezPath {
     let mut out = BezPath::new();
     for (pts, closed) in subpaths(path, (weight * 0.01).clamp(0.01, 0.25)) {
         let closed = closed || (closed_shape && pts.len() > 2);
@@ -125,7 +141,7 @@ pub fn outline(path: &BezPath, prof: &Profile, weight: f64, closed_shape: bool) 
                 nm = n2;
             }
             let miter = 1.0 / nm.dot(n2).max(0.25);
-            let (l, r) = at(prof, acc[i] / total);
+            let (l, r) = half(acc[i] / total, nm);
             let h = weight * 0.5 * miter;
             left.push(pts[i] + nm * (l * h));
             right.push(pts[i] - nm * (r * h));

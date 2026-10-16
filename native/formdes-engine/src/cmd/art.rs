@@ -764,9 +764,15 @@ fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
         let path = it.shape.to_path(&it.corner);
         let style = stroke_style(it.stroke.weight, &it.stroke.join, &it.stroke.cap, args::opt_f64(p, "miterLimit").unwrap_or(it.stroke.miter), &it.stroke.dash);
         let prof = formdes_model::widths::profile_of(&it.extra);
-        let outline = match &prof {
-            Some(pr) => formdes_model::widths::outline(&path, pr, it.stroke.weight, it.shape.closed()),
-            None => to_path(&outline_of(&path, &style)),
+        let nib = it.extra.get("brush").filter(|b| b.get("kind").and_then(Value::as_str) == Some("calligraphic")).map(|b| {
+            let n = |k: &str, d: f64| b.get(k).and_then(Value::as_f64).unwrap_or(d);
+            formdes_model::widths::nib(&path, n("size", it.stroke.weight), n("angle", 45.0), n("roundness", 30.0), it.shape.closed())
+        });
+        let even_odd = nib.is_some() || prof.is_some();
+        let outline = match (nib, &prof) {
+            (Some(o), _) => o,
+            (None, Some(pr)) => formdes_model::widths::outline(&path, pr, it.stroke.weight, it.shape.closed()),
+            (None, None) => to_path(&outline_of(&path, &style)),
         };
         if outline.elements().is_empty() {
             continue;
@@ -786,14 +792,16 @@ fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
             it.fill = paint;
             it.stroke.paint = Paint::None;
             it.stroke.weight = 0.0;
-            it.extra.insert("fillRule".into(), json!(if prof.is_some() { "evenodd" } else { "nonzero" }));
+            it.extra.insert("fillRule".into(), json!(if even_odd { "evenodd" } else { "nonzero" }));
             it.extra.remove("widthProfile");
+            it.extra.remove("brush");
             it.kind = ItemKind::Plain;
         }
         if target != *id
             && let Some(orig) = doc.item_mut(*id)
         {
             orig.extra.remove("widthProfile");
+            orig.extra.remove("brush");
         }
         done.push(target);
     }
