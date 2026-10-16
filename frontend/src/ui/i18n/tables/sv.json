@@ -1341,6 +1341,7 @@
 "Selection": "Markering",
 "Selection Attributes": "Markeringsattribut",
 "Selection Tool": "Verktyget Markering",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "Markerar ett cellområde i den aktuella tabellen. add behåller de områden som redan är markerade, så att rader, kolumner eller celler som inte ligger intill varandra kan markeras tillsammans (Mod+klick i en cell gör samma sak); rows markerar hela rader efter nummer i ett anrop. Cellalternativ, Radhöjd, Kolumnbredd, Cellinjer, Använd cellformat, Ta bort rad och Ta bort kolumn verkar på varje markerat område.",
 "Send": "Skicka",
 "Sentences": "Meningar",
 "Separation Plates": "Separationsplåtar",

@@ -1341,6 +1341,7 @@
 "Selection": "選取範圍",
 "Selection Attributes": "選取範圍屬性",
 "Selection Tool": "選取工具",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "選取目前表格中的一個儲存格範圍。add 會保留已選取的範圍，因此可以同時選取不相鄰的列、欄或儲存格（在儲存格中按 Mod+按一下效果相同）；rows 可在一次呼叫中依編號選取整列。儲存格選項、列高、欄寬、儲存格線條、套用儲存格樣式、刪除列和刪除欄會作用於每個已選取的範圍。",
 "Send": "傳送",
 "Sentences": "句子",
 "Separation Plates": "分色版",

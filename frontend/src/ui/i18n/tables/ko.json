@@ -1341,6 +1341,7 @@
 "Selection": "선택 영역",
 "Selection Attributes": "선택 영역 속성",
 "Selection Tool": "선택 도구",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "현재 표에서 셀 범위를 선택합니다. add는 이미 선택된 범위를 유지하므로 인접하지 않은 행, 열 또는 셀을 함께 선택할 수 있습니다(셀에서 Mod+클릭해도 같습니다). rows는 한 번의 호출로 번호를 지정해 전체 행을 선택합니다. 셀 옵션, 행 높이, 열 너비, 셀 선, 셀 스타일 적용, 행 삭제, 열 삭제는 선택된 모든 범위에 적용됩니다.",
 "Send": "보내기",
 "Sentences": "문장",
 "Separation Plates": "색분해판",

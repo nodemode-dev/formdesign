@@ -1341,6 +1341,7 @@
 "Selection": "Zaznaczenie",
 "Selection Attributes": "Atrybuty zaznaczenia",
 "Selection Tool": "Narzędzie Zaznaczanie",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "Zaznacza zakres komórek w bieżącej tabeli. add zachowuje już zaznaczone zakresy, dzięki czemu można zaznaczyć razem niesąsiadujące wiersze, kolumny lub komórki (Mod+kliknięcie w komórce działa tak samo); rows zaznacza całe wiersze według numerów w jednym wywołaniu. Opcje komórki, Wysokość wiersza, Szerokość kolumny, Obrysy komórek, Zastosuj styl komórki, Usuń wiersz i Usuń kolumnę działają na każdy zaznaczony zakres.",
 "Send": "Wyślij",
 "Sentences": "Zdania",
 "Separation Plates": "Płyty separacji",

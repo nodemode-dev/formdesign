@@ -1339,6 +1339,7 @@
 "Selection",
 "Selection Attributes",
 "Selection Tool",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.",
 "Send",
 "Sentences",
 "Separation Plates",

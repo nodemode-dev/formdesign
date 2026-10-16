@@ -1341,6 +1341,7 @@
 "Selection": "选区",
 "Selection Attributes": "选区属性",
 "Selection Tool": "选择工具",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "选择当前表格中的一个单元格范围。add 会保留已选中的范围，因此可以同时选择不相邻的行、列或单元格（在单元格中按 Mod+单击效果相同）；rows 可在一次调用中按编号选择整行。单元格选项、行高、列宽、单元格描边、应用单元格样式、删除行和删除列会作用于每个已选范围。",
 "Send": "发送",
 "Sentences": "句子",
 "Separation Plates": "分色版",

@@ -1341,6 +1341,7 @@
 "Selection": "Seleksi",
 "Selection Attributes": "Atribut Seleksi",
 "Selection Tool": "Alat Seleksi",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "Memilih rentang sel di tabel saat ini. add mempertahankan rentang yang sudah dipilih, sehingga baris, kolom, atau sel yang tidak bersebelahan dapat dipilih bersama (Mod+klik di sel melakukan hal yang sama); rows memilih seluruh baris berdasarkan nomor dalam satu panggilan. Opsi Sel, Tinggi Baris, Lebar Kolom, Garis Sel, Terapkan Gaya Sel, Hapus Baris, dan Hapus Kolom berlaku pada setiap rentang yang dipilih.",
 "Send": "Kirim",
 "Sentences": "Kalimat",
 "Separation Plates": "Pelat Separasi",

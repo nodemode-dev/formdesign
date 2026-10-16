@@ -1341,6 +1341,7 @@
 "Selection": "ส่วนที่เลือก",
 "Selection Attributes": "คุณสมบัติของส่วนที่เลือก",
 "Selection Tool": "เครื่องมือการเลือก",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "เลือกช่วงเซลล์ในตารางปัจจุบัน add จะคงช่วงที่เลือกไว้แล้ว จึงเลือกแถว คอลัมน์ หรือเซลล์ที่ไม่ติดกันพร้อมกันได้ (Mod+คลิกในเซลล์ก็ให้ผลเหมือนกัน) rows เลือกทั้งแถวตามหมายเลขในการเรียกครั้งเดียว ตัวเลือกเซลล์ ความสูงแถว ความกว้างคอลัมน์ เส้นขอบเซลล์ ใช้สไตล์เซลล์ ลบแถว และลบคอลัมน์ จะมีผลกับทุกช่วงที่เลือก",
 "Send": "ส่ง",
 "Sentences": "ประโยค",
 "Separation Plates": "เพลตแยกสี",

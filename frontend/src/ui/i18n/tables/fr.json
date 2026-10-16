@@ -1341,6 +1341,7 @@
 "Selection": "Sélection",
 "Selection Attributes": "Attributs de la sélection",
 "Selection Tool": "Outil Sélection",
+"Selects a range of cells in the current table. add keeps the ranges already selected, so rows, columns or cells that are not next to each other can be selected together (Mod+click in a cell does the same); rows selects whole rows by number in one call. Cell Options, Row Height, Column Width, Cell Strokes, Apply Cell Style, Delete Row and Delete Column act on every selected range.": "Sélectionne une plage de cellules dans le tableau actif. add conserve les plages déjà sélectionnées, ce qui permet de sélectionner ensemble des rangs, des colonnes ou des cellules non adjacents (Mod+clic dans une cellule fait de même) ; rows sélectionne des rangs entiers par numéro en un seul appel. Options de cellule, Hauteur de rang, Largeur de colonne, Contours de cellule, Appliquer le style de cellule, Supprimer le rang et Supprimer la colonne agissent sur chaque plage sélectionnée.",
 "Send": "Envoyer",
 "Sentences": "Phrases",
 "Separation Plates": "Plaques de séparation",
