@@ -26,6 +26,8 @@ export const TOOL_ICONS: Record<string, string> = {
   'tool-ellipse': S('<ellipse cx="12" cy="12" rx="8" ry="7"/>'),
   'tool-polygon': S('<path d="M12 3.5 20 9.3l-3 9.2H7l-3-9.2z"/>'),
   'tool-scissors': S('<circle cx="6.5" cy="17" r="2.6"/><circle cx="17.5" cy="17" r="2.6"/><path d="M8.4 15.2 18 4M15.6 15.2 6 4"/>'),
+  'tool-shape-builder': S('<circle cx="9" cy="10" r="5.5"/><circle cx="15" cy="14" r="5.5"/><path d="M14 4h6M17 1v6"/>'),
+  'tool-width': S('<path d="M3 12c4-5 14-5 18 0-4 5-14 5-18 0z"/><path d="M12 5v14M10.5 6.5 12 5l1.5 1.5M10.5 17.5 12 19l1.5-1.5"/>'),
   'tool-free-transform': S('<rect x="5" y="5" width="14" height="14" stroke-dasharray="2 2"/><path d="M3 3l5 5M3 3h3M3 3v3"/><rect x="17.5" y="17.5" width="3" height="3"/>'),
   'tool-rotate': S('<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17 3v4h-4"/>'),
   'tool-scale': S('<rect x="4" y="10" width="10" height="10"/><path d="M9 4h11v11"/><path d="M14 10l6-6M16 4h4v4"/>'),
