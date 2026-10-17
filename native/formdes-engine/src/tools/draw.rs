@@ -33,7 +33,66 @@ fn shape_of(tool: &str, r: Rect, a: Point, b: Point) -> Shape {
     }
 }
 
-pub fn make_item(doc: &mut Doc, layer: LayerId, tool: &str, shape: Shape, slot: SpreadRef) -> (ItemId, Option<formdes_model::ids::StoryId>) {
+/// The drawing mode for the next object, with Behind resolved to the selected object on the same spread.
+pub fn draw_mode(ses: &Session, slot: SpreadRef) -> super::DrawMode {
+    let Some(st) = ses.active() else { return super::DrawMode::Normal };
+    match ses.tools.draw {
+        super::DrawMode::Behind(_) => super::DrawMode::Behind(st.selection.items.iter().copied().find(|i| geo::spread_of_item(&st.doc, *i) == Some(slot))),
+        super::DrawMode::Inside(s) if st.doc.item(s).is_some() && geo::spread_of_item(&st.doc, s) == Some(slot) => super::DrawMode::Inside(s),
+        super::DrawMode::Inside(_) => super::DrawMode::Normal,
+        m => m,
+    }
+}
+
+fn apply_draw_mode(doc: &mut Doc, id: ItemId, mode: super::DrawMode) {
+    match mode {
+        super::DrawMode::Normal => {}
+        super::DrawMode::Behind(target) => {
+            let Some(h) = doc.home(id) else { return };
+            let target = target.and_then(|t| top_of(doc, t)).filter(|t| doc.home(*t).as_ref() == Some(&h));
+            if let Some(list) = ops::home_list(doc, &h) {
+                list.retain(|x| *x != id);
+                let at = target.and_then(|t| list.iter().position(|x| *x == t)).unwrap_or(0);
+                list.insert(at, id);
+            }
+        }
+        super::DrawMode::Inside(shape) => {
+            let existing = doc.item(shape).and_then(|s| s.group).filter(|g| doc.item(*g).is_some_and(|gi| gi.extra.get("clipMask").and_then(serde_json::Value::as_u64) == Some(shape.0)));
+            match existing {
+                Some(gid) => {
+                    let world = doc.world_xf(id);
+                    doc.detach_from_home(id);
+                    let local = doc.world_xf(gid).inverse() * world;
+                    if let Some(it) = doc.item_mut(id) {
+                        it.group = Some(gid);
+                        it.xf = local;
+                    }
+                    if let Some(ItemKind::Group { children }) = doc.item_mut(gid).map(|g| &mut g.kind) {
+                        children.push(id);
+                    }
+                }
+                None => {
+                    if let Ok(gid) = ops::group(doc, &[shape, id])
+                        && let Some(g) = doc.item_mut(gid)
+                    {
+                        g.extra.insert("clipMask".into(), serde_json::json!(shape.0));
+                        g.extra.insert("clipDraw".into(), serde_json::json!(true));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn top_of(doc: &Doc, id: ItemId) -> Option<ItemId> {
+    let mut cur = id;
+    while let Some(g) = doc.item(cur)?.group {
+        cur = g;
+    }
+    Some(cur)
+}
+
+pub fn make_item(doc: &mut Doc, layer: LayerId, tool: &str, shape: Shape, slot: SpreadRef, mode: super::DrawMode) -> (ItemId, Option<formdes_model::ids::StoryId>) {
     let (kind, story, style) = match tool {
         "rectangleFrame" | "ellipseFrame" | "polygonFrame" => (ItemKind::Graphic(Graphic { asset: None, content: Affine::IDENTITY, fitting: None }), None, Some(formdes_model::style::BASIC_GRAPHIC)),
         "type" | "typeVertical" => {
@@ -55,6 +114,7 @@ pub fn make_item(doc: &mut Doc, layer: LayerId, tool: &str, shape: Shape, slot: 
     {
         st.frames.push(id);
     }
+    apply_draw_mode(doc, id, mode);
     (id, story)
 }
 
@@ -192,8 +252,9 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                 "rectangleFrame" | "ellipseFrame" | "polygonFrame" => "New Frame",
                 _ => "New Shape",
             };
+            let mode = draw_mode(ses, slot);
             ses.edit_now(label, |doc, sel| {
-                let (id, story) = make_item(doc, layer, &tool, shape, slot);
+                let (id, story) = make_item(doc, layer, &tool, shape, slot, mode);
                 *sel = match story {
                     Some(sid) => Selection::text(TextSel::caret(sid, 0)),
                     None => Selection::items(vec![id]),
@@ -212,9 +273,10 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
             let slot = g.slot;
             let layer = layer_of(ses);
             if tool_now == "pencil" {
+                let mode = draw_mode(ses, slot);
                 ses.edit_now("Pencil", |doc, sel| {
                     let path = geo::path_of(&[(anchors, closed)]);
-                    let (id, _) = make_item(doc, layer, "pencil", Shape::Path { path, closed }, slot);
+                    let (id, _) = make_item(doc, layer, "pencil", Shape::Path { path, closed }, slot, mode);
                     *sel = Selection::items(vec![id]);
                 });
             } else if tool_now == "shapeBuilder" {
@@ -427,9 +489,10 @@ pub fn finish_pen(ses: &mut Session, closed: bool) {
         return;
     }
     let layer = layer_of(ses);
+    let mode = draw_mode(ses, slot);
     ses.edit_now("Pen", |doc, sel| {
         let path = geo::path_of(&[(pen.anchors.clone(), closed)]);
-        let (id, _) = make_item(doc, layer, "pen", Shape::Path { path, closed }, slot);
+        let (id, _) = make_item(doc, layer, "pen", Shape::Path { path, closed }, slot, mode);
         *sel = Selection::items(vec![id]);
     });
 }

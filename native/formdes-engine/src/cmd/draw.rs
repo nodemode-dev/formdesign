@@ -331,6 +331,37 @@ fn blend(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"ids": made, "morph": morph}))
 }
 
+fn draw_mode(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use crate::tools::DrawMode;
+    let inside = || -> Result<ItemId> {
+        let st = c.state()?;
+        let [id] = st.selection.items.as_slice() else { return Err(EngineError::new("Draw Inside needs one closed shape or frame selected")) };
+        let it = st.doc.item(*id).ok_or_else(|| EngineError::new("the selected object is gone"))?;
+        if !it.shape.closed() || !matches!(it.kind, ItemKind::Plain | ItemKind::Graphic(_)) {
+            return Err(EngineError::new("Draw Inside needs a closed shape or a graphic frame, not a line, text frame or group"));
+        }
+        Ok(*id)
+    };
+    let next = match args::opt_str(p, "mode") {
+        Some("normal") => DrawMode::Normal,
+        Some("behind") => DrawMode::Behind(None),
+        Some("inside") => DrawMode::Inside(inside()?),
+        Some(_) => return Err(EngineError::new("mode is normal, behind or inside")),
+        None => match c.session.tools.draw {
+            DrawMode::Normal => DrawMode::Behind(None),
+            DrawMode::Behind(_) => inside().map(DrawMode::Inside).unwrap_or(DrawMode::Normal),
+            DrawMode::Inside(_) => DrawMode::Normal,
+        },
+    };
+    c.session.tools.draw = next;
+    let name = match next {
+        DrawMode::Normal => "normal",
+        DrawMode::Behind(_) => "behind",
+        DrawMode::Inside(_) => "inside",
+    };
+    Ok(json!({"mode": name, "inside": match next { DrawMode::Inside(s) => json!(s), _ => Value::Null }}))
+}
+
 fn live_blends(c: &mut Ctx, p: &Value) -> Result<Vec<ItemId>> {
     let ids = items(c, p)?;
     let doc = c.doc()?;
@@ -1226,6 +1257,7 @@ pub fn register(r: &mut Registry) {
         .help("Gives the stroke a variable width along the path, from a named profile or width points (position along the path and the width on each side as multiples of the stroke weight), as Illustrator's Width tool and width profiles do; uniform or clear restores an even stroke.").reg(r, width_profile);
     cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), distance?: pt between steps (sets the step count from the distance), spine?: id of a third path the blend follows (the two ends move to its ends), noMorph?: bool, live?: bool (groups the ends, steps and spine and rebuilds the steps whenever an end, the spine or the settings change), ids?: two objects}")
         .help("Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.").reg(r, blend);
+    cmd("object.drawMode", "Drawing Mode").key("Shift+D").sig("{mode?: normal|behind|inside (omit to cycle normal, behind, inside)}").query().reg(r, draw_mode);
     cmd("object.blend.expand", "Expand Blend").menu(&["Object", "Blend", "Expand"]).needs(Needs::Items).sig("{ids?: live blends}").reg(r, blend_expand);
     cmd("object.blend.release", "Release Blend").menu(&["Object", "Blend", "Release"]).needs(Needs::Items).sig("{ids?: live blends}").reg(r, blend_release);
     cmd("shape.spiral", "Spiral").menu(&["Object", "Shapes", "Spiral..."]).sig("{center: [x, y], radius?: pt, decay?: percent (default 80), segments?: quarter turns (default 10), clockwise?, weight?, spread?}")

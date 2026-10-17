@@ -429,8 +429,9 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
             let imported = if text { formdes_interchange::text::import(&name, &data).ok() } else { None };
             let layer = layer_of(ses);
             let slot = g.slot;
+            let mode = super::draw::draw_mode(ses, slot);
             ses.edit_now("Place", |d, sel| {
-                let frame = target.unwrap_or_else(|| make_item(d, layer, if text { "type" } else { "rectangleFrame" }, Shape::Rect { rect }, slot).0);
+                let frame = target.unwrap_or_else(|| make_item(d, layer, if text { "type" } else { "rectangleFrame" }, Shape::Rect { rect }, slot, mode).0);
                 let ok = match (imported, asset) {
                     (Some(imp), _) => crate::cmd::file::place_text(d, frame, imp).is_ok(),
                     (_, Some(a)) => crate::cmd::file::place_image(d, frame, a).is_ok(),

@@ -751,6 +751,9 @@ impl Ctx<'_> {
                     let clip = (base * self.doc.world_xf(m)) * formdes_model::effects::apply(&mi.extra, mi.shape.to_path(&mi.corner));
                     self.ops.push(Op::PushClip(clip));
                     wrap += 1;
+                    if it.extra.get("clipDraw").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        self.emit(m, base);
+                    }
                 }
                 if let Some(m) = omask {
                     let saved = std::mem::take(&mut self.ops);

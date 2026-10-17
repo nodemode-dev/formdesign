@@ -194,8 +194,20 @@ pub struct Pen {
     pub corners: Vec<usize>,
 }
 
+/// Where newly drawn objects go, as Illustrator's drawing modes: on top (Normal), directly beneath an object
+/// or at the back of the stack (Behind, with the object when one was selected), or inside a shape that clips
+/// them while keeping its own fill and stroke (Inside).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum DrawMode {
+    #[default]
+    Normal,
+    Behind(Option<ItemId>),
+    Inside(ItemId),
+}
+
 #[derive(Default, Clone)]
 pub struct ToolState {
+    pub draw: DrawMode,
     pub gesture: Option<Gesture>,
     pub pen: Pen,
     pub sample: Option<Value>,
