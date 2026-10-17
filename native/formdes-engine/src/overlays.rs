@@ -418,6 +418,11 @@ pub fn overlays(ses: &mut Session, p: &Value, view: View) -> Value {
     if let Some(o) = pen_overlay(ses, &cv) {
         tool.push(tool_json(&o, tol));
     }
+    let isolated = crate::tools::select::isolated_children(ses, &doc).and_then(|_| {
+        let g = ses.tools.isolated?;
+        let r = geo::spread_of_item(&doc, doc.top_of(g))?;
+        Some(boxed(cv.xf(r).transform_rect_bbox(doc.bounds(g)?)))
+    });
     let f = furniture(&doc, &cv, zoom, tol, visible);
     let grid = &doc.settings.baseline;
     json!({
@@ -428,5 +433,6 @@ pub fn overlays(ses: &mut Session, p: &Value, view: View) -> Value {
         "selection": selection_json(ses, &doc, &cv, &lay, tol),
         "text": text_json(ses, &doc, &cv, &lay, tol), "tool": tool,
         "page": ses.tools.page,
+        "isolated": isolated,
     })
 }

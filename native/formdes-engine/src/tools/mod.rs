@@ -208,6 +208,7 @@ pub enum DrawMode {
 #[derive(Default, Clone)]
 pub struct ToolState {
     pub draw: DrawMode,
+    pub isolated: Option<ItemId>,
     pub gesture: Option<Gesture>,
     pub pen: Pen,
     pub sample: Option<Value>,
@@ -358,6 +359,16 @@ impl Session {
         }
         if key == Key::Escape && self.tools.thread.take().is_some() {
             self.tools.overlays.clear();
+            return Ok(true);
+        }
+        if key == Key::Escape
+            && !self.wants_text()
+            && let Some(g) = self.tools.isolated.take()
+        {
+            if self.active().is_some_and(|s| s.doc.item(g).is_some()) {
+                self.select(Selection::items(vec![g]));
+            }
+            self.sel_rev += 1;
             return Ok(true);
         }
         let tool = self.tool.clone();

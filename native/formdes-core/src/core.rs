@@ -424,6 +424,12 @@ impl Core {
         v["busy"] = json!(self.ses.tool_busy());
         v["wantsText"] = json!(self.ses.wants_text());
         v["tool"] = json!(self.ses.tool_id());
+        v["drawMode"] = json!(match self.ses.tools.draw {
+            formdes_engine::tools::DrawMode::Normal => "normal",
+            formdes_engine::tools::DrawMode::Behind(_) => "behind",
+            formdes_engine::tools::DrawMode::Inside(_) => "inside",
+        });
+        v["isolated"] = json!(self.ses.tools.isolated);
         v
     }
 }

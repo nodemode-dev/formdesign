@@ -28,6 +28,20 @@ pub fn here(ses: &Session, at: Point) -> Option<Here> {
     Some(Here { slot, xf, p: xf.inverse() * at })
 }
 
+/// The isolated group's direct children, when a group is isolated and still a group.
+pub fn isolated_children(ses: &Session, doc: &formdes_model::doc::Doc) -> Option<Vec<ItemId>> {
+    let g = doc.item(ses.tools.isolated?)?;
+    matches!(g.kind, ItemKind::Group { .. } | ItemKind::States { .. }).then(|| g.children())
+}
+
+/// The object a click picks: a top-level object, or inside an isolated group one of its direct children.
+fn pick(ses: &Session, doc: &formdes_model::doc::Doc, slot: SpreadRef, p: Point, tol: f64) -> Option<ItemId> {
+    match isolated_children(ses, doc) {
+        Some(kids) => kids.into_iter().rev().find(|c| geo::selectable(doc, *c) && geo::hit_item(doc, *c, p, tol).is_some()),
+        None => geo::hit_top(doc, slot, p, tol),
+    }
+}
+
 fn sel_in(ses: &Session, slot: SpreadRef) -> Vec<ItemId> {
     let Some(st) = ses.active() else { return Vec::new() };
     st.selection.items.iter().copied().filter(|i| geo::spread_of_item(&st.doc, *i) == Some(slot)).collect()
@@ -87,7 +101,7 @@ pub fn selection(ses: &mut Session, ev: &Ev, view: View, free: bool) -> Result<(
                 }
             }
             let content = ses.active().is_some_and(|s| s.selection.content);
-            match geo::hit_top(&doc, h.slot, h.p, tol) {
+            match pick(ses, &doc, h.slot, h.p, tol) {
                 Some(id) => {
                     if content && sel == [id] && content_box(ses, id).is_some_and(|r| r.contains(h.p)) {
                         start(ses, ev, &h, G::Content { item: id }, true);
@@ -126,7 +140,13 @@ pub fn selection(ses: &mut Session, ev: &Ev, view: View, free: bool) -> Result<(
             let Some(h) = here(ses, ev.pos) else { return Ok(()) };
             let doc = ses.active().map(|s| s.doc.clone()).expect("checked");
             let tol = view.tol(4.0);
-            let Some(id) = geo::hit_top(&doc, h.slot, h.p, tol) else { return Ok(()) };
+            let Some(id) = pick(ses, &doc, h.slot, h.p, tol) else {
+                if let Some(g) = ses.tools.isolated.take() {
+                    ses.select(Selection::items(vec![g]));
+                    ses.sel_rev += 1;
+                }
+                return Ok(());
+            };
             let it = doc.item(id).cloned();
             match it.as_ref().map(|i| &i.kind) {
                 Some(ItemKind::Text(_)) => {
@@ -140,8 +160,11 @@ pub fn selection(ses: &mut Session, ev: &Ev, view: View, free: bool) -> Result<(
                     }
                 }
                 Some(ItemKind::Group { .. } | ItemKind::States { .. }) => {
-                    if let Some(leaf) = geo::hit_item(&doc, id, h.p, tol) {
-                        ses.select(Selection::items(vec![leaf]));
+                    ses.tools.isolated = Some(id);
+                    ses.sel_rev += 1;
+                    let kids = it.as_ref().map(|i| i.children()).unwrap_or_default();
+                    if let Some(c) = kids.into_iter().rev().find(|c| geo::hit_item(&doc, *c, h.p, tol).is_some()) {
+                        ses.select(Selection::items(vec![c]));
                     }
                 }
                 Some(ItemKind::Graphic(g)) if g.asset.is_some() => {
@@ -342,7 +365,7 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                 return;
             }
             let doc = &st.doc;
-            let hits: Vec<ItemId> = geo::top_items(doc, g.slot).into_iter().filter(|i| geo::selectable(doc, *i) && doc.bounds(*i).is_some_and(|b| b.intersect(r).area() > 0.0 || (b.width() == 0.0 || b.height() == 0.0) && r.contains(b.center()))).collect();
+            let hits: Vec<ItemId> = isolated_children(ses, doc).unwrap_or_else(|| geo::top_items(doc, g.slot)).into_iter().filter(|i| geo::selectable(doc, *i) && doc.bounds(*i).is_some_and(|b| b.intersect(r).area() > 0.0 || (b.width() == 0.0 || b.height() == 0.0) && r.contains(b.center()))).collect();
             let mut items = if add { st.selection.items.clone() } else { Vec::new() };
             for h in hits {
                 if !items.contains(&h) {

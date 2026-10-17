@@ -354,12 +354,37 @@ fn draw_mode(c: &mut Ctx, p: &Value) -> Result<Value> {
         },
     };
     c.session.tools.draw = next;
+    c.session.sel_rev += 1;
     let name = match next {
         DrawMode::Normal => "normal",
         DrawMode::Behind(_) => "behind",
         DrawMode::Inside(_) => "inside",
     };
     Ok(json!({"mode": name, "inside": match next { DrawMode::Inside(s) => json!(s), _ => Value::Null }}))
+}
+
+fn isolate(c: &mut Ctx, p: &Value) -> Result<Value> {
+    if args::opt_bool(p, "exit").unwrap_or(false) {
+        let was = c.session.tools.isolated.take();
+        if let Some(g) = was
+            && c.state()?.doc.item(g).is_some()
+        {
+            c.set_selection(Selection::items(vec![g]));
+        }
+        c.session.sel_rev += 1;
+        return Ok(json!({"isolated": Value::Null, "was": was}));
+    }
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    let [id] = ids.as_slice() else { return Err(EngineError::new("select one group, or one object inside a group, to isolate")) };
+    let it = doc.item(*id).ok_or_else(|| EngineError::new("the selected object is gone"))?;
+    let gid = match it.kind {
+        ItemKind::Group { .. } | ItemKind::States { .. } => *id,
+        _ => it.group.ok_or_else(|| EngineError::new("isolation works on a group: this object is not in one"))?,
+    };
+    c.session.tools.isolated = Some(gid);
+    c.session.sel_rev += 1;
+    Ok(json!({"isolated": gid}))
 }
 
 fn live_blends(c: &mut Ctx, p: &Value) -> Result<Vec<ItemId>> {
@@ -1258,6 +1283,7 @@ pub fn register(r: &mut Registry) {
     cmd("object.blend", "Make Blend").menu(&["Object", "Blend", "Make..."]).needs(Needs::Items).sig("{steps?: (default 5), distance?: pt between steps (sets the step count from the distance), spine?: id of a third path the blend follows (the two ends move to its ends), noMorph?: bool, live?: bool (groups the ends, steps and spine and rebuilds the steps whenever an end, the spine or the settings change), ids?: two objects}")
         .help("Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale, as Illustrator's Blend does.").reg(r, blend);
     cmd("object.drawMode", "Drawing Mode").key("Shift+D").sig("{mode?: normal|behind|inside (omit to cycle normal, behind, inside)}").query().reg(r, draw_mode);
+    cmd("object.isolate", "Isolation Mode").sig("{exit?: bool, ids?: a group, or an object inside one}").query().reg(r, isolate);
     cmd("object.blend.expand", "Expand Blend").menu(&["Object", "Blend", "Expand"]).needs(Needs::Items).sig("{ids?: live blends}").reg(r, blend_expand);
     cmd("object.blend.release", "Release Blend").menu(&["Object", "Blend", "Release"]).needs(Needs::Items).sig("{ids?: live blends}").reg(r, blend_release);
     cmd("shape.spiral", "Spiral").menu(&["Object", "Shapes", "Spiral..."]).sig("{center: [x, y], radius?: pt, decay?: percent (default 80), segments?: quarter turns (default 10), clockwise?, weight?, spread?}")
