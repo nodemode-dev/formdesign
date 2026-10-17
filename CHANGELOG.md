@@ -2,6 +2,10 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.76.0 · 2026-10-17
+
+- Object > Image > Adjustments: live, re-editable adjustments on a placed picture (exposure, contrast, saturation, temperature, hue, lightness, levels, black and white and a curve editor) with a preview rendered by the engine. They show on screen, in PDF and every other export, survive save and reopen, stay with duplicates, and are rebuilt after a link update, Edit Image or Retouch Image; the placed file is never changed. The engine commands are `image.adjust` and `image.adjustPreview`.
+
 ## 0.75.0 · 2026-10-17
 
 - Layout > Pages > Insert Pages from Document: bring a range of pages from another open document or from a .fdes, .fdoc or .idml file into this one, after any page, with their objects, threaded stories, pictures, styles, swatches, layers, parents and section starts; Move also takes them out of the open source. One Undo in each document. The engine command is `layout.pages.import`.

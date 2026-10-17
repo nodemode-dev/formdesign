@@ -537,3 +537,10 @@ Two stacked fixed-size canvases: the picture (the engine's `image.retouchPreview
 - logged: v0.75.0 · 2026-10-17
 
 A dedicated dialog over `layout.pages.import`, because the signature dialog would have asked for `from` as a bare number or path. The source list (the other open documents with their page counts, then "A file on disk...") and the position list (At the start, After page n) are rebuilt with `replaceChildren` when the dialog opens and never while it is open; choosing the file source only toggles the path row's `hidden` and the Move box's `disabled` through the guarded setters. Move is off for a file because files are never written. Under 4x CPU, 1.6 Mbps and 150 ms, filling the dialog made no DOM mutation and OK inserted the pages with the story threaded across them.
+
+### features/image-adjust.ts · the Adjustments dialog
+- refers-to: frontend/src/features/image-adjust.ts :: Adjustments, curveAt, installImageAdjust; frontend/src/styles/image-adjust.css
+- kind: rationale
+- logged: v0.76.0 · 2026-10-17
+
+The preview is the engine's (`image.adjustPreview`), so it cannot drift from what the page and the PDF show. Moving a slider bumps a counter; one request is in flight at a time and, when it returns, another goes only if the counter moved, so a fast drag under 150 ms latency sends a handful of requests rather than one per input event and always ends on the latest settings. Every request carries the whole stack, which the engine lays over the stored settings, so the dialog never depends on what was stored. The curve editor is a canvas: click adds a point, drag moves it (the end points move only up and down, so the curve always spans 0 to 255), double-click removes it; it is drawn with `curveAt`, a port of the engine's monotone cubic. Slider labels are produced by arrow functions around literal `t()` calls, because the key extractor only sees literals and two of them (Hue, Lightness) were new. Under throttling the sliders, the Black and White box and a curve drag made no structural DOM change; OK, reopen (settings restored, Remove enabled) and Remove all reached the page.
