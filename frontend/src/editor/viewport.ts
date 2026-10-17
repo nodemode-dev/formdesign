@@ -667,6 +667,24 @@ export class Viewport {
         h.beginPath(); h.moveTo(X(q[0]), Y(q[1])); h.lineTo(X(q[2]), Y(q[3])); h.lineTo(X(q[4]), Y(q[5])); h.lineTo(X(q[6]), Y(q[7])); h.closePath(); h.fill();
       }
     }
+    for (const m of ov.mesh ?? []) {
+      const cols = Number(m.cols), rows = Number(m.rows), pts: number[][] = m.points ?? [];
+      if (pts.length !== (cols + 1) * (rows + 1)) continue;
+      const at = (i: number, j: number) => pts[j * (cols + 1) + i];
+      h.strokeStyle = '#4f99ff';
+      h.lineWidth = dpr;
+      for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
+        if (i < cols) line(h, at(i, j)[0], at(i, j)[1], at(i + 1, j)[0], at(i + 1, j)[1]);
+        if (j < rows) line(h, at(i, j)[0], at(i, j)[1], at(i, j + 1)[0], at(i, j + 1)[1]);
+      }
+      const hs = 3 * dpr;
+      h.fillStyle = '#ffffff';
+      for (const q of pts) {
+        const px = Math.round(X(q[0])), py = Math.round(Y(q[1]));
+        h.fillRect(px - hs, py - hs, hs * 2, hs * 2);
+        h.strokeRect(px - hs + 0.5, py - hs + 0.5, hs * 2 - 1, hs * 2 - 1);
+      }
+    }
     const sel = ov.selection;
     if (sel && sel.count > 0) {
       const col = sel.color ?? '#4f99ff';

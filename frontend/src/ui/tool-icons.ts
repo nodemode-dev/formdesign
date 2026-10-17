@@ -5,6 +5,7 @@ export const TOOL_ICONS: Record<string, string> = {
   'tool-selection': S('<path d="M6 3l12 10.5-5.6.6 3.2 6.6-2.1 1-3.1-6.7L6 19z"/>', true),
   'tool-direct': S('<path d="M6 3l12 10.5-5.6.6 3.2 6.6-2.1 1-3.1-6.7L6 19z"/>'),
   'tool-page': S('<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M3 13h3M4.5 11.5 3 13l1.5 1.5"/>'),
+  'tool-mesh': S('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 10c5-2 11 2 16 0M4 15c5-2 11 2 16 0M10 4c-2 5 2 11 0 16M15 4c-2 5 2 11 0 16"/>'),
   'tool-artboard': S('<path d="M7 3v18M17 3v18M3 7h18M3 17h18"/><rect x="9.5" y="9.5" width="5" height="5"/>'),
   'tool-gap': S('<path d="M4 4h6v16H4zM14 4h6v16h-6z"/><path d="M11 12h2M11.5 10.5 10 12l1.5 1.5M12.5 10.5 14 12l-1.5 1.5"/>'),
   'tool-collector': S('<path d="M4 9h16v11H4z"/><path d="M8 9V5h8v4"/><path d="M12 12v5M9.5 14.5 12 17l2.5-2.5"/>'),
