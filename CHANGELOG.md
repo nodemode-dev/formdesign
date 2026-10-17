@@ -2,6 +2,169 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.68.0 · 2026-10-17
+
+- Sprint 21 closed. The README, the manual (a new Drawing chapter), the developer wiki and this changelog are up to date with every release since 0.28.0; parity re-traced at 130 of 133 (98 percent against InDesign and against Affinity).
+- The formdes-harness path-artist sub-skill covers the Illustrator-class commands: Shape Builder, blends, width profiles, effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, meshes, envelopes and artboards.
+
+## 0.67.0 · 2026-10-17
+
+- PDF/X and CMYK-only PDFs keep gradient meshes as vector shadings, in CMYK, instead of thousands of small shapes.
+- Sprint 21's last item closed; mesh point handles are deferred to the next sprint.
+
+## 0.66.0 · 2026-10-17
+
+- Gradient meshes export to PDF as true mesh shadings (Type 7), clipped to their shape: vector in print and a fraction of the file size. PDF/A, PDF/UA and separations keep the small shapes.
+
+## 0.65.0 · 2026-10-17
+
+- Mesh tool: Alt-click an inner line to remove it, or an inner point to remove its column and row.
+
+## 0.64.0 · 2026-10-17
+
+- Mesh tool: click inside a selected mesh to add a column and a row through that spot; the pressed point is active, and a fill swatch applied with the Mesh tool colours it.
+- Fix: no hairline seams beside a mesh line added close to another.
+
+## 0.63.0 · 2026-10-17
+
+- The Mesh tool (with the gradient tools): click a shape to give it a gradient mesh, drag its points; the mesh grid and points show while the tool is in use.
+
+## 0.62.0 · 2026-10-17
+
+- Artboard tool: drag a corner to resize the active artboard; Delete removes it.
+
+## 0.61.0 · 2026-10-17
+
+- The Artboard tool (Shift+O, with the Page tool): drag to draw an artboard, drag inside one to move it.
+
+## 0.60.0 · 2026-10-17
+
+- File > Export Artboards as PDF: one page per artboard at its own size.
+
+## 0.59.0 · 2026-10-17
+
+- Artboards apart from pages: Object > Artboards > New Artboard (from the selection) and Delete Artboard, outlines and names on the canvas, and File > Export Artboards as PNG. Artboards may sit on the pasteboard.
+
+## 0.58.0 · 2026-10-17
+
+- Object > Create Gradient Mesh: a grid of coloured points over a shape, with a highlight option.
+
+## 0.57.0 · 2026-10-17
+
+- Live Paint groups: fills follow the shapes when they move or change.
+
+## 0.56.0 · 2026-10-17
+
+- Pattern brushes put corner tiles on a path's sharp corners.
+
+## 0.55.0 · 2026-10-17
+
+- Pattern brushes: a side tile repeated along the path, with start and end tiles, stretch or space to fit.
+
+## 0.54.0 · 2026-10-17
+
+- Isolation mode: double-click a group to edit inside it, with the rest of the page veiled; a status-bar chip shows the drawing mode and isolation and leaves them.
+
+## 0.53.0 · 2026-10-17
+
+- Draw Behind and Draw Inside (Shift+D): new shapes, lines, paths and placed pictures go behind the selection or inside a shape that clips them.
+
+## 0.52.0 · 2026-10-17
+
+- Gradients along and across a stroke, beside the gradient across the bounds.
+
+## 0.51.0 · 2026-10-16
+
+- Live blends that rebuild when an end or the spine changes, with Expand and Release.
+
+## 0.50.0 · 2026-10-16
+
+- Blend spacing by distance, and blends along a spine path.
+
+## 0.49.0 · 2026-10-16
+
+- The Shape Builder tool (Shift+M) and the Width tool (Shift+W) on the canvas; width profiles act inside straight segments too.
+
+## 0.48.0 · 2026-10-16
+
+- Run-in footnotes: a frame's notes joined into one paragraph with a separator.
+
+## 0.47.0 · 2026-10-16
+
+- Footnotes in their own column count, independent of the text columns.
+
+## 0.46.0 · 2026-10-16
+
+- One footnote sequence across every story of the document.
+
+## 0.45.0 · 2026-10-16
+
+- Text Frame Options: Span Footnotes Across Columns, also read and written in IDML.
+
+## 0.44.0 · 2026-10-16
+
+- Tables: Mod+click selects cells and rows that are not next to each other.
+
+## 0.43.0 · 2026-10-16
+
+- Cell styles carry column width and row heights; slanted header text from Cell Options or a cell style.
+
+## 0.42.0 · 2026-10-16
+
+- Footnote numbering that restarts on every page or section; a line moves with its footnote when the note no longer fits under it.
+
+## 0.41.0 · 2026-10-16
+
+- Text wraps around anchored objects even before their anchor.
+
+## 0.40.0 · 2026-10-16
+
+- Table rows split across frames and pages, under repeated headers, with continued labels.
+
+## 0.39.0 · 2026-10-16
+
+- Tables: rounded corners, alt text and a summary. Footnotes: numbering options for the document, and notes in one column no longer print over each other.
+
+## 0.38.0 · 2026-10-16
+
+- Several character styles stacked on the same text, in order.
+
+## 0.37.0 · 2026-10-16
+
+- Envelope Distort (make with the top object or a mesh) and Puppet Warp.
+
+## 0.36.0 · 2026-10-16
+
+- Image Trace (black and white or colour) and the Live Paint Bucket.
+
+## 0.35.0 · 2026-10-16
+
+- Brushes: calligraphic, scatter and art.
+
+## 0.34.0 · 2026-10-16
+
+- Symbols (create, place, break, redefine) and Recolor Artwork.
+
+## 0.33.0 · 2026-10-16
+
+- Thirteen warp styles as live effects; live Repeat (radial, grid, mirror) with release and expand.
+
+## 0.32.0 · 2026-10-16
+
+- Opacity and clipping masks, isolated blending, and freeform gradients in points mode.
+
+## 0.31.0 · 2026-10-16
+
+- Live effects (Round Corners, Zig Zag, Roughen, Pucker and Bloat, Twist, Transform) and several fills and strokes on one object, with Expand Appearance and the Effect menu.
+
+## 0.30.0 · 2026-10-16
+
+- Variable-width strokes with seven profiles; Blend morphs unlike shapes.
+
+## 0.29.0 · 2026-10-16
+
+- Shape Builder and Blend by steps as commands.
+
 ## 0.28.0 · 2026-10-16
 
 - Stroke: miter limit, arrowheads at the start and end of open paths (simple, triangle, barbed, curved, circle, square, bar and wide variants) with their size in percent, and dashes fitted to path ends. Arrowheads now draw on screen, in PDF and in SVG.
