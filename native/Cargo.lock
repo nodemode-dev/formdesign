@@ -410,7 +410,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-core"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "fancy-regex",
  "formdes-engine",
@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-engine"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "fancy-regex",
  "formdes-interchange",
@@ -445,7 +445,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-gpu"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "bytemuck",
  "png",
@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-interchange"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "formdes-model",
  "kurbo",
@@ -467,7 +467,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-model"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "kurbo",
  "serde",
@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-render"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "formdes-model",
  "formdes-text",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "formdes-text"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "fancy-regex",
  "fontdb",
