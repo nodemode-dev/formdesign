@@ -2,6 +2,11 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.69.0 · 2026-10-17
+
+- Window > Appearance: the selected object's extra strokes and fills, its main stroke and fill, and its live effects in drawing order, each extra one shown, hidden or removed there; Add Fill or Stroke, Add Effect and Expand Appearance. Add Fill or Stroke moves to Object > Appearance.
+- Removing a row from a panel list no longer moves the rows after it.
+
 ## 0.68.0 · 2026-10-17
 
 - Sprint 21 closed. The README, the manual (a new Drawing chapter), the developer wiki and this changelog are up to date with every release since 0.28.0; parity re-traced at 130 of 133 (98 percent against InDesign and against Affinity).
