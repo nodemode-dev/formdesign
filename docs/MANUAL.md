@@ -11,20 +11,21 @@ This manual is for people laying out documents with formdes. If you are changing
 5. [Pages and parents](#pages-and-parents)
 6. [Text](#text)
 7. [Frames, images and links](#frames-images-and-links)
-8. [Long documents](#long-documents)
-9. [Colour, swatches and brands](#colour-swatches-and-brands)
-10. [Tables](#tables)
-11. [Rulers and guides](#rulers-and-guides)
-12. [Checking your work](#checking-your-work)
-13. [Exporting and printing](#exporting-and-printing)
-14. [Websites and Publish Online](#websites-and-publish-online)
-15. [Books](#books)
-16. [Interactive documents](#interactive-documents)
-17. [XML](#xml)
-18. [Libraries](#libraries)
-19. [Layouts from a PDF](#layouts-from-a-pdf)
-20. [Working with an agent](#working-with-an-agent)
-21. [Files, saving and recovery](#files-saving-and-recovery)
+8. [Drawing](#drawing)
+9. [Long documents](#long-documents)
+10. [Colour, swatches and brands](#colour-swatches-and-brands)
+11. [Tables](#tables)
+12. [Rulers and guides](#rulers-and-guides)
+13. [Checking your work](#checking-your-work)
+14. [Exporting and printing](#exporting-and-printing)
+15. [Websites and Publish Online](#websites-and-publish-online)
+16. [Books](#books)
+17. [Interactive documents](#interactive-documents)
+18. [XML](#xml)
+19. [Libraries](#libraries)
+20. [Layouts from a PDF](#layouts-from-a-pdf)
+21. [Working with an agent](#working-with-an-agent)
+22. [Files, saving and recovery](#files-saving-and-recovery)
 
 ## What formdes does
 
@@ -101,6 +102,18 @@ Known limits: nested and GREP styles, paragraph rules and shading are entered as
 File > Place (Ctrl+D) places an image, text, a video or a sound into the selected frame or a new one; choose several files and click or drag to place them one after another. A CSV file or an Excel workbook places as a table. Object > Fitting fits content to the frame, the frame to the content, or fills proportionally; Auto-Fit keeps it fitted as the frame changes. The Links panel lists every placed file with its page and effective resolution, and relinks, updates or embeds it. Object > Effects > Drop Shadow and Transparency (opacity and sixteen blend modes) are in the Object menu, opacity also in Properties. Object > Text Wrap wraps text around the frame, around its shape (the contour of an ellipse, polygon or path), above and below it, or inside it with Invert. Object > Corner Options rounds, insets or bevels corners; Object > Convert Shape sets a polygon's sides and star inset.
 
 Edit > Copy, Cut and Paste work across documents and carry stories, pictures, swatches and styles with the objects; pasting objects into text anchors them there, and text copied in another app pastes in. Paste in Place keeps the position; Paste Into puts a copied picture inside the selected frame. Edit > Step and Repeat (Ctrl+Alt+U) makes rows, columns or a run of copies. Object > Paths joins, opens, closes and reverses paths and makes or releases compound paths; Object > Convert Shape turns a frame into another shape; Object > Pathfinder adds, subtracts, intersects or excludes shapes. Object > Generate QR Code draws a QR code into the selected frame, and running it on a QR code changes its text. Type > Create Outlines (Ctrl+Shift+O) turns a text frame into shapes. Object > Captions > Generate Static Caption puts the picture's alt text, name or file name under it.
+
+## Drawing
+
+FormDesign draws as Illustrator does. Under Direct Selection, drag the handle inside a corner to round it, Alt-click to change its kind. Object > Paths has Round Corners, Offset Path, Outline Stroke, Simplify, Smooth Points, Average, Width Profile and Shape Builder; Object > Pathfinder has all ten operations. The Shape Builder tool (Shift+M) merges the regions you drag across, or erases them with Alt; the Width tool (Shift+W) drags a stroke's width at any point.
+
+Object > Blend > Make steps between two objects, by count or distance, along a spine path if you choose, and keeps it live so the steps rebuild when an end moves. Effect > Distort & Transform adds live effects (Round Corners, Zig Zag, Roughen, Pucker and Bloat, Twist, Transform and thirteen warps) that stay editable; Object > Expand Appearance bakes them. Object > Brush strokes a path with a calligraphic, scatter, art or pattern brush (pattern brushes take side, start, end and corner tiles from symbols, made with Object > Symbols > New Symbol). Object > Repeat makes radial, grid or mirrored copies that follow the original. Edit > Edit Colors > Recolor Artwork swaps or shifts every colour of the selection at once. Object > Image Trace turns a placed picture into shapes; Object > Live Paint fills the regions lines and shapes make, and the fills follow when the paths change. Object > Clipping Mask and Object > Opacity Mask clip or fade art with the top object; Object > Freeform Gradient places colours at points; a gradient swatch on a stroke can run along or across it. Object > Envelope Distort bends art into a shape, onto a mesh or around pins (Puppet Warp).
+
+Shift+D cycles Draw Normal, Draw Behind (new shapes go behind the selection) and Draw Inside (new shapes are clipped by the selected shape); a chip in the status bar shows the mode. Double-click a group to work inside it alone (isolation mode); Escape or the chip leaves.
+
+Object > Create Gradient Mesh lays a grid of coloured points over a shape. The Mesh tool, with the gradient tools, does the same with a click, drags points, adds a row and column where you click inside a mesh, and removes a line with Alt-click; pick a point and apply a swatch to colour it. Meshes export to PDF as vector mesh shadings (in CMYK for PDF/X).
+
+Artboards are export regions apart from pages, on the page or the pasteboard: Object > Artboards > New Artboard makes one from the selection, and the Artboard tool (Shift+O) draws one, moves it, resizes it by its corners and deletes it with Delete. File > Export Artboards as PNG gives one image per artboard; File > Export Artboards as PDF gives one page per artboard at its own size.
 
 ## Long documents
 

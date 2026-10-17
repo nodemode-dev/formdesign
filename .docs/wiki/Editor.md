@@ -40,6 +40,8 @@ The window is a thin client in vanilla TypeScript and Vite. It draws pixels the 
 | `shortcuts.ts` | Edit > Keyboard Shortcuts: sets over `/api/prefs/shortcuts`, tool commands, Show Set |
 | `proof.ts` | View > Proof Setup and Proof Colors (the viewport's `proof` tile option), profiles over `/api/prefs/profiles` |
 | `dictionaries.ts` | Edit > Language Dictionaries over `/api/dictionaries` |
+| `drawmode.ts` | the status-bar chip for Draw Behind and Inside and isolation mode, from the engine's tool state |
+| `artboards.ts` | File > Export Artboards as PNG and as PDF; the viewport draws artboard outlines, the active artboard's handles and mesh grids on the highlight canvas from the overlays |
 | `../ui/dock.ts` | the two panel columns: group order and column, hidden groups, heights, the dock's width, new groups from dropped tabs |
 
 ## How a feature plugs in
