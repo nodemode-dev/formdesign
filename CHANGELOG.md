@@ -2,6 +2,10 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.72.0 · 2026-10-17
+
+- Opening QuarkXPress files: a `.qxd` or `.qxp` without QuarkXPress's header signature is refused as not a QuarkXPress document instead of turning into an empty import, and a QuarkXPress file LibreOffice cannot read now says its reader takes QuarkXPress 3.1 to 4.1 (export a PDF from later versions) instead of blaming the LibreOffice build. Publisher and PageMaker test documents from LibreOffice's own suite open as editable layouts.
+
 ## 0.71.0 · 2026-10-17
 
 - Object > Image > Retouch Image: a healing brush, a clone brush and a red-eye tool over a placed picture. Alt-click sets the source; the picture in the dialog is the engine's own render of the strokes so far. OK writes a retouched copy beside the original (or embeds it), relinks the frame in one undo step and leaves the original untouched. The engine commands are `image.retouch` and `image.retouchPreview`.
