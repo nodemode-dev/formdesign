@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -m 1 -X POST \"http://127.0.0.1:${FORMDES_ENGINE_PORT:-8196}/api/agents/turn\" >/dev/null 2>&1 || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}
