@@ -247,14 +247,17 @@ impl Spine {
         (a.lerp(b, t), kurbo::Vec2::new(-d.y, d.x))
     }
 
-    /// Maps art lying in `frame` onto the spine: x across the frame becomes distance along the spine's length,
-    /// y from the frame's centre line becomes offset along the normal, times `across`.
-    fn bend(&self, art: &BezPath, frame: Rect, across: f64, flip: bool) -> BezPath {
-        let total = self.acc.last().copied().unwrap_or(0.0);
+    fn total(&self) -> f64 {
+        self.acc.last().copied().unwrap_or(0.0)
+    }
+
+    /// Maps art lying in `frame` onto the spine between lengths `s0` and `s1`: x across the frame becomes distance
+    /// along that stretch, y from the frame's centre line becomes offset along the normal, times `across`.
+    fn bend_span(&self, art: &BezPath, frame: Rect, across: f64, flip: bool, s0: f64, s1: f64) -> BezPath {
         let map = |p: Point| {
             let u = (p.x - frame.x0) / frame.width();
             let v = (p.y - frame.center().y) * across * if flip { -1.0 } else { 1.0 };
-            let (q, nrm) = self.at(u * total);
+            let (q, nrm) = self.at(s0 + u * (s1 - s0));
             q + nrm * v
         };
         let mut out = BezPath::new();
@@ -992,6 +995,29 @@ impl Ctx<'_> {
         }
     }
 
+    /// Draws a symbol's leaves bent onto the spine between lengths `s0` and `s1` (art and pattern brushes).
+    #[allow(clippy::too_many_arguments)]
+    fn bend_symbol(&mut self, m: ItemId, mb: Rect, spine: &Spine, across: f64, flip: bool, s0: f64, s1: f64) {
+        for leaf in self.doc.walk(&[m]) {
+            let Some(li) = self.doc.item(leaf) else { continue };
+            if matches!(li.kind, ItemKind::Group { .. } | ItemKind::States { .. }) || !self.visible(li) {
+                continue;
+            }
+            let world = self.doc.world_xf(leaf) * formdes_model::effects::apply(&li.extra, li.shape.to_path(&li.corner));
+            let bent = spine.bend_span(&world, mb, across, flip, s0, s1);
+            if li.shape.closed()
+                && let Some(fb) = brush_of(self.doc, &li.fill, 1.0, kurbo::Shape::bounding_box(&bent), Affine::IDENTITY)
+            {
+                self.ops.push(Op::Fill { path: bent.clone(), brush: fb, even_odd: li.extra.get("fillRule").and_then(|v| v.as_str()) == Some("evenodd") });
+            }
+            if li.stroke.weight > 0.0
+                && let Some(sb) = brush_of(self.doc, &li.stroke.paint, 1.0, kurbo::Shape::bounding_box(&bent), Affine::IDENTITY)
+            {
+                self.ops.push(Op::Stroke { path: bent, brush: sb, style: StrokeStyle { width: li.stroke.weight * across, cap: li.stroke.cap.clone(), join: li.stroke.join.clone(), dash: Vec::new() } });
+            }
+        }
+    }
+
     /// Paints a stroke's gradient along its length (bands across the stroke, each a step along it) or across it
     /// (bands running the length, each a step from the left edge to the right). With opaque stops each band
     /// reaches into the next so no seam shows between them.
@@ -1076,23 +1102,37 @@ impl Ctx<'_> {
                         let spine = Spine::new(path);
                         let across = n("width", 100.0) / 100.0 * k;
                         let flip = br.get("flip").and_then(|v| v.as_bool()).unwrap_or(false);
-                        for leaf in self.doc.walk(&[m]) {
-                            let Some(li) = self.doc.item(leaf) else { continue };
-                            if matches!(li.kind, ItemKind::Group { .. } | ItemKind::States { .. }) || !self.visible(li) {
-                                continue;
+                        self.bend_symbol(m, mb, &spine, across, flip, 0.0, spine.total());
+                    }
+                    return;
+                }
+                "pattern" => {
+                    let sym = |key: &str| br.get(key).and_then(|v| v.as_str()).and_then(|s| symbol_master(self.doc, s)).and_then(|m| self.doc.bounds(m).filter(|b| b.width() > 0.0 && b.height() > 0.0).map(|b| (m, b)));
+                    if let Some((m, mb)) = sym("symbol") {
+                        let spine = Spine::new(path);
+                        let total = spine.total();
+                        let across = w * n("scale", 100.0) / 100.0 / mb.height();
+                        let flip = br.get("flip").and_then(|v| v.as_bool()).unwrap_or(false);
+                        let (start, end) = (sym("start"), sym("end"));
+                        let lead = start.map(|(_, b)| b.width() * across).unwrap_or(0.0);
+                        let tail = end.map(|(_, b)| b.width() * across).unwrap_or(0.0);
+                        let body = (total - lead - tail).max(0.0);
+                        let tile = mb.width() * across;
+                        let gap = n("spacing", 0.0).max(0.0) / 100.0 * tile;
+                        let count = ((body + gap) / (tile + gap)).round().max(1.0) as usize;
+                        let seg = body / count as f64;
+                        let len = if br.get("fit").and_then(|v| v.as_str()) == Some("space") { tile.min(seg) } else { seg * tile / (tile + gap) };
+                        if let Some((sm, sb)) = start {
+                            self.bend_symbol(sm, sb, &spine, across, flip, 0.0, lead.min(total));
+                        }
+                        if body > 1e-6 {
+                            for i in 0..count {
+                                let s0 = lead + i as f64 * seg;
+                                self.bend_symbol(m, mb, &spine, across, flip, s0, s0 + len);
                             }
-                            let world = self.doc.world_xf(leaf) * formdes_model::effects::apply(&li.extra, li.shape.to_path(&li.corner));
-                            let bent = spine.bend(&world, mb, across, flip);
-                            if li.shape.closed()
-                                && let Some(fb) = brush_of(self.doc, &li.fill, 1.0, kurbo::Shape::bounding_box(&bent), Affine::IDENTITY)
-                            {
-                                self.ops.push(Op::Fill { path: bent.clone(), brush: fb, even_odd: li.extra.get("fillRule").and_then(|v| v.as_str()) == Some("evenodd") });
-                            }
-                            if li.stroke.weight > 0.0
-                                && let Some(sb) = brush_of(self.doc, &li.stroke.paint, 1.0, kurbo::Shape::bounding_box(&bent), Affine::IDENTITY)
-                            {
-                                self.ops.push(Op::Stroke { path: bent, brush: sb, style: StrokeStyle { width: li.stroke.weight * across, cap: li.stroke.cap.clone(), join: li.stroke.join.clone(), dash: Vec::new() } });
-                            }
+                        }
+                        if let Some((em, eb)) = end {
+                            self.bend_symbol(em, eb, &spine, across, flip, (total - tail).max(0.0), total);
                         }
                     }
                     return;
