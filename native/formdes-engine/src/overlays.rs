@@ -428,6 +428,17 @@ pub fn overlays(ses: &mut Session, p: &Value, view: View) -> Value {
         let (si, r) = crate::cmd::artboard::artboard_rect(a)?;
         Some(json!({"rect": boxed(cv.xf(SpreadRef::Doc(si)).transform_rect_bbox(r)), "name": a.get("name").and_then(Value::as_str).unwrap_or(""), "active": active == Some(i)}))
     }).collect();
+    // The Mesh tool shows the points of each selected mesh, in canvas coordinates, row by row.
+    let mesh: Vec<Value> = if ses.tool == "mesh" {
+        ses.active().map(|s| s.selection.items.clone()).unwrap_or_default().iter().filter_map(|id| {
+            let pts = crate::tools::misc::mesh_points(&doc, *id)?;
+            let m = doc.item(*id)?.extra.get("mesh")?;
+            let xf = cv.xf(geo::spread_of_item(&doc, doc.top_of(*id))?);
+            Some(json!({"cols": m.get("cols"), "rows": m.get("rows"), "points": pts.iter().map(|q| { let c = xf * *q; [c.x, c.y] }).collect::<Vec<_>>()}))
+        }).collect()
+    } else {
+        Vec::new()
+    };
     let f = furniture(&doc, &cv, zoom, tol, visible);
     let grid = &doc.settings.baseline;
     json!({
@@ -440,5 +451,6 @@ pub fn overlays(ses: &mut Session, p: &Value, view: View) -> Value {
         "page": ses.tools.page,
         "isolated": isolated,
         "artboards": artboards,
+        "mesh": mesh,
     })
 }

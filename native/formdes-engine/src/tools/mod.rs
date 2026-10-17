@@ -127,7 +127,7 @@ pub static GROUPS: &[&[ToolDef]] = &[
     &[t("scissors", "Scissors Tool", "tool-scissors", Some("C"))],
     &[t("shapeBuilder", "Shape Builder Tool", "tool-shape-builder", Some("Shift+M")), t("width", "Width Tool", "tool-width", Some("Shift+W"))],
     &[t("freeTransform", "Free Transform Tool", "tool-free-transform", Some("E")), t("rotate", "Rotate Tool", "tool-rotate", Some("R")), t("scale", "Scale Tool", "tool-scale", Some("S")), t("shear", "Shear Tool", "tool-shear", Some("O"))],
-    &[t("gradientSwatch", "Gradient Swatch Tool", "tool-gradient", Some("G")), t("gradientFeather", "Gradient Feather Tool", "tool-gradient-feather", Some("Shift+G"))],
+    &[t("gradientSwatch", "Gradient Swatch Tool", "tool-gradient", Some("G")), t("gradientFeather", "Gradient Feather Tool", "tool-gradient-feather", Some("Shift+G")), t("mesh", "Mesh Tool", "tool-mesh", None)],
     &[],
     &[t("note", "Note Tool", "tool-note", None)],
     &[t("colorTheme", "Color Theme Tool", "tool-color-theme", Some("Shift+I")), t("eyedropper", "Eyedropper Tool", "tool-eyedropper", Some("I")), t("measure", "Measure Tool", "tool-measure", Some("K"))],
@@ -173,6 +173,7 @@ pub enum G {
     Gap { a: Vec<ItemId>, b: Vec<ItemId>, vertical: bool, edge: f64 },
     /// `handle` is the dragged corner (0 top-left, 1 top-right, 2 bottom-right, 3 bottom-left); None moves or draws.
     Artboard { index: Option<usize>, rect: Rect, handle: Option<u8> },
+    MeshPoint { item: ItemId, idx: usize },
     Place,
     None,
 }
@@ -345,6 +346,7 @@ impl Session {
             "note" => misc::note(self, ev, view),
             "page" => misc::page(self, ev, view),
             "artboard" => misc::artboard(self, ev, view),
+            "mesh" => misc::mesh(self, ev, view),
             "gap" => misc::gap(self, ev, view),
             "contentCollector" | "contentPlacer" => misc::conveyor(self, ev, view, &tool),
             "place" => misc::place(self, ev, view),
@@ -401,7 +403,7 @@ impl Session {
             "pen" | "curvature" | "addAnchor" | "deleteAnchor" | "convertDirection" | "pencil" | "smooth" | "erase" | "scissors" => "pen",
             "eyedropper" | "colorTheme" => "eyedropper",
             "rotate" => "rotate",
-            "scale" | "shear" | "gradientSwatch" | "gradientFeather" => "crosshair",
+            "scale" | "shear" | "gradientSwatch" | "gradientFeather" | "mesh" => "crosshair",
             "hand" => if mods.alt { "handGrab" } else { "hand" },
             "zoom" => if mods.alt { "zoomOut" } else { "zoomIn" },
             "place" => {

@@ -203,6 +203,69 @@ pub fn page(ses: &mut Session, ev: &Ev, _view: View) -> Result<()> {
     Ok(())
 }
 
+/// The local box mesh points are shares of: the item's path after effects, as the scene draws it.
+fn mesh_box(doc: &Doc, id: ItemId) -> Option<Rect> {
+    let it = doc.item(id)?;
+    let bb = kurbo::Shape::bounding_box(&formdes_model::effects::apply(&it.extra, it.local_path()));
+    (bb.width() > 0.0 && bb.height() > 0.0).then_some(bb)
+}
+
+/// The grid of mesh points as stored shares, filling the even grid when none were moved.
+fn mesh_shares(m: &Value) -> Option<(usize, usize, Vec<[f64; 2]>)> {
+    let cols = m.get("cols")?.as_u64()? as usize;
+    let rows = m.get("rows")?.as_u64()? as usize;
+    if cols == 0 || rows == 0 {
+        return None;
+    }
+    let n = (cols + 1) * (rows + 1);
+    let stored: Option<Vec<[f64; 2]>> = m.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(|q| Some([q.get(0)?.as_f64()?, q.get(1)?.as_f64()?])).collect()).filter(|v: &Vec<[f64; 2]>| v.len() == n);
+    Some((cols, rows, stored.unwrap_or_else(|| (0..n).map(|i| [(i % (cols + 1)) as f64 / cols as f64, (i / (cols + 1)) as f64 / rows as f64]).collect())))
+}
+
+/// The mesh points of `id` in spread coordinates, row by row, or None when it has no mesh.
+pub fn mesh_points(doc: &Doc, id: ItemId) -> Option<Vec<Point>> {
+    let (_, _, shares) = mesh_shares(doc.item(id)?.extra.get("mesh")?)?;
+    let bb = mesh_box(doc, id)?;
+    let w = doc.world_xf(id);
+    Some(shares.iter().map(|s| w * Point::new(bb.x0 + s[0] * bb.width(), bb.y0 + s[1] * bb.height())).collect())
+}
+
+/// Illustrator's Mesh tool, on formdes's stored meshes: a press on a point of the selected mesh drags that point
+/// (one undo step); a press on a closed shape or frame without a mesh gives it a 3 by 3 mesh in its fill colour;
+/// a press on a meshed object selects it so its points show.
+pub fn mesh(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
+    match ev.kind {
+        Kind::Down => {
+            let Some(h) = here(ses, ev.pos) else { return Ok(()) };
+            let doc = ses.active().map(|s| s.doc.clone()).expect("checked");
+            let selected = ses.active().map(|s| s.selection.items.clone()).unwrap_or_default();
+            for id in &selected {
+                if let Some(pts) = mesh_points(&doc, *id)
+                    && let Some(idx) = pts.iter().position(|q| (*q - h.p).hypot() <= view.tol(6.0))
+                {
+                    start(ses, ev, &h, G::MeshPoint { item: *id, idx }, true);
+                    return Ok(());
+                }
+            }
+            let Some(id) = geo::hit_top(&doc, h.slot, h.p, view.tol(4.0)) else { return Ok(()) };
+            let Some(it) = doc.item(id) else { return Ok(()) };
+            ses.select(Selection::items(vec![id]));
+            if it.extra.get("mesh").is_none() && it.shape.closed() && matches!(it.kind, ItemKind::Plain | ItemKind::Graphic(_)) {
+                if let Err(e) = ses.execute("object.mesh", &json!({})) {
+                    ses.requests.push(json!({"kind": "toast", "text": e.to_string()}));
+                }
+            }
+        }
+        Kind::Drag => super::draw::drag(ses, ev, view),
+        Kind::Up => {
+            super::draw::drag(ses, ev, view);
+            super::draw::finish(ses, ev, view);
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 /// The topmost artboard on spread `si` whose rect holds `p`, with that rect.
 fn artboard_at(doc: &Doc, si: usize, p: Point) -> Option<(usize, Rect)> {
     let list = crate::cmd::artboard::artboards(doc);
@@ -424,6 +487,26 @@ pub fn drag(ses: &mut Session, ev: &Ev, view: View) {
             let text = if handle.is_some() { format!("W: {:.1} pt  H: {:.1} pt", r.width(), r.height()) } else { format!("X: {:.1} pt  Y: {:.1} pt", r.x0, r.y0) };
             ses.tools.overlays.push(Overlay::Measure { p: ev.pos, text });
         }
+        G::MeshPoint { item, idx } => {
+            if g.moved
+                && let Some(before) = g.before.clone()
+                && let Some(bb) = mesh_box(&before.doc, *item)
+            {
+                let local = before.doc.world_xf(*item).inverse() * p;
+                let share = [((local.x - bb.x0) / bb.width()).clamp(-0.5, 1.5), ((local.y - bb.y0) / bb.height()).clamp(-0.5, 1.5)];
+                let (id, i) = (*item, *idx);
+                ses.preview(&before, |doc| {
+                    let Some(it) = doc.item_mut(id) else { return };
+                    let Some((_, _, mut shares)) = it.extra.get("mesh").and_then(mesh_shares) else { return };
+                    if i < shares.len() {
+                        shares[i] = share;
+                    }
+                    if let Some(m) = it.extra.get_mut("mesh") {
+                        m["points"] = json!(shares);
+                    }
+                });
+            }
+        }
         G::Artboard { index: None, .. } => {
             let r = geo::drag_rect(g.start_sp, p, ev.mods.shift, ev.mods.alt);
             ses.tools.overlays.push(Overlay::Marquee(g.slot_xf.transform_rect_bbox(r)));
@@ -478,6 +561,11 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
         G::Gap { .. } => {
             if let Some(b) = &g.before {
                 if g.moved { ses.commit(b, "Gap") } else { ses.restore(b) }
+            }
+        }
+        G::MeshPoint { .. } => {
+            if let Some(b) = &g.before {
+                if g.moved { ses.commit(b, "Gradient Mesh") } else { ses.restore(b) }
             }
         }
         G::Artboard { index: Some(_), .. } => {
