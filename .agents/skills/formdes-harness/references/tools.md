@@ -111,7 +111,7 @@ Opens a new document: from a template (with its sample content, or empty slots w
 
 ## open_document
 
-Opens a .fdes, .fdoc or .idml file. A .pdf, or a Publisher (.pub), QuarkXPress (.qxd, .qxp) or PageMaker (.pmd, .p65) file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. .indd cannot be read: export IDML from InDesign.
+Opens a .fdes, .fdoc or .idml file. A .pdf, or a Publisher (.pub), QuarkXPress 3.1 to 4.1 (.qxd, .qxp) or PageMaker (.pmd, .p65) file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. .indd cannot be read: export IDML from InDesign.
 
 - `path`: string; required; Absolute path (~ is expanded).
 - `backdrop`: string (auto | never)
