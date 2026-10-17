@@ -607,30 +607,31 @@ fn live_paint(c: &mut Ctx, p: &Value) -> Result<Value> {
     if doc.paint_color(&paint).is_none() && doc.gradient_of(&paint).is_none() {
         return Err(EngineError::new(format!("no colour for {name}")));
     }
-    let ids = paint_order(doc, &ids);
-    let mut shapes = Vec::new();
-    let mut blades: Vec<BezPath> = Vec::new();
-    for id in &ids {
-        match world_shape(doc, *id) {
-            Some(s) => shapes.push(s),
-            None => {
-                if let Some(it) = doc.item(*id)
-                    && !matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. })
-                {
-                    blades.push(doc.world_xf(*id) * it.shape.to_path(&it.corner));
+    if let Some(gid) = live_paint_group(doc, &ids) {
+        let inv = doc.world_xf(gid).inverse();
+        let sources = live_paint_sources(doc, gid);
+        let faces = regions(doc, &sources)?;
+        if !pts.iter().any(|q| faces.iter().any(|(s, _)| s.iter().any(|shape| inside(shape, q[0], q[1])))) {
+            return Err(EngineError::new("none of the points falls inside a region of the live paint group"));
+        }
+        let ins: Vec<Vec<u64>> = pts.iter().map(|q| membership(doc, &sources, q[0], q[1])).collect();
+        let doc = c.doc_mut()?;
+        if let Some(g) = doc.item_mut(gid)
+            && let Some(Value::Object(lp)) = g.extra.get_mut("livePaint")
+        {
+            let fills = lp.entry("fills").or_insert_with(|| json!([]));
+            if let Value::Array(list) = fills {
+                for (q, m) in pts.iter().zip(&ins) {
+                    let local = inv * kurbo::Point::new(q[0], q[1]);
+                    list.push(json!({"p": [local.x, local.y], "in": m, "swatch": name, "tint": args::opt_f64(p, "tint")}));
                 }
             }
         }
+        c.label("Live Paint");
+        return Ok(json!({"group": gid, "fills": pts.len()}));
     }
-    if shapes.is_empty() {
-        return Err(EngineError::new("Live Paint needs at least one closed shape among the selection; open paths then divide its regions"));
-    }
-    let mut cuts: Shapes = Vec::new();
-    for b in &blades {
-        let slit = outline_of(b, &stroke_style(0.05, "miter", "butt", 4.0, &[]));
-        cuts = if cuts.is_empty() { slit } else { cuts.overlay(&slit, OverlayRule::Union, FillRule::NonZero) };
-    }
-    let faces = faces_of(&shapes, if cuts.is_empty() { None } else { Some(&cuts) });
+    let ids = paint_order(doc, &ids);
+    let faces = regions(doc, &ids)?;
     let mut chosen: Vec<usize> = Vec::new();
     for q in &pts {
         if let Some(i) = faces.iter().position(|(s, _)| s.iter().any(|shape| inside(shape, q[0], q[1])))
@@ -668,6 +669,208 @@ fn live_paint(c: &mut Ctx, p: &Value) -> Result<Value> {
     c.set_selection(Selection::items(made.clone()));
     c.label("Live Paint");
     Ok(json!({"ids": made}))
+}
+
+/// The regions the closed shapes among `ids` make by overlapping, divided further by any open paths among them.
+fn regions(doc: &Doc, ids: &[ItemId]) -> Result<Vec<(Shapes, usize)>> {
+    let mut shapes = Vec::new();
+    let mut blades: Vec<BezPath> = Vec::new();
+    for id in ids {
+        match world_shape(doc, *id) {
+            Some(s) => shapes.push(s),
+            None => {
+                if let Some(it) = doc.item(*id)
+                    && !matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. })
+                {
+                    blades.push(doc.world_xf(*id) * it.shape.to_path(&it.corner));
+                }
+            }
+        }
+    }
+    if shapes.is_empty() {
+        return Err(EngineError::new("Live Paint needs at least one closed shape among the selection; open paths then divide its regions"));
+    }
+    let mut cuts: Shapes = Vec::new();
+    for b in &blades {
+        let slit = outline_of(b, &stroke_style(0.05, "miter", "butt", 4.0, &[]));
+        cuts = if cuts.is_empty() { slit } else { cuts.overlay(&slit, OverlayRule::Union, FillRule::NonZero) };
+    }
+    Ok(faces_of(&shapes, if cuts.is_empty() { None } else { Some(&cuts) }))
+}
+
+/// A point inside a region: the centre of the first triangle fanned from a ring's first vertex that lies inside.
+fn face_point(face: &Shapes) -> Option<[f64; 2]> {
+    for shape in face {
+        let Some(ring) = shape.first() else { continue };
+        for i in 2..ring.len() {
+            let (a, b, c) = (ring[0], ring[i - 1], ring[i]);
+            let q = [(a[0] + b[0] + c[0]) / 3.0, (a[1] + b[1] + c[1]) / 3.0];
+            if inside(shape, q[0], q[1]) {
+                return Some(q);
+            }
+        }
+    }
+    None
+}
+
+/// Which of a live paint group's closed shapes hold a point: the identity a painted region keeps while the
+/// shapes move, so its fill stays with it rather than with the spot that was clicked.
+fn membership(doc: &Doc, sources: &[ItemId], x: f64, y: f64) -> Vec<u64> {
+    sources.iter().filter(|id| world_shape(doc, **id).is_some_and(|sh| sh.iter().any(|c| inside(c, x, y)))).map(|id| id.0).collect()
+}
+
+/// The live paint group the selection is, or is inside.
+fn live_paint_group(doc: &Doc, ids: &[ItemId]) -> Option<ItemId> {
+    ids.iter().find_map(|id| {
+        let it = doc.item(*id)?;
+        if it.extra.contains_key("livePaint") {
+            return Some(*id);
+        }
+        it.group.filter(|g| doc.item(*g).is_some_and(|gi| gi.extra.contains_key("livePaint")))
+    })
+}
+
+/// A live paint group's own paths (not the regions it painted), in paint order.
+fn live_paint_sources(doc: &Doc, gid: ItemId) -> Vec<ItemId> {
+    let kids: Vec<ItemId> = doc.item(gid).map(|g| g.children()).unwrap_or_default().into_iter().filter(|k| doc.item(*k).is_some_and(|it| !it.extra.contains_key("lpFace"))).collect();
+    paint_order(doc, &kids)
+}
+
+fn live_paint_sig(doc: &Doc, gid: ItemId) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    if let Some(g) = doc.item(gid) {
+        g.extra.get("livePaint").and_then(|v| v.get("fills")).map(|f| f.to_string()).unwrap_or_default().hash(&mut h);
+    }
+    for id in live_paint_sources(doc, gid) {
+        if let Some(it) = doc.item(id) {
+            serde_json::to_string(it).unwrap_or_default().hash(&mut h);
+            format!("{:?}", doc.world_xf(id)).hash(&mut h);
+        }
+    }
+    format!("{:016x}", h.finish())
+}
+
+/// Rebuilds the painted regions of every live paint group whose paths or fills changed since it was last built:
+/// each fill keeps the point it was clicked at (in the group's space), and paints whichever region holds that
+/// point now. Called by the core after every call.
+pub fn refresh_live_paint(doc: &mut std::sync::Arc<Doc>) {
+    let stale: Vec<ItemId> = doc.items.iter().filter_map(|(id, it)| {
+        let lp = it.extra.get("livePaint")?;
+        (lp.get("sig").and_then(Value::as_str) != Some(live_paint_sig(doc, *id).as_str())).then_some(*id)
+    }).collect();
+    if stale.is_empty() {
+        return;
+    }
+    let d = std::sync::Arc::make_mut(doc);
+    for gid in stale {
+        let old: Vec<ItemId> = d.item(gid).map(|g| g.children()).unwrap_or_default().into_iter().filter(|k| d.item(*k).is_some_and(|it| it.extra.contains_key("lpFace"))).collect();
+        for id in old {
+            d.remove_item(id);
+        }
+        let fills: Vec<Value> = d.item(gid).and_then(|g| g.extra.get("livePaint")).and_then(|v| v.get("fills")).and_then(Value::as_array).cloned().unwrap_or_default();
+        let gx = d.world_xf(gid);
+        let mut painted: Vec<(usize, formdes_model::color::Paint)> = Vec::new();
+        let sources = live_paint_sources(d, gid);
+        if let Ok(faces) = regions(d, &sources) {
+            let mem: Vec<Option<Vec<u64>>> = faces.iter().map(|(s, _)| face_point(s).map(|q| membership(d, &sources, q[0], q[1]))).collect();
+            for f in &fills {
+                let (Some(x), Some(y)) = (f.pointer("/p/0").and_then(Value::as_f64), f.pointer("/p/1").and_then(Value::as_f64)) else { continue };
+                let w = gx * kurbo::Point::new(x, y);
+                let paint = crate::wire::paint_in(f.get("swatch").and_then(Value::as_str).unwrap_or("None"), f.get("tint").and_then(Value::as_f64));
+                let by_point = faces.iter().position(|(s, _)| s.iter().any(|shape| inside(shape, w.x, w.y)));
+                let want: Option<Vec<u64>> = f.get("in").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_u64).collect());
+                let hit = match want {
+                    Some(want) => {
+                        let cands: Vec<usize> = mem.iter().enumerate().filter(|(_, m)| m.as_ref() == Some(&want)).map(|(i, _)| i).collect();
+                        by_point.filter(|b| cands.contains(b)).or(cands.first().copied())
+                    }
+                    None => by_point,
+                };
+                if let Some(i) = hit {
+                    painted.retain(|(j, _)| *j != i);
+                    painted.push((i, paint));
+                }
+            }
+            let layer = d.item(gid).map(|g| g.layer).unwrap_or(ops::active_layer(d));
+            let mut made = Vec::new();
+            for (i, paint) in painted {
+                let mut it = formdes_model::item::Item::new(ItemId(0), ItemKind::Plain, Shape::Path { path: gx.inverse() * to_path(&faces[i].0), closed: true }, layer);
+                it.fill = paint;
+                it.stroke = ops::default_stroke(0.0);
+                it.locked = true;
+                it.extra.insert("lpFace".into(), json!(true));
+                made.push(d.insert_item(it, formdes_model::doc::Home::Group(gid)));
+            }
+            if let Some(ItemKind::Group { children }) = d.item_mut(gid).map(|g| &mut g.kind) {
+                children.retain(|c| !made.contains(c));
+                children.splice(0..0, made);
+            }
+        }
+        let sig = live_paint_sig(d, gid);
+        if let Some(g) = d.item_mut(gid)
+            && let Some(Value::Object(lp)) = g.extra.get_mut("livePaint")
+        {
+            lp.insert("sig".into(), json!(sig));
+        }
+    }
+}
+
+fn live_paint_make(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    let ids = paint_order(doc, &ids);
+    regions(doc, &ids)?;
+    let doc = c.doc_mut()?;
+    let gid = ops::group(doc, &ids)?;
+    if let Some(g) = doc.item_mut(gid) {
+        g.extra.insert("livePaint".into(), json!({"fills": []}));
+    }
+    c.set_selection(Selection::items(vec![gid]));
+    c.label("Make Live Paint");
+    Ok(json!({"group": gid}))
+}
+
+fn live_paint_end(c: &mut Ctx, p: &Value, release: bool) -> Result<Value> {
+    let ids = items(c, p)?;
+    let doc = c.doc()?;
+    let groups: Vec<ItemId> = ids.iter().filter_map(|id| live_paint_group(doc, &[*id])).collect();
+    if groups.is_empty() {
+        return Err(EngineError::new("select a live paint group (made with Make Live Paint)"));
+    }
+    let doc = c.doc_mut()?;
+    let mut out = Vec::new();
+    for gid in groups {
+        let kids = doc.item(gid).map(|g| g.children()).unwrap_or_default();
+        for k in kids {
+            let face = doc.item(k).is_some_and(|it| it.extra.contains_key("lpFace"));
+            if face && release {
+                doc.remove_item(k);
+            } else if face && let Some(it) = doc.item_mut(k) {
+                it.extra.remove("lpFace");
+                it.locked = false;
+            }
+        }
+        if let Some(g) = doc.item_mut(gid) {
+            g.extra.remove("livePaint");
+        }
+        if release {
+            out.extend(ops::ungroup(doc, gid)?);
+        } else {
+            out.push(gid);
+        }
+    }
+    c.set_selection(Selection::items(out.clone()));
+    c.label(if release { "Release Live Paint" } else { "Expand Live Paint" });
+    Ok(json!({"ids": out}))
+}
+
+fn live_paint_expand(c: &mut Ctx, p: &Value) -> Result<Value> {
+    live_paint_end(c, p, false)
+}
+
+fn live_paint_release(c: &mut Ctx, p: &Value) -> Result<Value> {
+    live_paint_end(c, p, true)
 }
 
 fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -951,8 +1154,11 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
 }
 
 pub fn register(r: &mut Registry) {
-    cmd("path.livePaint", "Live Paint Bucket").menu(&["Object", "Live Paint", "Fill Regions..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (inside the regions to fill), swatch, tint?, ids?}")
+    cmd("path.livePaint", "Live Paint Bucket").menu(&["Object", "Live Paint", "Fill Regions..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (inside the regions to fill), swatch, tint?, ids? (a live paint group, or a member of one, keeps the fills live: they follow the regions as the paths change)}")
         .help("Fills the regions under the given points with a colour, where regions are formed by the selected closed shapes overlapping and by open paths crossing them, as Illustrator's Live Paint Bucket does; each fill is a new shape placed behind the selection, so the lines stay on top.").reg(r, live_paint);
+    cmd("path.livePaintMake", "Make Live Paint").menu(&["Object", "Live Paint", "Make"]).needs(Needs::Items).sig("{ids?: closed shapes and open paths}").reg(r, live_paint_make);
+    cmd("path.livePaintExpand", "Expand Live Paint").menu(&["Object", "Live Paint", "Expand"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_expand);
+    cmd("path.livePaintRelease", "Release Live Paint").menu(&["Object", "Live Paint", "Release"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_release);
     cmd("path.shapeBuilder", "Shape Builder").menu(&["Object", "Paths", "Shape Builder..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (spread points inside the regions), mode?: merge|erase, ids?}")
         .help("Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.").reg(r, shape_builder);
     cmd("path.knife", "Knife").menu(&["Object", "Paths", "Knife..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (a line or polyline in spread points), ids?}")
