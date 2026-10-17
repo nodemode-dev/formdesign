@@ -128,8 +128,12 @@ impl Core {
         m
     }
 
+    /// A request may carry `turn` (a string the host makes per agent turn): its changes join that turn's undo entry.
+    /// It lasts for this request only, so a person's edit between two agent requests stays its own step.
     pub fn call(&mut self, method: &str, p: Value) -> Result<Reply, String> {
+        self.ses.turn = p.get("turn").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string);
         let r = self.dispatch(method, &p);
+        self.ses.turn = None;
         self.settle();
         r
     }

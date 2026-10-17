@@ -293,15 +293,12 @@ impl Session {
     }
 
     pub fn commit(&mut self, before: &Before, label: &str) {
+        let turn = self.turn.clone();
         if let Some(st) = self.active_mut()
             && st.uid == before.uid
             && !Arc::ptr_eq(&st.doc, &before.doc)
         {
-            st.history.undo.push(crate::session::Snapshot { label: label.to_string(), doc: before.doc.clone(), selection: before.sel.clone() });
-            if st.history.undo.len() > crate::session::UNDO_LIMIT {
-                st.history.undo.remove(0);
-            }
-            st.history.redo.clear();
+            st.record(label.to_string(), before.doc.clone(), before.sel.clone(), turn.as_deref());
             st.coalesce = None;
         }
     }

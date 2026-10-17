@@ -85,6 +85,9 @@ pub struct History {
 
 pub const UNDO_LIMIT: usize = 500;
 
+/// The undo label of an agent turn that made more than one change.
+pub const AGENT_TURN: &str = "Agent Turn";
+
 pub struct DocState {
     pub uid: u64,
     pub doc: Arc<Doc>,
@@ -100,6 +103,9 @@ pub struct DocState {
     pub active_layer: Option<formdes_model::ids::LayerId>,
     pub last_find: Option<Value>,
     pub coalesce: Option<u64>,
+    /// The agent turn whose entry is on the undo stack: its key and that entry's document (compared by pointer, so
+    /// the mark survives the stack's oldest entries being dropped).
+    pub turn_mark: Option<(String, Arc<Doc>)>,
     layout: Option<(u64, Arc<DocLayout>)>,
     ops: std::collections::HashMap<formdes_render::scene::Target, (u64, Arc<Vec<formdes_render::Op>>)>,
 }
@@ -122,9 +128,32 @@ impl DocState {
             active_layer: None,
             last_find: None,
             coalesce: None,
+            turn_mark: None,
             layout: None,
             ops: std::collections::HashMap::new(),
         }
+    }
+
+    /// Puts the state before a change on the undo stack, labelled `label`. Under an agent turn (`turn`), a change that
+    /// follows the same turn's entry at the top of the stack folds into it, so Undo takes back the whole turn: the
+    /// entry keeps the state from before the turn's first change and is relabelled `Agent Turn` once it holds two.
+    /// Anything else on top (a person's edit, an Undo, another turn) starts a new entry, so a turn never swallows
+    /// work that was not its own.
+    pub fn record(&mut self, label: String, doc: Arc<Doc>, selection: Selection, turn: Option<&str>) {
+        let joined = turn.is_some()
+            && self.turn_mark.as_ref().is_some_and(|(k, d)| Some(k.as_str()) == turn && self.history.undo.last().is_some_and(|s| Arc::ptr_eq(&s.doc, d)));
+        if joined {
+            if let Some(top) = self.history.undo.last_mut() {
+                top.label = AGENT_TURN.to_string();
+            }
+        } else {
+            self.turn_mark = turn.map(|k| (k.to_string(), doc.clone()));
+            self.history.undo.push(Snapshot { label, doc, selection });
+            if self.history.undo.len() > UNDO_LIMIT {
+                self.history.undo.remove(0);
+            }
+        }
+        self.history.redo.clear();
     }
 
     pub fn canvas(&self) -> crate::canvas::Canvas {
@@ -181,6 +210,8 @@ pub struct Session {
     pub place_gun: Vec<Value>,
     pub tools: crate::tools::ToolState,
     pub clipboard: Option<crate::cmd::clip::Clip>,
+    /// The agent turn the current request belongs to, set by the host for one request at a time.
+    pub turn: Option<String>,
     next_uid: u64,
 }
 
@@ -271,6 +302,7 @@ impl Session {
             place_gun: Vec::new(),
             tools: crate::tools::ToolState::default(),
             clipboard: None,
+            turn: None,
             next_uid: 1,
         }
     }
@@ -310,6 +342,7 @@ impl Session {
             return Err(EngineError::new(format!("no command `{id}`")));
         };
         let before = self.active().map(|s| (s.uid, s.doc.clone(), s.selection.clone(), s.revision));
+        let turn = self.turn.clone();
         let mut ctx = Ctx { session: self, changed: false, label: None };
         let out = handler(&mut ctx, params);
         let changed = ctx.changed;
@@ -326,13 +359,11 @@ impl Session {
                     && !Arc::ptr_eq(&st.doc, &doc)
                 {
                     let merge = typing && st.coalesce == Some(rev0) && st.history.undo.last().is_some_and(|s| s.label == "Typing");
-                    if !merge {
-                        st.history.undo.push(Snapshot { label, doc, selection: sel });
-                        if st.history.undo.len() > UNDO_LIMIT {
-                            st.history.undo.remove(0);
-                        }
+                    if merge {
+                        st.history.redo.clear();
+                    } else {
+                        st.record(label, doc, sel, turn.as_deref());
                     }
-                    st.history.redo.clear();
                 }
                 if changed && let Some(st) = self.active_mut() {
                     st.revision += 1;
@@ -389,6 +420,7 @@ impl Session {
     pub fn group<F: FnOnce(&mut Session) -> Result<Value>>(&mut self, label: &str, f: F) -> Result<Value> {
         let before = self.active().map(|s| (s.uid, s.doc.clone(), s.selection.clone(), s.history.undo.len()));
         let out = f(self);
+        let turn = self.turn.clone();
         if let Some((uid, doc, sel, depth)) = before
             && let Some(st) = self.active_mut()
             && st.uid == uid
@@ -396,8 +428,7 @@ impl Session {
             match &out {
                 Ok(_) if !Arc::ptr_eq(&st.doc, &doc) => {
                     st.history.undo.truncate(depth);
-                    st.history.undo.push(Snapshot { label: label.to_string(), doc, selection: sel });
-                    st.history.redo.clear();
+                    st.record(label.to_string(), doc, sel, turn.as_deref());
                 }
                 Ok(_) => {}
                 Err(_) => {
