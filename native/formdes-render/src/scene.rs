@@ -1993,6 +1993,30 @@ pub fn page_scene(doc: &Doc, lay: &DocLayout, abs: usize, opts: &SceneOpts) -> O
     Some(PageScene { page: abs, width: page.width, height: page.height, bleed, ops: ctx.ops })
 }
 
+/// An artboard: the objects of spread `si` that touch `area` (spread coordinates), drawn with the area's corner
+/// at the origin, like a page but anywhere on the spread and without parent page items.
+pub fn artboard_scene(doc: &Doc, lay: &DocLayout, si: usize, area: Rect, opts: &SceneOpts) -> Option<PageScene> {
+    let spread = doc.spreads.get(si)?;
+    let shift = Affine::translate((-area.x0, -area.y0));
+    let mut ctx = Ctx { doc, lay, opts, ops: Vec::new(), page: None, vert: false, depth: 0 };
+    for layer in layer_order(doc) {
+        for id in &spread.items {
+            let Some(it) = doc.item(*id) else { continue };
+            if it.layer != layer || it.anchored_in.is_some() {
+                continue;
+            }
+            if let Some(b) = doc.bounds(*id)
+                && b.intersect(area).area() <= 0.0
+                && !(b.width() == 0.0 || b.height() == 0.0)
+            {
+                continue;
+            }
+            ctx.emit(*id, shift);
+        }
+    }
+    Some(PageScene { page: doc.first_page_of_spread(si), width: area.width(), height: area.height(), bleed: Edges::default(), ops: ctx.ops })
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Target {
     Spread(usize),

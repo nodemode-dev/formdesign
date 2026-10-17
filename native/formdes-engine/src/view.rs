@@ -316,6 +316,24 @@ pub fn tiles(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
     Ok((json!({"tiles": out, "format": "rgba"}), bin))
 }
 
+pub fn artboard_image(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
+    let renderer = ses.renderer.clone();
+    let st = ses.active_mut().ok_or_else(|| EngineError::new("no document open"))?;
+    let key = p.get("artboard").cloned().unwrap_or(json!(0));
+    let i = crate::cmd::artboard::find(&st.doc, &key).ok_or_else(|| EngineError::new(format!("no artboard {key} (artboard.list shows them)")))?;
+    let (si, area) = crate::cmd::artboard::artboards(&st.doc).get(i).and_then(crate::cmd::artboard::artboard_rect).ok_or_else(|| EngineError::new("the artboard has no area"))?;
+    let scale = match p.get("maxSide").and_then(Value::as_f64) {
+        Some(ms) if ms > 0.0 => (ms / area.width().max(area.height())).clamp(0.02, 16.0),
+        _ => p.get("scale").and_then(Value::as_f64).unwrap_or(1.0).clamp(0.02, 16.0),
+    };
+    let lay = st.layout(&renderer);
+    let scene = formdes_render::scene::artboard_scene(&st.doc, &lay, si, area, &SceneOpts { printing: true, bleed: false, overprint: false }).ok_or_else(|| EngineError::new(format!("no spread {si}")))?;
+    let r = rasterize(&scene, &st.doc, &renderer.outlines, &renderer.images, &RasterOpts { scale, ..RasterOpts::default() });
+    let jpeg = matches!(p.get("format").and_then(Value::as_str), Some("jpeg" | "jpg"));
+    let bytes = if jpeg { encode_jpeg(&r, p.get("quality").and_then(Value::as_u64).unwrap_or(86).clamp(10, 100) as u8) } else { encode_png(&r) }.ok_or_else(|| EngineError::new("could not encode the artboard image"))?;
+    Ok((json!({"width": r.width, "height": r.height, "mime": if jpeg { "image/jpeg" } else { "image/png" }}), bytes))
+}
+
 pub fn page_image(ses: &mut Session, p: &Value) -> Result<(Value, Vec<u8>)> {
     let renderer = ses.renderer.clone();
     let st = ses.active_mut().ok_or_else(|| EngineError::new("no document open"))?;

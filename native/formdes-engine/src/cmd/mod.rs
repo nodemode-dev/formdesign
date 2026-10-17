@@ -22,6 +22,7 @@ pub mod swatch;
 pub mod table;
 pub mod text;
 pub mod xml;
+pub mod artboard;
 
 use crate::registry::Registry;
 
@@ -51,5 +52,6 @@ pub fn registry() -> Registry {
     inks::register(&mut r);
     more::register(&mut r);
     imaging::register(&mut r);
+    artboard::register(&mut r);
     r
 }

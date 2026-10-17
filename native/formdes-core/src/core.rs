@@ -156,6 +156,7 @@ impl Core {
             "layout" => Ok(view::layout_json(&self.ses).into()),
             "tiles" => view::tiles(&mut self.ses, p).map(|(result, bin)| Reply { result, bin: Some(bin) }).map_err(err),
             "page.png" => view::page_image(&mut self.ses, p).map(|(result, bin)| Reply { result, bin: Some(bin) }).map_err(err),
+            "artboard.png" => view::artboard_image(&mut self.ses, p).map(|(result, bin)| Reply { result, bin: Some(bin) }).map_err(err),
             "overlays" => Ok(input::overlays(&mut self.ses, p).into()),
             "pointer" => input::pointer(&mut self.ses, p).map(Reply::from).map_err(err),
             "key" => input::key(&mut self.ses, p).map(Reply::from).map_err(err),
