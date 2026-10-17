@@ -844,7 +844,7 @@ impl Ctx<'_> {
                 self.shadow(it, &path);
                 let masks = self.feather(it, &path);
                 self.appearance(it, &local, xf, false);
-                let free = it.shape.closed() && self.freeform(it, &local, &path, xf);
+                let free = it.shape.closed() && (self.freeform(it, &local, &path, xf) || self.mesh(it, &local, &path, xf));
                 if it.shape.closed()
                     && !free
                     && let Some(b) = brush_of(self.doc, &it.fill, 1.0, bbox, xf)
@@ -1009,6 +1009,74 @@ impl Ctx<'_> {
                 let y0 = bb.y0 + j as f64 * ch;
                 let cell = Rect::new(x0 - cw * 0.3, y0 - ch * 0.3, x0 + cw * 1.3, y0 + ch * 1.3);
                 self.ops.push(Op::Fill { path: xf * cell.to_path(0.1), brush: Brush::Solid(Color::Rgb(rgb), 1.0), even_odd: false });
+            }
+        }
+        self.ops.push(Op::Pop);
+        true
+    }
+
+    /// A gradient mesh (extra mesh: cols, rows, colors and optional points, both row-major over the
+    /// (cols+1) x (rows+1) grid, points as 0..1 of the bounds): positions and colours are interpolated with
+    /// bicubic Catmull-Rom between the grid points, and each patch is painted as small overlapping quads inside
+    /// the shape.
+    fn mesh(&mut self, it: &Item, local: &BezPath, path: &BezPath, xf: Affine) -> bool {
+        let Some(m) = it.extra.get("mesh") else { return false };
+        let (cols, rows) = (m.get("cols").and_then(|v| v.as_u64()).unwrap_or(0) as usize, m.get("rows").and_then(|v| v.as_u64()).unwrap_or(0) as usize);
+        let n = (cols + 1) * (rows + 1);
+        let read = |key: &str, d: usize| -> Option<Vec<Vec<f64>>> {
+            let a = m.get(key)?.as_array()?;
+            let out: Vec<Vec<f64>> = a.iter().filter_map(|q| q.as_array().map(|q| q.iter().filter_map(|x| x.as_f64()).collect::<Vec<f64>>()).filter(|q| q.len() == d)).collect();
+            (out.len() == n).then_some(out)
+        };
+        let Some(colors) = read("colors", 3) else { return false };
+        let points = read("points", 2).unwrap_or_else(|| (0..n).map(|i| vec![(i % (cols + 1)) as f64 / cols.max(1) as f64, (i / (cols + 1)) as f64 / rows.max(1) as f64]).collect());
+        let bb = local.bounding_box();
+        if cols == 0 || rows == 0 || bb.width() <= 0.0 || bb.height() <= 0.0 {
+            return false;
+        }
+        let k = {
+            let c = xf.as_coeffs();
+            (c[0] * c[3] - c[1] * c[2]).abs().sqrt()
+        };
+        let sub = ((bb.width().max(bb.height()) * k / (cols.max(rows) as f64) / 2.0).ceil() as usize).clamp(4, 32);
+        let cr = |g: &[Vec<f64>], s: f64, t: f64| -> Vec<f64> {
+            let at = |i: isize, j: isize| -> &Vec<f64> { &g[(j.clamp(0, rows as isize) as usize) * (cols + 1) + i.clamp(0, cols as isize) as usize] };
+            let (i0, j0) = (s.floor().min(cols as f64 - 1.0) as isize, t.floor().min(rows as f64 - 1.0) as isize);
+            let (u, v) = (s - i0 as f64, t - j0 as f64);
+            let w = |x: f64| [(-x + 2.0 * x * x - x * x * x) / 2.0, (2.0 - 5.0 * x * x + 3.0 * x * x * x) / 2.0, (x + 4.0 * x * x - 3.0 * x * x * x) / 2.0, (-x * x + x * x * x) / 2.0];
+            let (wu, wv) = (w(u), w(v));
+            let d = g[0].len();
+            let mut out = vec![0.0; d];
+            for (b, wvb) in wv.iter().enumerate() {
+                for (a, wua) in wu.iter().enumerate() {
+                    let p = at(i0 - 1 + a as isize, j0 - 1 + b as isize);
+                    for c in 0..d {
+                        out[c] += p[c] * wua * wvb;
+                    }
+                }
+            }
+            out
+        };
+        let pos = |s: f64, t: f64| {
+            let q = cr(&points, s, t);
+            Point::new(bb.x0 + q[0] * bb.width(), bb.y0 + q[1] * bb.height())
+        };
+        self.ops.push(Op::PushClip(path.clone()));
+        for j in 0..rows * sub {
+            for i in 0..cols * sub {
+                let (s0, t0) = (i as f64 / sub as f64, j as f64 / sub as f64);
+                let (s1, t1) = ((i + 1) as f64 / sub as f64, (j + 1) as f64 / sub as f64);
+                let quad = [pos(s0, t0), pos(s1, t0), pos(s1, t1), pos(s0, t1)];
+                let c = Point::new(quad.iter().map(|p| p.x).sum::<f64>() / 4.0, quad.iter().map(|p| p.y).sum::<f64>() / 4.0);
+                let mut q = BezPath::new();
+                for (e, p) in quad.iter().enumerate() {
+                    let p = c + (*p - c) * 1.35;
+                    if e == 0 { q.move_to(p) } else { q.line_to(p) }
+                }
+                q.close_path();
+                let rgb = cr(&colors, (s0 + s1) / 2.0, (t0 + t1) / 2.0);
+                let rgb = [rgb[0].clamp(0.0, 1.0), rgb[1].clamp(0.0, 1.0), rgb[2].clamp(0.0, 1.0)];
+                self.ops.push(Op::Fill { path: xf * q, brush: Brush::Solid(Color::Rgb(rgb), 1.0), even_odd: false });
             }
         }
         self.ops.push(Op::Pop);

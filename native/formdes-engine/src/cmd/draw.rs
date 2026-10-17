@@ -850,6 +850,96 @@ fn isolate_blending(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+fn mesh(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let ids = items(c, p)?;
+    let clear = args::opt_bool(p, "clear").unwrap_or(false);
+    let size = |k: &str| -> Result<Option<u64>> {
+        match args::opt_u64(p, k) {
+            Some(n) if !(1..=12).contains(&n) => Err(EngineError::new(format!("{k} is 1 to 12"))),
+            v => Ok(v),
+        }
+    };
+    let (cols, rows) = (size("cols")?, size("rows")?);
+    let point: Option<[usize; 2]> = match p.get("point") {
+        None => None,
+        Some(v) => Some(v.as_array().and_then(|a| Some([a.first()?.as_u64()? as usize, a.get(1)?.as_u64()? as usize])).ok_or_else(|| EngineError::new("point is [col, row] on the grid of mesh points"))?),
+    };
+    let to: Option<[f64; 2]> = match p.get("to") {
+        None => None,
+        Some(v) => Some(v.as_array().and_then(|a| Some([a.first()?.as_f64()?.clamp(-0.5, 1.5), a.get(1)?.as_f64()?.clamp(-0.5, 1.5)])).ok_or_else(|| EngineError::new("to is [x, y] as shares of the object's bounds"))?),
+    };
+    let doc = c.doc()?;
+    let color: Option<Vec<f64>> = match args::opt_str(p, "color") {
+        None => None,
+        Some(name) => Some(doc.paint_color(&wire::paint_in(name, None)).map(|c| c.to_rgb().to_vec()).ok_or_else(|| EngineError::new(format!("no colour for {name}: use a swatch name or #rrggbb")))?),
+    };
+    let highlight = args::opt_f64(p, "highlight").map(|h| h.clamp(0.0, 100.0) / 100.0);
+    let mut plans: Vec<(ItemId, Option<Value>)> = Vec::new();
+    for id in &ids {
+        let it = doc.item(*id).ok_or_else(|| EngineError::new(format!("no object {id}")))?;
+        if !it.shape.closed() || !matches!(it.kind, ItemKind::Plain | ItemKind::Graphic(_)) {
+            return Err(EngineError::new("a gradient mesh goes on a closed shape or frame, not a line, text frame or group"));
+        }
+        if clear {
+            plans.push((*id, None));
+            continue;
+        }
+        let mut m = match it.extra.get("mesh").cloned() {
+            Some(cur) if cols.is_none() && rows.is_none() => cur,
+            _ => {
+                let (cs, rs) = (cols.unwrap_or(3) as usize, rows.unwrap_or(3) as usize);
+                let base = color.clone().or_else(|| doc.paint_color(&it.fill).map(|c| c.to_rgb().to_vec())).unwrap_or_else(|| vec![1.0, 1.0, 1.0]);
+                let mut colors = Vec::new();
+                for j in 0..=rs {
+                    for i in 0..=cs {
+                        let inner = i > 0 && i < cs && j > 0 && j < rs;
+                        let h = if inner { highlight.unwrap_or(0.0) } else { 0.0 };
+                        colors.push(json!(base.iter().map(|v| v + (1.0 - v) * h).collect::<Vec<f64>>()));
+                    }
+                }
+                json!({"cols": cs, "rows": rs, "colors": colors})
+            }
+        };
+        if let Some([pc, pr]) = point {
+            let cs = m.get("cols").and_then(Value::as_u64).unwrap_or(0) as usize;
+            let rs = m.get("rows").and_then(Value::as_u64).unwrap_or(0) as usize;
+            if pc > cs || pr > rs {
+                return Err(EngineError::new(format!("point is [col 0..{cs}, row 0..{rs}] on this mesh")));
+            }
+            let idx = pr * (cs + 1) + pc;
+            if let Some(rgb) = &color
+                && let Some(slot) = m.get_mut("colors").and_then(Value::as_array_mut).and_then(|a| a.get_mut(idx))
+            {
+                *slot = json!(rgb);
+            }
+            if let Some(q) = to {
+                if m.get("points").is_none() {
+                    let pts: Vec<Value> = (0..(cs + 1) * (rs + 1)).map(|i| json!([(i % (cs + 1)) as f64 / cs as f64, (i / (cs + 1)) as f64 / rs as f64])).collect();
+                    m["points"] = json!(pts);
+                }
+                if let Some(slot) = m.get_mut("points").and_then(Value::as_array_mut).and_then(|a| a.get_mut(idx)) {
+                    *slot = json!(q);
+                }
+            }
+        }
+        plans.push((*id, Some(m)));
+    }
+    let doc = c.doc_mut()?;
+    for (id, m) in &plans {
+        if let Some(it) = doc.item_mut(*id) {
+            match m {
+                Some(m) => {
+                    it.extra.insert("mesh".into(), m.clone());
+                    it.extra.remove("freeform");
+                }
+                None => { it.extra.remove("mesh"); }
+            }
+        }
+    }
+    c.label("Gradient Mesh");
+    Ok(json!({"items": plans.len()}))
+}
+
 fn freeform_gradient(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
     let clear = args::opt_bool(p, "clear").unwrap_or(false);
@@ -1271,6 +1361,7 @@ pub fn register(r: &mut Registry) {
         .help("Repeats the selected art live as a radial ring, a grid or a mirrored pair, as Illustrator's Repeat does; editing the original updates every copy; release removes the repeat, expand turns the copies into real objects.").reg(r, repeat);
     cmd("object.freeformGradient", "Freeform Gradient").menu(&["Object", "Freeform Gradient..."]).needs(Needs::Items).sig("{points: [[x 0..1, y 0..1, colour (swatch or #rrggbb)], ...] across the object's bounds, spread?: 0.5..8 (how far each colour reaches; default 2), clear?: bool, ids?}")
         .help("Fills the shape with colours placed at points that blend smoothly into each other, as Illustrator's freeform gradient in Points mode does; a lower spread mixes the colours more evenly, a higher one keeps each colour around its point; clear goes back to the ordinary fill.").reg(r, freeform_gradient);
+    cmd("object.mesh", "Gradient Mesh").menu(&["Object", "Create Gradient Mesh..."]).needs(Needs::Items).sig("{cols?: 1..12, rows?: 1..12 (makes a new mesh; default 3 by 3 in the fill colour), highlight?: percent toward white at the inner points, point?: [col, row] (0-based on the grid of mesh points), color?: swatch or #rrggbb (the point's colour, or every point's on a new mesh), to?: [x 0..1, y 0..1] (moves the point, as a share of the bounds), clear?: bool, ids?}").reg(r, mesh);
     cmd("object.opacityMask", "Make Opacity Mask").menu(&["Object", "Opacity Mask", "Make Opacity Mask"]).needs(Needs::Items).sig("{clip?: bool (default true: outside the mask is hidden), release?: bool, ids?}")
         .help("Groups the selected objects and uses the topmost one's brightness as their opacity (white shows, black hides, greys fade), as Illustrator's opacity masks do; clip false keeps what lies outside the mask visible; release turns the mask back into a visible object in the group.").reg(r, opacity_mask);
     cmd("object.clippingMask", "Make Clipping Mask").menu(&["Object", "Clipping Mask", "Make"]).needs(Needs::Items).sig("{release?: bool, ids?}")
