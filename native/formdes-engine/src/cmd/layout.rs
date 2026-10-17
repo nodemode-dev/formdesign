@@ -59,6 +59,19 @@ fn item_json(doc: &Doc, id: ItemId, overset: &dyn Fn(formdes_model::ids::StoryId
     if let Some(s) = &it.style {
         o.insert("objectStyle".into(), json!(wire::style_name(StyleKind::Object, s)));
     }
+    // The appearance stack (extra fills and strokes) and live effects, for the Appearance panel; left out when empty.
+    for key in ["appearance", "effects"] {
+        if let Some(list) = it.extra.get(key).and_then(Value::as_array).filter(|a| !a.is_empty()) {
+            let mut list = list.clone();
+            // Each extra fill or stroke also carries its paint's swatch name, as the main fill and stroke do.
+            for e in list.iter_mut() {
+                if let Some(name) = e.get("paint").and_then(|p| serde_json::from_value::<formdes_model::color::Paint>(p.clone()).ok()).map(|p| wire::paint_name(&p)) {
+                    e["swatch"] = json!(name);
+                }
+            }
+            o.insert(key.into(), Value::Array(list));
+        }
+    }
     match &it.kind {
         ItemKind::Text(t) => {
             o.insert("story".into(), json!(t.story));

@@ -637,8 +637,14 @@ fn effect(c: &mut Ctx, p: &Value) -> Result<Value> {
     let clear = args::opt_bool(p, "clear").unwrap_or(false);
     let remove = args::opt_u64(p, "remove").map(|v| v as usize);
     let kind = args::opt_str(p, "kind");
+    // index with on and no kind shows or hides one effect, keeping its settings.
+    if kind.is_none()
+        && let (Some(i), Some(on)) = (args::opt_u64(p, "index").map(|v| v as usize), args::opt_bool(p, "on"))
+    {
+        return toggle_entry(c, &ids, "effects", i, on, "Effect");
+    }
     if !clear && remove.is_none() && !kind.is_some_and(|k| KINDS.contains(&k)) {
-        return Err(EngineError::new(format!("kind is one of {} (or clear: true, or remove: index)", KINDS.join(", "))));
+        return Err(EngineError::new(format!("kind is one of {} (or clear: true, or remove: index, or index with on)", KINDS.join(", "))));
     }
     let mut entry = p.as_object().cloned().unwrap_or_default();
     for k in ["ids", "index", "clear", "remove"] {
@@ -666,11 +672,33 @@ fn effect(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"items": n}))
 }
 
+/// Sets `on` for entry `i` of the list `key` in each item's extras (an appearance or effect entry hidden or shown).
+fn toggle_entry(c: &mut Ctx, ids: &[ItemId], key: &str, i: usize, on: bool, label: &str) -> Result<Value> {
+    let doc = c.doc_mut()?;
+    let mut n = 0;
+    for id in ids {
+        if let Some(e) = doc.item_mut(*id).and_then(|it| it.extra.get_mut(key)).and_then(Value::as_array_mut).and_then(|a| a.get_mut(i)) {
+            e["on"] = json!(on);
+            n += 1;
+        }
+    }
+    if n == 0 {
+        return Err(EngineError::new(format!("no {key} entry {i} on the selection")));
+    }
+    c.label(label);
+    Ok(json!({"items": n}))
+}
+
 fn appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
     let clear = args::opt_bool(p, "clear").unwrap_or(false);
     let remove = args::opt_u64(p, "remove").map(|v| v as usize);
     let index = args::opt_u64(p, "index").map(|v| v as usize);
+    if p.get("kind").is_none()
+        && let (Some(i), Some(on)) = (index, args::opt_bool(p, "on"))
+    {
+        return toggle_entry(c, &ids, "appearance", i, on, "Appearance");
+    }
     let entry = if clear || remove.is_some() {
         None
     } else {
@@ -1368,11 +1396,11 @@ pub fn register(r: &mut Registry) {
         .help("Groups the selected objects and clips them to the topmost object's shape, which stops drawing its own fill and stroke, as Illustrator's clipping masks and Draw Inside do; release makes the mask an ordinary object again.").reg(r, clipping_mask);
     cmd("object.isolateBlending", "Isolate Blending").menu(&["Object", "Isolate Blending"]).needs(Needs::Items).sig("{on?: bool (default true), ids?}")
         .help("Keeps the blend modes inside a group from mixing with what lies behind it, as Illustrator's Isolate Blending option does.").reg(r, isolate_blending);
-    cmd("object.appearance", "Add Fill or Stroke").menu(&["Window", "Appearance", "Add Fill or Stroke..."]).needs(Needs::Items)
-        .sig("{kind: fill|stroke, swatch, tint?, opacity?: percent, weight?, cap?, join?, dash?: [pt...], effects?: [{kind, ...}], above?: bool (over the main fill and stroke), evenOdd?, on?, index? (replace), remove?: index, clear?: bool, ids?}")
+    cmd("object.appearance", "Add Fill or Stroke").menu(&["Object", "Appearance", "Add Fill or Stroke..."]).needs(Needs::Items)
+        .sig("{kind: fill|stroke, swatch, tint?, opacity?: percent, weight?, cap?, join?, dash?: [pt...], effects?: [{kind, ...}], above?: bool (over the main fill and stroke), evenOdd?, on?, index? (replace; index with on and no kind only shows or hides that entry), remove?: index, clear?: bool, ids?}")
         .help("Adds another fill or stroke to the object's appearance, each with its own colour, opacity, weight and effects, drawn under the main fill or over the main stroke, as Illustrator's Appearance panel does; index replaces an entry, remove takes one out, clear empties the list.").reg(r, appearance);
     cmd("object.effect", "Add Effect").menu(&["Effect", "Distort & Transform", "Add Effect..."]).needs(Needs::Items)
-        .sig("{kind: roundCorners {radius} | zigZag {size, ridges, smooth} | roughen {size, detail (per inch), smooth, seed} | puckerBloat {amount: -200..200} | twist {angle} | transform {scaleX, scaleY, moveX, moveY, rotate, copies} | warp {style: arc|arcLower|arcUpper|arch|bulge|shellLower|shellUpper|flag|wave|rise|fisheye|inflate|squeeze, bend: -100..100, horizontal?: bool}, on?: bool, index? (replace), remove?: index, clear?: bool, ids?}")
+        .sig("{kind: roundCorners {radius} | zigZag {size, ridges, smooth} | roughen {size, detail (per inch), smooth, seed} | puckerBloat {amount: -200..200} | twist {angle} | transform {scaleX, scaleY, moveX, moveY, rotate, copies} | warp {style: arc|arcLower|arcUpper|arch|bulge|shellLower|shellUpper|flag|wave|rise|fisheye|inflate|squeeze, bend: -100..100, horizontal?: bool}, on?: bool, index? (replace; index with on and no kind only shows or hides that effect), remove?: index, clear?: bool, ids?}")
         .help("Adds a live effect to the object's appearance stack, applied in order when it is drawn and kept editable, as Illustrator's Effect menu does: Round Corners, Zig Zag, Roughen, Pucker & Bloat, Twist, Transform (with copies) and the Warp styles; index replaces an entry, remove takes one out, clear empties the stack.").reg(r, effect);
     cmd("object.expandAppearance", "Expand Appearance").menu(&["Object", "Expand Appearance"]).needs(Needs::Items).sig("{ids?}")
         .help("Bakes the live effects into the object's path so it can be edited point by point, and turns extra fills and strokes into separate objects grouped with it, as Illustrator's Expand Appearance does.").reg(r, expand_appearance);
