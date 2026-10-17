@@ -493,3 +493,10 @@ The engine's overlay lists a handle per corner anchor of each item under Direct 
 - logged: v0.27.0 · 2026-10-16
 
 InDesign's most-requested missing feature after table and footnote fixes (UserVoice "Actions Panel", 432 votes). Recording hooks the two places the window runs engine commands (`editor.exec` and the shell's `runCore`, which menus, the palette and the parameter dialogs use) and keeps undoable commands with their parameters, skipping selection, undo and redo, view and file-writing commands. Saved actions live in the engine's data folder (`actions.json`, `/api/actionsets`), so every window and agent sees the same list. Playing sends the steps as one batch, so an action is one undo step and fails as a whole. The list is patched in place by key. Window commands `actions.record`, `actions.stop` and `actions.play {name}` put it in the catalogue for agents. Recorded steps keep the object ids they acted on; an action whose steps name no ids acts on the selection when played.
+
+### features/drawmode.ts · drawing mode and isolation chip
+- refers-to: frontend/src/features/drawmode.ts :: installDrawMode; frontend/src/editor/editor.ts :: doSync (drawMode, isolated, 'mode'); frontend/src/editor/viewport.ts :: drawOverlays (isolated veil)
+- kind: rationale
+- logged: v0.54.0 · 2026-10-17
+
+The drawing mode (Draw Behind, Draw Inside) and the isolated group live in the engine's tool state and reach the window with the `state` the editor already polls; switching either bumps the engine's selection revision, so no new event is needed. The chip is created once at install and sits directly after the flexible hint, so when its text appears only the hint gives up room and nothing else in the status bar moves (placed before the version label it pushed the renderer chip 92 px, caught by the throttled check); it is hidden while empty. Clicking it leaves isolation, or returns drawing to normal. The isolation veil is painted on the highlight canvas from the overlay's `isolated` rectangle (the group's bounds), so entering and leaving costs no DOM work and selection handles stay above it.

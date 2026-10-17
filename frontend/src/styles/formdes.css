@@ -21,6 +21,10 @@
 .fd-st-proof:empty { display: none; }
 .fd-st-renderer { color: var(--text-muted); white-space: nowrap; }
 .fd-st-renderer:empty { display: none; }
+.fd-st-mode { all: unset; color: var(--accent-ink); white-space: nowrap; cursor: pointer; font: inherit; line-height: inherit; }
+.fd-st-mode:hover { text-decoration: underline; }
+.fd-st-mode:focus-visible { outline: 1px solid var(--accent-line); outline-offset: 2px; }
+.fd-st-mode:empty { display: none; }
 .fd-field { display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: var(--fs-11); }
 .fd-field .cv-dd-btn { width: 100%; }
 .fd-note { margin: var(--space-2) 0 0; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.45; }

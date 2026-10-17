@@ -14,7 +14,7 @@ export interface CoreCommand { id: string; label: string; menu: string[]; params
 export interface ToolInfo { id: string; label: string; icon: string; shortcut: string | null }
 export interface SelectionInfo { items: number[]; content?: boolean; text?: unknown; [k: string]: unknown }
 
-type EventName = 'ready' | 'docs' | 'layout' | 'selection' | 'tool' | 'change' | 'commands' | 'busy' | 'request' | 'connection';
+type EventName = 'ready' | 'docs' | 'layout' | 'selection' | 'tool' | 'mode' | 'change' | 'commands' | 'busy' | 'request' | 'connection';
 type Listener = (payload?: any) => void;
 
 export class Editor {
@@ -23,6 +23,9 @@ export class Editor {
   layout: LayoutInfo | null = null;
   selection: SelectionInfo | null = null;
   tool = 'selection';
+  drawMode = 'normal';
+  isolated: number | null = null;
+  private modeKey = 'normal|';
   wantsText = false;
   busy = false;
   tools: ToolInfo[][] = [];
@@ -138,6 +141,13 @@ export class Editor {
       this.emit('selection');
     }
     if (st.tool !== this.tool) { this.tool = st.tool; this.emit('tool'); }
+    const modeKey = `${st.drawMode ?? 'normal'}|${st.isolated ?? ''}`;
+    if (modeKey !== this.modeKey) {
+      this.modeKey = modeKey;
+      this.drawMode = st.drawMode ?? 'normal';
+      this.isolated = st.isolated ?? null;
+      this.emit('mode');
+    }
     if (!!st.busy !== this.busy) { this.busy = !!st.busy; this.emit('busy'); }
     if (this.needLayout) {
       this.needLayout = false;

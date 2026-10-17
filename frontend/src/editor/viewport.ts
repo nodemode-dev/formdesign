@@ -593,6 +593,14 @@ export class Viewport {
     const preview = this.opts.preview;
     const c = ov.colors ?? {};
     h.lineWidth = dpr;
+    if (ov.isolated) {
+      const r = ov.isolated;
+      h.fillStyle = 'rgba(20, 20, 23, 0.5)';
+      h.beginPath();
+      h.rect(0, 0, this.hiliteCanvas.width, this.hiliteCanvas.height);
+      h.rect(X(r[0]), Y(r[1]), (r[2] - r[0]) * s, (r[3] - r[1]) * s);
+      h.fill('evenodd');
+    }
     if (!preview && this.opts.guides) {
       h.strokeStyle = c.bleed ?? '#ff3b30';
       for (const r of ov.bleed ?? []) rect(h, r);
