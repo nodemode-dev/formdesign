@@ -446,6 +446,7 @@
 "Download": "다운로드",
 "Download as .zip": ".zip으로 다운로드",
 "Drag to move the group": "드래그하여 그룹 이동",
+"Drawing Mode": "그리기 모드",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "일정한 간격의 가로선과 세로선으로 이루어진 격자를 바깥 프레임과 함께 하나의 패스로 그립니다.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "a에서 b까지 기울기에 따라 휘어진 호를 그립니다. 닫기를 선택하면 Illustrator의 호 도구처럼 두 직선 변이 모서리까지 다시 추가됩니다.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "사분원 세그먼트로 열린 나선을 그리며, 각 세그먼트는 이전 세그먼트의 감소 비율로 작아집니다. Illustrator의 나선 도구와 같습니다.",

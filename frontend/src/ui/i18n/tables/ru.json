@@ -446,6 +446,7 @@
 "Download": "Скачать",
 "Download as .zip": "Скачать как .zip",
 "Drag to move the group": "Перетащите, чтобы переместить группу",
+"Drawing Mode": "Режим рисования",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Рисует сетку из равномерно расположенных горизонтальных и вертикальных линий с внешней рамкой в виде одного контура.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Рисует дугу от a до b, изогнутую в соответствии с наклоном; в замкнутом режиме добавляются две прямые стороны обратно к углу, как инструмент «Дуга» в Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Рисует открытую спираль из сегментов четверти окружности, каждый из которых уменьшен на заданный процент относительно предыдущего, как инструмент «Спираль» в Illustrator.",

@@ -446,6 +446,7 @@
 "Download": "Herunterladen",
 "Download as .zip": "Als .zip herunterladen",
 "Drag to move the group": "Ziehen, um die Gruppe zu verschieben",
+"Drawing Mode": "Zeichenmodus",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Zeichnet ein Raster aus gleichmäßig verteilten horizontalen und vertikalen Linien mit äußerem Rahmen als einen einzigen Pfad.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Zeichnet einen Bogen von a nach b, entsprechend der Steigung gewölbt; „Geschlossen“ fügt die beiden geraden Seiten zurück zur Ecke hinzu, wie das Bogen-Werkzeug von Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Zeichnet eine offene Spirale aus Viertelkreissegmenten, wobei jedes Segment den Abnahmeprozentsatz des vorherigen hat, wie das Spiral-Werkzeug von Illustrator.",

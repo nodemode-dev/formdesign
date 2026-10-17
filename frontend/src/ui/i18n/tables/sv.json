@@ -446,6 +446,7 @@
 "Download": "Hämta",
 "Download as .zip": "Hämta som .zip",
 "Drag to move the group": "Dra för att flytta gruppen",
+"Drawing Mode": "Ritläge",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Ritar ett rutnät av jämnt fördelade horisontella och vertikala linjer med yttre ram som en enda bana.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Ritar en båge från a till b, välvd efter lutningen; stängd lägger till de två raka sidorna tillbaka till hörnet, som Illustrators Båge-verktyg.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Ritar en öppen spiral av kvartscirkelsegment, vart och ett med avtagandeprocenten från det föregående, som Illustrators Spiral-verktyg.",

@@ -446,6 +446,7 @@
 "Download": "Downloaden",
 "Download as .zip": "Downloaden als .zip",
 "Drag to move the group": "Sleep om de groep te verplaatsen",
+"Drawing Mode": "Tekenmodus",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Tekent een raster van gelijkmatig verdeelde horizontale en verticale lijnen met de buitenste rand, als één pad.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Tekent een boog van a naar b, gebogen volgens de helling; bij gesloten worden de twee rechte zijden terug naar de hoek toegevoegd, zoals het gereedschap Boog van Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Tekent een open spiraal uit kwartcirkelsegmenten, elk met het afnamepercentage van het vorige, zoals het gereedschap Spiraal van Illustrator.",

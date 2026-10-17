@@ -446,6 +446,7 @@
 "Download": "Letöltés",
 "Download as .zip": "Letöltés .zip fájlként",
 "Drag to move the group": "Húzza a csoport mozgatásához",
+"Drawing Mode": "Rajzolási mód",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Egyenletesen elosztott vízszintes és függőleges vonalakból álló rácsot rajzol külső kerettel, egyetlen útvonalként.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Ívet rajzol a-ból b-be, a meredekség szerint görbítve; a zárt változat visszaadja a két egyenes oldalt a sarokig, mint az Illustrator Ív eszköze.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Nyitott spirált rajzol negyedkör szakaszokból, amelyek mindegyike az előzőnek a csökkenési százaléka, ahogy az Illustrator Spirál eszköze.",

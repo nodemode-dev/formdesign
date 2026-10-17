@@ -446,6 +446,7 @@
 "Download": "Stáhnout",
 "Download as .zip": "Stáhnout jako .zip",
 "Drag to move the group": "Přetažením přesunete skupinu",
+"Drawing Mode": "Režim kreslení",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Nakreslí mřížku z rovnoměrně rozmístěných vodorovných a svislých čar s vnějším rámem jako jednu cestu.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Nakreslí oblouk z a do b, prohnutý podle sklonu; uzavřený přidá zpět dvě rovné strany do rohu, jako nástroj Oblouk v Illustratoru.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Nakreslí otevřenou spirálu ze segmentů čtvrtkružnic, z nichž každý má velikost danou procentem úbytku předchozího, jako nástroj Spirála v Illustratoru.",

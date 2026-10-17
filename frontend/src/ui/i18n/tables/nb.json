@@ -446,6 +446,7 @@
 "Download": "Last ned",
 "Download as .zip": "Last ned som .zip",
 "Drag to move the group": "Dra for å flytte gruppen",
+"Drawing Mode": "Tegnemodus",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Tegner et rutenett av jevnt fordelte horisontale og vertikale linjer med ytre ramme som én bane.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Tegner en bue fra a til b, buet etter skråningen; lukket legger de to rette sidene tilbake til hjørnet, som Illustrators Bue-verktøy.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Tegner en åpen spiral av kvartsirkelsegmenter, hvert med avtakingsprosenten til det forrige, som Illustrators Spiral-verktøy.",

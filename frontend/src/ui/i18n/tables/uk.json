@@ -446,6 +446,7 @@
 "Download": "Завантажити",
 "Download as .zip": "Завантажити як .zip",
 "Drag to move the group": "Перетягніть, щоб перемістити групу",
+"Drawing Mode": "Режим малювання",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Малює сітку з рівномірно розташованих горизонтальних і вертикальних ліній із зовнішньою рамкою як один контур.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Малює дугу від a до b, вигнуту за нахилом; замкнена додає назад дві прямі сторони до кута, як інструмент «Дуга» в Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Малює розімкнену спіраль із чвертьколових сегментів, кожен з яких становить відсоток згасання попереднього, як інструмент «Спіраль» в Illustrator.",

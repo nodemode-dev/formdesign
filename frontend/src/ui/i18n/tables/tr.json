@@ -446,6 +446,7 @@
 "Download": "İndir",
 "Download as .zip": ".zip olarak indir",
 "Drag to move the group": "Grubu taşımak için sürükleyin",
+"Drawing Mode": "Çizim Modu",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Eşit aralıklı yatay ve dikey çizgilerden oluşan bir ızgarayı dış çerçevesiyle birlikte tek bir yol olarak çizer.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "a noktasından b noktasına eğime göre bükülmüş bir yay çizer; kapalı seçeneği, Illustrator'ın Yay aracı gibi, iki düz kenarı köşeye kadar geri ekler.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Her biri bir öncekinin azalma yüzdesi kadar olan çeyrek daire parçalarından açık bir spiral çizer, Illustrator'ın Spiral aracı gibi.",

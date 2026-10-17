@@ -446,6 +446,7 @@
 "Download": "Descargar",
 "Download as .zip": "Descargar como .zip",
 "Drag to move the group": "Arrastre para mover el grupo",
+"Drawing Mode": "Modo de dibujo",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Dibuja una cuadrícula de líneas horizontales y verticales equidistantes con su marco exterior, como un único trazado.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Dibuja un arco de a a b, curvado según la pendiente; al cerrarlo se añaden de nuevo los dos lados rectos hasta la esquina, como la herramienta Arco de Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Dibuja una espiral abierta a partir de segmentos de cuarto de círculo, cada uno con el porcentaje de decaimiento del anterior, como la herramienta Espiral de Illustrator.",

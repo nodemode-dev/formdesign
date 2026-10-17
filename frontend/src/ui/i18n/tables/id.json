@@ -446,6 +446,7 @@
 "Download": "Unduh",
 "Download as .zip": "Unduh sebagai .zip",
 "Drag to move the group": "Seret untuk memindahkan grup",
+"Drawing Mode": "Mode Gambar",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Menggambar kisi garis horizontal dan vertikal berjarak sama beserta bingkai luarnya, sebagai satu path.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Menggambar busur dari a ke b, melengkung menurut kemiringan; busur tertutup menambahkan kembali dua sisi lurus ke sudut, seperti alat Busur di Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Menggambar spiral terbuka dari segmen seperempat lingkaran, masing-masing sebesar persentase peluruhan segmen sebelumnya, seperti alat Spiral di Illustrator.",

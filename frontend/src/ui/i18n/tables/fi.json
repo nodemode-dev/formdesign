@@ -446,6 +446,7 @@
 "Download": "Lataa",
 "Download as .zip": "Lataa .zip-tiedostona",
 "Drag to move the group": "Siirrä ryhmää vetämällä",
+"Drawing Mode": "Piirtotila",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Piirtää tasavälisistä vaaka- ja pystyviivoista koostuvan ruudukon ulkokehyksineen yhtenä polkuna.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Piirtää kaaren pisteestä a pisteeseen b kaltevuuden mukaan kaarevana; suljettu lisää kaksi suoraa sivua takaisin kulmaan, kuten Illustratorin Kaari-työkalu.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Piirtää avoimen spiraalin neljännesympyrän segmenteistä, joista jokainen on edellisen vaimennusprosentin mukainen, kuten Illustratorin Spiraali-työkalu.",

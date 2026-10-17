@@ -446,6 +446,7 @@
 "Download": "ดาวน์โหลด",
 "Download as .zip": "ดาวน์โหลดเป็น .zip",
 "Drag to move the group": "ลากเพื่อย้ายกลุ่ม",
+"Drawing Mode": "โหมดการวาด",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "วาดตารางของเส้นแนวนอนและแนวตั้งที่เว้นระยะเท่ากันพร้อมกรอบด้านนอก เป็นพาธเดียว",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "วาดส่วนโค้งจาก a ไป b โค้งตามความชัน; แบบปิดจะเพิ่มด้านตรงสองด้านกลับไปที่มุม เหมือนเครื่องมือส่วนโค้งของ Illustrator",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "วาดเกลียวแบบเปิดจากส่วนโค้งหนึ่งในสี่วงกลม แต่ละส่วนมีขนาดเป็นเปอร์เซ็นต์การลดลงของส่วนก่อนหน้า เหมือนเครื่องมือเกลียวของ Illustrator",

@@ -446,6 +446,7 @@
 "Download": "下載",
 "Download as .zip": "下載為 .zip",
 "Drag to move the group": "拖曳以移動群組",
+"Drawing Mode": "繪圖模式",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "繪製由等距水平線與垂直線及其外框組成的格線，作為單一路徑。",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "從 a 到 b 繪製依斜率彎曲的弧線；封閉時會將兩條直邊補回至角點，如同 Illustrator 的弧形工具。",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "以四分之一圓弧段繪製開放式螺旋，每段為前一段的衰減百分比，如同 Illustrator 的螺旋工具。",

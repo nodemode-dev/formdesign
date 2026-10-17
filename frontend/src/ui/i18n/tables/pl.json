@@ -446,6 +446,7 @@
 "Download": "Pobierz",
 "Download as .zip": "Pobierz jako .zip",
 "Drag to move the group": "Przeciągnij, aby przenieść grupę",
+"Drawing Mode": "Tryb rysowania",
 "Draws a grid of evenly spaced horizontal and vertical lines with its outer frame, as one path.": "Rysuje siatkę równo rozmieszczonych linii poziomych i pionowych wraz z zewnętrzną ramką jako jedną ścieżkę.",
 "Draws an arc from a to b, bowed by the slope; closed adds the two straight sides back to the corner, like Illustrator's Arc tool.": "Rysuje łuk od a do b, wygięty zgodnie z nachyleniem; zamknięty dodaje z powrotem dwa proste boki do narożnika, jak narzędzie Łuk w programie Illustrator.",
 "Draws an open spiral from quarter-circle segments, each one the decay percentage of the one before, as Illustrator's Spiral tool does.": "Rysuje otwartą spiralę z segmentów ćwierćokręgu, z których każdy ma procent zmniejszenia względem poprzedniego, jak narzędzie Spirala w programie Illustrator.",
