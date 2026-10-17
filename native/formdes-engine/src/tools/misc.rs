@@ -282,6 +282,54 @@ pub fn mesh_split(m: &Value, u: f64, v: f64) -> Option<(Value, usize)> {
     Some((out, j * (cols + 1) + i))
 }
 
+/// What an Alt-click at `p` removes from a mesh whose points (spread coordinates, row by row) are `pts`: an inner
+/// point gives its column and row, a point on the border only the inner line through it; otherwise the inner
+/// line whose segment passes within `line_tol`. Border lines are never removed. (column, row) to remove.
+fn mesh_line_at(pts: &[Point], cols: usize, rows: usize, p: Point, point_tol: f64, line_tol: f64) -> Option<(Option<usize>, Option<usize>)> {
+    let w = cols + 1;
+    if let Some(k) = pts.iter().position(|q| (*q - p).hypot() <= point_tol) {
+        let (i, j) = (k % w, k / w);
+        let col = (i > 0 && i < cols).then_some(i);
+        let row = (j > 0 && j < rows).then_some(j);
+        return (col.is_some() || row.is_some()).then_some((col, row));
+    }
+    let near = |a: Point, b: Point| {
+        let ab = b - a;
+        let t = ((p - a).dot(ab) / ab.hypot2().max(1e-12)).clamp(0.0, 1.0);
+        (a + ab * t - p).hypot() <= line_tol
+    };
+    for j in 1..rows {
+        if (0..cols).any(|i| near(pts[j * w + i], pts[j * w + i + 1])) {
+            return Some((None, Some(j)));
+        }
+    }
+    for i in 1..cols {
+        if (0..rows).any(|j| near(pts[j * w + i], pts[(j + 1) * w + i])) {
+            return Some((Some(i), None));
+        }
+    }
+    None
+}
+
+/// The mesh without column `col` and row `row` (points and colours), or None when neither can go.
+pub fn mesh_remove(m: &Value, col: Option<usize>, row: Option<usize>) -> Option<Value> {
+    let (cols, rows, shares) = mesh_shares(m)?;
+    let colors: Vec<Value> = m.get("colors")?.as_array()?.clone();
+    let col = col.filter(|i| *i > 0 && *i < cols);
+    let row = row.filter(|j| *j > 0 && *j < rows);
+    if col.is_none() && row.is_none() || colors.len() != shares.len() {
+        return None;
+    }
+    let w = cols + 1;
+    let keep = |k: usize| Some(k % w) != col && Some(k / w) != row;
+    let mut out = m.clone();
+    out["cols"] = json!(cols - usize::from(col.is_some()));
+    out["rows"] = json!(rows - usize::from(row.is_some()));
+    out["points"] = json!(shares.iter().enumerate().filter(|(k, _)| keep(*k)).map(|(_, s)| s).collect::<Vec<_>>());
+    out["colors"] = json!(colors.into_iter().enumerate().filter(|(k, _)| keep(*k)).map(|(_, c)| c).collect::<Vec<_>>());
+    Some(out)
+}
+
 /// The share point of `p` (spread coordinates) in the mesh box of `id`.
 fn mesh_share_of(doc: &Doc, id: ItemId, p: Point) -> Option<[f64; 2]> {
     let bb = mesh_box(doc, id)?;
@@ -306,6 +354,25 @@ pub fn mesh(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
             let Some(h) = here(ses, ev.pos) else { return Ok(()) };
             let doc = ses.active().map(|s| s.doc.clone()).expect("checked");
             let selected = ses.active().map(|s| s.selection.items.clone()).unwrap_or_default();
+            // Alt-click removes: on an inner line that line, on an inner point the column and row through it.
+            if ev.mods.alt {
+                for id in &selected {
+                    let Some(m) = doc.item(*id).and_then(|it| it.extra.get("mesh")) else { continue };
+                    let (Some(pts), Some((cols, rows, _))) = (mesh_points(&doc, *id), mesh_shares(m)) else { continue };
+                    let Some((col, row)) = mesh_line_at(&pts, cols, rows, h.p, view.tol(6.0), view.tol(4.0)) else { continue };
+                    if let Some(next) = mesh_remove(m, col, row) {
+                        let id = *id;
+                        ses.edit_now("Gradient Mesh", |d, _| {
+                            if let Some(it) = d.item_mut(id) {
+                                it.extra.insert("mesh".into(), next);
+                            }
+                        });
+                        ses.tools.mesh_point = None;
+                    }
+                    return Ok(());
+                }
+                return Ok(());
+            }
             for id in &selected {
                 if let Some(pts) = mesh_points(&doc, *id)
                     && let Some(idx) = pts.iter().position(|q| (*q - h.p).hypot() <= view.tol(6.0))
