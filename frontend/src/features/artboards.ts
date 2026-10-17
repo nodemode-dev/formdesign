@@ -21,7 +21,24 @@ async function exportArtboards(): Promise<void> {
   }
 }
 
+async function exportArtboardsPdf(): Promise<void> {
+  const r = await editor.exec<{ artboards: Artboard[] }>('artboard.list', {}, true);
+  if (!r?.artboards?.length) { toast(t('This document has no artboards: Object > Artboards > New Artboard makes one')); return; }
+  const out = await editor.exec<{ base64: string }>('artboard.exportPdf', {}, true);
+  if (!out?.base64) return;
+  const bin = atob(out.base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${editor.doc?.title || 'Untitled'} artboards.pdf`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
 export function installArtboards(ws: Workspace): void {
   ws.addCommands({ id: 'ui.artboards.exportPng', label: 'Export Artboards as PNG...', enabled: () => !!editor.doc, run: () => void exportArtboards() });
-  ws.addMenuItems({ menu: 'File', items: ['ui.artboards.exportPng'], at: 'end' });
+  ws.addCommands({ id: 'ui.artboards.exportPdf', label: 'Export Artboards as PDF...', enabled: () => !!editor.doc, run: () => void exportArtboardsPdf() });
+  ws.addMenuItems({ menu: 'File', items: ['ui.artboards.exportPng', 'ui.artboards.exportPdf'], at: 'end' });
 }
