@@ -13,6 +13,9 @@ pub struct Mapper<'a> {
     pub src: &'a Doc,
     assets: HashMap<AssetId, AssetId>,
     pub layer: Option<LayerId>,
+    /// Every text frame carried over, as (source frame, new frame). Each new frame gets a story of its own; a caller
+    /// that carries several frames of one story re-threads them from this list.
+    pub frames: Vec<(ItemId, ItemId)>,
 }
 
 #[derive(Clone, Copy)]
@@ -46,7 +49,7 @@ fn family_ref(doc: &Doc, f: Family) -> &Vec<NamedStyle> {
 
 impl<'a> Mapper<'a> {
     pub fn new(src: &'a Doc) -> Mapper<'a> {
-        Mapper { src, assets: HashMap::new(), layer: None }
+        Mapper { src, assets: HashMap::new(), layer: None, frames: Vec::new() }
     }
 
     fn style(&self, dst: &mut Doc, f: Family, name: &str) {
@@ -186,6 +189,9 @@ impl<'a> Mapper<'a> {
             ItemKind::Plain => {}
         }
         let nid = dst.insert_item(it, home);
+        if story_paras.is_some() {
+            self.frames.push((id, nid));
+        }
         if let Some((sid, paras, tag)) = story_paras {
             let mapped = self.paras(dst, &paras, sid);
             if let Some(st) = dst.story_mut(sid) {

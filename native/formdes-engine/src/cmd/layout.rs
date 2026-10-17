@@ -590,6 +590,218 @@ fn duplicate_spread(c: &mut Ctx, p: &Value) -> Result<Value> {
     ok()
 }
 
+/// A document to take pages from: an open one by its index (as `docs` lists them) or a .fdes, .fdoc or .idml file.
+fn source_doc(c: &Ctx, from: &Value) -> Result<(std::sync::Arc<Doc>, Option<usize>)> {
+    if let Some(i) = from.as_u64() {
+        let st = c.session.docs.get(i as usize).ok_or_else(|| EngineError::new(format!("no open document {i} (docs lists them from 0)")))?;
+        return Ok((st.doc.clone(), Some(i as usize)));
+    }
+    let path = from.as_str().ok_or_else(|| EngineError::new("`from` is an open document's index or the path of a .fdes, .fdoc or .idml file"))?;
+    let data = std::fs::read(path).map_err(|e| EngineError::new(format!("cannot read {path}: {e}")))?;
+    let doc = if crate::cmd::file::is_idml(&data) {
+        formdes_interchange::idml::read::read(&data).map_err(|e| EngineError::new(format!("{path}: {e}")))?
+    } else if data.starts_with(b"PK") {
+        // A .fdes is a zip holding the layout as document.fdoc beside the content it was made from.
+        let mut z = zip::ZipArchive::new(std::io::Cursor::new(&data)).map_err(|e| EngineError::new(format!("{path}: {e}")))?;
+        let mut inner = Vec::new();
+        let mut f = z.by_name("document.fdoc").map_err(|_| EngineError::new(format!("{path} is a zip without document.fdoc, so not a .fdes document")))?;
+        std::io::Read::read_to_end(&mut f, &mut inner).map_err(|e| EngineError::new(format!("{path}: {e}")))?;
+        formdes_model::format::load(&inner).map_err(|e| EngineError::new(format!("{path}: {}", e.0)))?
+    } else {
+        formdes_model::format::load(&data).map_err(|e| EngineError::new(format!("{path} is not a FormDesign (.fdes, .fdoc) or IDML document ({})", e.0)))?
+    };
+    Ok((std::sync::Arc::new(doc), None))
+}
+
+/// The target's parent for source parent `pid`: one with the same label is reused; otherwise the parent is copied
+/// (its base first, its items through the mapper) under its own prefix, or the next free letter when that is taken.
+fn import_parent(src: &Doc, dst: &mut Doc, m: &mut crate::transplant::Mapper, map: &mut std::collections::HashMap<ParentId, ParentId>, added: &mut Vec<String>, pid: ParentId, depth: usize) -> Option<ParentId> {
+    if let Some(t) = map.get(&pid) {
+        return Some(*t);
+    }
+    let sp = src.parent(pid)?.clone();
+    if let Some(d) = dst.parent_by_label(&sp.label()) {
+        map.insert(pid, d.id);
+        return Some(d.id);
+    }
+    let base = if depth < 16 { sp.based_on.and_then(|b| import_parent(src, dst, m, map, added, b, depth + 1)) } else { None };
+    let prefix = if dst.parents.iter().any(|x| x.prefix == sp.prefix) {
+        (b'A'..=b'Z').map(|b| (b as char).to_string()).find(|l| !dst.parents.iter().any(|x| x.prefix == *l)).unwrap_or_else(|| format!("P{}", dst.parents.len()))
+    } else {
+        sp.prefix.clone()
+    };
+    let pages = sp.pages.iter().map(|pg| {
+        let mut x = pg.clone();
+        x.id = formdes_model::ids::PageId(dst.alloc());
+        x.parent = None;
+        x.detached.clear();
+        x
+    }).collect();
+    let id = ParentId(dst.alloc());
+    dst.parents.push(Parent { id, prefix: prefix.clone(), name: sp.name.clone(), based_on: base, pages, items: Vec::new(), guides: sp.guides.clone() });
+    let pi = dst.parents.len() - 1;
+    map.insert(pid, id);
+    added.push(format!("{prefix}-{}", sp.name));
+    for it in &sp.items {
+        m.item(dst, *it, Home::Parent(pi), Vec2::ZERO);
+    }
+    Some(id)
+}
+
+/// Layout > Pages > Insert Pages from Document (InDesign's Move Pages to another document, Affinity's Merge
+/// Document): copies pages of an open document or a file in after a page of this one, with their items, stories,
+/// pictures, styles, swatches, layers, parents and section starts; `move` also takes them out of an open source.
+fn pages_import(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use std::collections::HashMap;
+    let from = p.get("from").filter(|v| !v.is_null()).ok_or_else(|| EngineError::new("missing `from`: an open document's index (docs lists them from 0) or the path of a .fdes, .fdoc or .idml file"))?;
+    let (src, src_index) = source_doc(c, from)?;
+    if src_index.is_some() && src_index == c.session.active {
+        return Err(EngineError::new("`from` is this document: Move Pages and Duplicate Spread rearrange its own pages"));
+    }
+    let picked = crate::cmd::file::page_list(&src, args::opt_str(p, "pages"))?;
+    let moving = args::opt_bool(p, "move").unwrap_or(false);
+    if moving && src_index.is_none() {
+        return Err(EngineError::new("`move` takes pages out of an open document; a file is never changed, so leave move off to copy from it"));
+    }
+    if moving && picked.len() >= src.page_count() {
+        return Err(EngineError::new("moving every page would leave the source document empty: copy them instead (move off) or leave it one page"));
+    }
+    let n = c.doc()?.page_count();
+    let after = match p.get("after").and_then(Value::as_f64) {
+        Some(a) if a < 0.0 => -1i64,
+        Some(a) => (a as i64).min(n as i64 - 1),
+        None => n as i64 - 1,
+    };
+    let at = (after + 1) as usize;
+    // The source items on the picked pages, by the rule repaginate uses (the page under the item's centre), with the
+    // shift that makes their transform page-local.
+    let mut on: Vec<(ItemId, usize, Vec2)> = Vec::new();
+    let mut abs = 0;
+    for s in &src.spreads {
+        for id in &s.items {
+            let Some(it) = src.item(*id) else { continue };
+            let pi = s.nearest_page(it.own_bounds().center().x);
+            if let Some(k) = picked.iter().position(|q| *q == abs + pi) {
+                on.push((*id, k, Vec2::new(-s.page_x(pi), 0.0)));
+            }
+        }
+        abs += s.pages.len();
+    }
+    let mut mapper = crate::transplant::Mapper::new(&src);
+    let dst = c.doc_mut()?;
+    // Layers the carried items sit on are made by name when this document lacks them, so nothing lands on the wrong layer.
+    let mut wanted: Vec<LayerId> = on.iter().filter_map(|(id, _, _)| src.item(*id).map(|i| i.layer)).collect();
+    for pg in picked.iter().filter_map(|a| src.page(*a)) {
+        if let Some(par) = pg.parent.and_then(|q| src.parent(q)) {
+            wanted.extend(par.items.iter().filter_map(|i| src.item(*i).map(|x| x.layer)));
+        }
+    }
+    for l in src.layers.iter().filter(|l| wanted.contains(&l.id)) {
+        if !dst.layers.iter().any(|d| d.name == l.name) {
+            let mut nl = l.clone();
+            nl.id = LayerId(dst.alloc());
+            dst.layers.push(nl);
+        }
+    }
+    let mut pmap: HashMap<ParentId, ParentId> = HashMap::new();
+    let mut added: Vec<String> = Vec::new();
+    for a in &picked {
+        if let Some(q) = src.page(*a).and_then(|pg| pg.parent) {
+            import_parent(&src, dst, &mut mapper, &mut pmap, &mut added, q, 0);
+        }
+    }
+    let k = picked.len();
+    let mut carried_ids = Vec::new();
+    dst.repaginate(|pages, carried, d| {
+        let at = at.min(pages.len());
+        let fresh: Vec<formdes_model::page::Page> = picked.iter().map(|a| {
+            let mut x = src.page(*a).cloned().unwrap_or_else(|| d.blank_page());
+            x.id = formdes_model::ids::PageId(d.alloc());
+            x.parent = x.parent.and_then(|q| pmap.get(&q).copied());
+            x.detached.clear();
+            x.joined = false;
+            x
+        }).collect();
+        pages.splice(at..at, fresh);
+        for c in carried.iter_mut() {
+            if c.1 >= at {
+                c.1 += k;
+            }
+        }
+        for (sid, ki, off) in &on {
+            if let Some(nid) = mapper.item(d, *sid, Home::Spread(0), *off) {
+                let xf = d.item(nid).map(|i| i.xf).unwrap_or(Affine::IDENTITY);
+                carried.push((nid, at + ki, xf));
+                carried_ids.push(nid);
+            }
+        }
+    });
+    for s in dst.sections.iter_mut() {
+        if s.start >= at && s.start > 0 {
+            s.start += k;
+        }
+    }
+    for s in &src.sections {
+        if let Some(i) = picked.iter().position(|a| *a == s.start) {
+            let t = at + i;
+            if !dst.sections.iter().any(|x| x.start == t) {
+                let mut ns = s.clone();
+                ns.start = t;
+                dst.sections.push(ns);
+            }
+        }
+    }
+    dst.sections.sort_by_key(|s| s.start);
+    // Frames of one source story were given a story each; thread them back into one, in the source's frame order,
+    // and drop the copies (with any objects anchored in them).
+    let mut by_story: HashMap<formdes_model::ids::StoryId, Vec<(usize, ItemId)>> = HashMap::new();
+    for (sf, nf) in &mapper.frames {
+        if let Some(sid) = src.item(*sf).and_then(|i| i.story()) {
+            let ord = src.story(sid).and_then(|s| s.frames.iter().position(|f| f == sf)).unwrap_or(usize::MAX);
+            by_story.entry(sid).or_default().push((ord, *nf));
+        }
+    }
+    for (_, mut fs) in by_story {
+        if fs.len() < 2 {
+            continue;
+        }
+        fs.sort();
+        let Some(keep) = dst.item(fs[0].1).and_then(|i| i.story()) else { continue };
+        for (_, f) in &fs[1..] {
+            let old = dst.item(*f).and_then(|i| i.story());
+            if let Some(it) = dst.item_mut(*f)
+                && let ItemKind::Text(tf) = &mut it.kind
+            {
+                tf.story = keep;
+            }
+            if let Some(o) = old.filter(|o| *o != keep) {
+                let orphans: Vec<ItemId> = dst.items.values().filter(|i| i.anchored_in == Some(o)).map(|i| i.id).collect();
+                for x in orphans {
+                    dst.remove_item(x);
+                }
+                dst.stories.remove(&o);
+            }
+        }
+        if let Some(st) = dst.story_mut(keep) {
+            st.frames = fs.iter().map(|x| x.1).collect();
+        }
+    }
+    if moving && let Some(si) = src_index {
+        let set: BTreeSet<usize> = picked.iter().copied().collect();
+        if let Some(st) = c.session.docs.get_mut(si) {
+            let before = st.doc.clone();
+            let sel = st.selection.clone();
+            delete_pages(std::sync::Arc::make_mut(&mut st.doc), &set);
+            st.selection = Selection::default();
+            st.record("Move Pages".into(), before, sel, None);
+            st.revision += 1;
+        }
+    }
+    c.set_selection(Selection::items(carried_ids.clone()));
+    c.label(if moving { "Move Pages" } else if k == 1 { "Insert Page" } else { "Insert Pages" });
+    Ok(json!({"pages": (at..at + k).collect::<Vec<_>>(), "items": carried_ids.len(), "parentsAdded": added, "moved": moving}))
+}
+
 fn apply_parent(c: &mut Ctx, p: &Value) -> Result<Value> {
     let pages: Vec<usize> = p.get("pages").and_then(Value::as_array).ok_or_else(|| EngineError::new("missing `pages` (0-based page indices)"))?.iter().filter_map(Value::as_u64).map(|n| n as usize).collect();
     let doc = c.doc()?;
@@ -1058,6 +1270,7 @@ pub fn register(r: &mut Registry) {
     cmd("layout.pages.insert", "Insert Pages...").menu(&["Layout", "Pages", "Insert Pages..."]).sig("{count, after?: 0-based, parent?: prefix | null}").reg(r, pages_insert);
     cmd("layout.pages.delete", "Delete Pages").menu(&["Layout", "Pages", "Delete Pages"]).sig("{pages: [0-based]}").reg(r, pages_delete);
     cmd("layout.pages.move", "Move Pages...").menu(&["Layout", "Pages", "Move Pages..."]).sig("{from, to} (0-based)").reg(r, pages_move);
+    cmd("layout.pages.import", "Insert Pages from Document").menu(&["Layout", "Pages", "Insert Pages from Document..."]).sig("{from: an open document's index (docs, from 0) or the path of a .fdes, .fdoc or .idml file, pages?: \"all\" or a range such as \"2-4, 7\" (page names, or +n for the nth page), after?: 0-based page of this document to insert after (-1 for the start; default the end), move?: also take the pages out of an open source document}").reg(r, pages_import);
     cmd("layout.pages.duplicateSpread", "Duplicate Spread").menu(&["Layout", "Pages", "Duplicate Spread"]).sig("{spread}").reg(r, duplicate_spread);
     cmd("layout.pages.applyParent", "Apply Parent to Pages...").menu(&["Layout", "Pages", "Apply Parent to Pages..."]).sig("{pages: [0-based], parent: prefix | null}").reg(r, apply_parent);
     cmd("layout.parents.new", "New Parent...").menu(&["Layout", "Pages", "New Parent..."]).sig("{prefix?, name?, basedOn?}").reg(r, parents_new);

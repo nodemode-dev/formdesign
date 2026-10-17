@@ -147,6 +147,7 @@
 "layout.pages.applyParent": {"group": "layout", "description": "Applies a parent page, or none, to the chosen pages.", "when": "Use when pages should adopt a different parent layout."},
 "layout.pages.delete": {"group": "layout", "description": "Deletes the chosen pages and their content.", "when": "Use when removing pages from the document."},
 "layout.pages.duplicateSpread": {"group": "layout", "description": "Duplicates a spread with all its contents.", "when": "Use when you want a copy of a finished spread to adapt."},
+"layout.pages.import": {"group": "layout", "description": "Inserts pages of another open document or of a .fdes, .fdoc or .idml file after a page of this one, with their objects, threaded stories, pictures, styles, swatches, layers, parents and section starts; move also takes them out of an open source document.", "when": "Use when combining documents or reusing pages from another layout; Move Pages and Duplicate Spread rearrange pages within one document."},
 "layout.pages.insert": {"group": "layout", "description": "Inserts a number of new pages after a page, with an optional parent.", "when": "Use when the document needs more pages."},
 "layout.pages.move": {"group": "layout", "description": "Moves a page to a new position in the document.", "when": "Use when reordering pages."},
 "layout.pages.toSpread": {"group": "layout", "description": "Adds a page to a spread, or joins pages into one spread.", "when": "Use when building gatefolds or multi-page spreads."},
