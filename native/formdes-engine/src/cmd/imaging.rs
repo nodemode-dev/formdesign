@@ -418,7 +418,92 @@ pub fn relinked(c: &mut Ctx, asset: AssetId) -> Result<()> {
     Ok(())
 }
 
+/// Edits the pixels of each selected frame's placed raster picture and relinks the frame to the result: a new file
+/// beside a linked original (`name-edit.ext`, numbered when taken) or a new embedded picture, never the original.
+/// The kept pixels stay where they were on the page after a crop; a turned picture stays centred on the kept area.
+fn image_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
+    use formdes_render::pixedit::{Edit, edit};
+    let ids = items(c, p)?;
+    let num = |k: &str| args::opt_f64(p, k).unwrap_or(0.0);
+    let four = |k: &str, what: &str| -> Result<Option<Vec<f64>>> {
+        match p.get(k) {
+            None | Some(Value::Null) => Ok(None),
+            Some(v) => v.as_array().and_then(|a| a.iter().map(Value::as_f64).collect::<Option<Vec<f64>>>()).map(Some).ok_or_else(|| EngineError::new(what.to_string())),
+        }
+    };
+    let crop = four("crop", "crop is [x0, y0, x1, y1] as shares of the picture, 0 to 1")?
+        .map(|v| if v.len() == 4 { Ok([v[0], v[1], v[2], v[3]]) } else { Err(EngineError::new("crop is [x0, y0, x1, y1] as shares of the picture, 0 to 1")) })
+        .transpose()?;
+    let levels = four("levels", "levels is [black 0..255, white 0..255, gamma]")?
+        .map(|v| if v.len() == 3 && v[1] > v[0] { Ok((v[0], v[1], v[2])) } else { Err(EngineError::new("levels is [black 0..255, white 0..255 above black, gamma]")) })
+        .transpose()?;
+    let rotate = args::opt_u64(p, "rotate").unwrap_or(0) as u32;
+    if rotate % 90 != 0 {
+        return Err(EngineError::new("rotate is 0, 90, 180 or 270 (clockwise)"));
+    }
+    let e = Edit { crop, rotate: rotate % 360, flip_h: args::opt_bool(p, "flipH").unwrap_or(false), flip_v: args::opt_bool(p, "flipV").unwrap_or(false), exposure: num("exposure"), contrast: num("contrast"), levels, saturation: num("saturation"), temperature: num("temperature") };
+    if e.crop.is_none() && e.rotate == 0 && !e.flip_h && !e.flip_v && !e.is_tonal() {
+        return Err(EngineError::new("nothing to change: give crop, rotate, flipH, flipV, exposure, contrast, levels, saturation or temperature"));
+    }
+    let mut done = Vec::new();
+    for id in ids {
+        let doc = c.doc()?;
+        let it = doc.item(id).ok_or_else(|| EngineError::new(format!("no object {id}")))?;
+        let aid = it.graphic().and_then(|g| g.asset).ok_or_else(|| EngineError::new(format!("object {id} holds no picture: select a graphic frame with a placed image")))?;
+        let a = doc.assets.get(&aid).cloned().ok_or_else(|| EngineError::new(format!("no link {}", aid.0)))?;
+        let data: Vec<u8> = if a.data.is_empty() {
+            let path = a.link.clone().ok_or_else(|| EngineError::new(format!("{} has no data and no file", a.name)))?;
+            std::fs::read(&path).map_err(|err| EngineError::new(format!("cannot read {path}: {err}")))?
+        } else {
+            a.data.as_ref().clone()
+        };
+        if !a.mime.starts_with("image/") || is_pdf(&a) || psd::is_psd(&data) {
+            return Err(EngineError::new(format!("{} is not a raster picture: JPEG, PNG, GIF, WebP, BMP and TIFF can be edited here; edit PDF, PSD and media files in their own apps (Edit > Edit Original)", a.name)));
+        }
+        let out = edit(&data, &e, a.ppi.map(|(x, _)| x)).map_err(EngineError::new)?;
+        // An edited copy edited again stays `name-editN`, not `name-edit-edit`.
+        let raw = std::path::Path::new(&a.name).file_stem().and_then(|s| s.to_str()).unwrap_or("picture");
+        let stem = raw.rfind("-edit").filter(|i| raw[i + 5..].chars().all(|ch| ch.is_ascii_digit())).map_or(raw, |i| &raw[..i]).to_string();
+        let name = format!("{stem}-edit.{}", out.ext);
+        let link = match &a.link {
+            Some(orig) => {
+                let dir = std::path::Path::new(orig).parent().map(|d| d.to_path_buf()).unwrap_or_default();
+                let free = (1..1000).map(|k| dir.join(if k == 1 { name.clone() } else { format!("{stem}-edit{k}.{}", out.ext) })).find(|p| !p.exists()).ok_or_else(|| EngineError::new("no free file name for the edited copy"))?;
+                std::fs::write(&free, &out.bytes).map_err(|err| EngineError::new(format!("cannot write {}: {err}", free.display())))?;
+                Some(free.to_string_lossy().to_string())
+            }
+            None => None,
+        };
+        let mut na = crate::assets::make(&name, out.bytes, link.clone(), 0)?;
+        na.ppi = a.ppi;
+        // Points per source pixel, so the kept area keeps its place and size on the page.
+        let (w, h) = a.natural_size();
+        let (kx, ky) = (w / out.source_px.0.max(1) as f64, h / out.source_px.1.max(1) as f64);
+        let [cx, cy, cw, ch] = out.crop_px.map(|v| v as f64);
+        let (nw, nh) = na.natural_size();
+        let shift = Affine::translate((cx * kx, cy * ky)) * Affine::translate(((cw * kx - nw) / 2.0, (ch * ky - nh) / 2.0));
+        let pixels = out.pixels;
+        let doc = c.doc_mut()?;
+        let new_id = doc.add_asset(na);
+        if let Some(x) = doc.item_mut(id)
+            && let formdes_model::item::ItemKind::Graphic(g) = &mut x.kind
+        {
+            g.content = g.content * shift;
+            g.asset = Some(new_id);
+        }
+        // The original stays in the document only while another frame shows it.
+        let still_used = doc.items.values().any(|x| x.graphic().and_then(|g| g.asset) == Some(aid));
+        if !still_used {
+            doc.assets.remove(&aid);
+        }
+        done.push(json!({"id": id, "asset": new_id.0, "path": link, "pixels": [pixels.0, pixels.1]}));
+    }
+    c.label("Edit Image");
+    Ok(json!({"edited": done}))
+}
+
 pub fn register(r: &mut Registry) {
+    cmd("image.edit", "Edit Image").menu(&["Object", "Image", "Edit Image..."]).needs(Needs::Items).sig("{crop?: [x0, y0, x1, y1] shares of the picture (0 to 1), rotate?: 0|90|180|270 (clockwise), flipH?, flipV?, exposure?: stops -3..3, contrast?: -100..100, levels?: [black 0..255, white 0..255, gamma], saturation?: -100..100, temperature?: -100..100, ids?} (writes an edited copy beside a linked original, or embeds it, and relinks the frame)").reg(r, image_edit);
     cmd("object.clippingPath", "Clipping Path").menu(&["Object", "Clipping Path", "Options..."]).needs(Needs::Items).sig("{type: none|detectEdges|alphaChannel|photoshopPath, threshold?: 0-255 (detect edges: how far from the background colour or alpha counts as picture), tolerance?: pixels of smoothing, inset?: pt (negative grows), invert?, includeInsideEdges?, name?: Photoshop path name, channel?: PSD alpha channel name or index, ids?}").help("Clips a placed picture to a path: detected from the picture's edges (a flat background or its transparency), its alpha channel (or one of a PSD file's), or a Photoshop path stored in the JPEG, TIFF or PSD. The clip shows on screen, in PDF and in text wrap set to follow the clipping path.").reg(r, clipping_path);
     cmd("object.clippingInfo", "Clipping Path Info").query().needs(Needs::Items).sig("{ids?}").help("The selected picture's clipping path settings, its Photoshop path names, PSD alpha channels and whether it has transparency.").reg(r, clipping_info);
     cmd("object.clipToFrame", "Convert Clipping Path to Frame").menu(&["Object", "Clipping Path", "Convert Clipping Path to Frame"]).needs(Needs::Items).sig("{ids?}").help("Turns the clipping path into the graphic frame's shape and drops the clip.").reg(r, clip_to_frame);
