@@ -678,9 +678,9 @@ export class Viewport {
         if (j < rows) line(h, at(i, j)[0], at(i, j)[1], at(i, j + 1)[0], at(i, j + 1)[1]);
       }
       const hs = 3 * dpr;
-      h.fillStyle = '#ffffff';
-      for (const q of pts) {
+      for (const [k, q] of pts.entries()) {
         const px = Math.round(X(q[0])), py = Math.round(Y(q[1]));
+        h.fillStyle = k === m.active ? '#4f99ff' : '#ffffff';
         h.fillRect(px - hs, py - hs, hs * 2, hs * 2);
         h.strokeRect(px - hs + 0.5, py - hs + 0.5, hs * 2 - 1, hs * 2 - 1);
       }
