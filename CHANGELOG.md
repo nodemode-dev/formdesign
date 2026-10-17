@@ -2,6 +2,10 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.70.0 · 2026-10-17
+
+- Object > Image > Edit Image: crop by dragging on the picture, rotate left or right, flip, and set exposure, contrast, saturation, temperature and levels with a live preview. OK writes an edited copy beside the original (or embeds it when the original was embedded), keeps its resolution, relinks the frame in one undo step and leaves the original untouched. The engine command is `image.edit`; `GET /api/core/asset` serves a placed file's bytes.
+
 ## 0.69.0 · 2026-10-17
 
 - Window > Appearance: the selected object's extra strokes and fills, its main stroke and fill, and its live effects in drawing order, each extra one shown, hidden or removed there; Add Fill or Stroke, Add Effect and Expand Appearance. Add Fill or Stroke moves to Object > Appearance.
