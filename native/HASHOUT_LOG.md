@@ -936,3 +936,10 @@ Since 0.64.0 a click inside a selected mesh calls `mesh_split`: it finds the gap
 
 Since 0.65.0 Alt-click removes (`mesh_line_at`, `mesh_remove`): points are tested first (6 px), then the straight segments between neighbouring points (4 px), which are what the window draws, rather than the Catmull-Rom curves the renderer fills; on a mesh with moved points the two differ slightly, and hitting what is on screen is the better rule. Removal drops whole lines of points and colours, so the remaining points keep their places and colours.
 
+### PDF mesh shading · Op::Mesh carries patches and quads
+- refers-to: native/formdes-render/src/scene.rs :: Op::Mesh, MeshPatch, flat_meshes, mesh; native/formdes-render/src/pdf.rs :: mesh_pdf, export (mesh_quads); native/formdes-render/src/sep.rs :: plate_ops, plate_used
+- kind: rationale
+- logged: v0.66.0 · 2026-10-17
+
+The renderer's mesh surface is uniform Catmull-Rom over the points, which is exactly one bicubic Bezier patch per cell, so the PDF needs no approximation of shape: each cell's 4 by 4 net is the CR-to-Bezier matrix applied both ways. Colour is the catch: a PDF patch mixes its four corner colours bilinearly, which drew a star around a coloured inner point, while the raster mixes bicubically; cutting each cell into 4 by 4 sub-patches (de Casteljau, still exact in shape) with corners sampled from the bicubic colour brings poppler's render within a mean of 1.5 levels. The shading lives in a one-page PDF drawn as a form because krilla has no mesh shading of its own; pdf-writer was already in the lock through krilla. Op::Mesh keeps the quads as `fallback`, and `flat_meshes` swaps them in for every consumer that cannot use the patches (raster, SVG, plates, CMYK-only, PDF/A, PDF/UA, PDF/X), so those outputs are byte-for-byte what they were.
+
