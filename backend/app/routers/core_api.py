@@ -66,6 +66,16 @@ async def artboard_png(artboard: str = "0", maxSide: float | None = Query(defaul
     return Response(r.bin or b"", media_type=r.result.get("mime", "image/png"), headers={"Cache-Control": "no-store"})
 
 
+@router.get("/core/asset")
+async def asset_bytes(asset: int):
+    """A placed file's bytes as stored in the document (the Edit Image dialog's preview)."""
+    try:
+        r = await core.call("web.asset", {"asset": asset}, source="rest")
+    except CoreError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return Response(r.bin or b"", media_type=r.result.get("mime", "application/octet-stream"), headers={"Cache-Control": "no-store"})
+
+
 @router.get("/core/font")
 async def font_file(family: str, style: str = "Regular"):
     try:
