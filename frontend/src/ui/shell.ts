@@ -245,6 +245,8 @@ export class Shell implements Workspace {
     const combo = comboOf(e);
     if (editor.wantsText && !/Mod\+|(^|\+)F\d{1,2}$/.test(combo) && combo !== 'Escape') return false;
     if (combo === 'Tab' && editor.wantsText) return false;
+    // With the Artboard tool the core decides: Delete removes the tool's artboard, or runs the Delete command when none is active.
+    if (editor.tool === 'artboard' && (combo === 'Delete' || combo === 'Backspace')) return false;
     const cmd = this.commands.forCombo(combo);
     if (!cmd) return this.commands.released(combo);
     const core = editor.command(cmd.id);

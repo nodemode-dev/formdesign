@@ -608,7 +608,18 @@ export class Viewport {
       for (const r of ov.margins ?? []) rect(h, r);
       h.strokeStyle = '#9ca3af';
       for (const a of ov.artboards ?? []) {
+        if (a.active) h.strokeStyle = '#4f99ff';
         rect(h, a.rect);
+        if (a.active) {
+          const hs = 3.5 * dpr;
+          h.fillStyle = '#ffffff';
+          for (const [x, y] of [[a.rect[0], a.rect[1]], [a.rect[2], a.rect[1]], [a.rect[2], a.rect[3]], [a.rect[0], a.rect[3]]]) {
+            const px = Math.round(X(x)), py = Math.round(Y(y));
+            h.fillRect(px - hs, py - hs, hs * 2, hs * 2);
+            h.strokeRect(px - hs + 0.5, py - hs + 0.5, hs * 2 - 1, hs * 2 - 1);
+          }
+          h.strokeStyle = '#9ca3af';
+        }
         if (a.name) this.label(h, String(a.name), X(a.rect[0]), Y(a.rect[1]) - 6 * dpr);
       }
       h.strokeStyle = c.column ?? '#8b5cf6';
