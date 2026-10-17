@@ -530,3 +530,10 @@ The signature-built dialog took crop and levels as text arrays, which made the c
 - logged: v0.71.0 · 2026-10-17
 
 Two stacked fixed-size canvases: the picture (the engine's `image.retouchPreview` of every stroke so far, fetched quietly after each stroke, a later ticket winning over an earlier answer) and an overlay for the brush ring, the source crosshair and the stroke being painted, redrawn in one animation frame per pointer move. Alt-click sets the source; the first stroke after it fixes the offset, and later strokes keep it (aligned, Affinity's and Photoshop's default), so the crosshair follows the brush. Painting on the source itself is refused in the note rather than sent, because the engine refuses a zero offset. The window check found `q(b, 'span')` picking the icon's own `<span class="icon">` and writing the label over the SVG, which clipped the tool buttons; the label span has its own class now. It also found attribute writes on every tool pick and every stroke (`aria-pressed`, the warn class); both are now written only when they change, so painting under throttling changed no DOM beyond Undo and Clear enabling once.
+
+### features/pages-import.ts · Insert Pages from Document
+- refers-to: frontend/src/features/pages-import.ts :: PagesImport, installPagesImport
+- kind: rationale
+- logged: v0.75.0 · 2026-10-17
+
+A dedicated dialog over `layout.pages.import`, because the signature dialog would have asked for `from` as a bare number or path. The source list (the other open documents with their page counts, then "A file on disk...") and the position list (At the start, After page n) are rebuilt with `replaceChildren` when the dialog opens and never while it is open; choosing the file source only toggles the path row's `hidden` and the Move box's `disabled` through the guarded setters. Move is off for a file because files are never written. Under 4x CPU, 1.6 Mbps and 150 ms, filling the dialog made no DOM mutation and OK inserted the pages with the story threaded across them.

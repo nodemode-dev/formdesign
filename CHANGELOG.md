@@ -2,6 +2,10 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.75.0 · 2026-10-17
+
+- Layout > Pages > Insert Pages from Document: bring a range of pages from another open document or from a .fdes, .fdoc or .idml file into this one, after any page, with their objects, threaded stories, pictures, styles, swatches, layers, parents and section starts; Move also takes them out of the open source. One Undo in each document. The engine command is `layout.pages.import`.
+
 ## 0.74.0 · 2026-10-17
 
 - Parity re-traced against Affinity's current layout features (Sprint 22 item 2.1). Six capabilities Affinity documents were missing from the comparison and are now scored: adjustments that stay live on placed images, opening CAD drawings, opening Illustrator and Photoshop files as artwork, inserting pages from another document, stock photo search and persistent dimension lines. Editing a placed image's pixels moves to full. formdes is 132 of 139 (95 percent; 97 against InDesign, 94 against Affinity). No code change.
