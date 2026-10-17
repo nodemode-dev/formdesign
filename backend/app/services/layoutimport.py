@@ -25,6 +25,18 @@ QUARK_EXTS = {".qxd", ".qxp"}
 PAGEMAKER_EXTS = {".pmd", ".p65", ".pm6", ".pm5", ".pm4", ".pm3", ".pt5", ".pt6"}
 PUBLISHER_EXTS = {".pub"}
 SOFFICE_EXTS = QUARK_EXTS | PAGEMAKER_EXTS | PUBLISHER_EXTS
+QUARK_VERSIONS = ("LibreOffice's QuarkXPress reader (libqxp) reads files saved by QuarkXPress 3.1 to 4.1; files from "
+                  "QuarkXPress 5 or later have no open reader, so export a PDF from QuarkXPress and open that as a layout")
+
+
+def quark_signature(path: Path) -> bool:
+    """QuarkXPress files carry MM or II (byte order), then XPR, from byte 2 (the system file(1) magic: MMXPR3, IIXPRa)."""
+    try:
+        with path.open("rb") as fh:
+            head = fh.read(8)
+    except OSError:
+        return False
+    return len(head) >= 7 and head[2:4] in (b"MM", b"II") and head[4:7] == b"XPR"
 OPEN_EXTS = SOFFICE_EXTS | {".pdf"}
 INDD_EXTS = {".indd", ".indt", ".indb", ".inx"}
 IDML_HELP = "https://helpx.adobe.com/indesign/using/exporting-content-idml.html"
@@ -1012,6 +1024,8 @@ async def import_soffice(path: str, options: dict | None = None) -> dict:
     src = Path(path)
     ext = src.suffix.lower()
     label = "quark" if ext in QUARK_EXTS else "pagemaker" if ext in PAGEMAKER_EXTS else "publisher"
+    if label == "quark" and not quark_signature(src):
+        raise CoreError(f"{src.name} is not a QuarkXPress document: its header lacks QuarkXPress's MMXPR or IIXPR signature (the file may be damaged or have the wrong extension)")
     work = new_work("lo")
     safe = work / ("source" + ext)
     shutil.copyfile(src, safe)
@@ -1019,14 +1033,21 @@ async def import_soffice(path: str, options: dict | None = None) -> dict:
         odg = await soffice(safe, "odg:draw8", work)
     except CoreError as exc:
         if label == "quark":
-            raise CoreError(f"{exc}. This LibreOffice build has no QuarkXPress reader (libqxp, versions 3.1 to 4.1); export a PDF from QuarkXPress and open that as a layout") from exc
+            raise CoreError(f"{exc}. {QUARK_VERSIONS}") from exc
         raise
     pdf = None
     try:
         pdf = await soffice(safe, "pdf", work)
     except CoreError:
         pdf = None
-    result = await import_odg(odg, pdf, src.name, label, options)
+    try:
+        result = await import_odg(odg, pdf, src.name, label, options)
+    except CoreError as exc:
+        # When libqxp declines a file, LibreOffice tries its other filters and can hand back an empty drawing rather
+        # than an error (random bytes named .qxp did), so an empty result is reported as the reader's limit.
+        if label == "quark" and "no pages" in str(exc):
+            raise CoreError(f"{src.name} is a QuarkXPress document LibreOffice could not read. {QUARK_VERSIONS}") from exc
+        raise
     result["report"]["via"] = "LibreOffice " + ("libmspub" if label == "publisher" else "libqxp" if label == "quark" else "libpagemaker")
     return result
 
