@@ -1069,8 +1069,12 @@ impl Ctx<'_> {
                 let quad = [pos(s0, t0), pos(s1, t0), pos(s1, t1), pos(s0, t1)];
                 let c = Point::new(quad.iter().map(|p| p.x).sum::<f64>() / 4.0, quad.iter().map(|p| p.y).sum::<f64>() / 4.0);
                 let mut q = BezPath::new();
+                // Grow each quad by a third plus one device pixel, so thin patches (next to a line added close to
+                // another) still overlap their neighbours under antialiasing and leave no hairline seams.
+                let pad = 1.0 / k.max(1e-6);
                 for (e, p) in quad.iter().enumerate() {
-                    let p = c + (*p - c) * 1.35;
+                    let d = *p - c;
+                    let p = c + d * (1.35 + pad / d.hypot().max(1e-9));
                     if e == 0 { q.move_to(p) } else { q.line_to(p) }
                 }
                 q.close_path();
