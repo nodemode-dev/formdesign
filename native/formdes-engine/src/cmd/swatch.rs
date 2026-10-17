@@ -355,7 +355,7 @@ fn links_list(c: &mut Ctx, _: &Value) -> Result<Value> {
             uses.entry(a).or_default().push(json!({"id": it.id, "page": page, "ppi": effective_ppi(doc, it.id)}));
         }
     }
-    let views: Vec<u64> = doc.items.values().filter_map(|i| i.extra.get("layers").and_then(|l| l.get("view")).and_then(Value::as_u64)).collect();
+    let views: Vec<u64> = doc.items.values().flat_map(|i| ["layers", "adjust"].map(|k| i.extra.get(k).and_then(|l| l.get("view")).and_then(Value::as_u64))).flatten().collect();
     Ok(Value::Array(
         doc.assets
             .values()

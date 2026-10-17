@@ -381,6 +381,7 @@ fn apply_layers(c: &mut Ctx, id: ItemId, change: Option<&Value>, show_all: bool,
                 item.extra.insert("layers".into(), json!({"source": src, "view": view_id, "overrides": over, "update": mode}));
             }
         }
+        refresh_adjust(c, id)?;
         c.label("Object Layer Options");
     }
     let list: Vec<Value> = rows.iter().map(|r| json!({"id": r.id, "name": r.name, "group": r.group, "depth": r.depth, "file": r.file, "visible": eff(&r.id), "overridden": over.contains_key(&r.id)})).collect();
@@ -414,6 +415,11 @@ pub fn relinked(c: &mut Ctx, asset: AssetId) -> Result<()> {
                 it.extra.remove("layers");
             }
         }
+    }
+    // Live adjustments are rebuilt from the updated file; a frame whose new file cannot be adjusted keeps the old view.
+    let adjusted: Vec<ItemId> = c.doc()?.items.values().filter(|i| i.graphic().and_then(|g| g.asset) == Some(asset) && i.extra.contains_key("adjust")).map(|i| i.id).collect();
+    for id in adjusted {
+        let _ = refresh_adjust(c, id);
     }
     Ok(())
 }
@@ -450,6 +456,7 @@ fn image_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
         let (aid, a, data) = raster_of(c, id)?;
         let out = edit(&data, &e, a.ppi.map(|(x, _)| x)).map_err(EngineError::new)?;
         done.push(relink_copy(c, id, aid, &a, out)?);
+        refresh_adjust(c, id)?;
     }
     c.label("Edit Image");
     Ok(json!({"edited": done}))
@@ -515,6 +522,198 @@ fn relink_copy(c: &mut Ctx, id: ItemId, aid: AssetId, a: &Asset, out: formdes_re
     Ok(json!({"id": id, "asset": new_id.0, "path": link, "pixels": [pixels.0, pixels.1]}))
 }
 
+const ADJUST_KEYS: [&str; 9] = ["exposure", "contrast", "levels", "saturation", "temperature", "hue", "lightness", "blackWhite", "curve"];
+
+/// Live adjustments from a JSON object (the keys of ADJUST_KEYS), on top of `base`; refusals name the fix.
+fn adjust_of(v: &Value, base: formdes_render::pixedit::Adjust) -> Result<formdes_render::pixedit::Adjust> {
+    let mut a = base;
+    let num = |k: &str, lo: f64, hi: f64| -> Result<Option<f64>> {
+        match v.get(k) {
+            None | Some(Value::Null) => Ok(None),
+            Some(x) => x.as_f64().filter(|n| (lo..=hi).contains(n)).map(Some).ok_or_else(|| EngineError::new(format!("{k} is a number from {lo} to {hi}"))),
+        }
+    };
+    if let Some(n) = num("exposure", -3.0, 3.0)? {
+        a.exposure = n;
+    }
+    if let Some(n) = num("contrast", -100.0, 100.0)? {
+        a.contrast = n;
+    }
+    if let Some(n) = num("saturation", -100.0, 100.0)? {
+        a.saturation = n;
+    }
+    if let Some(n) = num("temperature", -100.0, 100.0)? {
+        a.temperature = n;
+    }
+    if let Some(n) = num("hue", -180.0, 180.0)? {
+        a.hue = n;
+    }
+    if let Some(n) = num("lightness", -100.0, 100.0)? {
+        a.lightness = n;
+    }
+    if let Some(b) = v.get("blackWhite").filter(|x| !x.is_null()) {
+        a.black_white = b.as_bool().ok_or_else(|| EngineError::new("blackWhite is true or false"))?;
+    }
+    match v.get("levels") {
+        None => {}
+        Some(Value::Null) => a.levels = None,
+        Some(l) => {
+            let n: Vec<f64> = l.as_array().map(|x| x.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
+            if n.len() != 3 || !(0.0..255.0).contains(&n[0]) || n[1] <= n[0] || n[1] > 255.0 || !(0.1..=10.0).contains(&n[2]) {
+                return Err(EngineError::new("levels is [black 0..255, white above black up to 255, gamma 0.1..10]"));
+            }
+            a.levels = if n == [0.0, 255.0, 1.0] { None } else { Some((n[0], n[1], n[2])) };
+        }
+    }
+    match v.get("curve") {
+        None => {}
+        Some(Value::Null) => a.curve.clear(),
+        Some(cv) => {
+            let pts: Option<Vec<(f64, f64)>> = cv.as_array().map(|x| x.iter().map(|p| Some((p.get(0)?.as_f64()?, p.get(1)?.as_f64()?))).collect()).unwrap_or(None);
+            let pts = pts.filter(|p| p.iter().all(|(x, y)| (0.0..=255.0).contains(x) && (0.0..=255.0).contains(y))).ok_or_else(|| EngineError::new("curve is a list of [input, output] points from 0 to 255"))?;
+            a.curve = if pts.len() < 2 || (pts.len() == 2 && pts.contains(&(0.0, 0.0)) && pts.contains(&(255.0, 255.0))) { Vec::new() } else { pts };
+        }
+    }
+    Ok(a)
+}
+
+fn adjust_json(a: &formdes_render::pixedit::Adjust) -> Map<String, Value> {
+    let mut m = Map::new();
+    for (k, v) in [("exposure", a.exposure), ("contrast", a.contrast), ("saturation", a.saturation), ("temperature", a.temperature), ("hue", a.hue), ("lightness", a.lightness)] {
+        if v != 0.0 {
+            m.insert(k.into(), json!(v));
+        }
+    }
+    if let Some((b, w, g)) = a.levels {
+        m.insert("levels".into(), json!([b, w, g]));
+    }
+    if a.black_white {
+        m.insert("blackWhite".into(), json!(true));
+    }
+    if a.curve.len() >= 2 {
+        m.insert("curve".into(), json!(a.curve.iter().map(|(x, y)| [*x, *y]).collect::<Vec<_>>()));
+    }
+    m
+}
+
+fn stored_adjust(c: &Ctx, id: ItemId) -> Option<Value> {
+    c.doc().ok()?.item(id)?.extra.get("adjust").cloned()
+}
+
+/// The pixels live adjustments start from: the layer view when the frame shows one (a PSD or PDF with layers
+/// changed), otherwise the placed picture; a PSD is flattened as its file shows it. PDF and vector files are refused.
+fn adjust_source(c: &Ctx, id: ItemId) -> Result<(Asset, Vec<u8>)> {
+    let doc = c.doc()?;
+    let it = doc.item(id).ok_or_else(|| EngineError::new(format!("no object {id}")))?;
+    let aid = it.graphic().and_then(|g| g.asset).ok_or_else(|| EngineError::new(format!("object {id} holds no picture: select a graphic frame with a placed image")))?;
+    let a = doc.assets.get(&aid).cloned().ok_or_else(|| EngineError::new(format!("no link {}", aid.0)))?;
+    let layered = it.extra.get("layers").and_then(|l| l.get("view")).and_then(Value::as_u64).and_then(|v| doc.assets.get(&AssetId(v)).cloned());
+    let from = layered.unwrap_or_else(|| a.clone());
+    let data: Vec<u8> = if from.data.is_empty() {
+        let path = from.link.clone().ok_or_else(|| EngineError::new(format!("{} has no data and no file", from.name)))?;
+        std::fs::read(&path).map_err(|err| EngineError::new(format!("cannot read {path}: {err}")))?
+    } else {
+        from.data.as_ref().clone()
+    };
+    if is_pdf(&from) || !from.mime.starts_with("image/") {
+        return Err(EngineError::new(format!("{} is not a raster picture: adjustments apply to JPEG, PNG, GIF, WebP, BMP, TIFF and PSD pictures", a.name)));
+    }
+    let data = if psd::is_psd(&data) { psd::composite_png(&data, &|l| l.visible).ok_or_else(|| EngineError::new(format!("{} could not be flattened", a.name)))? } else { data };
+    Ok((a, data))
+}
+
+/// Sets frame `id`'s live adjustments to `a` (None or empty removes them): a new view picture with a fresh id
+/// replaces the old one, so an Undo never meets a cached render of different settings.
+fn set_adjust(c: &mut Ctx, id: ItemId, a: Option<&formdes_render::pixedit::Adjust>) -> Result<Option<u64>> {
+    let old = stored_adjust(c, id).and_then(|v| v.get("view").and_then(Value::as_u64));
+    let mut view = None;
+    if let Some(a) = a.filter(|a| !a.is_empty()) {
+        let (base, data) = adjust_source(c, id)?;
+        let (bytes, ext, _) = formdes_render::pixedit::adjusted(&data, a, base.ppi.map(|(x, _)| x)).map_err(EngineError::new)?;
+        let stem = std::path::Path::new(&base.name).file_stem().and_then(|s| s.to_str()).unwrap_or("picture").to_string();
+        let mut na = crate::assets::make(&format!("{stem} (adjusted).{ext}"), bytes, None, 0)?;
+        na.ppi = base.ppi;
+        view = Some(c.doc_mut()?.add_asset(na).0);
+    }
+    let doc = c.doc_mut()?;
+    // A duplicated frame carries the same view; it goes only when no other frame shows it.
+    if let Some(o) = old
+        && !doc.items.values().any(|i| i.id != id && i.extra.get("adjust").and_then(|v| v.get("view")).and_then(Value::as_u64) == Some(o))
+    {
+        doc.assets.remove(&AssetId(o));
+    }
+    if let Some(item) = doc.item_mut(id) {
+        match (a, view) {
+            (Some(a), Some(v)) => {
+                let mut m = adjust_json(a);
+                m.insert("view".into(), json!(v));
+                item.extra.insert("adjust".into(), Value::Object(m));
+            }
+            _ => {
+                item.extra.remove("adjust");
+            }
+        }
+    }
+    Ok(view)
+}
+
+/// Rebuilds frame `id`'s adjustment view from its stored settings after the picture under it changed (a new link,
+/// an edited or retouched copy, other layers shown).
+pub fn refresh_adjust(c: &mut Ctx, id: ItemId) -> Result<()> {
+    if let Some(v) = stored_adjust(c, id) {
+        let a = adjust_of(&v, Default::default())?;
+        set_adjust(c, id, Some(&a))?;
+    }
+    Ok(())
+}
+
+/// Object > Image > Adjustments: live adjustments on each selected frame's picture, merged over the ones it has.
+fn image_adjust(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let remove = args::opt_bool(p, "remove").unwrap_or(false);
+    if !remove && !ADJUST_KEYS.iter().any(|k| p.get(*k).is_some()) {
+        return Err(EngineError::new(format!("nothing to change: give {} or remove: true", ADJUST_KEYS.join(", "))));
+    }
+    let ids = items(c, p)?;
+    let mut done = Vec::new();
+    for id in ids {
+        if remove {
+            set_adjust(c, id, None)?;
+            done.push(json!({"id": id, "adjust": Value::Null}));
+            continue;
+        }
+        let base = match stored_adjust(c, id) {
+            Some(v) => adjust_of(&v, Default::default())?,
+            None => Default::default(),
+        };
+        let a = adjust_of(p, base)?;
+        set_adjust(c, id, Some(&a))?;
+        done.push(json!({"id": id, "adjust": adjust_json(&a)}));
+    }
+    c.label(if remove { "Remove Adjustments" } else { "Adjustments" });
+    Ok(json!({"adjusted": done}))
+}
+
+/// The first selected frame's picture with adjustments on a copy up to `maxSide`, base64, and the stored settings:
+/// the given keys are laid over the stored ones, so a dialog sends what it shows and the document is unchanged.
+fn image_adjust_preview(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let id = *items(c, p)?.first().ok_or_else(|| EngineError::new("select a frame with a placed picture"))?;
+    let stored = stored_adjust(c, id);
+    let base = match &stored {
+        Some(v) => adjust_of(v, Default::default())?,
+        None => Default::default(),
+    };
+    let a = adjust_of(p, base)?;
+    let (_, data) = adjust_source(c, id)?;
+    let side = args::opt_u64(p, "maxSide").unwrap_or(720).clamp(64, 2048) as u32;
+    let (bytes, mime, (w, h)) = formdes_render::pixedit::adjusted_preview(&data, &a, side).map_err(EngineError::new)?;
+    let current = stored.map(|v| {
+        let mut m = v.as_object().cloned().unwrap_or_default();
+        m.remove("view");
+        Value::Object(m)
+    });
+    Ok(json!({"mime": mime, "base64": formdes_interchange::idml::b64(&bytes), "pixels": [w, h], "current": current}))
+}
+
 /// Brush strokes from `{strokes: [{tool, points, radius, offset?}]}`, refusing with the fix named.
 fn strokes_of(p: &Value) -> Result<Vec<formdes_render::retouch::Stroke>> {
     use formdes_render::retouch::{Stroke, Tool};
@@ -556,6 +755,7 @@ fn image_retouch(c: &mut Ctx, p: &Value) -> Result<Value> {
         let (aid, a, data) = raster_of(c, id)?;
         let out = formdes_render::retouch::retouch(&data, &strokes, a.ppi.map(|(x, _)| x)).map_err(EngineError::new)?;
         done.push(relink_copy(c, id, aid, &a, out)?);
+        refresh_adjust(c, id)?;
     }
     c.label("Retouch Image");
     Ok(json!({"retouched": done}))
@@ -574,6 +774,8 @@ fn image_retouch_preview(c: &mut Ctx, p: &Value) -> Result<Value> {
 pub fn register(r: &mut Registry) {
     cmd("image.edit", "Edit Image").menu(&["Object", "Image", "Edit Image..."]).needs(Needs::Items).sig("{crop?: [x0, y0, x1, y1] shares of the picture (0 to 1), rotate?: 0|90|180|270 (clockwise), flipH?, flipV?, exposure?: stops -3..3, contrast?: -100..100, levels?: [black 0..255, white 0..255, gamma], saturation?: -100..100, temperature?: -100..100, ids?} (writes an edited copy beside a linked original, or embeds it, and relinks the frame)").reg(r, image_edit);
     cmd("image.retouch", "Retouch Image").menu(&["Object", "Image", "Retouch Image..."]).needs(Needs::Items).sig("{strokes: [{tool: clone|heal|redEye, points: [[x, y], ...] shares of the picture (0 to 1), radius: share of its longer side (up to 0.5), offset?: [dx, dy] shares, where clone and heal take pixels from relative to the brush}], ids?} (writes a retouched copy beside a linked original, or embeds it, and relinks the frame)").reg(r, image_retouch);
+    cmd("image.adjust", "Adjustments").menu(&["Object", "Image", "Adjustments..."]).needs(Needs::Items).sig("{exposure?: stops -3..3, contrast?: -100..100, levels?: [black, white, gamma] | null, saturation?: -100..100, temperature?: -100..100, hue?: degrees -180..180, lightness?: -100..100, blackWhite?, curve?: [[input, output] 0..255, ...] | null, remove?, ids?} (live: merged over the frame's adjustments and kept with it; the placed picture is unchanged)").reg(r, image_adjust);
+    cmd("image.adjustPreview", "Adjustments Preview").query().needs(Needs::Items).sig("{the image.adjust keys?, maxSide?: px (default 720), ids?} -> {mime, base64, pixels, current}").reg(r, image_adjust_preview);
     cmd("image.retouchPreview", "Retouch Preview").query().needs(Needs::Items).sig("{strokes?: as image.retouch, maxSide?: px (default 720), ids?} -> {mime, base64, pixels}").reg(r, image_retouch_preview);
     cmd("object.clippingPath", "Clipping Path").menu(&["Object", "Clipping Path", "Options..."]).needs(Needs::Items).sig("{type: none|detectEdges|alphaChannel|photoshopPath, threshold?: 0-255 (detect edges: how far from the background colour or alpha counts as picture), tolerance?: pixels of smoothing, inset?: pt (negative grows), invert?, includeInsideEdges?, name?: Photoshop path name, channel?: PSD alpha channel name or index, ids?}").help("Clips a placed picture to a path: detected from the picture's edges (a flat background or its transparency), its alpha channel (or one of a PSD file's), or a Photoshop path stored in the JPEG, TIFF or PSD. The clip shows on screen, in PDF and in text wrap set to follow the clipping path.").reg(r, clipping_path);
     cmd("object.clippingInfo", "Clipping Path Info").query().needs(Needs::Items).sig("{ids?}").help("The selected picture's clipping path settings, its Photoshop path names, PSD alpha channels and whether it has transparency.").reg(r, clipping_info);
