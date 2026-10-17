@@ -925,3 +925,10 @@ Artboards (0.59.0 to 0.61.0) are a list of `{name, spread, rect}` in document pr
 
 Since 0.62.0 the tool keeps `ToolState::artboard`, the artboard it last drew, moved or resized, cleared whenever the tool changes. Corners of any artboard are hit first (6 px), so a press on a corner resizes against the opposite corner (Rect::from_points, so dragging past it flips without going negative) and a press inside moves. Delete is the subtle part: command shortcuts are matched before the tool in `input::key`, and the window matches its own shortcut table before that, so both had to let Delete and Backspace through while the Artboard tool is current. The core only claims the key when an artboard is active; otherwise the Delete command runs as before.
 
+### Mesh tool · points as shares of the local box
+- refers-to: native/formdes-engine/src/tools/misc.rs :: mesh, mesh_points, mesh_shares, mesh_box; native/formdes-engine/src/overlays.rs :: overlays (mesh); native/formdes-render/src/scene.rs :: mesh
+- kind: rationale
+- logged: v0.63.0 · 2026-10-17
+
+A stored mesh point is a share of the box of the shape's local path after effects, because that is what the scene's `mesh()` reads; the tool maps the pointer back through `world_xf(item).inverse()` into that box, so rotated or scaled shapes drag correctly and the stored mesh stays independent of the item's transform. `mesh_shares` fills the even grid when no point was ever moved, so the first drag writes the whole `points` array once. Making a mesh from a click goes through `object.mesh` with the clicked object selected rather than a second copy of its defaults. Illustrator's click-to-add rows and columns, per-point colour from the tool, and point tangents are open; colour a point with `object.mesh {point, color}`.
+
