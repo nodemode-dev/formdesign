@@ -1074,7 +1074,7 @@ fn brush(c: &mut Ctx, p: &Value) -> Result<Value> {
     let kind = args::opt_str(p, "kind").filter(|k| ["calligraphic", "scatter", "art", "pattern", "none"].contains(k)).ok_or_else(|| EngineError::new("kind is calligraphic, scatter, art, pattern or none"))?;
     if kind == "scatter" || kind == "art" || kind == "pattern" {
         let name = args::str_(p, "symbol", "the symbol the brush draws (symbol.list shows them)")?;
-        for n in [Some(name), args::opt_str(p, "start"), args::opt_str(p, "end")].into_iter().flatten() {
+        for n in [Some(name), args::opt_str(p, "start"), args::opt_str(p, "end"), args::opt_str(p, "corner")].into_iter().flatten() {
             if formdes_render::scene::symbol_master(c.doc()?, n).is_none() {
                 return Err(EngineError::new(format!("no symbol named {n}")));
             }
@@ -1261,7 +1261,7 @@ pub fn register(r: &mut Registry) {
         .sig("{kind: topObject {cols?: grid detail (16)} | mesh {cols?, rows? (4)} | puppet {pins: [[x, y, dx, dy], ...] (spread points; 0, 0 holds a pin), cols?}, moves?: [[col, row, dx, dy], ...] (move mesh points; on an existing envelope edits it), release?: bool, expand?: bool, ids?}")
         .help("Bends the selected art to a shape, as Illustrator's Envelope Distort does: with topObject the topmost closed shape becomes the envelope and the art beneath fills it; with mesh the art is laid on a grid whose points can be moved; with puppet the art bends around pins, moved pins dragging it and still pins holding it, as Puppet Warp does; release removes the distortion and expand bakes it into the paths.").reg(r, envelope);
     cmd("object.brush", "Apply Brush").menu(&["Object", "Brush..."]).needs(Needs::Items)
-        .sig("{kind: calligraphic {size?: pt (default the stroke weight), angle?: deg (45), roundness?: percent (30)} | scatter {symbol, spacing?: pt (default the symbol's size), scale?: percent, rotate?: bool (follow the path, default true)} | art {symbol, width?: percent, flip?: bool} | pattern {symbol (the side tile, repeated along the path), start?: symbol, end?: symbol, scale?: percent of the stroke weight (100), spacing?: percent of the tile's length between tiles (0), fit?: stretch|space, flip?: bool} | none, ids?}")
+        .sig("{kind: calligraphic {size?: pt (default the stroke weight), angle?: deg (45), roundness?: percent (30)} | scatter {symbol, spacing?: pt (default the symbol's size), scale?: percent, rotate?: bool (follow the path, default true)} | art {symbol, width?: percent, flip?: bool} | pattern {symbol (the side tile, repeated along the path), start?: symbol, end?: symbol, corner?: symbol (set at each sharp anchor; the side tiles restart after every corner either way), scale?: percent of the stroke weight (100), spacing?: percent of the tile's length between tiles (0), fit?: stretch|space, flip?: bool} | none, ids?}")
         .help("Draws the stroke with a brush, as Illustrator's brushes do: calligraphic strokes vary in width with the direction of the path like an angled pen nib; scatter brushes place copies of a symbol along the path; art brushes stretch a symbol's art along the whole path; none restores the plain stroke. The stroke's colour paints calligraphic strokes.").reg(r, brush);
     cmd("object.recolor", "Recolor Artwork").menu(&["Edit", "Edit Colors", "Recolor Artwork..."]).needs(Needs::Items)
         .sig("{map?: [[from, to], ...] (swatch names or #rrggbb), tolerance?: percent (default 2), hue?: degrees, saturation?: percent, brightness?: percent, ids?}")

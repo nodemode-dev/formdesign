@@ -293,6 +293,58 @@ impl Spine {
     }
 }
 
+/// The sharp anchors of a path's first subpath (where the direction turns more than 25 degrees): each one's
+/// distance along the path scaled so the whole length is `total` (the spine's measure), the point, and the angle
+/// of the bisector of the directions in and out (radians), for a pattern brush's corner tiles.
+fn sharp_corners(path: &BezPath, total: f64) -> Vec<(f64, Point, f64)> {
+    use kurbo::{ParamCurve, ParamCurveArclen, ParamCurveDeriv};
+    let mut segs = Vec::new();
+    let mut started = false;
+    for s in path.segments() {
+        if started && segs.last().is_some_and(|l: &kurbo::PathSeg| l.end().distance(s.start()) > 1e-6) {
+            break;
+        }
+        started = true;
+        segs.push(s);
+    }
+    let dir = |s: &kurbo::PathSeg, t: f64| -> kurbo::Vec2 {
+        let d = match s {
+            kurbo::PathSeg::Line(l) => l.p1 - l.p0,
+            kurbo::PathSeg::Quad(q) => q.deriv().eval(t).to_vec2(),
+            kurbo::PathSeg::Cubic(c) => c.deriv().eval(t).to_vec2(),
+        };
+        if d.hypot() < 1e-9 { kurbo::Vec2::ZERO } else { d / d.hypot() }
+    };
+    let lens: Vec<f64> = segs.iter().map(|s| s.arclen(0.01)).collect();
+    let full: f64 = lens.iter().sum();
+    if full < 1e-9 {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    let mut acc = 0.0;
+    for i in 0..segs.len().saturating_sub(1) {
+        acc += lens[i];
+        let (din, dout) = (dir(&segs[i], 1.0), dir(&segs[i + 1], 0.0));
+        if din == kurbo::Vec2::ZERO || dout == kurbo::Vec2::ZERO || din.dot(dout) > 25f64.to_radians().cos() {
+            continue;
+        }
+        let bis = din + dout;
+        let ang = if bis.hypot() < 1e-9 { din.atan2() } else { bis.atan2() };
+        out.push((acc / full * total, segs[i].end(), ang));
+    }
+    if let (Some(first), Some(last)) = (segs.first(), segs.last())
+        && segs.len() > 1
+        && last.end().distance(first.start()) < 1e-6
+    {
+        let (din, dout) = (dir(last, 1.0), dir(first, 0.0));
+        if din != kurbo::Vec2::ZERO && dout != kurbo::Vec2::ZERO && din.dot(dout) <= 25f64.to_radians().cos() {
+            let bis = din + dout;
+            out.insert(0, (0.0, first.start(), if bis.hypot() < 1e-9 { din.atan2() } else { bis.atan2() }));
+        }
+    }
+    out
+}
+
 /// Points every `step` along a path's length with the path's direction there (radians), each subpath from its start.
 fn along(path: &BezPath, step: f64) -> Vec<(Point, f64)> {
     let mut out = Vec::new();
@@ -1113,23 +1165,45 @@ impl Ctx<'_> {
                         let total = spine.total();
                         let across = w * n("scale", 100.0) / 100.0 / mb.height();
                         let flip = br.get("flip").and_then(|v| v.as_bool()).unwrap_or(false);
-                        let (start, end) = (sym("start"), sym("end"));
+                        let (start, end, corner) = (sym("start"), sym("end"), sym("corner"));
                         let lead = start.map(|(_, b)| b.width() * across).unwrap_or(0.0);
                         let tail = end.map(|(_, b)| b.width() * across).unwrap_or(0.0);
-                        let body = (total - lead - tail).max(0.0);
                         let tile = mb.width() * across;
                         let gap = n("spacing", 0.0).max(0.0) / 100.0 * tile;
-                        let count = ((body + gap) / (tile + gap)).round().max(1.0) as usize;
-                        let seg = body / count as f64;
-                        let len = if br.get("fit").and_then(|v| v.as_str()) == Some("space") { tile.min(seg) } else { seg * tile / (tile + gap) };
-                        if let Some((sm, sb)) = start {
-                            self.bend_symbol(sm, sb, &spine, across, flip, 0.0, lead.min(total));
-                        }
-                        if body > 1e-6 {
+                        let space = br.get("fit").and_then(|v| v.as_str()) == Some("space");
+                        let marks = sharp_corners(path, total);
+                        let half = corner.map(|(_, b)| b.width() * across / 2.0).unwrap_or(0.0);
+                        let at0 = marks.first().is_some_and(|c| c.0 == 0.0);
+                        let mut cuts: Vec<f64> = vec![0.0];
+                        cuts.extend(marks.iter().map(|c| c.0).filter(|s| *s > 0.0));
+                        cuts.push(total);
+                        for (pi, w2) in cuts.windows(2).enumerate() {
+                            let a = w2[0] + if pi == 0 && !at0 { lead } else { half };
+                            let b = w2[1] - if pi + 2 == cuts.len() && !at0 { tail } else { half };
+                            let body = b - a;
+                            if body <= 1e-6 {
+                                continue;
+                            }
+                            let count = ((body + gap) / (tile + gap)).round().max(1.0) as usize;
+                            let seg = body / count as f64;
+                            let len = if space { tile.min(seg) } else { seg * tile / (tile + gap) };
                             for i in 0..count {
-                                let s0 = lead + i as f64 * seg;
+                                let s0 = a + i as f64 * seg;
                                 self.bend_symbol(m, mb, &spine, across, flip, s0, s0 + len);
                             }
+                        }
+                        if let Some((cm, cb)) = corner
+                            && self.depth < 6
+                        {
+                            for (_, p, ang) in &marks {
+                                let t = Affine::translate(p.to_vec2()) * Affine::rotate(*ang) * Affine::scale(across) * Affine::translate(-cb.center().to_vec2());
+                                self.depth += 1;
+                                self.emit(cm, t);
+                                self.depth -= 1;
+                            }
+                        }
+                        if let Some((sm, sb)) = start {
+                            self.bend_symbol(sm, sb, &spine, across, flip, 0.0, lead.min(total));
                         }
                         if let Some((em, eb)) = end {
                             self.bend_symbol(em, eb, &spine, across, flip, (total - tail).max(0.0), total);
