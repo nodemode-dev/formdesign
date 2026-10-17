@@ -2,6 +2,10 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.71.0 · 2026-10-17
+
+- Object > Image > Retouch Image: a healing brush, a clone brush and a red-eye tool over a placed picture. Alt-click sets the source; the picture in the dialog is the engine's own render of the strokes so far. OK writes a retouched copy beside the original (or embeds it), relinks the frame in one undo step and leaves the original untouched. The engine commands are `image.retouch` and `image.retouchPreview`.
+
 ## 0.70.0 · 2026-10-17
 
 - Object > Image > Edit Image: crop by dragging on the picture, rotate left or right, flip, and set exposure, contrast, saturation, temperature and levels with a live preview. OK writes an edited copy beside the original (or embeds it when the original was embedded), keeps its resolution, relinks the frame in one undo step and leaves the original untouched. The engine command is `image.edit`; `GET /api/core/asset` serves a placed file's bytes.
