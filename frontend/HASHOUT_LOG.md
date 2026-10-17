@@ -507,3 +507,5 @@ The drawing mode (Draw Behind, Draw Inside) and the isolated group live in the e
 - logged: v0.59.0 · 2026-10-17
 
 Artboards are document data in the core (`artboard.*` commands); the window only draws what the overlay lists and asks the engine for pixels. Outlines and names are stroked on the highlight canvas with the guides (hidden in preview), so adding or moving an artboard costs no DOM work. Export asks `artboard.list`, then fetches `GET /api/core/artboard.png` per artboard at 2x and clicks a detached download anchor; nothing is inserted into the page, so the throttled check saw no layout change. It answers for the active document, so a window with several Untitled documents open exports the one in front (a probe that ran against a fresh document without artboards got the toast and no downloads, which first looked like a lost click).
+
+PDF export (v0.60.0) goes through the socket rather than a REST route: `artboard.exportPdf` without a path answers with base64, which the window decodes into a Blob and downloads as `<title> artboards.pdf`. One engine call builds every page, so the throttled check made a single round trip instead of one fetch per artboard.
