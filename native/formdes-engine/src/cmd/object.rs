@@ -442,6 +442,19 @@ fn fill(c: &mut Ctx, p: &Value) -> Result<Value> {
         return Err(EngineError::new(format!("no swatch named {name}")));
     }
     let paint = wire::paint_in(name, tint);
+    // With the Mesh tool and a pressed mesh point, a swatch colours that point, as in Illustrator.
+    if c.session.tool == "mesh"
+        && let Some((id, idx)) = c.session.tools.mesh_point
+        && ids.contains(&id)
+    {
+        let rgb = c.doc()?.paint_color(&paint).map(|k| k.to_rgb().to_vec()).ok_or_else(|| EngineError::new(format!("{name} has no colour for a mesh point")))?;
+        let slot = c.doc_mut()?.item_mut(id).and_then(|it| it.extra.get_mut("mesh")).and_then(|m| m.get_mut("colors")).and_then(Value::as_array_mut).and_then(|a| a.get_mut(idx));
+        if let Some(slot) = slot {
+            *slot = json!(rgb);
+            c.label("Gradient Mesh");
+            return ok();
+        }
+    }
     set_each(c, &ids, |it| it.fill = paint.clone())?;
     ok()
 }

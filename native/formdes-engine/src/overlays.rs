@@ -434,7 +434,8 @@ pub fn overlays(ses: &mut Session, p: &Value, view: View) -> Value {
             let pts = crate::tools::misc::mesh_points(&doc, *id)?;
             let m = doc.item(*id)?.extra.get("mesh")?;
             let xf = cv.xf(geo::spread_of_item(&doc, doc.top_of(*id))?);
-            Some(json!({"cols": m.get("cols"), "rows": m.get("rows"), "points": pts.iter().map(|q| { let c = xf * *q; [c.x, c.y] }).collect::<Vec<_>>()}))
+            let active = ses.tools.mesh_point.filter(|(i, _)| i == id).map(|(_, k)| k);
+            Some(json!({"cols": m.get("cols"), "rows": m.get("rows"), "active": active, "points": pts.iter().map(|q| { let c = xf * *q; [c.x, c.y] }).collect::<Vec<_>>()}))
         }).collect()
     } else {
         Vec::new()

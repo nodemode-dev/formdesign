@@ -221,6 +221,8 @@ pub struct ToolState {
     pub thread: Option<ItemId>,
     /// The artboard the Artboard tool last drew, moved or resized: it shows corner handles and Delete removes it.
     pub artboard: Option<usize>,
+    /// The mesh point the Mesh tool last pressed (item, index row by row): a fill swatch applied now colours it.
+    pub mesh_point: Option<(ItemId, usize)>,
 }
 
 impl Session {
@@ -246,6 +248,7 @@ impl Session {
             self.tools.gesture = None;
             self.tools.thread = None;
             self.tools.artboard = None;
+            self.tools.mesh_point = None;
             self.tools.overlays.clear();
             if !matches!(id, "type" | "typeOnPath" | "typeVertical" | "note")
                 && let Some(st) = self.active_mut()

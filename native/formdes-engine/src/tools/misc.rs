@@ -222,6 +222,73 @@ fn mesh_shares(m: &Value) -> Option<(usize, usize, Vec<[f64; 2]>)> {
     Some((cols, rows, stored.unwrap_or_else(|| (0..n).map(|i| [(i % (cols + 1)) as f64 / cols as f64, (i / (cols + 1)) as f64 / rows as f64]).collect())))
 }
 
+/// The mesh with a column and a row added through the share point (u, v), as Illustrator's Mesh tool does on a click
+/// inside a mesh: each new line runs between its neighbours at the click's fraction of their gap, with colours mixed
+/// the same way. A side already at 12 lines gets none. Returns the new mesh and the index of the point at the crossing.
+pub fn mesh_split(m: &Value, u: f64, v: f64) -> Option<(Value, usize)> {
+    let (mut cols, mut rows, shares) = mesh_shares(m)?;
+    let mut pts: Vec<Vec<f64>> = shares.iter().map(|s| s.to_vec()).collect();
+    let mut cls: Vec<Vec<f64>> = m.get("colors")?.as_array()?.iter().map(|c| c.as_array().map(|c| c.iter().filter_map(Value::as_f64).collect()).unwrap_or_default()).collect();
+    if cls.len() != pts.len() {
+        return None;
+    }
+    let lerp = |a: &[f64], b: &[f64], f: f64| a.iter().zip(b).map(|(x, y)| x + (y - x) * f).collect::<Vec<f64>>();
+    // The gap holding `at` along the means of the grid lines, and the fraction across it.
+    let gap = |means: &[f64], at: f64| -> Option<(usize, f64)> {
+        (0..means.len() - 1).find(|&i| at > means[i] && at < means[i + 1]).map(|i| (i, (at - means[i]) / (means[i + 1] - means[i])))
+    };
+    let (mut ci, mut rj) = (None, None);
+    if cols < 12 {
+        let means: Vec<f64> = (0..=cols).map(|i| (0..=rows).map(|j| pts[j * (cols + 1) + i][0]).sum::<f64>() / (rows + 1) as f64).collect();
+        if let Some((i, f)) = gap(&means, u) {
+            let (mut np, mut nc) = (Vec::new(), Vec::new());
+            for j in 0..=rows {
+                for k in 0..=cols {
+                    let at = j * (cols + 1) + k;
+                    np.push(pts[at].clone());
+                    nc.push(cls[at].clone());
+                    if k == i {
+                        np.push(lerp(&pts[at], &pts[at + 1], f));
+                        nc.push(lerp(&cls[at], &cls[at + 1], f));
+                    }
+                }
+            }
+            (pts, cls, cols, ci) = (np, nc, cols + 1, Some(i + 1));
+        }
+    }
+    if rows < 12 {
+        let means: Vec<f64> = (0..=rows).map(|j| (0..=cols).map(|i| pts[j * (cols + 1) + i][1]).sum::<f64>() / (cols + 1) as f64).collect();
+        if let Some((j, f)) = gap(&means, v) {
+            let w = cols + 1;
+            let row: Vec<(Vec<f64>, Vec<f64>)> = (0..w).map(|i| (lerp(&pts[j * w + i], &pts[(j + 1) * w + i], f), lerp(&cls[j * w + i], &cls[(j + 1) * w + i], f))).collect();
+            let at = (j + 1) * w;
+            pts.splice(at..at, row.iter().map(|r| r.0.clone()));
+            cls.splice(at..at, row.iter().map(|r| r.1.clone()));
+            (rows, rj) = (rows + 1, Some(j + 1));
+        }
+    }
+    if ci.is_none() && rj.is_none() {
+        return None;
+    }
+    // The crossing: the new column and row, or the nearest existing line where only one was added.
+    let near = |means: Vec<f64>, at: f64| means.iter().enumerate().min_by(|a, b| (a.1 - at).abs().total_cmp(&(b.1 - at).abs())).map(|x| x.0).unwrap_or(0);
+    let i = ci.unwrap_or_else(|| near((0..=cols).map(|i| pts[i][0]).collect(), u));
+    let j = rj.unwrap_or_else(|| near((0..=rows).map(|j| pts[j * (cols + 1)][1]).collect(), v));
+    let mut out = m.clone();
+    out["cols"] = json!(cols);
+    out["rows"] = json!(rows);
+    out["points"] = json!(pts);
+    out["colors"] = json!(cls);
+    Some((out, j * (cols + 1) + i))
+}
+
+/// The share point of `p` (spread coordinates) in the mesh box of `id`.
+fn mesh_share_of(doc: &Doc, id: ItemId, p: Point) -> Option<[f64; 2]> {
+    let bb = mesh_box(doc, id)?;
+    let local = doc.world_xf(id).inverse() * p;
+    Some([(local.x - bb.x0) / bb.width(), (local.y - bb.y0) / bb.height()])
+}
+
 /// The mesh points of `id` in spread coordinates, row by row, or None when it has no mesh.
 pub fn mesh_points(doc: &Doc, id: ItemId) -> Option<Vec<Point>> {
     let (_, _, shares) = mesh_shares(doc.item(id)?.extra.get("mesh")?)?;
@@ -243,12 +310,36 @@ pub fn mesh(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
                 if let Some(pts) = mesh_points(&doc, *id)
                     && let Some(idx) = pts.iter().position(|q| (*q - h.p).hypot() <= view.tol(6.0))
                 {
+                    ses.tools.mesh_point = Some((*id, idx));
+                    ses.sel_rev += 1;
                     start(ses, ev, &h, G::MeshPoint { item: *id, idx }, true);
                     return Ok(());
                 }
             }
             let Some(id) = geo::hit_top(&doc, h.slot, h.p, view.tol(4.0)) else { return Ok(()) };
             let Some(it) = doc.item(id) else { return Ok(()) };
+            // A click inside a selected mesh adds a column and a row through it; the new crossing becomes the active point.
+            if selected.contains(&id)
+                && let Some(m) = it.extra.get("mesh")
+                && let Some([u, v]) = mesh_share_of(&doc, id, h.p)
+            {
+                match mesh_split(m, u, v) {
+                    Some((next, idx)) => {
+                        ses.edit_now("Gradient Mesh", |d, _| {
+                            if let Some(it) = d.item_mut(id) {
+                                it.extra.insert("mesh".into(), next);
+                            }
+                        });
+                        ses.tools.mesh_point = Some((id, idx));
+                    }
+                    None if m.get("cols").and_then(Value::as_u64) >= Some(12) && m.get("rows").and_then(Value::as_u64) >= Some(12) => {
+                        ses.requests.push(json!({"kind": "toast", "text": "A mesh has at most 12 rows and 12 columns"}));
+                    }
+                    None => {}
+                }
+                return Ok(());
+            }
+            ses.tools.mesh_point = None;
             ses.select(Selection::items(vec![id]));
             if it.extra.get("mesh").is_none() && it.shape.closed() && matches!(it.kind, ItemKind::Plain | ItemKind::Graphic(_)) {
                 if let Err(e) = ses.execute("object.mesh", &json!({})) {
