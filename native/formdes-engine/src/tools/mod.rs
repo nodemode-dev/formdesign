@@ -113,7 +113,7 @@ const fn t(id: &'static str, label: &'static str, icon: &'static str, shortcut: 
 
 pub static GROUPS: &[&[ToolDef]] = &[
     &[t("selection", "Selection Tool", "tool-selection", Some("V")), t("directSelection", "Direct Selection Tool", "tool-direct", Some("A"))],
-    &[t("page", "Page Tool", "tool-page", Some("Shift+P"))],
+    &[t("page", "Page Tool", "tool-page", Some("Shift+P")), t("artboard", "Artboard Tool", "tool-artboard", Some("Shift+O"))],
     &[t("gap", "Gap Tool", "tool-gap", Some("U"))],
     &[t("contentCollector", "Content Collector Tool", "tool-collector", Some("B")), t("contentPlacer", "Content Placer Tool", "tool-placer", None)],
     &[],
@@ -171,6 +171,7 @@ pub enum G {
     Measure,
     Gradient { ids: Vec<ItemId> },
     Gap { a: Vec<ItemId>, b: Vec<ItemId>, vertical: bool, edge: f64 },
+    Artboard { index: Option<usize>, rect: Rect },
     Place,
     None,
 }
@@ -339,6 +340,7 @@ impl Session {
             "gradientSwatch" | "gradientFeather" => misc::gradient(self, ev, view, &tool),
             "note" => misc::note(self, ev, view),
             "page" => misc::page(self, ev, view),
+            "artboard" => misc::artboard(self, ev, view),
             "gap" => misc::gap(self, ev, view),
             "contentCollector" | "contentPlacer" => misc::conveyor(self, ev, view, &tool),
             "place" => misc::place(self, ev, view),
@@ -390,7 +392,7 @@ impl Session {
             "selection" | "freeTransform" => select::cursor(self, at, view),
             "directSelection" => "arrowHollow",
             "type" | "typeOnPath" | "typeVertical" => text::cursor(self, at, view),
-            "rectangleFrame" | "ellipseFrame" | "polygonFrame" | "rectangle" | "ellipse" | "polygon" | "line" | "measure" | "gap" | "page" | "shapeBuilder" | "width" => "crosshair",
+            "rectangleFrame" | "ellipseFrame" | "polygonFrame" | "rectangle" | "ellipse" | "polygon" | "line" | "measure" | "gap" | "page" | "artboard" | "shapeBuilder" | "width" => "crosshair",
             "pen" | "curvature" | "addAnchor" | "deleteAnchor" | "convertDirection" | "pencil" | "smooth" | "erase" | "scissors" => "pen",
             "eyedropper" | "colorTheme" => "eyedropper",
             "rotate" => "rotate",
