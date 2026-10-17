@@ -102,9 +102,38 @@ fn delete(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(gone)
 }
 
+/// One PDF page per artboard, each the artboard's own size, in list order or the order `artboards` names them.
+fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let lay = c.layout()?;
+    let renderer = c.session.renderer.clone();
+    let doc = c.doc()?;
+    let list = artboards(doc);
+    if list.is_empty() {
+        return Err(EngineError::new("the document has no artboards: artboard.create makes one"));
+    }
+    let picks: Vec<usize> = match p.get("artboards") {
+        None | Some(Value::Null) => (0..list.len()).collect(),
+        Some(Value::Array(keys)) if !keys.is_empty() => keys.iter().map(|k| find(doc, k).ok_or_else(|| EngineError::new(format!("no artboard {k} (artboard.list shows them)")))).collect::<Result<_>>()?,
+        Some(v) => return Err(EngineError::new(format!("artboards is a list of indices or names, not {v}"))),
+    };
+    let opts = formdes_render::SceneOpts { printing: true, bleed: false, overprint: false };
+    let mut scenes = Vec::new();
+    let mut names = Vec::new();
+    for i in picks {
+        let (si, area) = artboard_rect(&list[i]).ok_or_else(|| EngineError::new(format!("artboard {i} has no area")))?;
+        let scene = formdes_render::scene::artboard_scene(doc, &lay, si, area, &opts).ok_or_else(|| EngineError::new(format!("artboard {i} sits on spread {si}, which no longer exists")))?;
+        scenes.push(scene);
+        names.push(list[i].get("name").cloned().unwrap_or(Value::Null));
+    }
+    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), ..Default::default() };
+    let bytes = formdes_render::pdf::export(&scenes, doc, &renderer.images, &popts).map_err(|e| EngineError::new(format!("PDF export: {e}")))?;
+    crate::cmd::file::deliver(p, bytes, json!({"pages": names.len(), "artboards": names}))
+}
+
 pub fn register(r: &mut Registry) {
     cmd("artboard.create", "New Artboard").menu(&["Object", "Artboards", "New Artboard"]).sig("{name?, rect?: [x0, y0, x1, y1] in spread coordinates, spread?: index (with rect; default 0)} (without rect it fits the selection)").reg(r, create);
     cmd("artboard.list", "Artboards").query().sig("{}").reg(r, list);
     cmd("artboard.set", "Artboard Options").sig("{artboard: index or name, name?, rect?}").reg(r, set);
     cmd("artboard.delete", "Delete Artboard").menu(&["Object", "Artboards", "Delete Artboard"]).sig("{artboard: index or name}").reg(r, delete);
+    cmd("artboard.exportPdf", "Export Artboards as PDF...").query().sig("{artboards?: [index or name] (default all, in list order), title?, path?} (without path the PDF comes back as base64)").reg(r, export_pdf);
 }
