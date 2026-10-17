@@ -152,9 +152,15 @@ pub fn edit(src: &[u8], e: &Edit, ppi: Option<f64>) -> Result<Edited, String> {
     }
     let pixels = img.dimensions();
     let jpeg = src.starts_with(&[0xFF, 0xD8]) && !alpha;
+    let bytes = encode(&img, jpeg, ppi, 92)?;
+    Ok(Edited { bytes, ext: if jpeg { "jpg" } else { "png" }, pixels, crop_px, source_px: (sw, sh) })
+}
+
+/// JPEG at `quality` (no transparency) or PNG, with `ppi` written into the file when known.
+pub(crate) fn encode(img: &DynamicImage, jpeg: bool, ppi: Option<f64>, quality: u8) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     if jpeg {
-        let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, 92);
+        let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, quality);
         if let Some(p) = ppi {
             enc.set_pixel_density(image::codecs::jpeg::PixelDensity::dpi(p.round().clamp(1.0, 65535.0) as u16));
         }
@@ -165,5 +171,5 @@ pub fn edit(src: &[u8], e: &Edit, ppi: Option<f64>) -> Result<Edited, String> {
             bytes = png_with_density(bytes, p);
         }
     }
-    Ok(Edited { bytes, ext: if jpeg { "jpg" } else { "png" }, pixels, crop_px, source_px: (sw, sh) })
+    Ok(bytes)
 }

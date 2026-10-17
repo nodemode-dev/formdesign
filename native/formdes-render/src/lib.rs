@@ -7,6 +7,7 @@ pub mod pdflayers;
 pub mod pixedit;
 pub mod psd;
 pub mod raster;
+pub mod retouch;
 pub mod marks;
 pub mod scene;
 pub mod sep;
