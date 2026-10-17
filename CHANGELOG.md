@@ -2,6 +2,10 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.73.0 · 2026-10-17
+
+- One Undo per agent turn: everything an agent changes while answering one request is a single step in Edit > Undo (Undo Agent Turn), with your own edits in between kept as separate steps. A turn ends when you send Claude Code a new prompt (a hook in this repository posts `POST /api/agents/turn`), when you send the in-app assistant a message, or after two minutes without a call from that agent.
+
 ## 0.72.0 · 2026-10-17
 
 - Opening QuarkXPress files: a `.qxd` or `.qxp` without QuarkXPress's header signature is refused as not a QuarkXPress document instead of turning into an empty import, and a QuarkXPress file LibreOffice cannot read now says its reader takes QuarkXPress 3.1 to 4.1 (export a PDF from later versions) instead of blaming the LibreOffice build. Publisher and PageMaker test documents from LibreOffice's own suite open as editable layouts.
