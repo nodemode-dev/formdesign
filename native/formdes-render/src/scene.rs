@@ -898,7 +898,9 @@ impl Ctx<'_> {
                             if let Some(cp) = &cut {
                                 self.ops.push(Op::PushClip(cp.clone()));
                             }
-                            let shown = it.extra.get("layers").and_then(|l| l.get("view")).and_then(|v| v.as_u64()).map(formdes_model::ids::AssetId).filter(|a| self.doc.assets.contains_key(a)).unwrap_or(aid);
+                            // Live adjustments (built over any layer view) come first, then the layer view, then the file.
+                            let view = |k: &str| it.extra.get(k).and_then(|l| l.get("view")).and_then(|v| v.as_u64()).map(formdes_model::ids::AssetId).filter(|a| self.doc.assets.contains_key(a));
+                            let shown = view("adjust").or_else(|| view("layers")).unwrap_or(aid);
                             self.ops.push(Op::Image { asset: shown, xf: xf * g.content, w, h });
                             if cut.is_some() {
                                 self.ops.push(Op::Pop);

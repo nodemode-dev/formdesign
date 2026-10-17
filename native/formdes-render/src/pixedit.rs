@@ -82,6 +82,188 @@ fn adjust(img: &mut RgbaImage, e: &Edit) {
     }
 }
 
+/// Adjustments kept live on a placed picture (Affinity's adjustment layers): the frame stores these and a view
+/// picture made from them, and the original stays as placed. Applied in order: the tones of `Edit` (levels,
+/// exposure, contrast, saturation, temperature), then the curve, hue, lightness and black and white.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Adjust {
+    pub exposure: f64,
+    pub contrast: f64,
+    pub levels: Option<(f64, f64, f64)>,
+    pub saturation: f64,
+    pub temperature: f64,
+    /// Degrees, -180 to 180.
+    pub hue: f64,
+    /// -100 (black) to 100 (white).
+    pub lightness: f64,
+    pub black_white: bool,
+    /// Curve points in 0..255 input and output, applied to each channel; fewer than two points is no curve.
+    pub curve: Vec<(f64, f64)>,
+}
+
+impl Adjust {
+    pub fn is_empty(&self) -> bool {
+        !self.tones().is_tonal() && self.hue == 0.0 && self.lightness == 0.0 && !self.black_white && self.curve.len() < 2
+    }
+
+    fn tones(&self) -> Edit {
+        Edit { exposure: self.exposure, contrast: self.contrast, levels: self.levels, saturation: self.saturation, temperature: self.temperature, ..Edit::default() }
+    }
+}
+
+/// A 256-entry table through the curve's points, monotone between them (Fritsch-Carlson), so a curve that only
+/// rises never folds back on itself.
+fn curve_lut(points: &[(f64, f64)]) -> [u8; 256] {
+    let mut p: Vec<(f64, f64)> = points.iter().map(|(x, y)| (x.clamp(0.0, 255.0), y.clamp(0.0, 255.0))).collect();
+    p.sort_by(|a, b| a.0.total_cmp(&b.0));
+    p.dedup_by(|a, b| (a.0 - b.0).abs() < 1e-6);
+    let mut lut = [0u8; 256];
+    if p.len() < 2 {
+        for (i, v) in lut.iter_mut().enumerate() {
+            *v = i as u8;
+        }
+        return lut;
+    }
+    let n = p.len();
+    let d: Vec<f64> = (0..n - 1).map(|i| (p[i + 1].1 - p[i].1) / (p[i + 1].0 - p[i].0)).collect();
+    let mut m = vec![0.0; n];
+    m[0] = d[0];
+    m[n - 1] = d[n - 2];
+    for i in 1..n - 1 {
+        m[i] = if d[i - 1] * d[i] <= 0.0 { 0.0 } else { (d[i - 1] + d[i]) / 2.0 };
+    }
+    for i in 0..n - 1 {
+        if d[i] == 0.0 {
+            m[i] = 0.0;
+            m[i + 1] = 0.0;
+            continue;
+        }
+        let (a, b) = (m[i] / d[i], m[i + 1] / d[i]);
+        let s = a * a + b * b;
+        if s > 9.0 {
+            let t = 3.0 / s.sqrt();
+            m[i] = t * a * d[i];
+            m[i + 1] = t * b * d[i];
+        }
+    }
+    for (x, out) in lut.iter_mut().enumerate() {
+        let xf = x as f64;
+        let y = if xf <= p[0].0 {
+            p[0].1
+        } else if xf >= p[n - 1].0 {
+            p[n - 1].1
+        } else {
+            let i = (0..n - 1).find(|&i| xf <= p[i + 1].0).unwrap_or(n - 2);
+            let h = p[i + 1].0 - p[i].0;
+            let t = (xf - p[i].0) / h;
+            let (t2, t3) = (t * t, t * t * t);
+            (2.0 * t3 - 3.0 * t2 + 1.0) * p[i].1 + (t3 - 2.0 * t2 + t) * h * m[i] + (-2.0 * t3 + 3.0 * t2) * p[i + 1].1 + (t3 - t2) * h * m[i + 1]
+        };
+        *out = y.round().clamp(0.0, 255.0) as u8;
+    }
+    lut
+}
+
+fn rgb_to_hsl(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
+    let (mx, mn) = (r.max(g).max(b), r.min(g).min(b));
+    let l = (mx + mn) / 2.0;
+    if mx == mn {
+        return (0.0, 0.0, l);
+    }
+    let d = mx - mn;
+    let s = if l > 0.5 { d / (2.0 - mx - mn) } else { d / (mx + mn) };
+    let h = if mx == r { (g - b) / d + if g < b { 6.0 } else { 0.0 } } else if mx == g { (b - r) / d + 2.0 } else { (r - g) / d + 4.0 };
+    (h * 60.0, s, l)
+}
+
+fn hsl_to_rgb(h: f64, s: f64, l: f64) -> (f64, f64, f64) {
+    if s == 0.0 {
+        return (l, l, l);
+    }
+    let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
+    let p = 2.0 * l - q;
+    let f = |t: f64| {
+        let t = t.rem_euclid(1.0);
+        if t < 1.0 / 6.0 {
+            p + (q - p) * 6.0 * t
+        } else if t < 0.5 {
+            q
+        } else if t < 2.0 / 3.0 {
+            p + (q - p) * (2.0 / 3.0 - t) * 6.0
+        } else {
+            p
+        }
+    };
+    let h = h / 360.0;
+    (f(h + 1.0 / 3.0), f(h), f(h - 1.0 / 3.0))
+}
+
+/// Applies `a` to an RGBA picture in place; alpha is kept.
+pub fn apply_adjust(img: &mut RgbaImage, a: &Adjust) {
+    let e = a.tones();
+    if e.is_tonal() {
+        adjust(img, &e);
+    }
+    let lut = (a.curve.len() >= 2).then(|| curve_lut(&a.curve));
+    let hue = a.hue.clamp(-180.0, 180.0);
+    let light = (a.lightness / 100.0).clamp(-1.0, 1.0);
+    if lut.is_none() && hue == 0.0 && light == 0.0 && !a.black_white {
+        return;
+    }
+    for p in img.pixels_mut() {
+        if let Some(l) = &lut {
+            for k in 0..3 {
+                p[k] = l[p[k] as usize];
+            }
+        }
+        let mut c = [p[0] as f64 / 255.0, p[1] as f64 / 255.0, p[2] as f64 / 255.0];
+        if hue != 0.0 {
+            let (h, s, l) = rgb_to_hsl(c[0], c[1], c[2]);
+            let (r, g, b) = hsl_to_rgb(h + hue, s, l);
+            c = [r, g, b];
+        }
+        if light != 0.0 {
+            for v in c.iter_mut() {
+                *v = if light > 0.0 { *v + (1.0 - *v) * light } else { *v * (1.0 + light) };
+            }
+        }
+        if a.black_white {
+            let y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+            c = [y, y, y];
+        }
+        for (k, v) in c.iter().enumerate() {
+            p[k] = (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+        }
+    }
+}
+
+/// The adjusted picture as a file for a view asset: JPEG (quality 92) when the source is a JPEG without
+/// transparency, PNG otherwise, with `ppi` kept. Also returns the extension and the pixel size.
+pub fn adjusted(src: &[u8], a: &Adjust, ppi: Option<f64>) -> Result<(Vec<u8>, &'static str, (u32, u32)), String> {
+    let img = image::load_from_memory(src).map_err(|err| format!("cannot read the picture to adjust: {err}"))?;
+    let alpha = img.color().has_alpha();
+    let mut rgba = img.to_rgba8();
+    apply_adjust(&mut rgba, a);
+    let size = rgba.dimensions();
+    let jpeg = src.starts_with(&[0xFF, 0xD8]) && !alpha;
+    let bytes = encode(&DynamicImage::ImageRgba8(rgba), jpeg, ppi, 92)?;
+    Ok((bytes, if jpeg { "jpg" } else { "png" }, size))
+}
+
+/// The adjusted picture no larger than `max_side`, as a JPEG (PNG with transparency), for a dialog's preview.
+pub fn adjusted_preview(src: &[u8], a: &Adjust, max_side: u32) -> Result<(Vec<u8>, &'static str, (u32, u32)), String> {
+    let img = image::load_from_memory(src).map_err(|err| format!("cannot read the picture to adjust: {err}"))?;
+    let (w, h) = img.dimensions();
+    let alpha = img.color().has_alpha();
+    let k = (max_side.max(16) as f64 / w.max(h) as f64).min(1.0);
+    let small = if k < 1.0 { img.resize((w as f64 * k).round().max(1.0) as u32, (h as f64 * k).round().max(1.0) as u32, image::imageops::FilterType::Triangle) } else { img };
+    let mut rgba = small.to_rgba8();
+    apply_adjust(&mut rgba, a);
+    let size = rgba.dimensions();
+    let bytes = encode(&DynamicImage::ImageRgba8(rgba), !alpha, None, 85)?;
+    Ok((bytes, if alpha { "image/png" } else { "image/jpeg" }, size))
+}
+
 /// A PNG with a pHYs chunk after IHDR carrying `ppi`, so the edited copy places at the original's size.
 fn png_with_density(png: Vec<u8>, ppi: f64) -> Vec<u8> {
     if png.len() < 33 || &png[12..16] != b"IHDR" {
