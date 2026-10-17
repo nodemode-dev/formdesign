@@ -14,7 +14,7 @@ log = logging.getLogger("formdes.ws")
 JSON_METHODS = {"exec", "batch", "commands", "inspect", "state", "layout", "overlays", "pointer", "key", "text", "cursor",
                 "tool", "tools", "docs.activate", "docs.close", "fonts.families", "fonts.styles", "fonts.face", "story.paras", "objectStyles", "findChange", "spellMarks", "spellSuggest", "spellCheck", "spellLanguages", "pathType", "preflight", "hello", "ping", "slots",
                 "frame.thread", "frame.unthread", "web"}
-BINARY_METHODS = {"tiles", "page.png", "serialize"}
+BINARY_METHODS = {"tiles", "page.png", "artboard.png", "serialize"}
 ROUTED = {"file.save", "file.saveAs", "file.new", "file.open"}
 
 
@@ -48,6 +48,19 @@ async def page_png(page: int = 0, maxSide: float | None = Query(default=None), s
         params["maxSide"] = maxSide
     try:
         r = await core.call("page.png", params, source="rest")
+    except CoreError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return Response(r.bin or b"", media_type=r.result.get("mime", "image/png"), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/core/artboard.png")
+async def artboard_png(artboard: str = "0", maxSide: float | None = Query(default=None), scale: float = 1.0, format: str = "png"):
+    key: int | str = int(artboard) if artboard.isdigit() else artboard
+    params = {"artboard": key, "scale": scale, "format": format}
+    if maxSide:
+        params["maxSide"] = maxSide
+    try:
+        r = await core.call("artboard.png", params, source="rest")
     except CoreError as exc:
         raise HTTPException(422, str(exc)) from exc
     return Response(r.bin or b"", media_type=r.result.get("mime", "image/png"), headers={"Cache-Control": "no-store"})

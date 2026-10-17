@@ -606,6 +606,11 @@ export class Viewport {
       for (const r of ov.bleed ?? []) rect(h, r);
       h.strokeStyle = c.margin ?? '#d946ef';
       for (const r of ov.margins ?? []) rect(h, r);
+      h.strokeStyle = '#9ca3af';
+      for (const a of ov.artboards ?? []) {
+        rect(h, a.rect);
+        if (a.name) this.label(h, String(a.name), X(a.rect[0]), Y(a.rect[1]) - 6 * dpr);
+      }
       h.strokeStyle = c.column ?? '#8b5cf6';
       for (const l of ov.columns ?? []) line(h, l[0], l[1], l[2], l[3]);
       if (this.opts.baseline) {
