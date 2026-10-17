@@ -500,3 +500,10 @@ InDesign's most-requested missing feature after table and footnote fixes (UserVo
 - logged: v0.54.0 · 2026-10-17
 
 The drawing mode (Draw Behind, Draw Inside) and the isolated group live in the engine's tool state and reach the window with the `state` the editor already polls; switching either bumps the engine's selection revision, so no new event is needed. The chip is created once at install and sits directly after the flexible hint, so when its text appears only the hint gives up room and nothing else in the status bar moves (placed before the version label it pushed the renderer chip 92 px, caught by the throttled check); it is hidden while empty. Clicking it leaves isolation, or returns drawing to normal. The isolation veil is painted on the highlight canvas from the overlay's `isolated` rectangle (the group's bounds), so entering and leaving costs no DOM work and selection handles stay above it.
+
+### features/artboards.ts · artboard outlines and PNG export
+- refers-to: frontend/src/features/artboards.ts :: installArtboards, exportArtboards; frontend/src/editor/viewport.ts :: drawOverlays (artboards); backend/app/routers/core_api.py :: artboard_png
+- kind: rationale
+- logged: v0.59.0 · 2026-10-17
+
+Artboards are document data in the core (`artboard.*` commands); the window only draws what the overlay lists and asks the engine for pixels. Outlines and names are stroked on the highlight canvas with the guides (hidden in preview), so adding or moving an artboard costs no DOM work. Export asks `artboard.list`, then fetches `GET /api/core/artboard.png` per artboard at 2x and clicks a detached download anchor; nothing is inserted into the page, so the throttled check saw no layout change. It answers for the active document, so a window with several Untitled documents open exports the one in front (a probe that ran against a fresh document without artboards got the toast and no downloads, which first looked like a lost click).
