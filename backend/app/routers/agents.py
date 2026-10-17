@@ -64,6 +64,14 @@ async def agents_decide(aid: str, body: Decision, request: Request):
     return {"ok": True}
 
 
+@router.post("/agents/turn")
+async def agents_turn_end(request: Request):
+    """Ends the agents' open turns: their next changes start a new undo step. Claude Code's UserPromptSubmit hook in
+    this repository calls it, so one prompt's work is one Undo. It can only split undo steps, never merge or drop them."""
+    _guard(request)
+    return {"ended": A.end_turns()}
+
+
 @router.post("/agents/install")
 async def agents_install(body: Install, request: Request):
     _guard(request)

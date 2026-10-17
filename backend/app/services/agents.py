@@ -25,6 +25,32 @@ activity: deque = deque(maxlen=200)
 approvals: dict[str, dict] = {}
 _seq = 0
 
+# One undo step per agent turn. A turn is an agent's run of tool calls: it ends when the person's own Claude Code
+# sends a new prompt (the repo's UserPromptSubmit hook posts /api/agents/turn) or after TURN_IDLE seconds without a
+# call from that agent, the fallback for clients without a hook. The core keeps a turn's changes in one undo entry
+# only while that entry is on top, so a person's edit in between always stays its own step.
+TURN_IDLE = 120.0
+_turns: dict[str, list] = {}
+
+
+def turn_key(who: str) -> str:
+    """The turn key for a call from `who` (an MCP session id, or the client's name without one)."""
+    now = time.monotonic()
+    t = _turns.setdefault(who, [0, 0.0])
+    if now - t[1] > TURN_IDLE:
+        t[0] += 1
+    t[1] = now
+    return f"{who}#{t[0]}"
+
+
+def end_turns(who: str | None = None) -> int:
+    """Ends `who`'s open turn, or every open turn, so the next change starts a new undo step. Returns how many were open."""
+    picked = [t for k, t in _turns.items() if who is None or k == who]
+    n = sum(1 for t in picked if t[1])
+    for t in picked:
+        t[1] = 0.0
+    return n
+
 
 def _read() -> dict:
     try:

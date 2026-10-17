@@ -13,7 +13,7 @@ from app.autolayout import make as M
 from app.autolayout import rank as R
 from app.autolayout import slots as S
 from app.core import config
-from app.engine.core import CoreError, core
+from app.engine.core import CoreError, core, turn_var
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
@@ -758,7 +758,7 @@ async def _book(a: dict) -> dict:
         return _fail(str(exc))
 
 
-async def call_tool(name: str, args: dict, client: str = "Unknown client") -> dict:
+async def call_tool(name: str, args: dict, client: str = "Unknown client", session: str | None = None) -> dict:
     if not agents_enabled():
         return _fail("Agent access to FormDesign is turned off. Turn it on in FormDesign under Window > Agent Connect (or Preferences > Agents).")
     pol = A.policy(client)
@@ -774,12 +774,16 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client") -> di
     _status["last"] = name
     _status["at"] = time.time()
     t0, rev0 = time.perf_counter(), core.rev
+    # Every change this call makes joins the agent's current turn, so Undo takes back a turn at once.
+    token = turn_var.set(A.turn_key(session or client))
     try:
         out = await _run(name, args)
     except CoreError as exc:
         out = _fail(f"{exc}")
     except (ValueError, KeyError, TypeError, OSError) as exc:
         out = _fail(f"{exc.__class__.__name__}: {exc}")
+    finally:
+        turn_var.reset(token)
     first = next((c.get("text", "") for c in out.get("content", []) if c.get("type") == "text"), "image")
     A.record(client, name, args, not out.get("isError"), (time.perf_counter() - t0) * 1000, first, rev0)
     return out
@@ -821,7 +825,7 @@ async def mcp(request: Request) -> Response:
         out = _ok(req_id, {"tools": TOOLS}, modern)
     elif method == "tools/call":
         name, args = params.get("name"), params.get("arguments") or {}
-        out = _ok(req_id, await call_tool(name, args, client), modern) if name in NAMES and isinstance(args, dict) else _err(req_id, -32602, f"No tool named {name}")
+        out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id")), modern) if name in NAMES and isinstance(args, dict) else _err(req_id, -32602, f"No tool named {name}")
     else:
         out = _err(req_id, -32601, f"Method not found: {method}")
     if new_sid:

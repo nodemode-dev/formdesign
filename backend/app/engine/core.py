@@ -3,12 +3,18 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
 from app.core import config
 
 log = logging.getLogger("formdes.core")
+
+# The agent turn the running MCP tool belongs to (set by routers/mcp.call_tool). Requests that change the document
+# carry it as `turn`, and the core folds one turn's changes into one undo entry.
+turn_var: ContextVar[str | None] = ContextVar("formdes_turn", default=None)
+TURN_METHODS = ("exec", "batch", "text", "key", "pointer", "findChange")
 
 
 class CoreError(Exception):
@@ -114,6 +120,9 @@ class Core:
     async def call(self, method: str, params: dict | None = None, *, source: str = "engine", timeout: float = 300) -> Reply:
         if self.guard is not None and source != "guard" and method in ("exec", "batch", "text", "key", "pointer", "findChange"):
             await self.guard(method, params or {}, source)
+        turn = turn_var.get()
+        if turn and method in TURN_METHODS:
+            params = {**(params or {}), "turn": turn}
         async with self.lock:
             if not self.alive():
                 if self.proc is not None:

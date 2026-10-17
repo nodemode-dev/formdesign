@@ -414,6 +414,9 @@ async def _loop(uid: int, text: str, page: int | None, emit) -> None:
     A.clients.setdefault(CLIENT, {"name": CLIENT, "version": None, "transport": "assistant", "firstSeen": time.time(), "lastSeen": 0.0, "calls": 0})["lastSeen"] = time.time()
     conv.append({"role": "user", "text": f"{text}\n\n{await context(page)}"})
     log.append({"kind": "user", "text": text})
+    # Each message the person sends starts a turn: everything the assistant changes answering it is one Undo.
+    turn = f"{CLIENT}:{uid}"
+    A.end_turns(turn)
     tools = _tools_spec()
     system = SYSTEM + "\n\n" + mcp.INSTRUCTIONS
     open_calls: dict[str, dict] = {}
@@ -434,7 +437,7 @@ async def _loop(uid: int, text: str, page: int | None, emit) -> None:
                 if c["name"] not in mcp.NAMES:
                     out = mcp._fail(f"No tool named {c['name']}. The tools are: {', '.join(sorted(mcp.NAMES))}")
                 else:
-                    out = await mcp.call_tool(c["name"], c["args"], CLIENT)
+                    out = await mcp.call_tool(c["name"], c["args"], CLIENT, turn)
                 blocks = _blocks(out)
                 note = next((b["text"] for b in blocks if b["type"] == "text"), "image")[:240]
                 conv.append({"role": "tool", "id": c["id"], "name": c["name"], "content": blocks, "error": bool(out.get("isError"))})
