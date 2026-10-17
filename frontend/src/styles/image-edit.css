@@ -1,0 +1,16 @@
+/* Edit Image (Object > Image > Edit Image...): the picture with its crop, the result, and the tone sliders. Sizes are
+   fixed so moving a slider repaints the two canvases and nothing else. */
+.ie-wrap { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: var(--space-3); font-size: var(--fs-12); color: var(--text-secondary); }
+.ie-left { display: flex; flex-direction: column; gap: var(--space-1); }
+.ie-pic { display: block; width: 440px; height: 300px; border-radius: var(--radius); background: var(--bg-secondary); cursor: crosshair; touch-action: none; }
+.ie-hint { margin: 0; }
+.ie-right { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.ie-res { display: block; width: 220px; height: 150px; border-radius: var(--radius); background: var(--bg-secondary); }
+.ie-turns { display: flex; align-items: center; gap: var(--space-1); }
+.ie-reset { margin-left: auto; }
+.ie-sliders { display: flex; flex-direction: column; gap: 2px; }
+.ie-row { display: grid; grid-template-columns: 82px minmax(0, 1fr) 40px; align-items: center; gap: var(--space-1); min-height: 26px; }
+.ie-row input { width: 100%; min-width: 0; }
+.ie-name { color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ie-val { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 800px) { .ie-wrap { grid-template-columns: 1fr; } .ie-pic { width: 100%; height: auto; aspect-ratio: 44 / 30; } }
