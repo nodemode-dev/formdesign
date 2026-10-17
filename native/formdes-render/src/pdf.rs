@@ -44,9 +44,9 @@ pub struct PdfOpts {
     pub plate: Option<u8>,
     /// PDF/X-1a: every colour is written as CMYK or grey (RGB and Lab are converted with the plain formula).
     pub cmyk_only: bool,
-    /// Write gradient meshes as small filled quads instead of Type 7 shadings (PDF/X, where the shading's RGB
-    /// form would not follow the output intent).
-    pub mesh_quads: bool,
+    /// Write gradient mesh shadings in DeviceCMYK (PDF/X, where an RGB shading would not follow the CMYK output
+    /// intent); CMYK-only output does this too.
+    pub mesh_cmyk: bool,
 }
 
 fn kpath(p: &BezPath) -> Option<Path> {
@@ -391,8 +391,9 @@ fn today() -> krilla::metadata::DateTime {
 }
 
 /// A one-page PDF holding a mesh as a Type 7 (tensor-product patch) shading clipped to `clip`, sized to the clip's
-/// box, and that box in page coordinates. The page is drawn in place as a form, so the mesh stays vector.
-fn mesh_pdf(patches: &[crate::scene::MeshPatch], clip: &BezPath) -> Option<(Vec<u8>, kurbo::Rect)> {
+/// box, and that box in page coordinates. The page is drawn in place as a form, so the mesh stays vector. With
+/// `cmyk` the corner colours go out as DeviceCMYK by the same conversion as the rest of a CMYK page.
+fn mesh_pdf(patches: &[crate::scene::MeshPatch], clip: &BezPath, cmyk: bool) -> Option<(Vec<u8>, kurbo::Rect)> {
     use kurbo::Shape as _;
     use pdf_writer::{Content, Finish, Name, Pdf, Rect as PRect, Ref};
     let r = clip.bounding_box();
@@ -419,8 +420,17 @@ fn mesh_pdf(patches: &[crate::scene::MeshPatch], clip: &BezPath) -> Option<(Vec<
             }
         }
         for c in &pt.colors {
-            for v in c {
-                data.extend_from_slice(&(((v.clamp(0.0, 1.0)) * u16::MAX as f64).round() as u16).to_be_bytes());
+            let comps: Vec<f64> = if cmyk {
+                match cmyk_color(Color::Rgb(*c)) {
+                    Color::Cmyk(k) => k.to_vec(),
+                    Color::Gray(g) => vec![0.0, 0.0, 0.0, 1.0 - g],
+                    other => other.to_rgb().to_vec(),
+                }
+            } else {
+                c.to_vec()
+            };
+            for v in comps {
+                data.extend_from_slice(&((v.clamp(0.0, 1.0) * u16::MAX as f64).round() as u16).to_be_bytes());
             }
         }
     }
@@ -471,11 +481,17 @@ fn mesh_pdf(patches: &[crate::scene::MeshPatch], clip: &BezPath) -> Option<(Vec<
     pdf.stream(body, &content.finish());
     let mut sh = pdf.stream_shading(shade, &data);
     sh.shading_type(pdf_writer::writers::StreamShadingType::TensorProductPatch);
-    sh.color_space().device_rgb();
+    if cmyk {
+        sh.color_space().device_cmyk();
+    } else {
+        sh.color_space().device_rgb();
+    }
     sh.bits_per_coordinate(32);
     sh.bits_per_component(16);
     sh.bits_per_flag(8);
-    sh.decode([x0, x1, y0, y1, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]);
+    let mut decode = vec![x0, x1, y0, y1];
+    decode.extend(std::iter::repeat_n([0.0, 1.0], if cmyk { 4 } else { 3 }).flatten());
+    sh.decode(decode);
     sh.anti_alias(true);
     sh.finish();
     Some((pdf.finish(), r))
@@ -487,13 +503,13 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
     let profile = opts.cmyk_profile.as_deref().and_then(krilla::icc::ICCProfile::<4>::new);
     let converted: Vec<PageScene>;
     let scenes: &[PageScene] = if opts.cmyk_only {
-        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: cmyk_ops(&crate::scene::flat_meshes(&s.ops)) }).collect();
+        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: cmyk_ops(&s.ops) }).collect();
         &converted
     } else if (archival || ua) && profile.is_none() {
         converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: rgb_ops(&crate::scene::flat_meshes(&s.ops)) }).collect();
         &converted
-    } else if archival || ua || opts.plate.is_some() || opts.mesh_quads {
-        // Validated and separated output keeps meshes as quads: the true shading is an embedded page in RGB.
+    } else if archival || ua || opts.plate.is_some() {
+        // Validated (PDF/A, PDF/UA) and separated output keeps meshes as quads: the shading is an embedded page.
         converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: crate::scene::flat_meshes(&s.ops) }).collect();
         &converted
     } else {
@@ -609,7 +625,7 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
                     }
                     Op::Pop => surface.pop(),
                     Op::Mesh { patches, clip, .. } => {
-                        if let Some((bytes, r)) = mesh_pdf(patches, clip)
+                        if let Some((bytes, r)) = mesh_pdf(patches, clip, opts.cmyk_only || opts.mesh_cmyk)
                             && let Ok(src) = krilla::pdf::Pdf::new(Arc::new(bytes))
                             && let Some(sz) = Size::from_wh(r.width() as f32, r.height() as f32)
                         {

@@ -415,7 +415,7 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
         standard = None;
     }
     let tagged = args::opt_bool(p, "tagged").unwrap_or(false) || standard.as_deref().is_some_and(|s| s.contains("ua") || s.contains("UA") || s.ends_with('a'));
-    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: if pdfx.is_some() { None } else { cmyk_profile(c) }, marks, mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), plate: None, cmyk_only: pdfx == Some("x1a"), mesh_quads: pdfx.is_some() };
+    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: if pdfx.is_some() { None } else { cmyk_profile(c) }, marks, mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), plate: None, cmyk_only: pdfx == Some("x1a"), mesh_cmyk: pdfx.is_some() };
     if let Some(level) = pdfx
         && level != "x4"
     {
