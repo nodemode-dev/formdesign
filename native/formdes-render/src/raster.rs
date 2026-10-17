@@ -203,6 +203,7 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
                 ctx.push_mask_layer(Mask::new_luminance(&pm));
             }
             Op::Pop => ctx.pop_layer(),
+            Op::Mesh { fallback, .. } => draw_ops(ctx, fallback, env),
             Op::Link { .. } | Op::Tag(_) => {}
         }
     }

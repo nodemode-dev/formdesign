@@ -485,6 +485,7 @@ dependencies = [
  "image",
  "krilla",
  "kurbo",
+ "pdf-writer",
  "serde_json",
  "skrifa 0.46.2",
  "vello_cpu 0.2.0",

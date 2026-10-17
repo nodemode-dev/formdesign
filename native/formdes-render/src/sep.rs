@@ -24,7 +24,8 @@ pub fn plate_brush(doc: &Doc, b: &Brush, plate: u8) -> Brush {
 /// The scene's ops with every colour replaced by its density on `plate` (images are separated when drawn, see
 /// `plate_rgba`). Soft masks are left alone: they hold greys that must stay as they are.
 pub fn plate_ops(doc: &Doc, ops: &[Op], plate: u8) -> Vec<Op> {
-    ops.iter()
+    crate::scene::flat_meshes(ops)
+        .iter()
         .map(|op| match op {
             Op::Fill { path, brush, even_odd } => Op::Fill { path: path.clone(), brush: plate_brush(doc, brush, plate), even_odd: *even_odd },
             Op::Stroke { path, brush, style } => Op::Stroke { path: path.clone(), brush: plate_brush(doc, brush, plate), style: style.clone() },
@@ -48,7 +49,7 @@ pub fn plate_used(doc: &Doc, ops: &[Op], plate: u8) -> bool {
             Brush::Linear { stops, .. } | Brush::Radial { stops, .. } => stops.iter().any(|(_, c, _)| any(c)),
         }
     };
-    ops.iter().any(|op| match op {
+    crate::scene::flat_meshes(ops).iter().any(|op| match op {
         Op::Fill { brush, .. } | Op::Stroke { brush, .. } => hit(brush),
         Op::Glyphs(g) => g.fill.as_ref().is_some_and(&hit) || g.stroke.as_ref().is_some_and(|(b, _)| hit(b)),
         Op::Image { .. } => plate < 4,

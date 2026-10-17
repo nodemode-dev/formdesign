@@ -17,6 +17,7 @@ vello_cpu = { version = "0.2", default-features = false, features = ["std", "png
 krilla = { version = "0.8", default-features = false, features = ["raster-images", "pdf"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "tiff", "bmp"] }
 hayro = "0.7"
+pdf-writer = "0.15"
 
 [lints.rust]
 unsafe_code = "forbid"

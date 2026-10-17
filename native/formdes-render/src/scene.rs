@@ -154,6 +154,30 @@ pub enum Op {
     Pop,
     Link { rect: Rect, target: LinkTarget },
     Tag(Tagging),
+    /// A gradient mesh: its exact bicubic patches inside `clip` for writers with mesh shadings (PDF), and the same
+    /// picture as small filled quads in `fallback` for everything else (raster, SVG, separations, CMYK).
+    Mesh { patches: Vec<MeshPatch>, clip: BezPath, fallback: Vec<Op> },
+}
+
+/// One tensor-product patch of a mesh in page coordinates: 16 control points in the order of a PDF Type 7
+/// shading (p00 p01 p02 p03 p13 p23 p33 p32 p31 p30 p20 p10 p11 p12 p22 p21, first index along the mesh's
+/// columns) and the RGB colours at its corners p00, p03, p33, p30.
+#[derive(Clone, Debug)]
+pub struct MeshPatch {
+    pub pts: [Point; 16],
+    pub colors: [[f64; 3]; 4],
+}
+
+/// The ops with each mesh replaced by its fallback quads, for consumers that draw or convert plain ops.
+pub fn flat_meshes(ops: &[Op]) -> Vec<Op> {
+    let mut out = Vec::with_capacity(ops.len());
+    for op in ops {
+        match op {
+            Op::Mesh { fallback, .. } => out.extend(flat_meshes(fallback)),
+            other => out.push(other.clone()),
+        }
+    }
+    out
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1061,6 +1085,7 @@ impl Ctx<'_> {
             let q = cr(&points, s, t);
             Point::new(bb.x0 + q[0] * bb.width(), bb.y0 + q[1] * bb.height())
         };
+        let start = self.ops.len();
         self.ops.push(Op::PushClip(path.clone()));
         for j in 0..rows * sub {
             for i in 0..cols * sub {
@@ -1084,6 +1109,76 @@ impl Ctx<'_> {
             }
         }
         self.ops.push(Op::Pop);
+        let fallback = self.ops.split_off(start);
+        // The surface is uniform Catmull-Rom between the points, which is exactly a bicubic Bezier patch per cell:
+        // each control point is the 1D conversion (P1, P1 + (P2 - P0) / 6, P2 - (P3 - P1) / 6, P2) applied along
+        // both directions, with the grid clamped at its edges as `cr` clamps it.
+        const M: [[f64; 4]; 4] = [[0.0, 1.0, 0.0, 0.0], [-1.0 / 6.0, 1.0, 1.0 / 6.0, 0.0], [0.0, 1.0 / 6.0, 1.0, -1.0 / 6.0], [0.0, 0.0, 1.0, 0.0]];
+        const ORDER: [(usize, usize); 16] = [(0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (3, 3), (3, 2), (3, 1), (3, 0), (2, 0), (1, 0), (1, 1), (1, 2), (2, 2), (2, 1)];
+        let grid = |i: isize, j: isize| -> Point {
+            let q = &points[(j.clamp(0, rows as isize) as usize) * (cols + 1) + i.clamp(0, cols as isize) as usize];
+            Point::new(bb.x0 + q[0] * bb.width(), bb.y0 + q[1] * bb.height())
+        };
+        let mut patches = Vec::with_capacity(cols * rows);
+        for cj in 0..rows {
+            for ci in 0..cols {
+                let mut net = [[Point::ZERO; 4]; 4];
+                for (a, ma) in M.iter().enumerate() {
+                    for (b, mb) in M.iter().enumerate() {
+                        let (mut x, mut y) = (0.0, 0.0);
+                        for (k, wk) in ma.iter().enumerate() {
+                            for (l, wl) in mb.iter().enumerate() {
+                                if *wk == 0.0 || *wl == 0.0 {
+                                    continue;
+                                }
+                                let p = grid(ci as isize - 1 + k as isize, cj as isize - 1 + l as isize);
+                                x += wk * wl * p.x;
+                                y += wk * wl * p.y;
+                            }
+                        }
+                        net[a][b] = xf * Point::new(x, y);
+                    }
+                }
+                // A PDF patch mixes its four corner colours bilinearly, while the picture mixes them bicubically
+                // across the grid; each cell is cut into K by K exact sub-patches (de Casteljau on the net) whose
+                // corners take the bicubic colour, which matches the raster without visible creases.
+                const K: usize = 4;
+                let seg = |c: [Point; 4], t0: f64, t1: f64| -> [Point; 4] {
+                    let split = |c: [Point; 4], t: f64| -> ([Point; 4], [Point; 4]) {
+                        let l = |a: Point, b: Point| a.lerp(b, t);
+                        let (ab, bc, cd) = (l(c[0], c[1]), l(c[1], c[2]), l(c[2], c[3]));
+                        let (abc, bcd) = (l(ab, bc), l(bc, cd));
+                        let m = l(abc, bcd);
+                        ([c[0], ab, abc, m], [m, bcd, cd, c[3]])
+                    };
+                    let left = split(c, t1).0;
+                    if t1 <= 0.0 { left } else { split(left, t0 / t1).1 }
+                };
+                let tint = |s: f64, t: f64| -> [f64; 3] {
+                    let c = cr(&colors, s, t);
+                    [c[0].clamp(0.0, 1.0), c[1].clamp(0.0, 1.0), c[2].clamp(0.0, 1.0)]
+                };
+                for sv in 0..K {
+                    for su in 0..K {
+                        let (u0, u1, v0, v1) = (su as f64 / K as f64, (su + 1) as f64 / K as f64, sv as f64 / K as f64, (sv + 1) as f64 / K as f64);
+                        let mut part = [[Point::ZERO; 4]; 4];
+                        let mut cols_u = [[Point::ZERO; 4]; 4];
+                        for b in 0..4 {
+                            let c = seg([net[0][b], net[1][b], net[2][b], net[3][b]], u0, u1);
+                            for a in 0..4 {
+                                cols_u[a][b] = c[a];
+                            }
+                        }
+                        for (a, row) in cols_u.iter().enumerate() {
+                            part[a] = seg(*row, v0, v1);
+                        }
+                        let (s0, s1, t0, t1) = (ci as f64 + u0, ci as f64 + u1, cj as f64 + v0, cj as f64 + v1);
+                        patches.push(MeshPatch { pts: ORDER.map(|(a, b)| part[a][b]), colors: [tint(s0, t0), tint(s0, t1), tint(s1, t1), tint(s1, t0)] });
+                    }
+                }
+            }
+        }
+        self.ops.push(Op::Mesh { patches, clip: path.clone(), fallback });
         true
     }
 

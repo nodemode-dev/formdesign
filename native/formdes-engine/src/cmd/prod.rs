@@ -548,7 +548,9 @@ fn export_svg(c: &mut Ctx, p: &Value) -> Result<Value> {
     let mut defs = String::new();
     let mut n = 0usize;
     let mut open: Vec<&str> = Vec::new();
-    for op in &scene.ops {
+    // SVG has no mesh gradient that browsers draw, so meshes go out as their quads.
+    let ops = formdes_render::scene::flat_meshes(&scene.ops);
+    for op in &ops {
         match op {
             Op::Fill { path, brush, even_odd } => {
                 let (f, a) = paint_attr(brush, &mut defs, &mut n);
@@ -616,7 +618,7 @@ fn export_svg(c: &mut Ctx, p: &Value) -> Result<Value> {
                     body.push_str("</g>");
                 }
             }
-            Op::Tag(_) => {}
+            Op::Tag(_) | Op::Mesh { .. } => {}
             Op::Link { rect, target } => {
                 let href = match target {
                     formdes_render::scene::LinkTarget::Url(u) => esc(u),

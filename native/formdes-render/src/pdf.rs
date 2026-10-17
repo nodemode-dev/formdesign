@@ -44,6 +44,9 @@ pub struct PdfOpts {
     pub plate: Option<u8>,
     /// PDF/X-1a: every colour is written as CMYK or grey (RGB and Lab are converted with the plain formula).
     pub cmyk_only: bool,
+    /// Write gradient meshes as small filled quads instead of Type 7 shadings (PDF/X, where the shading's RGB
+    /// form would not follow the output intent).
+    pub mesh_quads: bool,
 }
 
 fn kpath(p: &BezPath) -> Option<Path> {
@@ -387,16 +390,111 @@ fn today() -> krilla::metadata::DateTime {
     krilla::metadata::DateTime::new(y as u16).month(m as u8).day(d as u8).hour((rem / 3600) as u8).minute(((rem % 3600) / 60) as u8).second((rem % 60) as u8)
 }
 
+/// A one-page PDF holding a mesh as a Type 7 (tensor-product patch) shading clipped to `clip`, sized to the clip's
+/// box, and that box in page coordinates. The page is drawn in place as a form, so the mesh stays vector.
+fn mesh_pdf(patches: &[crate::scene::MeshPatch], clip: &BezPath) -> Option<(Vec<u8>, kurbo::Rect)> {
+    use kurbo::Shape as _;
+    use pdf_writer::{Content, Finish, Name, Pdf, Rect as PRect, Ref};
+    let r = clip.bounding_box();
+    if patches.is_empty() || r.width() <= 0.0 || r.height() <= 0.0 {
+        return None;
+    }
+    let h = r.height();
+    // Page space: origin at the clip box's bottom-left, y up.
+    let tx = |p: kurbo::Point| ((p.x - r.x0) as f32, (h - (p.y - r.y0)) as f32);
+    let (mut x0, mut y0, mut x1, mut y1) = (f32::MAX, f32::MAX, f32::MIN, f32::MIN);
+    for p in patches.iter().flat_map(|pt| pt.pts.iter()) {
+        let (x, y) = tx(*p);
+        (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x), y1.max(y));
+    }
+    let (x1, y1) = (x1.max(x0 + 1.0), y1.max(y0 + 1.0));
+    let mut data = Vec::with_capacity(patches.len() * (1 + 16 * 8 + 4 * 6));
+    for pt in patches {
+        data.push(0u8);
+        for p in &pt.pts {
+            let (x, y) = tx(*p);
+            for (v, lo, hi) in [(x, x0, x1), (y, y0, y1)] {
+                let share = ((v - lo) as f64 / (hi - lo) as f64).clamp(0.0, 1.0);
+                data.extend_from_slice(&((share * u32::MAX as f64).round() as u32).to_be_bytes());
+            }
+        }
+        for c in &pt.colors {
+            for v in c {
+                data.extend_from_slice(&(((v.clamp(0.0, 1.0)) * u16::MAX as f64).round() as u16).to_be_bytes());
+            }
+        }
+    }
+    let mut content = Content::new();
+    let (mut start, mut prev) = (kurbo::Point::ZERO, kurbo::Point::ZERO);
+    for el in clip.elements() {
+        match *el {
+            PathEl::MoveTo(p) => {
+                let (x, y) = tx(p);
+                content.move_to(x, y);
+                (start, prev) = (p, p);
+            }
+            PathEl::LineTo(p) => {
+                let (x, y) = tx(p);
+                content.line_to(x, y);
+                prev = p;
+            }
+            PathEl::QuadTo(a, b) => {
+                let (c1, c2) = (prev + (a - prev) * (2.0 / 3.0), b + (a - b) * (2.0 / 3.0));
+                let ((ax, ay), (bx, by), (cx, cy)) = (tx(c1), tx(c2), tx(b));
+                content.cubic_to(ax, ay, bx, by, cx, cy);
+                prev = b;
+            }
+            PathEl::CurveTo(a, b, c) => {
+                let ((ax, ay), (bx, by), (cx, cy)) = (tx(a), tx(b), tx(c));
+                content.cubic_to(ax, ay, bx, by, cx, cy);
+                prev = c;
+            }
+            PathEl::ClosePath => {
+                content.close_path();
+                prev = start;
+            }
+        }
+    }
+    content.clip_nonzero();
+    content.end_path();
+    content.shading(Name(b"Sh0"));
+    let (catalog, tree, page, body, shade) = (Ref::new(1), Ref::new(2), Ref::new(3), Ref::new(4), Ref::new(5));
+    let mut pdf = Pdf::new();
+    pdf.catalog(catalog).pages(tree);
+    pdf.pages(tree).kids([page]).count(1);
+    let mut pg = pdf.page(page);
+    pg.media_box(PRect::new(0.0, 0.0, r.width() as f32, h as f32));
+    pg.parent(tree);
+    pg.contents(body);
+    pg.resources().shadings().pair(Name(b"Sh0"), shade);
+    pg.finish();
+    pdf.stream(body, &content.finish());
+    let mut sh = pdf.stream_shading(shade, &data);
+    sh.shading_type(pdf_writer::writers::StreamShadingType::TensorProductPatch);
+    sh.color_space().device_rgb();
+    sh.bits_per_coordinate(32);
+    sh.bits_per_component(16);
+    sh.bits_per_flag(8);
+    sh.decode([x0, x1, y0, y1, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]);
+    sh.anti_alias(true);
+    sh.finish();
+    Some((pdf.finish(), r))
+}
+
 pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) -> Result<Vec<u8>, String> {
     let archival = opts.standard.as_deref().is_some_and(|s| s.to_ascii_lowercase().contains('a') && !s.to_ascii_lowercase().contains("ua"));
     let ua = opts.standard.as_deref().is_some_and(|s| s.to_ascii_lowercase().contains("ua"));
     let profile = opts.cmyk_profile.as_deref().and_then(krilla::icc::ICCProfile::<4>::new);
     let converted: Vec<PageScene>;
     let scenes: &[PageScene] = if opts.cmyk_only {
-        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: cmyk_ops(&s.ops) }).collect();
+        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: cmyk_ops(&crate::scene::flat_meshes(&s.ops)) }).collect();
         &converted
     } else if (archival || ua) && profile.is_none() {
-        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: rgb_ops(&s.ops) }).collect();
+        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: rgb_ops(&crate::scene::flat_meshes(&s.ops)) }).collect();
+        &converted
+    } else if archival || ua || opts.plate.is_some() || opts.mesh_quads {
+        // Validated and separated output keeps meshes as quads: the true shading is an embedded page in RGB.
+        converted = scenes.iter().map(|s| PageScene { page: s.page, width: s.width, height: s.height, bleed: s.bleed, ops: crate::scene::flat_meshes(&s.ops) }).collect();
         &converted
     } else {
         scenes
@@ -510,6 +608,16 @@ pub fn export(scenes: &[PageScene], doc: &Doc, images: &Images, opts: &PdfOpts) 
                         surface.push_mask(krilla::mask::Mask::new(stream, krilla::mask::MaskType::Luminosity));
                     }
                     Op::Pop => surface.pop(),
+                    Op::Mesh { patches, clip, .. } => {
+                        if let Some((bytes, r)) = mesh_pdf(patches, clip)
+                            && let Ok(src) = krilla::pdf::Pdf::new(Arc::new(bytes))
+                            && let Some(sz) = Size::from_wh(r.width() as f32, r.height() as f32)
+                        {
+                            surface.push_transform(&Transform::from_translate(r.x0 as f32, r.y0 as f32));
+                            surface.draw_pdf_page(&krilla::pdf::PdfDocument::new(Arc::new(src)), sz, 0);
+                            surface.pop();
+                        }
+                    }
                     Op::Link { rect, target } => links.push((*rect, target.clone())),
                     Op::Tag(t) => {
                         use krilla::tagging::{ContentTag, SpanTag, Tag, TagGroup};

@@ -415,7 +415,7 @@ fn export_pdf(c: &mut Ctx, p: &Value) -> Result<Value> {
         standard = None;
     }
     let tagged = args::opt_bool(p, "tagged").unwrap_or(false) || standard.as_deref().is_some_and(|s| s.contains("ua") || s.contains("UA") || s.ends_with('a'));
-    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: if pdfx.is_some() { None } else { cmyk_profile(c) }, marks, mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), plate: None, cmyk_only: pdfx == Some("x1a") };
+    let popts = formdes_render::pdf::PdfOpts { title: args::opt_str(p, "title").map(str::to_string).unwrap_or_else(|| doc.title.clone()), tagged, standard, language: args::opt_str(p, "language").map(str::to_string).or_else(|| Some("en".into())), cmyk_profile: if pdfx.is_some() { None } else { cmyk_profile(c) }, marks, mark_font: renderer.fonts.any_face().map(formdes_render::pdf::MarkFont), plate: None, cmyk_only: pdfx == Some("x1a"), mesh_quads: pdfx.is_some() };
     if let Some(level) = pdfx
         && level != "x4"
     {
@@ -695,6 +695,11 @@ fn shift_op(op: &Op, d: Affine) -> Op {
         Op::Image { asset, xf, w, h } => Op::Image { asset: *asset, xf: d * *xf, w: *w, h: *h },
         Op::PushClip(p) => Op::PushClip(d * p.clone()),
         Op::PushMask(v) => Op::PushMask(v.iter().map(|o| shift_op(o, d)).collect()),
+        Op::Mesh { patches, clip, fallback } => Op::Mesh {
+            patches: patches.iter().map(|p| formdes_render::scene::MeshPatch { pts: p.pts.map(|q| d * q), colors: p.colors }).collect(),
+            clip: d * clip.clone(),
+            fallback: fallback.iter().map(|o| shift_op(o, d)).collect(),
+        },
         Op::Link { rect, target } => Op::Link { rect: d.transform_rect_bbox(*rect), target: target.clone() },
         other => other.clone(),
     }
