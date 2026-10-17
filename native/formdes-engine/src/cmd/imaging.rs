@@ -447,63 +447,134 @@ fn image_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
     }
     let mut done = Vec::new();
     for id in ids {
-        let doc = c.doc()?;
-        let it = doc.item(id).ok_or_else(|| EngineError::new(format!("no object {id}")))?;
-        let aid = it.graphic().and_then(|g| g.asset).ok_or_else(|| EngineError::new(format!("object {id} holds no picture: select a graphic frame with a placed image")))?;
-        let a = doc.assets.get(&aid).cloned().ok_or_else(|| EngineError::new(format!("no link {}", aid.0)))?;
-        let data: Vec<u8> = if a.data.is_empty() {
-            let path = a.link.clone().ok_or_else(|| EngineError::new(format!("{} has no data and no file", a.name)))?;
-            std::fs::read(&path).map_err(|err| EngineError::new(format!("cannot read {path}: {err}")))?
-        } else {
-            a.data.as_ref().clone()
-        };
-        if !a.mime.starts_with("image/") || is_pdf(&a) || psd::is_psd(&data) {
-            return Err(EngineError::new(format!("{} is not a raster picture: JPEG, PNG, GIF, WebP, BMP and TIFF can be edited here; edit PDF, PSD and media files in their own apps (Edit > Edit Original)", a.name)));
-        }
+        let (aid, a, data) = raster_of(c, id)?;
         let out = edit(&data, &e, a.ppi.map(|(x, _)| x)).map_err(EngineError::new)?;
-        // An edited copy edited again stays `name-editN`, not `name-edit-edit`.
-        let raw = std::path::Path::new(&a.name).file_stem().and_then(|s| s.to_str()).unwrap_or("picture");
-        let stem = raw.rfind("-edit").filter(|i| raw[i + 5..].chars().all(|ch| ch.is_ascii_digit())).map_or(raw, |i| &raw[..i]).to_string();
-        let name = format!("{stem}-edit.{}", out.ext);
-        let link = match &a.link {
-            Some(orig) => {
-                let dir = std::path::Path::new(orig).parent().map(|d| d.to_path_buf()).unwrap_or_default();
-                let free = (1..1000).map(|k| dir.join(if k == 1 { name.clone() } else { format!("{stem}-edit{k}.{}", out.ext) })).find(|p| !p.exists()).ok_or_else(|| EngineError::new("no free file name for the edited copy"))?;
-                std::fs::write(&free, &out.bytes).map_err(|err| EngineError::new(format!("cannot write {}: {err}", free.display())))?;
-                Some(free.to_string_lossy().to_string())
-            }
-            None => None,
-        };
-        let mut na = crate::assets::make(&name, out.bytes, link.clone(), 0)?;
-        na.ppi = a.ppi;
-        // Points per source pixel, so the kept area keeps its place and size on the page.
-        let (w, h) = a.natural_size();
-        let (kx, ky) = (w / out.source_px.0.max(1) as f64, h / out.source_px.1.max(1) as f64);
-        let [cx, cy, cw, ch] = out.crop_px.map(|v| v as f64);
-        let (nw, nh) = na.natural_size();
-        let shift = Affine::translate((cx * kx, cy * ky)) * Affine::translate(((cw * kx - nw) / 2.0, (ch * ky - nh) / 2.0));
-        let pixels = out.pixels;
-        let doc = c.doc_mut()?;
-        let new_id = doc.add_asset(na);
-        if let Some(x) = doc.item_mut(id)
-            && let formdes_model::item::ItemKind::Graphic(g) = &mut x.kind
-        {
-            g.content = g.content * shift;
-            g.asset = Some(new_id);
-        }
-        // The original stays in the document only while another frame shows it.
-        let still_used = doc.items.values().any(|x| x.graphic().and_then(|g| g.asset) == Some(aid));
-        if !still_used {
-            doc.assets.remove(&aid);
-        }
-        done.push(json!({"id": id, "asset": new_id.0, "path": link, "pixels": [pixels.0, pixels.1]}));
+        done.push(relink_copy(c, id, aid, &a, out)?);
     }
     c.label("Edit Image");
     Ok(json!({"edited": done}))
 }
 
+/// The placed raster picture in frame `id`: its asset id, the asset and its bytes (read from the linked file when
+/// the document holds only the link). PDF, PSD and media files are refused with a pointer to Edit Original.
+fn raster_of(c: &Ctx, id: ItemId) -> Result<(AssetId, Asset, Vec<u8>)> {
+    let doc = c.doc()?;
+    let it = doc.item(id).ok_or_else(|| EngineError::new(format!("no object {id}")))?;
+    let aid = it.graphic().and_then(|g| g.asset).ok_or_else(|| EngineError::new(format!("object {id} holds no picture: select a graphic frame with a placed image")))?;
+    let a = doc.assets.get(&aid).cloned().ok_or_else(|| EngineError::new(format!("no link {}", aid.0)))?;
+    let data: Vec<u8> = if a.data.is_empty() {
+        let path = a.link.clone().ok_or_else(|| EngineError::new(format!("{} has no data and no file", a.name)))?;
+        std::fs::read(&path).map_err(|err| EngineError::new(format!("cannot read {path}: {err}")))?
+    } else {
+        a.data.as_ref().clone()
+    };
+    if !a.mime.starts_with("image/") || is_pdf(&a) || psd::is_psd(&data) {
+        return Err(EngineError::new(format!("{} is not a raster picture: JPEG, PNG, GIF, WebP, BMP and TIFF can be edited here; edit PDF, PSD and media files in their own apps (Edit > Edit Original)", a.name)));
+    }
+    Ok((aid, a, data))
+}
+
+/// Writes `out` beside a linked original (`name-edit.ext`, numbered when taken) or embeds it, relinks frame `id` to
+/// it with the kept pixels where they were on the page, and drops the original asset when no frame shows it.
+fn relink_copy(c: &mut Ctx, id: ItemId, aid: AssetId, a: &Asset, out: formdes_render::pixedit::Edited) -> Result<Value> {
+    // An edited copy edited again stays `name-editN`, not `name-edit-edit`.
+    let raw = std::path::Path::new(&a.name).file_stem().and_then(|s| s.to_str()).unwrap_or("picture");
+    let stem = raw.rfind("-edit").filter(|i| raw[i + 5..].chars().all(|ch| ch.is_ascii_digit())).map_or(raw, |i| &raw[..i]).to_string();
+    let name = format!("{stem}-edit.{}", out.ext);
+    let link = match &a.link {
+        Some(orig) => {
+            let dir = std::path::Path::new(orig).parent().map(|d| d.to_path_buf()).unwrap_or_default();
+            let free = (1..1000).map(|k| dir.join(if k == 1 { name.clone() } else { format!("{stem}-edit{k}.{}", out.ext) })).find(|p| !p.exists()).ok_or_else(|| EngineError::new("no free file name for the edited copy"))?;
+            std::fs::write(&free, &out.bytes).map_err(|err| EngineError::new(format!("cannot write {}: {err}", free.display())))?;
+            Some(free.to_string_lossy().to_string())
+        }
+        None => None,
+    };
+    let mut na = crate::assets::make(&name, out.bytes, link.clone(), 0)?;
+    na.ppi = a.ppi;
+    // Points per source pixel, so the kept area keeps its place and size on the page.
+    let (w, h) = a.natural_size();
+    let (kx, ky) = (w / out.source_px.0.max(1) as f64, h / out.source_px.1.max(1) as f64);
+    let [cx, cy, cw, ch] = out.crop_px.map(|v| v as f64);
+    let (nw, nh) = na.natural_size();
+    let shift = Affine::translate((cx * kx, cy * ky)) * Affine::translate(((cw * kx - nw) / 2.0, (ch * ky - nh) / 2.0));
+    let pixels = out.pixels;
+    let doc = c.doc_mut()?;
+    let new_id = doc.add_asset(na);
+    if let Some(x) = doc.item_mut(id)
+        && let formdes_model::item::ItemKind::Graphic(g) = &mut x.kind
+    {
+        g.content = g.content * shift;
+        g.asset = Some(new_id);
+    }
+    // The original stays in the document only while another frame shows it.
+    let still_used = doc.items.values().any(|x| x.graphic().and_then(|g| g.asset) == Some(aid));
+    if !still_used {
+        doc.assets.remove(&aid);
+    }
+    Ok(json!({"id": id, "asset": new_id.0, "path": link, "pixels": [pixels.0, pixels.1]}))
+}
+
+/// Brush strokes from `{strokes: [{tool, points, radius, offset?}]}`, refusing with the fix named.
+fn strokes_of(p: &Value) -> Result<Vec<formdes_render::retouch::Stroke>> {
+    use formdes_render::retouch::{Stroke, Tool};
+    let list = p.get("strokes").and_then(Value::as_array).filter(|a| !a.is_empty()).ok_or_else(|| EngineError::new("strokes is a list of {tool: clone|heal|redEye, points: [[x, y], ...] as shares of the picture, radius: share of its longer side, offset?: [dx, dy] shares (clone and heal)}"))?;
+    let pair = |v: &Value| -> Option<(f64, f64)> {
+        let a = v.as_array()?;
+        Some((a.first()?.as_f64()?, a.get(1)?.as_f64()?))
+    };
+    let mut out = Vec::new();
+    for (i, s) in list.iter().enumerate() {
+        let tool = match s.get("tool").and_then(Value::as_str) {
+            Some("clone") => Tool::Clone,
+            Some("heal") => Tool::Heal,
+            Some("redEye") => Tool::RedEye,
+            _ => return Err(EngineError::new(format!("stroke {i}: tool is clone, heal or redEye"))),
+        };
+        let points: Vec<(f64, f64)> = s.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(pair).collect()).unwrap_or_default();
+        if points.is_empty() || points.iter().any(|p| !(-0.5..=1.5).contains(&p.0) || !(-0.5..=1.5).contains(&p.1)) {
+            return Err(EngineError::new(format!("stroke {i}: points is a list of [x, y] as shares of the picture (0 to 1)")));
+        }
+        let radius = s.get("radius").and_then(Value::as_f64).filter(|r| *r > 0.0 && *r <= 0.5).ok_or_else(|| EngineError::new(format!("stroke {i}: radius is a share of the picture's longer side, above 0 and at most 0.5")))?;
+        let offset = match (tool, s.get("offset").and_then(pair)) {
+            (Tool::RedEye, _) => (0.0, 0.0),
+            (_, Some(o)) if o != (0.0, 0.0) => o,
+            _ => return Err(EngineError::new(format!("stroke {i}: clone and heal need offset [dx, dy], where the source sits relative to the brush, as shares of the picture"))),
+        };
+        out.push(Stroke { tool, points, radius, offset });
+    }
+    Ok(out)
+}
+
+/// Retouches each selected frame's placed raster picture with brush strokes and relinks it to the result, as Edit
+/// Image does: a new file beside a linked original or a new embedded picture, never the original.
+fn image_retouch(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let strokes = strokes_of(p)?;
+    let ids = items(c, p)?;
+    let mut done = Vec::new();
+    for id in ids {
+        let (aid, a, data) = raster_of(c, id)?;
+        let out = formdes_render::retouch::retouch(&data, &strokes, a.ppi.map(|(x, _)| x)).map_err(EngineError::new)?;
+        done.push(relink_copy(c, id, aid, &a, out)?);
+    }
+    c.label("Retouch Image");
+    Ok(json!({"retouched": done}))
+}
+
+/// The strokes on a downscaled copy of the first selected frame's picture, base64, for the Retouch dialog's preview.
+fn image_retouch_preview(c: &mut Ctx, p: &Value) -> Result<Value> {
+    let strokes = if p.get("strokes").and_then(Value::as_array).is_some_and(|a| !a.is_empty()) { strokes_of(p)? } else { Vec::new() };
+    let id = *items(c, p)?.first().ok_or_else(|| EngineError::new("select a frame with a placed picture"))?;
+    let (_, _, data) = raster_of(c, id)?;
+    let side = args::opt_u64(p, "maxSide").unwrap_or(720).clamp(64, 2048) as u32;
+    let (bytes, mime, (w, h)) = formdes_render::retouch::preview(&data, &strokes, side).map_err(EngineError::new)?;
+    Ok(json!({"mime": mime, "base64": formdes_interchange::idml::b64(&bytes), "pixels": [w, h]}))
+}
+
 pub fn register(r: &mut Registry) {
     cmd("image.edit", "Edit Image").menu(&["Object", "Image", "Edit Image..."]).needs(Needs::Items).sig("{crop?: [x0, y0, x1, y1] shares of the picture (0 to 1), rotate?: 0|90|180|270 (clockwise), flipH?, flipV?, exposure?: stops -3..3, contrast?: -100..100, levels?: [black 0..255, white 0..255, gamma], saturation?: -100..100, temperature?: -100..100, ids?} (writes an edited copy beside a linked original, or embeds it, and relinks the frame)").reg(r, image_edit);
+    cmd("image.retouch", "Retouch Image").menu(&["Object", "Image", "Retouch Image..."]).needs(Needs::Items).sig("{strokes: [{tool: clone|heal|redEye, points: [[x, y], ...] shares of the picture (0 to 1), radius: share of its longer side (up to 0.5), offset?: [dx, dy] shares, where clone and heal take pixels from relative to the brush}], ids?} (writes a retouched copy beside a linked original, or embeds it, and relinks the frame)").reg(r, image_retouch);
+    cmd("image.retouchPreview", "Retouch Preview").query().needs(Needs::Items).sig("{strokes?: as image.retouch, maxSide?: px (default 720), ids?} -> {mime, base64, pixels}").reg(r, image_retouch_preview);
     cmd("object.clippingPath", "Clipping Path").menu(&["Object", "Clipping Path", "Options..."]).needs(Needs::Items).sig("{type: none|detectEdges|alphaChannel|photoshopPath, threshold?: 0-255 (detect edges: how far from the background colour or alpha counts as picture), tolerance?: pixels of smoothing, inset?: pt (negative grows), invert?, includeInsideEdges?, name?: Photoshop path name, channel?: PSD alpha channel name or index, ids?}").help("Clips a placed picture to a path: detected from the picture's edges (a flat background or its transparency), its alpha channel (or one of a PSD file's), or a Photoshop path stored in the JPEG, TIFF or PSD. The clip shows on screen, in PDF and in text wrap set to follow the clipping path.").reg(r, clipping_path);
     cmd("object.clippingInfo", "Clipping Path Info").query().needs(Needs::Items).sig("{ids?}").help("The selected picture's clipping path settings, its Photoshop path names, PSD alpha channels and whether it has transparency.").reg(r, clipping_info);
     cmd("object.clipToFrame", "Convert Clipping Path to Frame").menu(&["Object", "Clipping Path", "Convert Clipping Path to Frame"]).needs(Needs::Items).sig("{ids?}").help("Turns the clipping path into the graphic frame's shape and drops the clip.").reg(r, clip_to_frame);
