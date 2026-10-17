@@ -154,7 +154,7 @@ fn clone_or_heal(img: &mut RgbaImage, s: &Stroke, pts: &[(f64, f64)], r: f64, of
     let (w, h) = img.dimensions();
     let heal = s.tool == Tool::Heal;
     // Healing reads the light around the stroke from a ring twice the brush wide.
-    let reach = if heal { (r * 2.0).ceil() } else { 0.0 };
+    let reach = if heal { (r * 1.5).ceil() } else { 0.0 };
     let Some(m) = mask(pts, r, hardness(s.tool), reach, w, h) else { return };
     let snap = img.clone();
     let (ox, oy) = (off.0.round() as i64, off.1.round() as i64);
@@ -174,9 +174,10 @@ fn clone_or_heal(img: &mut RgbaImage, s: &Stroke, pts: &[(f64, f64)], r: f64, of
         }
         return;
     }
-    // Heal: the cloned texture plus the difference between the light around the stroke (the destination, outside
-    // the brush) and the light around the source. Weighting the destination by 1 - coverage keeps the blemish
-    // itself out of the colour the patch takes on.
+    // Heal: the cloned texture plus the difference between the light around the stroke and the light around the
+    // source, both read over the same ring (weight 1 - coverage), so the blemish stays out of the colour the patch
+    // takes on and a gradient across the window cancels. An unweighted source mean reached the blemish through
+    // the offset and lifted the patch into a light disc.
     let rr = reach as usize;
     let dst = Sums::new(m.w, m.h, 4, |x, y, v| {
         let (gx, gy) = (m.x0 + x as i64, m.y0 + y as i64);
@@ -188,10 +189,12 @@ fn clone_or_heal(img: &mut RgbaImage, s: &Stroke, pts: &[(f64, f64)], r: f64, of
         v[3] = wgt;
     });
     let srcs = Sums::new(m.w, m.h, 3, |x, y, v| {
-        let p = src(m.x0 + x as i64, m.y0 + y as i64);
-        v[0] = p[0] as f64;
-        v[1] = p[1] as f64;
-        v[2] = p[2] as f64;
+        let (gx, gy) = (m.x0 + x as i64, m.y0 + y as i64);
+        let wgt = 1.0 - m.at(gx, gy) as f64;
+        let p = src(gx, gy);
+        v[0] = p[0] as f64 * wgt;
+        v[1] = p[1] as f64 * wgt;
+        v[2] = p[2] as f64 * wgt;
     });
     for y in 0..m.h {
         for x in 0..m.w {
@@ -202,15 +205,11 @@ fn clone_or_heal(img: &mut RgbaImage, s: &Stroke, pts: &[(f64, f64)], r: f64, of
             }
             let (d, c) = (px(&snap, gx, gy), src(gx, gy));
             let wsum = dst.sum(x, y, rr, m.h, 3);
-            let cnt = {
-                let (x0, y0) = (x.saturating_sub(rr), y.saturating_sub(rr));
-                (((x + rr + 1).min(m.w) - x0) * ((y + rr + 1).min(m.h) - y0)) as f64
-            };
             let mut o = [0u8; 4];
             for k in 0..3 {
-                let low_c = srcs.sum(x, y, rr, m.h, k) / cnt;
-                let low_d = if wsum > 1e-3 { dst.sum(x, y, rr, m.h, k) / wsum } else { low_c };
-                let healed = c[k] as f64 + (low_d - low_c);
+                // No ring in reach (the middle of a very wide stroke): no correction, the texture as cloned.
+                let shift = if wsum > 1e-3 { (dst.sum(x, y, rr, m.h, k) - srcs.sum(x, y, rr, m.h, k)) / wsum } else { 0.0 };
+                let healed = c[k] as f64 + shift;
                 o[k] = (d[k] as f64 + (healed - d[k] as f64) * a as f64).round().clamp(0.0, 255.0) as u8;
             }
             o[3] = d[3] as u8;
