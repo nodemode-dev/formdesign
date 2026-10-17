@@ -212,6 +212,40 @@ fn artboard_at(doc: &Doc, si: usize, p: Point) -> Option<(usize, Rect)> {
     })
 }
 
+fn corners(r: Rect) -> [Point; 4] {
+    [Point::new(r.x0, r.y0), Point::new(r.x1, r.y0), Point::new(r.x1, r.y1), Point::new(r.x0, r.y1)]
+}
+
+/// The artboard corner within `tol` of `p` on spread `si`: (index, rect, corner 0 to 3), topmost first.
+fn artboard_corner(doc: &Doc, si: usize, p: Point, tol: f64) -> Option<(usize, Rect, u8)> {
+    let list = crate::cmd::artboard::artboards(doc);
+    list.iter().enumerate().rev().find_map(|(i, a)| {
+        let (s, r) = crate::cmd::artboard::artboard_rect(a)?;
+        if s != si {
+            return None;
+        }
+        corners(r).iter().position(|c| (*c - p).hypot() <= tol).map(|k| (i, r, k as u8))
+    })
+}
+
+/// Removes the artboard the tool last touched; true when one went.
+pub fn artboard_delete(ses: &mut Session) -> bool {
+    let Some(i) = ses.tools.artboard.take() else { return false };
+    let exists = ses.active().is_some_and(|s| i < crate::cmd::artboard::artboards(&s.doc).len());
+    if exists {
+        ses.edit_now("Delete Artboard", |doc, _| {
+            let mut list = crate::cmd::artboard::artboards(doc);
+            list.remove(i);
+            if list.is_empty() {
+                doc.prefs.remove("artboards");
+            } else {
+                doc.prefs.insert("artboards".into(), Value::Array(list));
+            }
+        });
+    }
+    exists
+}
+
 fn set_artboard_rect(doc: &mut Doc, i: usize, r: Rect) {
     if let Some(a) = doc.prefs.get_mut("artboards").and_then(Value::as_array_mut).and_then(|l| l.get_mut(i)) {
         a["rect"] = json!([r.x0, r.y0, r.x1, r.y1]);
@@ -226,10 +260,22 @@ pub fn artboard(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
             let Some(h) = here(ses, ev.pos) else { return Ok(()) };
             let crate::canvas::SpreadRef::Doc(si) = h.slot else { return Ok(()) };
             let doc = ses.active().map(|s| s.doc.clone()).expect("checked");
-            match artboard_at(&doc, si, h.p) {
-                Some((i, r)) => start(ses, ev, &h, G::Artboard { index: Some(i), rect: r }, true),
-                None => start(ses, ev, &h, G::Artboard { index: None, rect: Rect::new(h.p.x, h.p.y, h.p.x, h.p.y) }, false),
+            if let Some((i, r, k)) = artboard_corner(&doc, si, h.p, view.tol(6.0)) {
+                ses.tools.artboard = Some(i);
+                start(ses, ev, &h, G::Artboard { index: Some(i), rect: r, handle: Some(k) }, true);
+                return Ok(());
             }
+            match artboard_at(&doc, si, h.p) {
+                Some((i, r)) => {
+                    ses.tools.artboard = Some(i);
+                    start(ses, ev, &h, G::Artboard { index: Some(i), rect: r, handle: None }, true);
+                }
+                None => {
+                    ses.tools.artboard = None;
+                    start(ses, ev, &h, G::Artboard { index: None, rect: Rect::new(h.p.x, h.p.y, h.p.x, h.p.y), handle: None }, false);
+                }
+            }
+            ses.sel_rev += 1;
         }
         Kind::Drag => super::draw::drag(ses, ev, view),
         Kind::Up => {
@@ -359,16 +405,24 @@ pub fn drag(ses: &mut Session, ev: &Ev, view: View) {
             ses.tools.overlays.push(Overlay::Line { a: g.start, b: g.slot_xf * b, color: "#ff00ff".into(), dashed: true });
             ses.tools.overlays.push(Overlay::Measure { p: g.slot_xf * b, text: format!("D: {:.2} pt  A: {:.1}\u{00B0}  W: {:.2}  H: {:.2}", d.hypot(), ang, d.x.abs(), d.y.abs()) });
         }
-        G::Artboard { index: Some(i), rect } => {
+        G::Artboard { index: Some(i), rect, handle } => {
             let d = p - g.start_sp;
-            let r = Rect::new(rect.x0 + d.x, rect.y0 + d.y, rect.x1 + d.x, rect.y1 + d.y);
+            let r = match handle {
+                Some(k) => {
+                    let c = corners(*rect);
+                    let r = Rect::from_points(c[(*k as usize + 2) % 4], c[*k as usize] + d);
+                    if r.width() < 1.0 || r.height() < 1.0 { *rect } else { r }
+                }
+                None => Rect::new(rect.x0 + d.x, rect.y0 + d.y, rect.x1 + d.x, rect.y1 + d.y),
+            };
             if g.moved
                 && let Some(before) = g.before.clone()
             {
                 let i = *i;
                 ses.preview(&before, |doc| set_artboard_rect(doc, i, r));
             }
-            ses.tools.overlays.push(Overlay::Measure { p: ev.pos, text: format!("X: {:.1} pt  Y: {:.1} pt", r.x0, r.y0) });
+            let text = if handle.is_some() { format!("W: {:.1} pt  H: {:.1} pt", r.width(), r.height()) } else { format!("X: {:.1} pt  Y: {:.1} pt", r.x0, r.y0) };
+            ses.tools.overlays.push(Overlay::Measure { p: ev.pos, text });
         }
         G::Artboard { index: None, .. } => {
             let r = geo::drag_rect(g.start_sp, p, ev.mods.shift, ev.mods.alt);
@@ -432,19 +486,22 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                 if g.moved { ses.commit(b, "Artboard Options") } else { ses.restore(b) }
             }
         }
-        G::Artboard { index: None, rect } => {
+        G::Artboard { index: None, rect, .. } => {
             ses.tools.overlays.clear();
             let crate::canvas::SpreadRef::Doc(si) = g.slot else { return };
             if !g.moved || rect.width() < 1.0 || rect.height() < 1.0 {
                 return;
             }
+            let mut made = None;
             ses.edit_now("New Artboard", |doc, _| {
                 let mut list = crate::cmd::artboard::artboards(doc);
                 let taken = |n: &str| list.iter().any(|a| a.get("name").and_then(Value::as_str) == Some(n));
                 let name = (list.len() + 1..).map(|k| format!("Artboard {k}")).find(|n| !taken(n)).expect("an unused name");
                 list.push(json!({"name": name, "spread": si, "rect": [rect.x0, rect.y0, rect.x1, rect.y1]}));
+                made = Some(list.len() - 1);
                 doc.prefs.insert("artboards".into(), Value::Array(list));
             });
+            ses.tools.artboard = made;
         }
         G::Gradient { ids } => {
             ses.tools.overlays.clear();

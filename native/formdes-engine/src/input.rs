@@ -113,7 +113,9 @@ pub fn key(ses: &mut Session, p: &Value) -> Result<Value> {
         }
     };
     let tool_reply = |ses: &Session| json!({"handledBy": "tool", "tool": ses.tool_id(), "selection": ses.selection_json()});
-    if (typing || ses.tool_busy()) && to_tool(ses)? {
+    // The Artboard tool's Delete removes its artboard before the Delete command (which acts on selected objects) sees the key.
+    let artboard_delete = ses.tool_id() == "artboard" && ses.tools.artboard.is_some() && matches!(named, Some(tools::Key::Delete | tools::Key::Backspace));
+    if (typing || ses.tool_busy() || artboard_delete) && to_tool(ses)? {
         return Ok(tool_reply(ses));
     }
     if !(typing && unmodified)

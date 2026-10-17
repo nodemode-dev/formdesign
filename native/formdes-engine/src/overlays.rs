@@ -423,9 +423,10 @@ pub fn overlays(ses: &mut Session, p: &Value, view: View) -> Value {
         let r = geo::spread_of_item(&doc, doc.top_of(g))?;
         Some(boxed(cv.xf(r).transform_rect_bbox(doc.bounds(g)?)))
     });
-    let artboards: Vec<Value> = crate::cmd::artboard::artboards(&doc).iter().filter_map(|a| {
+    let active = if ses.tool == "artboard" { ses.tools.artboard } else { None };
+    let artboards: Vec<Value> = crate::cmd::artboard::artboards(&doc).iter().enumerate().filter_map(|(i, a)| {
         let (si, r) = crate::cmd::artboard::artboard_rect(a)?;
-        Some(json!({"rect": boxed(cv.xf(SpreadRef::Doc(si)).transform_rect_bbox(r)), "name": a.get("name").and_then(Value::as_str).unwrap_or("")}))
+        Some(json!({"rect": boxed(cv.xf(SpreadRef::Doc(si)).transform_rect_bbox(r)), "name": a.get("name").and_then(Value::as_str).unwrap_or(""), "active": active == Some(i)}))
     }).collect();
     let f = furniture(&doc, &cv, zoom, tol, visible);
     let grid = &doc.settings.baseline;

@@ -171,7 +171,8 @@ pub enum G {
     Measure,
     Gradient { ids: Vec<ItemId> },
     Gap { a: Vec<ItemId>, b: Vec<ItemId>, vertical: bool, edge: f64 },
-    Artboard { index: Option<usize>, rect: Rect },
+    /// `handle` is the dragged corner (0 top-left, 1 top-right, 2 bottom-right, 3 bottom-left); None moves or draws.
+    Artboard { index: Option<usize>, rect: Rect, handle: Option<u8> },
     Place,
     None,
 }
@@ -217,6 +218,8 @@ pub struct ToolState {
     pub conveyor: Vec<ItemId>,
     pub page: Option<usize>,
     pub thread: Option<ItemId>,
+    /// The artboard the Artboard tool last drew, moved or resized: it shows corner handles and Delete removes it.
+    pub artboard: Option<usize>,
 }
 
 impl Session {
@@ -241,6 +244,7 @@ impl Session {
             draw::finish_pen(self, false);
             self.tools.gesture = None;
             self.tools.thread = None;
+            self.tools.artboard = None;
             self.tools.overlays.clear();
             if !matches!(id, "type" | "typeOnPath" | "typeVertical" | "note")
                 && let Some(st) = self.active_mut()
@@ -377,6 +381,7 @@ impl Session {
         match tool.as_str() {
             "type" | "typeVertical" | "typeOnPath" | "note" if self.wants_text() => text::key(self, key, mods, view),
             "pen" | "curvature" => Ok(draw::pen_key(self, key)),
+            "artboard" if matches!(key, Key::Delete | Key::Backspace) && self.tools.artboard.is_some() => Ok(misc::artboard_delete(self)),
             _ => select::key(self, key, mods),
         }
     }
