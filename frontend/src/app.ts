@@ -20,7 +20,7 @@ const SHELL = `<div class="cv-app fd-app">
 <button class="cv-icon-btn" type="button" data-cmd="zoom-in" title="Zoom In">${icon('zoomIn', 16)}</button>
 <button class="cv-icon-btn" type="button" data-cmd="fit-spread" title="Fit Spread in Window">${icon('fitView', 16)}</button>
 <span class="cv-sep"></span>
-<button class="cv-btn fd-make-btn" type="button" data-cmd="make" title="Make a layout from files and a brief">${icon('sparkle', 14)}<span>Make</span></button>
+<button class="cv-btn fd-make-btn" type="button" data-cmd="make" title="Make a layout from files and a brief">${icon('makeLayout', 14)}<span>Make</span></button>
 <button class="cv-icon-btn" type="button" data-cmd="settings" title="Preferences">${icon('settings', 16)}</button>
 </div>
 </header>

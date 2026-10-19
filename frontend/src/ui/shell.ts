@@ -71,7 +71,7 @@ export class Shell implements Workspace {
       recent: () => this.recent,
       openRecent: (path) => void this.openPath(path),
     }, [
-      { label: 'Make a layout…', command: 'ui.make', icon: 'sparkle', key: 'M' },
+      { label: 'Make a layout…', command: 'ui.make', icon: 'makeLayout', key: 'M' },
       { label: 'New from template…', command: 'ui.templates', icon: 'newFile' },
       { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
     ]);

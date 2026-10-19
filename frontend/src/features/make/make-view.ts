@@ -86,7 +86,7 @@ export class MakeView {
             <div class="mk-opt"><span class="mk-label">Variations</span><div class="mk-stepper"><button class="mk-step-btn mk-dec" type="button" aria-label="Fewer">${icon('remove', 12)}</button><span class="mk-step-v">1</span><button class="mk-step-btn mk-inc" type="button" aria-label="More">${icon('add', 12)}</button></div></div>
           </div>
           <div class="mk-go">
-            <button class="mk-make" type="button">${icon('sparkle', 14)}<span class="mk-make-label">Make layout</span></button>
+            <button class="mk-make" type="button">${icon('makeLayout', 14)}<span class="mk-make-label">Make layout</span></button>
             <span class="mk-status mk-go-status" aria-live="polite"></span>
           </div>
           <div class="mk-out">
