@@ -2,6 +2,12 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.77.0 · 2026-10-19
+
+- Open DXF drawings (ASCII or binary): File > Open, a drop on the window or the MCP open_document tool lays the drawing's model space on one page sized to it, with lines, polylines, arcs, circles, ellipses, splines, block references and solid hatches as shapes, text as text frames, and colours and line weights carried over; the fidelity report lists the layers and everything skipped or approximated. A `.dwg` is refused with a request for a DXF export, since no permissively licensed DWG reader exists. New engine dependency: ezdxf (MIT).
+- Interface, help and documentation describe every feature in FormDesign's own words and name formats by extension; menu items now read File > Export > PDF... and IDML.... The clipping and wrap contour type `photoshopPath` is now `embeddedPath` (and clippingInfo's `photoshopPaths` is `embeddedPaths`); documents saved with the old value keep their wrap contour. The .qxd, .qxp, .pmd and .pub probe kinds read `qxp`, `pm` and `pub`.
+- Content-aware scale and skin protection are declined for patent reasons and recorded in `docs/DECLINED.md`.
+
 ## 0.76.0 · 2026-10-17
 
 - Object > Image > Adjustments: live, re-editable adjustments on a placed picture (exposure, contrast, saturation, temperature, hue, lightness, levels, black and white and a curve editor) with a preview rendered by the engine. They show on screen, in PDF and every other export, survive save and reopen, stay with duplicates, and are rebuilt after a link update, Edit Image or Retouch Image; the placed file is never changed. The engine commands are `image.adjust` and `image.adjustPreview`.
