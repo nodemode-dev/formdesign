@@ -1,11 +1,12 @@
 import { api, engine } from '../engine/client';
 import { editor } from '../editor/editor';
-import { el, q, setClass, setDisabled, setHidden, setText } from '../ui/dom';
+import { Dialog } from '../ui/dialogs';
+import { el, q, setClass, setHidden, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { MarkdownStream } from '../ui/markdown';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
-import { claudeTerminal } from './terminal';
+import { openChat, registerChat, type ChatView } from './terminal';
 
 interface Part { kind: 'text' | 'tool'; text?: string; id?: string; name?: string; input?: string; status?: string; images?: string[] }
 interface Meta { seconds?: number; turns?: number | null; costUsd?: number | null; inputTokens?: number; outputTokens?: number }
@@ -23,24 +24,56 @@ function tokens(n: number): string {
   return String(n);
 }
 
-class ClaudePanel {
+class AdoptDialog extends Dialog {
+  private readonly pick = el<HTMLSelectElement>('<select class="cv-select fc-adopt-pick" aria-label="Conversation"></select>');
+  private readonly titles = new Map<string, string>();
+  private choose: ((session: string, title: string) => void) | null = null;
+
+  constructor() {
+    super('Continue from Claude Code', 460);
+    const lead = el('<p class="cv-note fc-adopt-lead"></p>');
+    setText(lead, 'Brings a conversation from a Claude Code tab into this chat: its messages show here and your next message continues it.');
+    this.body.appendChild(lead);
+    this.field('Conversation', this.pick);
+    this.button('Cancel', 'ghost', () => this.close());
+    this.button('Continue Here', 'primary', () => {
+      const id = this.pick.value;
+      if (!id) return;
+      this.close();
+      this.choose?.(id, this.titles.get(id) ?? '');
+    });
+  }
+
+  ask(sessions: Array<{ id: string; title: string; modified: number; current: boolean }>, choose: (session: string, title: string) => void): void {
+    this.choose = choose;
+    this.titles.clear();
+    const when = (t: number): string => new Date(t * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    this.pick.replaceChildren(...sessions.map((s) => {
+      this.titles.set(s.id, s.title);
+      return new Option(`${when(s.modified)} · ${s.title || 'untitled'}${s.current ? ' (this chat)' : ''}`, s.id);
+    }));
+    this.pick.value = sessions[0]?.id ?? '';
+    this.open();
+  }
+}
+
+class ClaudePanel implements ChatView {
   readonly root = el(`<div class="fc-chat">
-    <div class="fc-bar"><span class="fc-status"></span><span class="fc-usage"></span>
+    <div class="fc-bar"><span class="fc-status"></span><span class="fc-usage" title="Memory: how much of Claude’s working memory this conversation uses. Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost."></span>
       <span class="fc-btns">
         <button class="cv-btn fc-stop" type="button" hidden>Stop</button>
-        <button class="cv-icon-btn fc-adopt" type="button" title="Continue a conversation started in a Claude Code terminal" aria-label="Continue from Claude Code">${icon('history', 15)}</button>
-        <button class="cv-icon-btn fc-handoff" type="button" title="Continue this conversation in a Claude Code terminal" aria-label="Open in terminal">${icon('terminal', 15)}</button>
-        <button class="cv-btn fc-new" type="button" title="Start a new conversation">New chat</button>
+        <button class="cv-btn fc-adopt" type="button" title="Bring a conversation you had in a Claude Code tab into this chat">From Claude Code…</button>
+        <button class="cv-btn fc-handoff" type="button" title="Continue this conversation in a Claude Code tab">Open in Claude Code</button>
+        <button class="cv-btn fc-new" type="button" title="Start a new conversation">New Chat</button>
       </span></div>
     <div class="fc-setup" hidden><p class="fc-setup-text"></p><button class="cv-btn fc-recheck" type="button">Check again</button></div>
-    <div class="fc-log" role="log" aria-live="polite"><div class="fc-hint"><p>Ask Claude Code to make or change the open document. It uses your own Claude Code sign-in and FormDesign&rsquo;s tools; every change appears in the window as it happens and can be undone.</p><div class="fc-chips"></div></div></div>
-    <div class="fc-compose"><textarea class="cv-input fc-input" rows="2" placeholder="Ask Claude Code to lay out, fix or explain something" aria-label="Message Claude Code"></textarea><button class="cv-btn cv-btn-primary fc-send" type="button">Send</button></div>
+    <div class="fc-log" role="log" aria-live="polite"><div class="fc-hint"><p>Ask Claude about the open document in the line below. It uses your own Claude Code sign-in and FormDesign&rsquo;s tools; every change appears in the window as it happens and can be undone.</p><div class="fc-chips"></div></div></div>
   </div>`);
+  onHandoff: (session: string) => void = () => undefined;
+  onSuggest: (text: string) => void = () => undefined;
   private readonly log = q(this.root, '.fc-log');
   private readonly hint = q(this.root, '.fc-hint');
   private readonly meter = q(this.root, '.fc-usage');
-  private readonly input = q<HTMLTextAreaElement>(this.root, '.fc-input');
-  private readonly send = q<HTMLButtonElement>(this.root, '.fc-send');
   private readonly chips = new Map<string, HTMLElement>();
   private reply: HTMLElement | null = null;
   private md: MarkdownStream | null = null;
@@ -48,19 +81,15 @@ class ClaudePanel {
   private busy = false;
   private loaded = false;
   private ready = false;
+  private dialog: AdoptDialog | null = null;
 
-  constructor(private readonly ws: Workspace) {
+  constructor() {
     for (const s of SUGGESTIONS) {
       const b = el<HTMLButtonElement>('<button class="cv-btn fc-chip" type="button"></button>');
       setText(b, s);
-      b.addEventListener('click', () => { this.input.value = s; this.input.focus(); });
+      b.addEventListener('click', () => this.onSuggest(s));
       q(this.hint, '.fc-chips').appendChild(b);
     }
-    this.send.addEventListener('click', () => (this.busy ? void this.stop() : void this.submit()));
-    this.input.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!this.busy) void this.submit(); }
-    });
     q(this.root, '.fc-stop').addEventListener('click', () => void this.stop());
     q(this.root, '.fc-new').addEventListener('click', () => void api('/claude/chat/reset', { json: {} }).catch((e) => toast((e as Error).message, 'error')));
     q(this.root, '.fc-handoff').addEventListener('click', () => void this.handoff());
@@ -68,6 +97,8 @@ class ClaudePanel {
     q(this.root, '.fc-recheck').addEventListener('click', () => void this.status());
     engine.on('claude', (m) => this.event(m as Ev));
   }
+
+  isBusy(): boolean { return this.busy; }
 
   onShow(): void {
     void this.status();
@@ -81,8 +112,6 @@ class ClaudePanel {
     setHidden(q(this.root, '.fc-setup'), s.installed);
     setText(q(this.root, '.fc-setup-text'), s.install);
     if (!this.busy) setText(q(this.root, '.fc-status'), s.installed ? `Claude Code ${s.version ?? ''}`.trim() : 'Claude Code not found');
-    this.input.disabled = !s.installed;
-    setDisabled(this.send, !s.installed && !this.busy);
   }
 
   private async load(): Promise<void> {
@@ -108,25 +137,13 @@ class ClaudePanel {
     if (s.busy) { this.begin(); this.setBusy(true); }
   }
 
-  private context(): string {
-    const parts: string[] = [];
-    const doc = editor.active === null ? null : editor.docs[editor.active];
-    if (doc) parts.push(`open document: ${(doc as { name?: string }).name ?? 'untitled'}`);
-    parts.push(`page ${this.ws.viewport.currentPage() + 1} is in view`);
-    const sel = editor.selection?.items ?? [];
-    if (sel.length) parts.push(`selected item ids: ${sel.slice(0, 40).join(', ')}`);
-    return parts.join('; ');
-  }
-
-  private async submit(): Promise<void> {
-    const text = this.input.value.trim();
+  async send(text: string, context: string): Promise<void> {
     if (!text || this.busy) return;
     if (!this.ready) { await this.status(); if (!this.ready) return; }
     const sel = editor.selection?.items ?? [];
-    this.input.value = '';
     try {
-      await api('/claude/chat', { json: { text, context: this.context(), note: sel.length ? `${sel.length} selected` : '' } });
-    } catch (e) { this.input.value = text; toast((e as Error).message, 'error'); }
+      await api('/claude/chat', { json: { text, context, note: sel.length ? `${sel.length} selected` : '' } });
+    } catch (e) { toast((e as Error).message, 'error'); }
   }
 
   private async stop(): Promise<void> {
@@ -165,9 +182,6 @@ class ClaudePanel {
   private setBusy(on: boolean): void {
     this.busy = on;
     setHidden(q(this.root, '.fc-stop'), !on);
-    setText(this.send, on ? 'Stop' : 'Send');
-    setClass(this.send, 'is-stop', on);
-    setDisabled(this.send, !on && !this.ready);
     setClass(this.root, 'is-busy', on);
     if (on) setText(q(this.root, '.fc-status'), 'Claude is working…');
     else void this.status();
@@ -267,26 +281,28 @@ class ClaudePanel {
   private async handoff(): Promise<void> {
     try {
       const s = await api<State>('/claude/chat');
+      if (!s.session) { toast('Start a conversation here first', 'error'); return; }
       if (s.busy) { toast('Wait for Claude to finish, or press Stop, before moving the conversation', 'error'); return; }
-      await claudeTerminal?.(s.session || undefined);
+      this.onHandoff(s.session);
     } catch (e) { toast((e as Error).message, 'error'); }
   }
 
   private async adopt(): Promise<void> {
     try {
       const r = await api<{ sessions: Array<{ id: string; title: string; modified: number; current: boolean }> }>('/claude/sessions');
-      const pick = r.sessions.find((s) => !s.current);
-      if (!pick) { toast('No other Claude Code conversation was found in FormDesign’s agent folder yet', 'info'); return; }
-      await api('/claude/adopt', { json: { session: pick.id } });
-      toast(`Continuing “${pick.title || 'untitled'}”`, 'info');
+      const list = [...r.sessions].sort((a, b) => b.modified - a.modified).slice(0, 20);
+      if (!list.length) { toast('No Claude Code conversation was found in FormDesign’s agent folder yet', 'info'); return; }
+      this.dialog ??= new AdoptDialog();
+      this.dialog.ask(list, (session, title) => {
+        api('/claude/adopt', { json: { session } })
+          .then(() => toast(`Continuing “${title || 'untitled'}”`, 'info'))
+          .catch((e) => toast((e as Error).message, 'error'));
+      });
     } catch (e) { toast((e as Error).message, 'error'); }
   }
 }
 
 export function installClaude(ws: Workspace): void {
-  let panel: ClaudePanel | null = null;
-  const make = (): ClaudePanel => (panel ??= new ClaudePanel(ws));
-  ws.registerPanel({ id: 'claude', label: 'Claude Code', group: 'terminal', column: 'left', order: 5, create: () => make().root, onShow: () => panel?.onShow() });
-  ws.addCommands({ id: 'ui.claude', label: 'Claude Code', keys: ['Alt+Mod+J'], run: () => ws.showPanel('claude') });
-  ws.addMenuItems({ menu: 'Window', items: ['ui.claude'], at: 'end' });
+  registerChat(() => new ClaudePanel());
+  ws.addCommands({ id: 'ui.claude', label: 'Chat with Claude', keys: ['Alt+Mod+J'], run: () => openChat() });
 }

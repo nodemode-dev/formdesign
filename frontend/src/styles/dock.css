@@ -1,0 +1,34 @@
+/* The bottom dock under the canvas: shell tabs, the Claude Code tab and the Chat tab over one stage, with an Ask line
+   below. Each session's screen stays mounted and only its visibility changes. xterm draws its own scrollbar; the law of
+   no visible scrollbar hides it here, and the wheel, keys and Shift+PageUp still scroll the scrollback. */
+.fd-dock { position: relative; flex: none; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; height: var(--fd-dock-h, 280px); min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
+.fd-dock[hidden] { display: none; }
+.fd-dock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); }
+.fd-dock-rsz:hover, .fd-dock-rsz.is-dragging { background: var(--accent-line); }
+.fd-dock-head { display: flex; align-items: center; gap: var(--space-2); min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); }
+.fd-dock-tabs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.fd-dock-tab { display: inline-flex; align-items: center; flex: none; gap: 6px; height: 26px; padding: 0 6px 0 9px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-muted); font: inherit; font-size: var(--fs-12); white-space: nowrap; cursor: pointer; }
+.fd-dock-tab:hover { color: var(--text-primary); }
+.fd-dock-tab.is-on { border-color: var(--line-2); background: var(--surface-raised); color: var(--text-primary); }
+.fd-dock-tab.is-claude .icon, .fd-dock-tab.is-chat .icon { color: var(--accent-color); }
+.fd-dock-tab.is-exited .fd-dock-tab-title { color: var(--text-muted); text-decoration: line-through; }
+.fd-dock-tab-x { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: var(--radius-sm); color: var(--text-muted); }
+.fd-dock-tab-x:hover { background: var(--surface-2); color: var(--text-primary); }
+.fd-dock-spacer { flex: 1 1 auto; }
+.fd-dock-head .cv-icon-btn { width: 26px; height: 26px; }
+.fd-dock-head .cv-icon-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.fd-dock-head .cv-icon-btn:disabled { opacity: 0.4; cursor: default; }
+.fd-dock-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.fd-term { position: absolute; inset: 6px 4px 0 10px; }
+.fd-term[hidden] { display: none; }
+.fd-term .xterm { height: 100%; }
+.fd-term .xterm-viewport { background: transparent; scrollbar-width: none !important; }
+.fd-term .xterm .xterm-scrollable-element > .scrollbar, .fd-term .xterm .xterm-scrollable-element > .scrollbar > .slider { display: none !important; width: 0 !important; }
+.fd-dock-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 var(--space-4); text-align: center; }
+.fd-dock-empty[hidden] { display: none; }
+.fd-dock-ask { display: flex; align-items: center; gap: var(--space-2); min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-top: 1px solid var(--line-0); }
+.fd-dock-ask-mark { display: inline-grid; place-items: center; flex: none; color: var(--accent-color); }
+.fd-dock-ask-input { flex: 1 1 auto; height: var(--ctl-md); }
+.fd-dock-ask .cv-icon-btn { width: var(--ctl-md); height: var(--ctl-md); border: 1px solid var(--line-2); background: var(--surface-1); color: var(--text-secondary); }
+.fd-dock-ask .cv-icon-btn:hover { background: var(--surface-raised); color: var(--text-primary); }
+.cv-app.is-screen-full .fd-dock { display: none; }

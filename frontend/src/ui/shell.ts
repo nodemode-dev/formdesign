@@ -67,13 +67,14 @@ export class Shell implements Workspace {
     this.input.onKeyCommand = (e) => this.onKeyCommand(e);
     root.appendChild(this.fileInput);
     this.home = new HomeScreen(this.stage.parentElement as HTMLElement, {
-      run: (cmd) => this.commands.run(cmd),
+      run: (cmd, params) => this.commands.run(cmd, params),
       recent: () => this.recent,
       openRecent: (path) => void this.openPath(path),
     }, [
       { label: 'Make a layout…', command: 'ui.make', icon: 'makeLayout', key: 'M' },
       { label: 'New from template…', command: 'ui.templates', icon: 'newFile' },
       { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
+      { label: 'Ask Claude', command: 'ui.claude', icon: 'agentChat', hint: 'Describe what you want and Claude lays it out' },
     ]);
     this.uiCommands();
     this.wire();
@@ -428,7 +429,7 @@ export class Shell implements Workspace {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
       if (!b || !root.contains(b) || b.closest('.cv-group')) return;
       const id = b.dataset.cmd as string;
-      const map: Record<string, string> = { home: 'ui.home', undo: 'ui.undo', redo: 'ui.redo', 'zoom-in': 'ui.zoomIn', 'zoom-out': 'ui.zoomOut', 'fit-spread': 'ui.fitSpread', make: 'ui.make', settings: 'ui.prefs', new: 'ui.templates' };
+      const map: Record<string, string> = { home: 'ui.home', undo: 'ui.undo', redo: 'ui.redo', 'zoom-in': 'ui.zoomIn', 'zoom-out': 'ui.zoomOut', 'fit-spread': 'ui.fitSpread', make: 'ui.make', settings: 'ui.prefs', new: 'ui.templates', claude: 'ui.terminal.claude', terminal: 'ui.terminal.toggle' };
       if (map[id]) this.commands.run(map[id]);
     });
     editor.on('commands', () => { this.addCoreCommands(); this.buildMenus(); this.publishActions(); });

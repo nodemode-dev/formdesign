@@ -6,7 +6,7 @@ export type DockColumn = 'left' | 'side' | 'dock';
 export interface DockState { left: string[]; side: string[]; dock: string[]; hidden: string[]; heights: Record<string, number>; custom: Array<{ id: string; label: string }>; width: number | null; collapsed: DockColumn[]; leftWidth?: number | null }
 const COLS: DockColumn[] = ['left', 'side', 'dock'];
 const LEFT_W = 252;
-const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'makeLayout', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder', terminal: 'terminal', connect: 'link' };
+const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'makeLayout', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder', connect: 'agent' };
 export interface PanelLayout { dock: DockState; groups: Record<string, { tab?: string; min?: boolean }>; homes: Record<string, string> }
 
 const KEY = 'formdes.dock';
@@ -113,6 +113,7 @@ export class Dock {
     for (const col of COLS) setClass(this.cols[col], 'is-collapsed', this.isCollapsed(col));
     setClass(this.root, 'is-side-collapsed', this.isCollapsed('side'));
     setClass(this.root, 'is-dock-collapsed', this.isCollapsed('dock'));
+    setClass(this.root, 'is-dock-empty', this.shown('dock').length === 0 && !this.drag);
     const leftOpen = this.shown('left').length > 0 && !this.isCollapsed('left');
     setStyleVar(this.root, '--fd-left-w', leftOpen ? `${this.state.leftWidth ?? LEFT_W}px` : '0px');
     setHidden(this.cols.left, !leftOpen);

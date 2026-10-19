@@ -34,7 +34,7 @@ class ConnectPanel {
     <div class="fc-sec">
       <h4 class="fc-h">Agents</h4>
       <div class="fc-clients"></div>
-      <p class="cv-note fc-none">No agent has connected since the engine started. Set one up below, or start one from the Terminal panel.</p>
+      <p class="cv-note fc-none">No agent has connected since the engine started. Set one up below, or start Claude Code from the title bar's robot button.</p>
     </div>
     <div class="fc-sec">
       <h4 class="fc-h">Set up</h4>
