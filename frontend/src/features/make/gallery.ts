@@ -99,18 +99,21 @@ export class Gallery {
     onBrandsChanged(() => void this.loadBrands());
   }
 
-  async open(mode: 'create' | 'pick' = 'create'): Promise<string | null> {
+  async open(mode: 'create' | 'pick' = 'create', category?: string): Promise<string | null> {
     if (this.d.isOpen) { if (mode === this.mode) return null; this.d.close(); }
     this.mode = mode;
+    if (category) this.cat = category;
     this.d.setTitle(mode === 'pick' ? 'Choose a Template' : 'New from Template');
     setHidden(this.btnSample, mode === 'pick');
     setHidden(this.btnEmpty, mode === 'pick');
     setHidden(this.btnUse, mode !== 'pick');
     setHidden(q(this.d.body, '.mk-gal-brand'), mode === 'pick');
     const result = new Promise<string | null>((r) => { this.resolve = r; });
+    if (category && this.list.length) { this.renderCats(); this.filter(); this.mid.scrollTop = 0; }
     this.d.open(this.search);
     void this.loadBrands();
     await this.load(this.list.length > 0);
+    if (category && !this.visible().some((t) => t.id === this.selected)) this.select(this.visible()[0]?.id ?? '');
     return result;
   }
 

@@ -198,30 +198,35 @@ export class PreferencesDialog {
   }
 
   private claudeSection(): HTMLElement {
-    const s = this.section('Claude Code inside FormDesign', 'The Claude Code panel and the Claude Code terminal use your own Claude Code sign-in, connected to FormDesign’s tools. Leave a field empty for the default.');
+    const s = this.section('Claude Code in FormDesign', 'The Claude Code tab and the Chat tab use your own Claude Code sign-in, connected to FormDesign’s tools. Leave a field empty for the default.');
     const state = el('<p class="cv-note fd-pr-claude-state">Checking for Claude Code…</p>');
     const fields: Array<[string, string, string]> = [
-      ['claudeBin', 'Program', 'Found on this computer'],
-      ['claudeFolder', 'Starts in', 'The FormDesign folder'],
-      ['claudeFirstMessage', 'First message in a new terminal', 'None'],
+      ['claudeFolder', 'Starts in folder', 'Agent folder in your FormDesign data folder'],
+      ['claudeBin', 'Claude Code program', 'found automatically'],
+      ['claudeFirstMessage', 'Start with message', 'nothing; Claude Code waits for you'],
     ];
+    const found = (r: { installed?: boolean; version?: string | null; folder?: string; install?: string; binNote?: string }): string => {
+      const text = r.installed ? `Claude Code ${r.version ?? ''} is installed. It starts in ${r.folder ?? ''}.` : String(r.install ?? 'Claude Code is not installed: install it from claude.com/claude-code and run claude once in a terminal to sign in.');
+      return r.binNote ? `${text} ${r.binNote}` : text;
+    };
     const inputs = new Map<string, HTMLInputElement>();
     for (const [key, label, ph] of fields) {
       const row = el('<label class="fd-pr-field"><span></span></label>');
       setText(q(row, 'span'), label);
       const input = el<HTMLInputElement>('<input class="cv-input" type="text" spellcheck="false">');
       input.placeholder = ph;
-      input.addEventListener('change', () => void api<{ installed: boolean; version: string | null; path: string | null }>('/claude/prefs', { json: { [key]: input.value } })
-        .then((r) => { setText(state, r.installed ? `Claude Code ${r.version ?? ''} at ${r.path ?? ''}` : 'Claude Code was not found'); toast('Saved'); })
+      input.addEventListener('change', () => void api('/claude/prefs', { json: { [key]: input.value.trim() } })
+        .then(() => api<Parameters<typeof found>[0]>('/claude/status'))
+        .then((r) => { setText(state, found(r)); toast('Saved'); })
         .catch((e) => toast((e as Error).message, 'error')));
       row.appendChild(input);
       inputs.set(key, input);
       s.appendChild(row);
     }
-    s.appendChild(state);
+    s.insertBefore(state, s.querySelector('.fd-pr-field'));
     void api<Record<string, string | boolean | null>>('/claude/status').then((r) => {
       for (const [key, input] of inputs) input.value = String(r[key] ?? '');
-      setText(state, r.installed ? `Claude Code ${r.version ?? ''} at ${r.path ?? ''}` : String(r.install ?? 'Claude Code was not found'));
+      setText(state, found(r as Parameters<typeof found>[0]));
     }).catch(() => setText(state, 'The engine is not answering'));
     return s;
   }

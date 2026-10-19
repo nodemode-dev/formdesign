@@ -27,6 +27,9 @@
 .fd-app.is-side-collapsed .cv-main { --cv-props-w: 46px; }
 .fd-app.is-dock-collapsed .cv-main { --cv-layers-w: 46px; }
 .fd-app.is-dock-collapsed .cv-resizer { visibility: hidden; pointer-events: none; }
+.fd-app.is-dock-empty .cv-main { --cv-layers-w: 0px; }
+.fd-app.is-dock-empty .cv-resizer { visibility: hidden; pointer-events: none; }
+.fd-app.is-dock-empty .cv-layers { overflow: hidden; }
 .cv-props-col.is-collapsed > .cv-group, .cv-props-col.is-collapsed > .cv-dock-split { display: none !important; }
 
 /* A flyout from the minirail or a strip holds the group's own element. */

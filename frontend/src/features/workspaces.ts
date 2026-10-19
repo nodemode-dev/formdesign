@@ -7,12 +7,13 @@ import type { SubMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
 
-interface Spec { name: string; left?: string[]; side: string[]; dock: string[]; open: string[]; hidden?: string[]; tabs?: Record<string, string> }
-const LEFT_DEFAULT = ['pages', 'make', 'terminal', 'connect'];
+interface Spec { name: string; left?: string[]; side: string[]; dock: string[]; open: string[]; hidden?: string[]; tabs?: Record<string, string>; then?: string }
+const LEFT_DEFAULT = ['pages', 'make', 'connect'];
 interface Saved { name: string; layout: PanelLayout }
 
 const BUILTIN: Spec[] = [
-  { name: 'Essentials', side: ['props', 'typeextra', 'review', 'interactive'], dock: ['make', 'swatches', 'pages', 'preflight', 'xml', 'library'], open: ['props', 'make', 'pages'], tabs: { props: 'properties', make: 'make', pages: 'pages' } },
+  { name: 'Essentials', left: ['pages', 'make'], side: ['props', 'swatches'], dock: [], open: ['props', 'pages'], hidden: ['preflight', 'typeextra', 'review', 'interactive', 'xml', 'library', 'connect', 'fonts', 'actions', 'plugins'], tabs: { props: 'properties', pages: 'pages' } },
+  { name: 'Working with Claude', left: ['pages'], side: ['props'], dock: [], open: ['props', 'pages'], hidden: ['make', 'swatches', 'preflight', 'typeextra', 'review', 'interactive', 'xml', 'library', 'connect', 'fonts', 'actions', 'plugins'], tabs: { props: 'properties', pages: 'pages' }, then: 'ui.claude' },
   { name: 'Advanced', side: ['props', 'typeextra', 'review', 'interactive'], dock: ['pages', 'swatches', 'make', 'preflight', 'library', 'xml'], open: ['props', 'pages', 'swatches', 'preflight'], tabs: { props: 'properties', pages: 'layers', swatches: 'styles', preflight: 'preflight' } },
   { name: 'Book', side: ['props', 'review'], dock: ['pages', 'swatches', 'preflight', 'make'], open: ['props', 'pages', 'swatches', 'preflight'], hidden: ['typeextra', 'interactive', 'xml', 'library'], tabs: { props: 'paragraph', pages: 'pages', swatches: 'styles', preflight: 'preflight' } },
   { name: 'Digital Publishing', side: ['props', 'interactive', 'typeextra'], dock: ['pages', 'library', 'swatches', 'make', 'preflight', 'xml'], open: ['props', 'interactive', 'pages', 'library'], hidden: ['review'], tabs: { props: 'properties', interactive: 'transitions', pages: 'pages' } },
@@ -49,6 +50,8 @@ export function installWorkspaces(ws: Workspace): void {
     const l = layoutOf(name);
     if (!l) { toast(`No workspace named ${name}`, 'error'); return; }
     ws.applyLayout(l);
+    const then = saved.some((s) => s.name === name) ? undefined : BUILTIN.find((s) => s.name === name)?.then;
+    if (then && ws.commands.get(then)) ws.commands.run(then);
     remember(name);
     window.dispatchEvent(new CustomEvent('fd-workspace', { detail: name }));
   };
@@ -131,5 +134,8 @@ export function installWorkspaces(ws: Workspace): void {
   enhanceSelect(select);
   select.addEventListener('change', () => { if (select.value && select.value !== current) use(select.value); });
   sync();
+  let first = false;
+  try { first = localStorage.getItem(KEY) === null && localStorage.getItem('formdes.dock') === null; } catch { first = false; }
+  if (first) queueMicrotask(() => use(current));
   void load();
 }

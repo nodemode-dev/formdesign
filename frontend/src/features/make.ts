@@ -66,7 +66,7 @@ function install(ws: Workspace): void {
   const free = (combo: string): string[] => (ws.commands.forCombo(combo) ? [] : [combo]);
   ws.addCommands(
     { id: 'ui.make', label: 'Make a Layout…', keys: free('Mod+M'), run: showMake },
-    { id: 'ui.templates', label: 'New from Template…', keys: free('Shift+Mod+N'), run: () => void (gallery ??= new Gallery()).open('create') },
+    { id: 'ui.templates', label: 'New from Template…', keys: free('Shift+Mod+N'), run: (params) => void (gallery ??= new Gallery()).open('create', typeof params?.category === 'string' ? params.category : undefined) },
     { id: 'ui.brands', label: 'Brand Kits…', run: () => links.openBrands() },
   );
   ws.addMenuItems({ menu: 'File', items: ['ui.make', 'ui.templates', 'ui.brands'], at: 'start' });

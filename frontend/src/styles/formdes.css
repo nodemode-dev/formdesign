@@ -40,6 +40,15 @@
 .fd-guide-ghost[hidden], .fd-ruler-probe { display: none; }
 .fd-make-btn { display: inline-flex; align-items: center; gap: 6px; height: var(--ctl-md); padding: 0 var(--space-3); border: 1px solid var(--accent-line); border-radius: var(--radius); background: var(--accent-soft); color: var(--text-primary); font-size: var(--fs-12); }
 .fd-make-btn:hover { background: var(--accent-wash); }
+@media (max-width: 1180px) {
+  .fd-title-tools [data-cmd="zoom-out"], .fd-title-tools [data-cmd="zoom-in"], .fd-title-tools [data-cmd="fit-spread"], .fd-title-tools .fd-zoom-label, .fd-title-tools [data-cmd="fit-spread"] + .cv-sep { display: none; }
+  .fd-make-btn > span:last-child { display: none; }
+  .fd-app .cv-dd-btn.fd-ws-select { width: 136px; }
+}
+@media (max-width: 1020px) {
+  .fd-title-tools [data-cmd="undo"], .fd-title-tools [data-cmd="redo"], .fd-title-tools [data-cmd="redo"] + .cv-sep { display: none; }
+  .fd-app .cv-dd-btn.fd-ws-select { width: 112px; }
+}
 .fd-status { display: flex; align-items: center; gap: var(--space-4); padding: 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-11); }
 .fd-st-hint { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fd-zoom-label { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
