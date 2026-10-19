@@ -24,6 +24,19 @@ The fast path for a finished piece is five calls: `intake` (files and a brief in
 
 For the web, `export_document {format: "web"}` writes a responsive site to a folder or a .zip (options `split`, `layout`, `edition`, `baseUrl`, `title`, `description`, `language`) and returns its pages and `warnings`; `publish_website` publishes the active document's site at `http://127.0.0.1:PORT/sites/SLUG/`, lists published sites and unpublishes them.
 
+## The Claude dock
+
+The window has a dock under the canvas for terminals and Claude. `ui.terminal.toggle` (Window > Show Terminal, Ctrl or Cmd+J) shows or hides it; `ui.terminal.new` adds a shell tab; `ui.terminal.claude` (the title-bar Claude Code button, Ctrl or Cmd+Shift+J) opens or reuses the Claude Code tab; `ui.claude` (Chat with Claude, Ctrl or Cmd+Alt+J) opens the dock on its Chat tab, where the Ask line sends a message about the open document. The window fires `fd-dock` with `{open}` whenever the dock opens or closes.
+
+| Piece | Where |
+| --- | --- |
+| Terminal sessions | `POST /api/term` with `{preset, cols, rows, prompt?, resume?, reuse?}`; with `preset: "claude"` and `reuse: true` a live Claude Code session receives the prompt instead of a second one starting |
+| Restart | `POST /api/term/{sid}/restart` runs the tab's program again in the same tab, preset and folder; a program that ends prints "Restart runs it again" in its tab |
+| Chat tab | `GET` and `POST /api/claude/chat`, `/claude/chat/stop`, `/claude/chat/reset`; From Claude Code adopts a Claude Code conversation (`/claude/sessions`, `/claude/adopt`), Open in Claude Code continues the chat in the Claude Code tab |
+| Status and preferences | `GET /api/claude/status` reports `installed`, `path`, `version`, `folder`, `install` and `binNote`; `POST /api/claude/prefs` saves `claudeFolder`, `claudeBin` and `claudeFirstMessage` |
+
+Claude Code starts in the agent folder: the `claudeFolder` preference (Preferences > Agents > Claude Code in FormDesign, Starts in folder), else `FORMDES_AGENT_DIR`, else the `Agent` folder inside the engine's data folder, created when missing. The built-in Working with Claude workspace shows Pages and Properties and runs `ui.claude`; the Essentials workspace keeps Pages and Make on the left and Properties with Swatches on the right.
+
 ## The skills
 
 | Skill | Path | For |

@@ -36,7 +36,7 @@ The window is a thin client in vanilla TypeScript and Vite. It draws pixels the 
 | `interactive.ts` | the Interactive group: Object States, Buttons and Forms (with media options), Page Transitions |
 | `xml.ts` | the XML group: Structure (validate, import, export) and Tags (tagging, style mapping, DTD) |
 | `library.ts` | the Library panel over `/api/libraries`: thumbnails, Add, Place, drag onto the page |
-| `workspaces.ts` | Window > Workspace and the title-bar switcher: seven built-in layouts and your own over `/api/prefs/workspaces` |
+| `workspaces.ts` | Window > Workspace and the title-bar switcher: eight built-in layouts and your own over `/api/prefs/workspaces`; Essentials is the calm everyday one (Pages and Make left, Properties and Swatches right), and Working with Claude runs `ui.claude` after its layout so the dock opens on its Chat tab |
 | `shortcuts.ts` | Edit > Keyboard Shortcuts: sets over `/api/prefs/shortcuts`, tool commands, Show Set |
 | `proof.ts` | View > Proof Setup and Proof Colors (the viewport's `proof` tile option), profiles over `/api/prefs/profiles` |
 | `dictionaries.ts` | Edit > Language Dictionaries over `/api/dictionaries` |
