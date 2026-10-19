@@ -39,8 +39,11 @@ def prefs() -> dict:
 def save_prefs(body: dict) -> dict:
     d = prefs()
     for k in FIELDS:
+        if k in body and body[k] is not None and not isinstance(body[k], str):
+            raise ClaudeError(f"preference {k} must be text")
+    for k in FIELDS:
         if k in body:
-            d[k] = str(body.get(k) or "").strip()[:2000]
+            d[k] = (body[k] or "").strip()[:2000]
     PREFS.parent.mkdir(parents=True, exist_ok=True)
     PREFS.write_text(json.dumps(d, indent=1))
     _cache["value"] = None
@@ -116,9 +119,8 @@ def mcp_config() -> str:
 
 
 def workdir() -> Path:
-    from app.services import pty
     raw = prefs().get("claudeFolder", "") or os.environ.get("FORMDES_AGENT_DIR", "").strip()
-    folder = Path(raw).expanduser() if raw else pty.workdir()
+    folder = Path(raw).expanduser() if raw else config.DATA_DIR / "Agent"
     try:
         folder.mkdir(parents=True, exist_ok=True)
     except OSError as e:

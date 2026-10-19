@@ -526,6 +526,8 @@ async def _run(name: str, a: dict) -> dict:
         return _text({"count": len(rows), "showing": min(lim, len(rows)), "commands": [{k: r.get(k) for k in keys if r.get(k) not in (None, "", [], {})} for r in rows[:lim]]})
     if name == "run_command":
         from app.services import commands as C
+        if str(a["id"]).startswith(("ui.terminal.", "ui.claude")):
+            return _fail(f"{a['id']} belongs to the person: outside agents cannot open, read or type into the terminal dock or the Claude chat")
         try:
             return _text(await C.run(str(a["id"]), a.get("params") or {}, "mcp"))
         except C.CommandError as exc:

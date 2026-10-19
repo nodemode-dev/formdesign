@@ -29,6 +29,7 @@ class NewTerminal(BaseModel):
     rows: int = 30
     prompt: str | None = None
     resume: str | None = None
+    reuse: bool = False
 
 
 @router.get("/term")
@@ -40,11 +41,27 @@ async def term_info(request: Request):
 @router.post("/term")
 async def term_new(body: NewTerminal, request: Request):
     _guard(request)
+    if body.reuse and body.preset == "claude" and not body.resume:
+        s = await terminals.reuse("claude", body.prompt)
+        if s is not None:
+            return {"id": s.id, "preset": s.preset, "title": s.title, "reused": True}
     try:
         s = await terminals.create(body.preset, body.cols, body.rows, body.prompt, body.resume)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return {"id": s.id, "preset": s.preset}
+    return {"id": s.id, "preset": s.preset, "title": s.title, "reused": False}
+
+
+@router.post("/term/{sid}/restart")
+async def term_restart(sid: str, request: Request):
+    _guard(request)
+    try:
+        s = await terminals.restart(sid)
+    except KeyError:
+        raise HTTPException(404, "no such terminal")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"id": s.id, "preset": s.preset, "title": s.title}
 
 
 @router.delete("/term/{sid}")

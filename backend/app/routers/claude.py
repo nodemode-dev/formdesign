@@ -35,7 +35,7 @@ async def status(request: Request):
 @router.post("/claude/prefs")
 async def prefs(request: Request):
     _guard(request)
-    claude_code.save_prefs(await _body(request))
+    _run(claude_code.save_prefs, await _body(request))
     return claude_code.status()
 
 
