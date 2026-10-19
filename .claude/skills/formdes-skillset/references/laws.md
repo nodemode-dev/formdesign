@@ -8,4 +8,6 @@
 - **Comments** stay near zero; context goes to the folder's `HASHOUT_LOG.md`.
 - **Licences:** permissive dependencies only in anything shipped; record non-trivial ones in `NOTICE.md`.
 - **Versions** are `vX.Y.Z` with dots; commits are Conventional Commits made as nodemode-ai; the bump is the last commit of a release.
+- **No product names.** Never name another layout, drawing or photo application, or its maker, in code, strings, comments, docs or commit messages; describe the behaviour and name formats by extension. Only interop literals a format defines (MIME types, XML namespaces, byte signatures) and licence credits keep such names.
+- **Declined features stay declined.** Content-aware scale and skin protection are refused for patent reasons in every form (seam carving, retargeting, protected-region resizing); `docs/DECLINED.md` is the record.
 - **Hand back** a versioned repo zip with `.git` and the planning sidecar zip at every milestone.

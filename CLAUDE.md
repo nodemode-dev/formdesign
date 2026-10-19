@@ -1,6 +1,6 @@
 # FormDesign (repo and tools: formdes)
 
-Page layout and publishing (an InDesign alternative) for the web and the desktop in the form family's design language: a Rust layout core (formdes-core over formdes's own layout crates in `native/`), a Python and FastAPI engine, a vanilla TypeScript and Vite window, a Tauri 2 shell.
+Page layout and publishing (a professional page-layout application) for the web and the desktop in the form family's design language: a Rust layout core (formdes-core over formdes's own layout crates in `native/`), a Python and FastAPI engine, a vanilla TypeScript and Vite window, a Tauri 2 shell.
 
 ## Making layouts
 
@@ -17,4 +17,6 @@ Route through `.claude/skills/formdes-skillset/SKILL.md`: the map of the three l
 - `frontend/src/editor/` never owns layout logic; it renders tiles and overlays from the core and sends input.
 - New UI goes in a feature module under `frontend/src/features/` registered through `ui/workspace.ts`.
 - After changing MCP tools or the template library, run `./formdes agents sync` (it regenerates the harness skill's tool and template references and mirrors the skills to `.agents/skills`).
+- Never name another layout, drawing or photo application, or its maker, anywhere in the tree (code, strings, comments, docs, commit messages); describe the behaviour and name formats by extension. Interop literals a format defines (MIME types, XML namespaces, byte signatures) and licence credits are the only exceptions.
+- Content-aware scale and skin protection are declined for patent reasons and never built in any form; see `docs/DECLINED.md`.
 - Planning documents (DEV_PLAN, BUILD_NOTES, TEST_PLAN, the root HASHOUT_LOG, dev-wise) ship in the planning sidecar zip, not in this tree.

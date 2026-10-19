@@ -22,3 +22,6 @@ Without MCP, the same from a shell: `./formdes make FILES --brief "..." --out la
 ## Working on the code
 
 Follow `.claude/skills/formdes-skillset/SKILL.md` (architecture map, change recipes, build laws).
+
+- Never name another layout, drawing or photo application, or its maker, anywhere in the tree; describe the behaviour and name formats by extension. Interop literals a format defines (MIME types, XML namespaces, byte signatures) and licence credits are the only exceptions.
+- Content-aware scale and skin protection are declined for patent reasons and never built in any form; see `docs/DECLINED.md`.
