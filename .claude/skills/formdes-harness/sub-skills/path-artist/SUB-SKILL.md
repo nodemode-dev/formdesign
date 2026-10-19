@@ -1,6 +1,6 @@
 ---
 name: path-artist
-description: "Draws and reshapes vector art in formdes with Illustrator-style commands through run_commands: corners at chosen anchor points, offset paths, outline strokes, the ten Pathfinder operations, simplify, smooth and average, Shape Builder, blends, width profiles, live effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, gradient meshes, envelopes and artboards."
+description: "Draws and reshapes vector art in formdes with path commands through run_commands: corners at chosen anchor points, offset paths, outline strokes, the ten Pathfinder operations, simplify, smooth and average, Shape Builder, blends, width profiles, live effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, gradient meshes, envelopes and artboards."
 ---
 
 # Path artist
@@ -18,7 +18,7 @@ A document is open and the shapes exist. Get their ids from `outline`; `inspect`
 | Need | Command | Key parameters |
 | --- | --- | --- |
 | Round some or all corners, kept live while the anchors are edited | `path.roundCorners` | `radius` (pt), `kind` round, invertedRound, chamfer or inset, `anchors` (indices in path order; omit for every corner or the anchors the person picked) |
-| The same radius on every corner, InDesign style (any path, polygon or frame) | `object.cornerOptions` | `shape` rounded, inverseRounded, inset, bevel, fancy, none; `size` |
+| The same radius on every corner (any path, polygon or frame) | `object.cornerOptions` | `shape` rounded, inverseRounded, inset, bevel, fancy, none; `size` |
 | Bake corners into plain points | `path.expandCorners` | none |
 | A parallel outline outside or inside | `path.offset` | `offset` (negative insets), `join` miter, round or bevel, `copy` (default true makes a new shape) |
 | A stroke as a filled shape | `path.outlineStroke` | none; a filled object keeps its fill and loses only the stroke |
@@ -31,7 +31,7 @@ Anchor indices count anchors subpath by subpath, starting at the path's first po
 
 ## Art beyond paths
 
-Illustrator's art features, each kept live (editable, and undone in one step) unless the row says it makes new objects. Points named `[x, y]` are spread points unless the parameter says shares (0 to 1) of the object's bounds.
+The art features, each kept live (editable, and undone in one step) unless the row says it makes new objects. Points named `[x, y]` are spread points unless the parameter says shares (0 to 1) of the object's bounds.
 
 | Need | Command | Key parameters |
 | --- | --- | --- |

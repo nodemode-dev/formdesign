@@ -16,7 +16,7 @@ class FromImage(BaseModel):
 
 @router.post("/colour/theme")
 async def colour_theme(body: FromImage):
-    """A colour theme picked from an image (InDesign's Color Theme tool): the image's dominant colours, darkest first."""
+    """A colour theme picked from an image: the image's dominant colours, darkest first."""
     p = Path(body.path).expanduser()
     if not p.is_absolute() or not p.is_file():
         raise HTTPException(400, f"no image at {body.path}")

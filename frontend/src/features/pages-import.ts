@@ -6,8 +6,8 @@ import type { Workspace } from '../ui/workspace';
 
 const FILE = 'file';
 
-/** Layout > Pages > Insert Pages from Document: InDesign's Move Pages to another document and Affinity's Merge
- *  Document over layout.pages.import. The lists are filled when the dialog opens, not while it is open. */
+/** Layout > Pages > Insert Pages from Document: moving pages to another document and merging
+ *  documents over layout.pages.import. The lists are filled when the dialog opens, not while it is open. */
 class PagesImport {
   private readonly d = new Dialog(t('Insert Pages from Document'), 460);
   private readonly source = el<HTMLSelectElement>('<select class="cv-select"></select>');

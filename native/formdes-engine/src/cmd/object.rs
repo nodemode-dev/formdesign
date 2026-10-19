@@ -442,7 +442,7 @@ fn fill(c: &mut Ctx, p: &Value) -> Result<Value> {
         return Err(EngineError::new(format!("no swatch named {name}")));
     }
     let paint = wire::paint_in(name, tint);
-    // With the Mesh tool and a pressed mesh point, a swatch colours that point, as in Illustrator.
+    // With the Mesh tool and a pressed mesh point, a swatch colours that point.
     if c.session.tool == "mesh"
         && let Some((id, idx)) = c.session.tools.mesh_point
         && ids.contains(&id)

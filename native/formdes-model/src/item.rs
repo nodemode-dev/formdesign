@@ -535,8 +535,8 @@ impl Item {
         let kind = self.extra.get("wrapContour").and_then(|v| v.get("type")).and_then(|v| v.as_str()).unwrap_or("graphicFrame");
         match kind {
             "sameAsClipping" => self.image_path("clipping"),
-            "detectEdges" | "alphaChannel" | "photoshopPath" => self.image_path("wrapContour"),
-            _ => None,
+            "graphicFrame" => None,
+            _ => self.image_path("wrapContour"),
         }
     }
 

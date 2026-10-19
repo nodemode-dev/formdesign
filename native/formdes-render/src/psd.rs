@@ -555,7 +555,7 @@ fn tiff_8bim(b: &[u8]) -> Vec<u8> {
     Vec::new()
 }
 
-pub fn photoshop_paths(bytes: &[u8]) -> Vec<NamedPath> {
+pub fn psd_clip_paths(bytes: &[u8]) -> Vec<NamedPath> {
     if is_psd(bytes) {
         return Psd::parse(bytes).map(|p| p.paths()).unwrap_or_default();
     }

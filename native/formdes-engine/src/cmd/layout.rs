@@ -648,8 +648,7 @@ fn import_parent(src: &Doc, dst: &mut Doc, m: &mut crate::transplant::Mapper, ma
     Some(id)
 }
 
-/// Layout > Pages > Insert Pages from Document (InDesign's Move Pages to another document, Affinity's Merge
-/// Document): copies pages of an open document or a file in after a page of this one, with their items, stories,
+/// Layout > Pages > Insert Pages from Document: copies pages of an open document or a file in after a page of this one, with their items, stories,
 /// pictures, styles, swatches, layers, parents and section starts; `move` also takes them out of an open source.
 fn pages_import(c: &mut Ctx, p: &Value) -> Result<Value> {
     use std::collections::HashMap;

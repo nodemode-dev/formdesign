@@ -985,9 +985,9 @@ pub fn register(r: &mut Registry) {
     cmd("file.saveAs", "Save As...").menu(&["File", "Save As..."]).key("Mod+Shift+S").query().sig("{path}").reg(r, file_save_as);
     cmd("file.close", "Close").menu(&["File", "Close"]).key("Mod+W").query().sig("{}").reg(r, file_close);
     cmd("file.place", "Place...").menu(&["File", "Place..."]).key("Mod+D").sig("{path} | {path, frame, page?} | {base64, name, frame}").reg(r, file_place);
-    cmd("file.exportPdf", "Export PDF...").menu(&["File", "Export", "Adobe PDF..."]).query().sig("{pages?, bleed?, marks?: bool | {crop, bleed, registration, colorBars, pageInfo, type, weight, offset}, cropMarks?, bleedMarks?, registrationMarks?, colorBars?, pageInformation?, markType?: default|japanese, markWeight?: pt, markOffset?: pt, standard?, tagged?, spreads?, path?}").reg(r, export_pdf);
+    cmd("file.exportPdf", "Export PDF...").menu(&["File", "Export", "PDF..."]).query().sig("{pages?, bleed?, marks?: bool | {crop, bleed, registration, colorBars, pageInfo, type, weight, offset}, cropMarks?, bleedMarks?, registrationMarks?, colorBars?, pageInformation?, markType?: default|japanese, markWeight?: pt, markOffset?: pt, standard?, tagged?, spreads?, path?}").reg(r, export_pdf);
     cmd("file.interactiveInfo", "Interactive PDF Contents").query().sig("{pages?, mediaDir?}").reg(r, interactive_info);
-    cmd("file.exportIdml", "Export IDML...").menu(&["File", "Export", "InDesign Markup (IDML)..."]).query().sig("{path?, embedImages?}").reg(r, export_idml);
+    cmd("file.exportIdml", "Export IDML...").menu(&["File", "Export", "IDML..."]).query().sig("{path?, embedImages?}").reg(r, export_idml);
     cmd("file.exportEpub", "Export EPUB (Reflowable)...").menu(&["File", "Export", "EPUB (Reflowable)..."]).query().sig("{title?, author?, language?, cover?, path?}").reg(r, export_epub);
     cmd("file.exportFixedEpub", "Export EPUB (Fixed Layout)...").menu(&["File", "Export", "EPUB (Fixed Layout)..."]).query().sig("{title?, author?, language?, path?}").reg(r, export_fixed_epub);
     cmd("file.exportHtml", "Export HTML...").menu(&["File", "Export", "HTML..."]).query().sig("{title?, language?, path?}").reg(r, export_html);

@@ -12,7 +12,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.74.0 · 2026-10-17
 
-- Parity re-traced against Affinity's current layout features (Sprint 22 item 2.1). Six capabilities Affinity documents were missing from the comparison and are now scored: adjustments that stay live on placed images, opening CAD drawings, opening Illustrator and Photoshop files as artwork, inserting pages from another document, stock photo search and persistent dimension lines. Editing a placed image's pixels moves to full. formdes is 132 of 139 (95 percent; 97 against InDesign, 94 against Affinity). No code change.
+- Parity re-traced against a second layout application's current features (Sprint 22 item 2.1). Six capabilities it documents were missing from the comparison and are now scored: adjustments that stay live on placed images, opening CAD drawings, opening .ai and PSD files as artwork, inserting pages from another document, stock photo search and persistent dimension lines. Editing a placed image's pixels moves to full. formdes is 132 of 139 (95 percent; 97 against the first application, 94 against the second). No code change.
 
 ## 0.73.0 · 2026-10-17
 
@@ -20,7 +20,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.72.0 · 2026-10-17
 
-- Opening QuarkXPress files: a `.qxd` or `.qxp` without QuarkXPress's header signature is refused as not a QuarkXPress document instead of turning into an empty import, and a QuarkXPress file LibreOffice cannot read now says its reader takes QuarkXPress 3.1 to 4.1 (export a PDF from later versions) instead of blaming the LibreOffice build. Publisher and PageMaker test documents from LibreOffice's own suite open as editable layouts.
+- Opening .qxd and .qxp files: a `.qxd` or `.qxp` without the expected header signature is refused as not a valid file instead of turning into an empty import, and a .qxd or .qxp file LibreOffice cannot read now says its reader takes format versions 3.1 to 4.1 (export a PDF from later versions) instead of blaming the LibreOffice build. Test documents in the .pub and .pmd formats from LibreOffice's own suite open as editable layouts.
 
 ## 0.71.0 · 2026-10-17
 
@@ -37,8 +37,8 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.68.0 · 2026-10-17
 
-- Sprint 21 closed. The README, the manual (a new Drawing chapter), the developer wiki and this changelog are up to date with every release since 0.28.0; parity re-traced at 130 of 133 (98 percent against InDesign and against Affinity).
-- The formdes-harness path-artist sub-skill covers the Illustrator-class commands: Shape Builder, blends, width profiles, effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, meshes, envelopes and artboards.
+- Sprint 21 closed. The README, the manual (a new Drawing chapter), the developer wiki and this changelog are up to date with every release since 0.28.0; parity re-traced at 130 of 133 (98 percent against each of the two reference applications).
+- The formdes-harness path-artist sub-skill covers the vector-art commands: Shape Builder, blends, width profiles, effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, meshes, envelopes and artboards.
 
 ## 0.67.0 · 2026-10-17
 
@@ -164,7 +164,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.37.0 · 2026-10-16
 
-- Envelope Distort (make with the top object or a mesh) and Puppet Warp.
+- Envelope Distort (make with the top object or a mesh) and pin warps.
 
 ## 0.36.0 · 2026-10-16
 
@@ -230,7 +230,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Parity batch seven (127 to 130 of 133).
 - Type > Find More Fonts: the Google Fonts library (1941 families) with previews, licences and activation into the running layout core; documents offer missing families on open.
 - Plug-ins: sandboxed plug-ins with declared permissions checked by the window and the engine, Window > Plug-ins with a catalogue (sha256 checked), install from file, enable, disable; Word Count and Lorem Fill examples.
-- Open PDFs as editable layouts (frames, mapped fonts, pictures and shapes, the rest in a locked backdrop, with a fidelity report); Publisher and PageMaker files through LibreOffice; QuarkXPress wired but untested; .indd explains the IDML route.
+- Open PDFs as editable layouts (frames, mapped fonts, pictures and shapes, the rest in a locked backdrop, with a fidelity report); .pub and .pmd (.p65) files through LibreOffice; .qxd and .qxp wired but untested; .indd explains the IDML route.
 
 ## 0.25.3 · 2026-10-12
 
@@ -247,7 +247,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - The canvas draws through the GPU: WebGPU first, then WebGL2, then Canvas 2D (View > Renderer), with no blank frame on a lost context; formdes-gpu's frame model on the web.
 - Parity batch five, nine graded rows move (116.5 to 121.5 of 133).
 - Variable fonts: axis sliders in the Character panel (type.fontAxes, fontVariations), named instances, embedded as instances in PDF.
-- Clipping paths from Photoshop paths, alpha channels or detected edges, text wrap to the contour, Convert Clipping Path to Frame.
+- Clipping paths from embedded paths, alpha channels or detected edges, text wrap to the contour, Convert Clipping Path to Frame.
 - Object Layer Options for placed PDFs (optional content, also in exported PDF) and placed PSDs (own layer reader).
 - PDF/X-1a:2001, PDF/X-3:2002 and PDF/X-4 export with output intent and preflight.
 - Interactive PDF: form fields, video and audio as Screen annotations, page transitions.
@@ -290,7 +290,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Paragraph Options has no JSON left: GREP styles, nested styles and tab stops are rows, rules and shading are forms, spacing is minimum, desired and maximum.
 - New Gradient Swatch has a stop list (colour, location, opacity). Window > Colour Theme from Image adds an image's colours as a swatch group.
 - Agents: errors from run_commands name the nearest command or the parameters it takes; find_commands lists a domain and counts matches; tools have titles; a Cursor rule ships in `.cursor/rules`.
-- Parity: 104 to 107 of 133, 80 percent of InDesign and 86 of Affinity (Package, Autocorrect, GREP styles, Swatches and Colour themes closed).
+- Parity: 104 to 107 of 133, 80 percent of the first reference application and 86 of the second (Package, Autocorrect, GREP styles, Swatches and Colour themes closed).
 
 ## 0.22.0 · 2026-10-12
 
@@ -328,7 +328,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Text and tables: typing inside table cells with Tab between cells; Convert Text to Table and Table to Text; Table and Cell Style Options; endnotes numbered through the document into an endnote frame; CSV and Excel files place as tables; Object > Select Container, Content and Next Object; note flags and tracked changes marked on the canvas again; Object > Effects > Transparency with blend modes.
 - Output: tagged PDF with headings, reading order and alt text; PDF/A-2a, PDF/A-2b and PDF/UA-1; buttons as PDF links; File > Export > SVG; File > Print with a printer list through lp or lpr; Print Booklet downloads its PDF. PDF/X is no longer offered, because the PDF writer cannot produce it.
 - Preferences > Agents has an agent access switch; with it off, every MCP tool call is refused.
-- 311 commands. Parity against InDesign and Affinity re-traced: 104 of 133 rows (78 percent), up from 66 percent. Not yet: PDF/X, form fields, media and page transitions in exported PDF, graphic cells, and layer visibility for placed PDFs.
+- 311 commands. Parity against the two reference applications re-traced: 104 of 133 rows (78 percent), up from 66 percent. Not yet: PDF/X, form fields, media and page transitions in exported PDF, graphic cells, and layer visibility for placed PDFs.
 
 ## 0.18.0 · 2026-10-10
 
@@ -351,7 +351,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.16.0 · 2026-10-10
 
-- formdes's own engine has its toolbox: Selection, Direct Selection, Page, Gap, Content Collector and Placer, Type, Type on a Path, Line, Pen with its anchor tools, Pencil, Smooth, Erase, frame and shape tools, Scissors, Free Transform, Rotate, Scale, Shear, Gradient Swatch and Feather, Note, Color Theme, Eyedropper and Measure, each with InDesign's shortcut. A drag previews live and lands as one undo step; Escape cancels it.
+- formdes's own engine has its toolbox: Selection, Direct Selection, Page, Gap, Content Collector and Placer, Type, Type on a Path, Line, Pen with its anchor tools, Pencil, Smooth, Erase, frame and shape tools, Scissors, Free Transform, Rotate, Scale, Shear, Gradient Swatch and Feather, Note, Color Theme, Eyedropper and Measure, each with its standard shortcut. A drag previews live and lands as one undo step; Escape cancels it.
 - Click the out port of a text frame to load its text and click or drag to thread it on; the place gun fills a frame, places at natural size or into a dragged frame.
 - Typing, caret and word movement, line-aware Up and Down, selection with Shift, Backspace and Delete respecting tracked changes, and nudging with the arrow keys; command and tool shortcuts are routed as the window expects.
 - The engine draws the canvas furniture the window shows: margins, columns, guides, bleed, baseline grid, frame edges, parent items, selection outlines, handles, ports and threads, path anchors, text highlights and the caret, and live tool feedback.
@@ -373,7 +373,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 ## 0.13.0 · 2026-10-10
 
 - formdes's own layout engine has begun, to replace the engine crates the core builds on today. `native/formdes-model` is the document model and the `.fdes` file format: pages, spreads, parents, sections, layers, items, stories, styles, swatches. `native/formdes-text` is the text engine: font matching with fallback, OpenType shaping, hyphenation, a Knuth and Plass paragraph composer, justification, tabs, drop caps, small caps, bidirectional text, lists, nested and GREP styles, and flow through threaded frames and columns with wrap, keep options, widow control, breaks, footnotes, tables and vertical justification. Neither is wired into the app yet; nothing you see changes in this release.
-- Parity re-measured in 170 traced rows against InDesign, Affinity and Acrobat: 93 (55 percent). The earlier 48.0 of 53 credited menu entries that fail or run without parameters in the window and left out work on existing PDFs.
+- Parity re-measured in 170 traced rows against professional layout and PDF applications: 93 (55 percent). The earlier 48.0 of 53 credited menu entries that fail or run without parameters in the window and left out work on existing PDFs.
 
 ## 0.12.0 · 2026-10-08
 
@@ -383,7 +383,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Publish Online (File > Publish Online): the open document's site gets a link served from this computer, updated each time you publish again; the list of published sites opens, copies, shows, downloads as .zip or unpublishes each one.
 - Export reports what to fix before publishing: images without alt text, buttons without a link, placeholder art still in place, fonts that cannot be embedded.
 - For agents: `export_document` takes `web` and the `publish_website` tool publishes, lists and unpublishes (29 tools); `./formdes export FILE --out site.zip` from a terminal.
-- Parity with InDesign measured at 48.0 of 53, unchanged: HTML export and Publish Online (row 42) stays partial because a published site's link works on this computer only; a hosted publishing service is not built.
+- Parity with the reference layout application measured at 48.0 of 53, unchanged: HTML export and Publish Online (row 42) stays partial because a published site's link works on this computer only; a hosted publishing service is not built.
 
 ## 0.11.0 · 2026-10-08
 
@@ -393,7 +393,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Soft proofing: View > Proof Setup (Working CMYK, a custom press with any CMYK profile, intent and Simulate Paper Color, RGB screens, two colour-blindness simulations) and View > Proof Colors. Loaded ICC profiles are kept in the data folder.
 - Spelling in other languages: text is checked in its own language; Edit > Language Dictionaries gets twenty dictionaries from the LibreOffice project or installs your own Hunspell files.
 - Fixed: a request whose window closed mid-call no longer leaves its reply for the next call (every later answer was one behind); a core shortcut works straight after the selection changes, without opening a menu first; dialog fields and notes are styled.
-- Parity with InDesign measured at 48.0 of 53.
+- Parity with the reference layout application measured at 48.0 of 53.
 
 ## 0.10.0 · 2026-10-08
 
@@ -403,17 +403,17 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - The XML Tags and Structure panels (Alt+Ctrl+1): tag frames and text, map paragraph styles to tags, load a DTD and validate, import XML into tagged frames, export XML.
 - Libraries (Window > Library): libraries of saved pieces with thumbnails; add the selection, drag an item onto the page to place it there, or place it where it was; rename, delete and search. Libraries live in the data folder or in `FORMDES_LIBRARIES_DIR`.
 - The `library` MCP tool (28 tools): agents list, create and fill libraries and place their pieces.
-- Parity with InDesign measured at 47.0 of 53.
+- Parity with the reference layout application measured at 47.0 of 53.
 
 ## 0.9.0 · 2026-10-08
 
-- Find/Change (Edit > Find/Change, Ctrl+F): a floating window with Text, GREP, Glyph and Object tabs; InDesign's special characters and GREP codes, lookahead, lookbehind and `$1`; Find Format and Change Format; scopes, case, whole word, locked, hidden and parent-page options; tables and footnotes included; Find All with page and context; Find Next (Alt+Ctrl+F), Change, Change All, Change/Find; twelve built-in queries and your own.
+- Find/Change (Edit > Find/Change, Ctrl+F): a floating window with Text, GREP, Glyph and Object tabs; the page-layout special characters and GREP codes, lookahead, lookbehind and `$1`; Find Format and Change Format; scopes, case, whole word, locked, hidden and parent-page options; tables and footnotes included; Find All with page and context; Find Next (Alt+Ctrl+F), Change, Change All, Change/Find; twelve built-in queries and your own.
 - The `find_change` MCP tool (27 tools): count, list and change all, and run or save queries.
 - Check Spelling (Ctrl+I) with suggestions, Skip, Change, Ignore All, Change All and Add; Dynamic Spelling underlines misspelled words; a dictionary for each document with its hyphenation exceptions.
 - Type on a Path Options: align, start, flip, delete type from the path.
 - Preflight profiles: [Basic], Commercial print, PDF/X-1a no transparency, Saddle-stitched booklet, Digital and screen, and your own; new checks for bleed, text near the trim, small type, very high resolution, spot inks, transparency and page count. The MCP `preflight` tool takes a profile.
 - Fixed: function keys work while typing; the Make layout button stays in view in a short panel.
-- Parity with InDesign measured at 46.0 of 53.
+- Parity with the reference layout application measured at 46.0 of 53.
 
 ## 0.8.0 · 2026-10-08
 
@@ -422,7 +422,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - The Review group: Track Changes (accept or reject one change or all), Notes (add, edit, delete, convert to text) and Conditional Text (new, apply, clear, show or hide, delete).
 - The Story Editor shows each paragraph's style name beside it and a line where the text is overset.
 - Object Style Options: name, fill, stroke, stroke weight and paragraph style, applied to every object that uses the style; Redefine from the selection; Delete.
-- Parity with InDesign measured at 44.5 of 53.
+- Parity with the reference layout application measured at 44.5 of 53.
 
 ## 0.7.1 · 2026-10-08
 
@@ -447,7 +447,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Panel tab names read in full.
 - Typing straight after drawing a text frame keeps its first letters.
 - A Markdown heading under the title becomes the deck, a "By Name" line the byline.
-- The first parity measurement against InDesign.
+- The first parity measurement against a reference layout application.
 
 ## 0.6.0 · 2026-10-07
 

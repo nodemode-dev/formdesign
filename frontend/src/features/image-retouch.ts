@@ -9,7 +9,7 @@ import type { Workspace } from '../ui/workspace';
 type Tool = 'heal' | 'clone' | 'redEye';
 interface Stroke { tool: Tool; points: Array<[number, number]>; radius: number; offset?: [number, number] }
 
-/** Object > Image > Retouch Image: Affinity's Healing Brush, Clone Brush and Red Eye tool over a placed picture.
+/** Object > Image > Retouch Image: the Healing Brush, Clone Brush and Red Eye tool over a placed picture.
  *  The picture shown is the engine's own render of the strokes so far (image.retouchPreview), so the dialog never
  *  approximates the result; while painting, only the overlay canvas draws the brush and the stroke's path. */
 class Retouch {
@@ -172,7 +172,7 @@ class Retouch {
     if (this.tool !== 'redEye' && ev.altKey) { this.source = p; this.offset = null; this.readouts(); this.drawOver(); return; }
     if (this.tool !== 'redEye' && !this.source) { setClass(this.note, 'is-warn', true); return; }
     setClass(this.note, 'is-warn', false);
-    // Aligned, as Affinity and Photoshop default to: the source keeps its distance from the brush across strokes.
+    // Aligned by default: the source keeps its distance from the brush across strokes.
     if (this.tool !== 'redEye' && !this.offset && this.source) {
       // Painting on the source itself would copy pixels onto themselves; the engine refuses a zero offset.
       if (Math.hypot(this.source[0] - p[0], this.source[1] - p[1]) < this.radius * 0.5) { setClass(this.note, 'is-warn', true); return; }

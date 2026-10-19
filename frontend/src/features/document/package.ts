@@ -12,7 +12,7 @@ interface PackageResult { dir?: string; files?: unknown[] | number; report?: unk
 export class PackageDialog {
   private readonly d = new Dialog('Package', 560);
   private readonly dir = el<HTMLInputElement>('<input class="fd-f-text fd-f-mono" type="text" spellcheck="false" autocomplete="off">');
-  private readonly idml = new Check('An IDML copy, for InDesign', true);
+  private readonly idml = new Check('An IDML copy', true);
   private readonly pdf = new Check('A PDF for review');
   private readonly notes = el<HTMLTextAreaElement>('<textarea class="fd-f-area" rows="3" spellcheck="true" placeholder="Instructions for the printer or the next designer (optional)"></textarea>');
   private readonly result = el(`<div class="fd-ex-result" hidden><span class="fd-ex-ok">${docIcon('check', 15)}</span><div class="fd-ex-rtext"><div class="fd-ex-rhead"></div><div class="fd-ex-rpath"></div></div><button class="cv-icon-btn fd-ex-copy" type="button" title="Copy the path" aria-label="Copy the path">${docIcon('copy', 15)}</button></div>`);

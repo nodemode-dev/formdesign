@@ -387,7 +387,7 @@
 :root { --cv-props-open-w: 284px; }
 /* (A window too narrow for this shows the column as its strip: PropertiesColumn.MIN_CANVAS.) */
 .cv-main:has(> .cv-props-col:not(.is-collapsed):not([hidden])) > .cv-options { margin-right: calc(var(--cv-props-open-w) - 46px); }
-/* The History Brush's source column (Photoshop's): marked on the snapshot it paints from. */
+/* The History Brush's source column: marked on the snapshot it paints from. */
 .cv-hb-source { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: auto; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); opacity: 0.45; cursor: pointer; }
 .cv-hb-source:hover { opacity: 1; color: var(--text-primary); }
 .cv-hb-source.is-on { opacity: 1; color: var(--accent-ink); background: var(--accent-soft); }

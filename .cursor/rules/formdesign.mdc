@@ -6,7 +6,7 @@ alwaysApply: true
 
 # FormDesign in Cursor
 
-FormDesign is a page-layout app (an InDesign alternative). Its MCP server is `formdes` (`.cursor/mcp.json` starts `./formdes mcp`, which starts the engine when needed). Every change an agent makes shows live in the FormDesign window and can be undone.
+FormDesign is a page-layout app (a professional page-layout application). Its MCP server is `formdes` (`.cursor/mcp.json` starts `./formdes mcp`, which starts the engine when needed). Every change an agent makes shows live in the FormDesign window and can be undone.
 
 - To make or change a layout from files and a brief, follow `.agents/skills/formdes-harness/SKILL.md`: intake, make_layout, preview, set_slots, export_document. Do not read the source files into context first; intake is cheaper.
 - For anything the fast path does not cover, `find_commands` (by word or by domain such as table, swatch, type) and then `run_commands` with `[{command, params}]` as one undoable batch. Error replies name the fix: the nearest command id or the parameters the command takes.

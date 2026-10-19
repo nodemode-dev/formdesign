@@ -15,7 +15,7 @@ interface FormatInfo { id: ExportFormat; label: string; sub: string; icon: strin
 
 const FORMATS: FormatInfo[] = [
   { id: 'pdf', label: 'PDF', sub: 'Print or interactive', icon: 'pdf', ext: '.pdf' },
-  { id: 'idml', label: 'InDesign Markup', sub: 'IDML package', icon: 'idml', ext: '.idml' },
+  { id: 'idml', label: 'IDML Markup', sub: 'IDML package', icon: 'idml', ext: '.idml' },
   { id: 'epub', label: 'EPUB', sub: 'Reflowable e-book', icon: 'epub', ext: '.epub' },
   { id: 'epub-fixed', label: 'EPUB Fixed Layout', sub: 'Pages as designed', icon: 'epubFixed', ext: '.epub' },
   { id: 'html', label: 'HTML', sub: 'One self-contained page', icon: 'html', ext: '.html' },
@@ -121,7 +121,7 @@ export class ExportDialog {
 
     this.group('idml').append(el('<div class="fd-f-checks"></div>'));
     q(this.groups.get('idml') as HTMLElement, '.fd-f-checks').appendChild(this.idmlEmbed.root);
-    this.group('idml').appendChild(el('<p class="fd-f-note">IDML keeps frames, threads, styles and swatches, so the layout opens in InDesign and other layout tools.</p>'));
+    this.group('idml').appendChild(el('<p class="fd-f-note">IDML keeps frames, threads, styles and swatches, so the layout opens in other layout tools that read IDML.</p>'));
 
     const meta = this.group('meta');
     meta.append(field('Title', this.metaTitle), row(field('Author', this.metaAuthor), field('Language', this.metaLang)));

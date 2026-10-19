@@ -1,6 +1,5 @@
 //! Pixel edits of a placed raster image (crop, quarter turns, flips and tone adjustments), returning a new encoded
-//! file so the caller can write it beside the original and relink: the original stays untouched, as Affinity's
-//! Photo persona and InDesign's Edit Original leave it.
+//! file so the caller can write it beside the original and relink: the original stays untouched.
 
 use image::{DynamicImage, GenericImageView, RgbaImage};
 
@@ -82,7 +81,7 @@ fn adjust(img: &mut RgbaImage, e: &Edit) {
     }
 }
 
-/// Adjustments kept live on a placed picture (Affinity's adjustment layers): the frame stores these and a view
+/// Adjustments kept live on a placed picture: the frame stores these and a view
 /// picture made from them, and the original stays as placed. Applied in order: the tones of `Edit` (levels,
 /// exposure, contrast, saturation, temperature), then the curve, hue, lightness and black and white.
 #[derive(Clone, Debug, Default, PartialEq)]

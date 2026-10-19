@@ -290,5 +290,5 @@ fn trace(c: &mut Ctx, p: &Value) -> Result<Value> {
 pub fn register(r: &mut Registry) {
     cmd("object.imageTrace", "Image Trace").menu(&["Object", "Image Trace", "Make and Expand..."]).needs(Needs::Items)
         .sig("{mode?: blackWhite|colors, threshold?: 0..255 (blackWhite, default 128), colors?: 2..32 (default 6), detail?: pixels on the long side (default 240), paths?: fit tolerance in pixels (default 0.5), noise?: smallest area in pixels (default 4), curves?: bool, ignoreWhite?: bool, keep?: bool (keep the image), ids?}")
-        .help("Turns the selected placed image into vector shapes, as Illustrator's Image Trace does: black and white by a brightness threshold, or a palette of colours found in the image, each colour one compound shape stacked from light to dark; higher detail follows the image more closely, noise drops specks, paths sets how loosely the outlines are fitted.").reg(r, trace);
+        .help("Turns the selected placed image into vector shapes: black and white by a brightness threshold, or a palette of colours found in the image, each colour one compound shape stacked from light to dark; higher detail follows the image more closely, noise drops specks, paths sets how loosely the outlines are fitted.").reg(r, trace);
 }

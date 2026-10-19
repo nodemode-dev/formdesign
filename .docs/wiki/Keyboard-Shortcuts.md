@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow InDesign's where formdes has the same command. While the text cursor is in a frame, single-key shortcuts type instead.
+Cmd on macOS, Ctrl on Windows and Linux; this page writes Ctrl. Shortcuts follow the usual page-layout conventions where formdes has the same command. While the text cursor is in a frame, single-key shortcuts type instead.
 
 ## Tools
 

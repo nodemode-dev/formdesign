@@ -10,7 +10,7 @@ metadata:
 
 # formdes harness
 
-formdes is a page-layout application (an alternative to InDesign) whose engine runs on the person's computer. Its MCP server lets an agent go from a folder of material and two sentences of intent to a finished, editable layout in four or five tool calls, while the person watches it appear in the formdes window. The premise is division of labour: formdes does the deterministic work cheaply (reading files, choosing and filling a template, threading text, fitting copy, finding problems), and the agent spends its tokens only on judgement (what the person meant, what to fix, what to tell them).
+formdes is a professional page-layout application whose engine runs on the person's computer. Its MCP server lets an agent go from a folder of material and two sentences of intent to a finished, editable layout in four or five tool calls, while the person watches it appear in the formdes window. The premise is division of labour: formdes does the deterministic work cheaply (reading files, choosing and filling a template, threading text, fitting copy, finding problems), and the agent spends its tokens only on judgement (what the person meant, what to fix, what to tell them).
 
 The failure this skill prevents is the expensive one: reading every source file into context, then laying out frame by frame with low-level commands. That costs tens of thousands of tokens and produces worse pages than a template. Intake and make_layout replace both steps.
 

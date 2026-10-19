@@ -294,7 +294,7 @@ html.is-native-canvas, .is-native-canvas .cv-stage-col { background: transparent
 .cv-app:has(.cv-rail.is-double) { --cv-rail-w: 84px; }
 .cv-rail.is-double .cv-rail-tools { display: grid; grid-template-columns: 1fr 1fr; justify-items: center; }
 .cv-rail.is-double .cv-rail-sep { grid-column: 1 / -1; }
-/* Screen modes and hidden panels (Photoshop's F and Tab). */
+/* Screen modes and hidden panels (the F and Tab keys). */
 .cv-app.is-panels-hidden .cv-rail, .cv-app.is-panels-hidden .cv-options, .cv-app.is-panels-hidden .cv-props-col,
 .cv-app.is-panels-hidden .cv-resizer, .cv-app.is-panels-hidden .cv-layers { display: none !important; }
 .cv-app.is-panels-hidden .cv-main { grid-template-columns: 0 minmax(0, 1fr) 0 0 0 !important; grid-template-rows: 0 minmax(0, 1fr) !important; }
@@ -310,7 +310,7 @@ html.is-native-canvas, .is-native-canvas .cv-stage-col { background: transparent
 .cv-edit-tool:hover { background: var(--surface-raised); }
 .cv-edit-tool input { accent-color: var(--accent-color); }
 /* The type editor's kinds (1.49.7): paragraph text wraps in its box; vertical type reads down, upright; a type mask
-   shows a red tint while typing, as Photoshop's. */
+   shows a red tint while typing. */
 .cv-type-editor.is-box { white-space: pre-wrap; overflow: hidden; }
 .cv-type-editor.is-vertical { writing-mode: vertical-rl; text-orientation: upright; }
 .cv-type-editor.is-mask { background: rgba(255, 0, 0, 0.28) !important; }
@@ -319,7 +319,7 @@ html.is-native-canvas, .is-native-canvas .cv-stage-col { background: transparent
 .cv-opt-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 1px; }
 .cv-opt-color input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 3px; }
 
-/* The video timeline under the canvas (1.59.3, DEV_PLAN 25.2), as Photoshop's and Photon Studio's: a fixed height, so
+/* The video timeline under the canvas (1.59.3, DEV_PLAN 25.2): a fixed height, so
    scrubbing and dragging change nothing around it; clips and the playhead move by transform alone. */
 .cv-vtl { flex: none; display: grid; grid-template-rows: 34px minmax(0, 1fr) 30px; grid-template-columns: minmax(0, 1fr); min-width: 0; height: 220px; border-top: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 12px; }
 .cv-vtl[hidden] { display: none; }

@@ -871,7 +871,7 @@ pub fn register(r: &mut Registry) {
     cmd("style.character.edit", "Character Style Options").sig("{name, rename?, basedOn?, chars?}").reg(r, char_style_edit);
     cmd("style.character.apply", "Apply Character Style").needs(Needs::Text).sig("{name}").reg(r, char_style_apply);
     cmd("style.character.add", "Add Character Style").menu(&["Type", "Character Styles", "Add Character Style..."]).needs(Needs::Text).sig("{name}")
-        .help("Adds a character style on top of the ones already on the selected text, so several styles combine, each setting only what it defines and the later one winning where two set the same thing (InDesign allows one; this is the most-voted request to change that). Adding a style already there moves it to the top.").reg(r, char_style_add);
+        .help("Adds a character style on top of the ones already on the selected text, so several styles combine, each setting only what it defines and the later one winning where two set the same thing. Adding a style already there moves it to the top.").reg(r, char_style_add);
     cmd("style.character.remove", "Remove Character Style").menu(&["Type", "Character Styles", "Remove Character Style..."]).needs(Needs::Text).sig("{name}")
         .help("Takes one character style off the selected text and keeps the others.").reg(r, char_style_remove);
     cmd("style.character.delete", "Delete Character Style").sig("{name, replaceWith?}").reg(r, char_style_delete);

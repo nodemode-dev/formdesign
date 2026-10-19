@@ -154,7 +154,7 @@ fn mixed_ink_group(c: &mut Ctx, p: &Value) -> Result<Value> {
     if total > 1000 {
         return Err(EngineError::new(format!("that makes {total} swatches; a mixed ink group is limited to 1000")));
     }
-    // One swatch for every combination of steps, the first ink varying slowest, as the series reads in InDesign.
+    // One swatch for every combination of steps, the first ink varying slowest.
     let mut made: Vec<Swatch> = Vec::new();
     for n in 0..total {
         let mut rem = n;

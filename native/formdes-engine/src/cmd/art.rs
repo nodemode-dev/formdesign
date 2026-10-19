@@ -1155,17 +1155,17 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 pub fn register(r: &mut Registry) {
     cmd("path.livePaint", "Live Paint Bucket").menu(&["Object", "Live Paint", "Fill Regions..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (inside the regions to fill), swatch, tint?, ids? (a live paint group, or a member of one, keeps the fills live: they follow the regions as the paths change)}")
-        .help("Fills the regions under the given points with a colour, where regions are formed by the selected closed shapes overlapping and by open paths crossing them, as Illustrator's Live Paint Bucket does; each fill is a new shape placed behind the selection, so the lines stay on top.").reg(r, live_paint);
+        .help("Fills the regions under the given points with a colour, where regions are formed by the selected closed shapes overlapping and by open paths crossing them; each fill is a new shape placed behind the selection, so the lines stay on top.").reg(r, live_paint);
     cmd("path.livePaintMake", "Make Live Paint").menu(&["Object", "Live Paint", "Make"]).needs(Needs::Items).sig("{ids?: closed shapes and open paths}").reg(r, live_paint_make);
     cmd("path.livePaintExpand", "Expand Live Paint").menu(&["Object", "Live Paint", "Expand"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_expand);
     cmd("path.livePaintRelease", "Release Live Paint").menu(&["Object", "Live Paint", "Release"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_release);
     cmd("path.shapeBuilder", "Shape Builder").menu(&["Object", "Paths", "Shape Builder..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (spread points inside the regions), mode?: merge|erase, ids?}")
-        .help("Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape, as Illustrator's Shape Builder does.").reg(r, shape_builder);
+        .help("Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape.").reg(r, shape_builder);
     cmd("path.knife", "Knife").menu(&["Object", "Paths", "Knife..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (a line or polyline in spread points), ids?}")
-        .help("Cuts every selected closed shape that the line crosses into separate shapes along it, each keeping its fill and stroke, as Illustrator's Knife tool does.").reg(r, knife);
+        .help("Cuts every selected closed shape that the line crosses into separate shapes along it, each keeping its fill and stroke.").reg(r, knife);
     cmd("path.offset", "Offset Path").menu(&["Object", "Paths", "Offset Path..."]).needs(Needs::Items)
         .sig("{offset: pt (negative insets), join?: miter|round|bevel, miterLimit?, copy?: bool (default true), ids?}")
-        .help("Makes a new path a set distance outside (or, with a negative offset, inside) each selected shape, with mitred, round or bevelled corners, as Illustrator's Object > Path > Offset Path does. An open path gets the closed outline around it.").reg(r, offset_path);
+        .help("Makes a new path a set distance outside (or, with a negative offset, inside) each selected shape, with mitred, round or bevelled corners. An open path gets the closed outline around it.").reg(r, offset_path);
     cmd("path.outlineStroke", "Outline Stroke").menu(&["Object", "Paths", "Outline Stroke"]).needs(Needs::Items)
         .sig("{miterLimit?, ids?}")
         .help("Turns each selected object's stroke into a filled shape in the stroke's colour (caps, joins and dashes included), so it can be edited and combined with Pathfinder. The fill is replaced.").reg(r, outline_stroke);

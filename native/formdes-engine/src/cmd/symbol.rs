@@ -164,7 +164,7 @@ fn delete(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 pub fn register(r: &mut Registry) {
     cmd("symbol.create", "New Symbol").menu(&["Object", "Symbols", "New Symbol..."]).needs(Needs::Items).sig("{name, ids?}")
-        .help("Turns the selected art into a symbol kept in the document and puts an instance in its place; every instance draws the symbol's art, so redefining it changes them all, as Illustrator's symbols do.").reg(r, create);
+        .help("Turns the selected art into a symbol kept in the document and puts an instance in its place; every instance draws the symbol's art, so redefining it changes them all.").reg(r, create);
     cmd("symbol.place", "Place Symbol Instance").menu(&["Object", "Symbols", "Place Instance..."]).sig("{name, at?: [x, y] (centre, spread points), scale?: percent, spread?}")
         .help("Places another instance of a symbol, centred at the given point and scaled; instances move, scale, rotate and take effects like any object.").reg(r, place);
     cmd("symbol.break", "Break Link to Symbol").menu(&["Object", "Symbols", "Break Link to Symbol"]).needs(Needs::Items).sig("{ids?}")

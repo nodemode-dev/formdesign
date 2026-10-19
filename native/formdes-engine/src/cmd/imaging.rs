@@ -13,7 +13,7 @@ use crate::session::Ctx;
 use crate::target::items;
 use crate::{EngineError, Result, args};
 
-const TYPES: &str = "none, detectEdges, alphaChannel or photoshopPath";
+const TYPES: &str = "none, detectEdges, alphaChannel or embeddedPath";
 
 fn graphics(c: &Ctx, ids: &[ItemId]) -> Result<Vec<(ItemId, Asset)>> {
     let doc = c.doc()?;
@@ -56,13 +56,13 @@ fn build_path(c: &Ctx, asset: &Asset, ty: &str, p: &Value) -> Result<(BezPath, V
     let (nw, nh) = asset.natural_size();
     let opt = detect_of(p);
     match ty {
-        "photoshopPath" => {
-            let paths = psd::photoshop_paths(&asset.data);
+        "embeddedPath" => {
+            let paths = psd::psd_clip_paths(&asset.data);
             if paths.is_empty() {
-                return Err(EngineError::new("this picture has no Photoshop paths (JPEG, TIFF and PSD files can carry them in their 8BIM resources)"));
+                return Err(EngineError::new("this picture has no embedded paths (JPEG, TIFF and PSD files can carry them in their 8BIM resources)"));
             }
             let pick = match args::opt_str(p, "name") {
-                Some(n) => paths.iter().find(|x| x.name.eq_ignore_ascii_case(n)).ok_or_else(|| EngineError::new(format!("no Photoshop path named {n}: the picture has {}", paths.iter().map(|x| x.name.clone()).collect::<Vec<_>>().join(", "))))?,
+                Some(n) => paths.iter().find(|x| x.name.eq_ignore_ascii_case(n)).ok_or_else(|| EngineError::new(format!("no embedded path named {n}: the picture has {}", paths.iter().map(|x| x.name.clone()).collect::<Vec<_>>().join(", "))))?,
                 None => paths.iter().find(|x| x.clipping).unwrap_or(&paths[0]),
             };
             let mut path = Affine::scale_non_uniform(nw, nh) * pick.path.clone();
@@ -113,7 +113,7 @@ fn record(ty: &str, p: &Value, path: &BezPath, info: &Value) -> Value {
         m.insert("tolerance".into(), json!(o.tolerance));
         m.insert("includeInsideEdges".into(), json!(o.inside_edges));
     }
-    if ty != "photoshopPath" {
+    if ty != "embeddedPath" {
         m.insert("inset".into(), json!(if ty == "detectEdges" { o.inset } else { d.inset }));
     }
     m.insert("invert".into(), json!(o.invert));
@@ -181,9 +181,9 @@ fn clipping_info(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
         v
     });
-    let paths: Vec<Value> = psd::photoshop_paths(&asset.data).iter().map(|x| json!({"name": x.name, "clipping": x.clipping})).collect();
+    let paths: Vec<Value> = psd::psd_clip_paths(&asset.data).iter().map(|x| json!({"name": x.name, "clipping": x.clipping})).collect();
     let has_alpha = c.session.renderer.images.get(asset, 1.0).map(|d| clippath::has_alpha(&d)).unwrap_or(false);
-    Ok(json!({"id": id, "clipping": cur, "wrapContour": wrap, "photoshopPaths": paths, "alphaChannels": alpha_names(asset), "hasTransparency": has_alpha}))
+    Ok(json!({"id": id, "clipping": cur, "wrapContour": wrap, "embeddedPaths": paths, "alphaChannels": alpha_names(asset), "hasTransparency": has_alpha}))
 }
 
 fn clip_to_frame(c: &mut Ctx, p: &Value) -> Result<Value> {
@@ -214,17 +214,17 @@ fn clip_to_frame(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 fn wrap_contour(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
-    let ty = args::str_(p, "type", "graphicFrame, sameAsClipping, detectEdges, alphaChannel or photoshopPath")?.to_string();
+    let ty = args::str_(p, "type", "graphicFrame, sameAsClipping, detectEdges, alphaChannel or embeddedPath")?.to_string();
     let gs = graphics(c, &ids)?;
     let mut made = Vec::new();
     for (id, asset) in &gs {
         let rec = match ty.as_str() {
             "graphicFrame" | "sameAsClipping" => json!({"type": ty}),
-            "detectEdges" | "alphaChannel" | "photoshopPath" => {
+            "detectEdges" | "alphaChannel" | "embeddedPath" => {
                 let (path, info) = build_path(c, asset, &ty, p)?;
                 record(&ty, p, &path, &info)
             }
-            other => return Err(EngineError::new(format!("`type` expected graphicFrame, sameAsClipping, detectEdges, alphaChannel or photoshopPath, not {other}"))),
+            other => return Err(EngineError::new(format!("`type` expected graphicFrame, sameAsClipping, detectEdges, alphaChannel or embeddedPath, not {other}"))),
         };
         made.push((*id, rec));
     }
@@ -777,9 +777,9 @@ pub fn register(r: &mut Registry) {
     cmd("image.adjust", "Adjustments").menu(&["Object", "Image", "Adjustments..."]).needs(Needs::Items).sig("{exposure?: stops -3..3, contrast?: -100..100, levels?: [black, white, gamma] | null, saturation?: -100..100, temperature?: -100..100, hue?: degrees -180..180, lightness?: -100..100, blackWhite?, curve?: [[input, output] 0..255, ...] | null, remove?, ids?} (live: merged over the frame's adjustments and kept with it; the placed picture is unchanged)").reg(r, image_adjust);
     cmd("image.adjustPreview", "Adjustments Preview").query().needs(Needs::Items).sig("{the image.adjust keys?, maxSide?: px (default 720), ids?} -> {mime, base64, pixels, current}").reg(r, image_adjust_preview);
     cmd("image.retouchPreview", "Retouch Preview").query().needs(Needs::Items).sig("{strokes?: as image.retouch, maxSide?: px (default 720), ids?} -> {mime, base64, pixels}").reg(r, image_retouch_preview);
-    cmd("object.clippingPath", "Clipping Path").menu(&["Object", "Clipping Path", "Options..."]).needs(Needs::Items).sig("{type: none|detectEdges|alphaChannel|photoshopPath, threshold?: 0-255 (detect edges: how far from the background colour or alpha counts as picture), tolerance?: pixels of smoothing, inset?: pt (negative grows), invert?, includeInsideEdges?, name?: Photoshop path name, channel?: PSD alpha channel name or index, ids?}").help("Clips a placed picture to a path: detected from the picture's edges (a flat background or its transparency), its alpha channel (or one of a PSD file's), or a Photoshop path stored in the JPEG, TIFF or PSD. The clip shows on screen, in PDF and in text wrap set to follow the clipping path.").reg(r, clipping_path);
-    cmd("object.clippingInfo", "Clipping Path Info").query().needs(Needs::Items).sig("{ids?}").help("The selected picture's clipping path settings, its Photoshop path names, PSD alpha channels and whether it has transparency.").reg(r, clipping_info);
+    cmd("object.clippingPath", "Clipping Path").menu(&["Object", "Clipping Path", "Options..."]).needs(Needs::Items).sig("{type: none|detectEdges|alphaChannel|embeddedPath, threshold?: 0-255 (detect edges: how far from the background colour or alpha counts as picture), tolerance?: pixels of smoothing, inset?: pt (negative grows), invert?, includeInsideEdges?, name?: embedded path name, channel?: PSD alpha channel name or index, ids?}").help("Clips a placed picture to a path: detected from the picture's edges (a flat background or its transparency), its alpha channel (or one of a PSD file's), or a clipping path stored in the JPEG, TIFF or PSD. The clip shows on screen, in PDF and in text wrap set to follow the clipping path.").reg(r, clipping_path);
+    cmd("object.clippingInfo", "Clipping Path Info").query().needs(Needs::Items).sig("{ids?}").help("The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.").reg(r, clipping_info);
     cmd("object.clipToFrame", "Convert Clipping Path to Frame").menu(&["Object", "Clipping Path", "Convert Clipping Path to Frame"]).needs(Needs::Items).sig("{ids?}").help("Turns the clipping path into the graphic frame's shape and drops the clip.").reg(r, clip_to_frame);
-    cmd("object.wrapContour", "Text Wrap Contour").menu(&["Object", "Text Wrap Contour Options..."]).needs(Needs::Items).sig("{type: graphicFrame|sameAsClipping|detectEdges|alphaChannel|photoshopPath, threshold?, tolerance?, inset?, invert?, includeInsideEdges?, name?, channel?, offset?: pt, ids?}").help("Sets the contour a text wrap of mode contour follows around a picture and turns the wrap to contour.").reg(r, wrap_contour);
+    cmd("object.wrapContour", "Text Wrap Contour").menu(&["Object", "Text Wrap Contour Options..."]).needs(Needs::Items).sig("{type: graphicFrame|sameAsClipping|detectEdges|alphaChannel|embeddedPath, threshold?, tolerance?, inset?, invert?, includeInsideEdges?, name?, channel?, offset?: pt, ids?}").help("Sets the contour a text wrap of mode contour follows around a picture and turns the wrap to contour.").reg(r, wrap_contour);
     cmd("object.layerOptions", "Object Layer Options").menu(&["Object", "Object Layer Options..."]).needs(Needs::Items).sig("{layers?: {layer id or name: true|false}, showAll?, resetToFile?, update?: keep|file (when updating the link: keep the overrides or use the file's)}").help("Lists the layers of a placed PDF (optional content groups) or PSD and shows or hides them for this placement. Without changes it only lists.").reg(r, layer_options);
 }

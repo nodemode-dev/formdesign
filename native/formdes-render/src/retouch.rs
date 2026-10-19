@@ -1,5 +1,4 @@
-//! Retouching a placed raster picture with brush strokes: clone, heal and red-eye, the brushes Affinity's Pixel
-//! persona and Photoshop (through InDesign's Edit Original) offer. Strokes are in shares of the picture, so the same
+//! Retouching a placed raster picture with brush strokes: clone, heal and red-eye. Strokes are in shares of the picture, so the same
 //! strokes give the same result on the full picture and on a downscaled preview. Like pixedit, the result is a new
 //! encoded file; the original is never written.
 

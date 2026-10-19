@@ -32,7 +32,7 @@ function curveAt(pts: Pt[], x: number): number {
   return (2 * u3 - 3 * u2 + 1) * p[i][1] + (u3 - 2 * u2 + u) * h * m[i] + (-2 * u3 + 3 * u2) * p[i + 1][1] + (u3 - u2) * h * m[i + 1];
 }
 
-/** Object > Image > Adjustments: Affinity's adjustment layers over image.adjust. The picture shown is the engine's
+/** Object > Image > Adjustments: adjustment layers over image.adjust. The picture shown is the engine's
  *  own render of the settings (image.adjustPreview), at most one request in flight and the latest settings winning,
  *  so it matches what the page and the PDF will show. Moving a control changes canvases and readouts only. */
 class Adjustments {

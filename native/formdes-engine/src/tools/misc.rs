@@ -222,7 +222,7 @@ fn mesh_shares(m: &Value) -> Option<(usize, usize, Vec<[f64; 2]>)> {
     Some((cols, rows, stored.unwrap_or_else(|| (0..n).map(|i| [(i % (cols + 1)) as f64 / cols as f64, (i / (cols + 1)) as f64 / rows as f64]).collect())))
 }
 
-/// The mesh with a column and a row added through the share point (u, v), as Illustrator's Mesh tool does on a click
+/// The mesh with a column and a row added through the share point (u, v) on a click
 /// inside a mesh: each new line runs between its neighbours at the click's fraction of their gap, with colours mixed
 /// the same way. A side already at 12 lines gets none. Returns the new mesh and the index of the point at the crossing.
 pub fn mesh_split(m: &Value, u: f64, v: f64) -> Option<(Value, usize)> {
@@ -345,7 +345,7 @@ pub fn mesh_points(doc: &Doc, id: ItemId) -> Option<Vec<Point>> {
     Some(shares.iter().map(|s| w * Point::new(bb.x0 + s[0] * bb.width(), bb.y0 + s[1] * bb.height())).collect())
 }
 
-/// Illustrator's Mesh tool, on formdes's stored meshes: a press on a point of the selected mesh drags that point
+/// The Mesh tool, on formdes's stored meshes: a press on a point of the selected mesh drags that point
 /// (one undo step); a press on a closed shape or frame without a mesh gives it a 3 by 3 mesh in its fill colour;
 /// a press on a meshed object selects it so its points show.
 pub fn mesh(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
@@ -473,7 +473,7 @@ fn set_artboard_rect(doc: &mut Doc, i: usize, r: Rect) {
     }
 }
 
-/// Illustrator's Artboard tool: a drag on empty canvas draws a new artboard (Shift keeps it square, Alt draws from
+/// The Artboard tool: a drag on empty canvas draws a new artboard (Shift keeps it square, Alt draws from
 /// the centre), a drag that starts inside an artboard moves it. Artboards live on document spreads only.
 pub fn artboard(ses: &mut Session, ev: &Ev, view: View) -> Result<()> {
     match ev.kind {

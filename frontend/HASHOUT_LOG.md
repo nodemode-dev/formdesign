@@ -109,7 +109,7 @@ Verbatim from formvis 1.65.0 (stylized-nodemode theme-boot.js, appearance genera
 - kind: explainer
 - logged: v0.1.0 · 2026-10-07
 
-The shell is formvis's grid (title bar, options row, rail, stage column with document tabs, a properties column, a resizer and a dock column, status bar) mounted once. In formdes the options row is InDesign's Control panel, the rail holds the core's tool catalog, and the stage carries three canvases: `fd-tiles` (pixels from the core), `fd-hilite` (text highlight, blended as difference so selected type inverts as in InDesign) and `fd-overlay` (selection, guides, tool feedback).
+The shell is formvis's grid (title bar, options row, rail, stage column with document tabs, a properties column, a resizer and a dock column, status bar) mounted once. In formdes the options row is the Control panel, the rail holds the core's tool catalog, and the stage carries three canvases: `fd-tiles` (pixels from the core), `fd-hilite` (text highlight, blended as difference so selected type inverts) and `fd-overlay` (selection, guides, tool feedback).
 
 ---
 
@@ -255,14 +255,14 @@ The Review panels' base (load on show, reload on document change and selection, 
 - kind: explainer
 - logged: v0.10.0 · 2026-10-08
 
-All three sit in one side-column group, `interactive`, which starts minimised. States reads `states.list` for the selected object and renames in place with an inline field (Enter keeps, Escape restores). The Buttons and Forms panel works on one selected object: one round of `button.list`, `form.list` and `media.get` decides its type and which rows show (`.fin-b` for buttons, `.fin-x` for fields), and changing the type clears the old button or field (`button.clear`, `form.clear`) before `button.set` or `form.set`, so an object is never both. The media block shows only when `media.get` answers for the object, so the panel has no media kinds of its own. Transitions lists only spreads with a transition, and the speed is in seconds as InDesign shows it.
+All three sit in one side-column group, `interactive`, which starts minimised. States reads `states.list` for the selected object and renames in place with an inline field (Enter keeps, Escape restores). The Buttons and Forms panel works on one selected object: one round of `button.list`, `form.list` and `media.get` decides its type and which rows show (`.fin-b` for buttons, `.fin-x` for fields), and changing the type clears the old button or field (`button.clear`, `form.clear`) before `button.set` or `form.set`, so an object is never both. The media block shows only when `media.get` answers for the object, so the panel has no media kinds of its own. Transitions lists only spreads with a transition, and the speed is in seconds.
 
 ### xml.ts · Tags and Structure
 - refers-to: frontend/src/features/xml.ts :: TagsPanel, StructurePanel
 - kind: explainer
 - logged: v0.10.0 · 2026-10-08
 
-Clicking a tag both picks it (for Delete) and applies it when something is selected: text when the selection has a range, otherwise the selected frames, which is how InDesign's Tags panel behaves. Tag names are checked against XML's name rule before the core is asked. The style mapping list is built from the document's paragraph styles and patched in place; a select's options are replaced only when the tag list changes (`dataset.key`). Export builds the file in the window and downloads it, since the core already returns the text; Validate is enabled only while a DTD is loaded, and its problems are cleared when the DTD changes.
+Clicking a tag both picks it (for Delete) and applies it when something is selected: text when the selection has a range, otherwise the selected frames. Tag names are checked against XML's name rule before the core is asked. The style mapping list is built from the document's paragraph styles and patched in place; a select's options are replaced only when the tag list changes (`dataset.key`). Export builds the file in the window and downloads it, since the core already returns the text; Validate is enabled only while a DTD is loaded, and its problems are cleared when the DTD changes.
 
 ### library.ts · panel and drop
 - refers-to: frontend/src/features/library.ts :: LibraryPanel
@@ -306,7 +306,7 @@ Built-in workspaces are written as columns, open groups, hidden groups and tabs,
 - kind: rationale
 - logged: v0.11.0 · 2026-10-08
 
-A set is the difference from the defaults (`commands.overrides()`), so a set made today still gives new commands their default keys. The active set's keys are cached on this device and applied when the core's commands arrive, before the engine answers, then compared with the saved copy. The default set is read-only as in InDesign: a first change asks for a name and makes a set. Tools become commands (`tool.ID`) carrying the core's tool keys, so they are listed and rebindable; single-key commands are not matched while text is being typed, as before. New shortcuts are captured in a read-only field that takes every key but Tab (focus) and Escape (clears), and the field names the key's current owner before Assign moves it. Show Set writes the set as text by product area.
+A set is the difference from the defaults (`commands.overrides()`), so a set made today still gives new commands their default keys. The active set's keys are cached on this device and applied when the core's commands arrive, before the engine answers, then compared with the saved copy. The default set is read-only: a first change asks for a name and makes a set. Tools become commands (`tool.ID`) carrying the core's tool keys, so they are listed and rebindable; single-key commands are not matched while text is being typed, as before. New shortcuts are captured in a read-only field that takes every key but Tab (focus) and Escape (clears), and the field names the key's current owner before Assign moves it. Show Set writes the set as text by product area.
 
 ### proof.ts · Proof Setup and Proof Colors
 - refers-to: frontend/src/features/proof.ts :: installProof
@@ -492,7 +492,7 @@ The engine's overlay lists a handle per corner anchor of each item under Direct 
 - kind: rationale
 - logged: v0.27.0 · 2026-10-16
 
-InDesign's most-requested missing feature after table and footnote fixes (UserVoice "Actions Panel", 432 votes). Recording hooks the two places the window runs engine commands (`editor.exec` and the shell's `runCore`, which menus, the palette and the parameter dialogs use) and keeps undoable commands with their parameters, skipping selection, undo and redo, view and file-writing commands. Saved actions live in the engine's data folder (`actions.json`, `/api/actionsets`), so every window and agent sees the same list. Playing sends the steps as one batch, so an action is one undo step and fails as a whole. The list is patched in place by key. Window commands `actions.record`, `actions.stop` and `actions.play {name}` put it in the catalogue for agents. Recorded steps keep the object ids they acted on; an action whose steps name no ids acts on the selection when played.
+A most-requested missing feature after table and footnote fixes (UserVoice "Actions Panel", 432 votes). Recording hooks the two places the window runs engine commands (`editor.exec` and the shell's `runCore`, which menus, the palette and the parameter dialogs use) and keeps undoable commands with their parameters, skipping selection, undo and redo, view and file-writing commands. Saved actions live in the engine's data folder (`actions.json`, `/api/actionsets`), so every window and agent sees the same list. Playing sends the steps as one batch, so an action is one undo step and fails as a whole. The list is patched in place by key. Window commands `actions.record`, `actions.stop` and `actions.play {name}` put it in the catalogue for agents. Recorded steps keep the object ids they acted on; an action whose steps name no ids acts on the selection when played.
 
 ### features/drawmode.ts · drawing mode and isolation chip
 - refers-to: frontend/src/features/drawmode.ts :: installDrawMode; frontend/src/editor/editor.ts :: doSync (drawMode, isolated, 'mode'); frontend/src/editor/viewport.ts :: drawOverlays (isolated veil)
@@ -529,7 +529,7 @@ The signature-built dialog took crop and levels as text arrays, which made the c
 - kind: rationale
 - logged: v0.71.0 · 2026-10-17
 
-Two stacked fixed-size canvases: the picture (the engine's `image.retouchPreview` of every stroke so far, fetched quietly after each stroke, a later ticket winning over an earlier answer) and an overlay for the brush ring, the source crosshair and the stroke being painted, redrawn in one animation frame per pointer move. Alt-click sets the source; the first stroke after it fixes the offset, and later strokes keep it (aligned, Affinity's and Photoshop's default), so the crosshair follows the brush. Painting on the source itself is refused in the note rather than sent, because the engine refuses a zero offset. The window check found `q(b, 'span')` picking the icon's own `<span class="icon">` and writing the label over the SVG, which clipped the tool buttons; the label span has its own class now. It also found attribute writes on every tool pick and every stroke (`aria-pressed`, the warn class); both are now written only when they change, so painting under throttling changed no DOM beyond Undo and Clear enabling once.
+Two stacked fixed-size canvases: the picture (the engine's `image.retouchPreview` of every stroke so far, fetched quietly after each stroke, a later ticket winning over an earlier answer) and an overlay for the brush ring, the source crosshair and the stroke being painted, redrawn in one animation frame per pointer move. Alt-click sets the source; the first stroke after it fixes the offset, and later strokes keep it (aligned, the default), so the crosshair follows the brush. Painting on the source itself is refused in the note rather than sent, because the engine refuses a zero offset. The window check found `q(b, 'span')` picking the icon's own `<span class="icon">` and writing the label over the SVG, which clipped the tool buttons; the label span has its own class now. It also found attribute writes on every tool pick and every stroke (`aria-pressed`, the warn class); both are now written only when they change, so painting under throttling changed no DOM beyond Undo and Clear enabling once.
 
 ### features/pages-import.ts · Insert Pages from Document
 - refers-to: frontend/src/features/pages-import.ts :: PagesImport, installPagesImport

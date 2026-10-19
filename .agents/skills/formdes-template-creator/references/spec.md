@@ -160,7 +160,7 @@ The brief parser (`backend/app/intake/brief.py`) recognises: `magazine`, `newsle
 
 ## Rules for library templates
 
-- Original work only: no layouts traced from Adobe or anyone's templates, no real brand names, logos or trademarks, sample copy written for the template.
+- Original work only: no layouts traced from anyone's templates, no real brand names, logos or trademarks, sample copy written for the template.
 - No emoji and no em dashes in any text; use a middle dot or a comma.
 - Every frame that holds content has a slot or a flow; decoration has none.
 - Samples must fit their frames at the kit's sizes (no overset outside flows).
