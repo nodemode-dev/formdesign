@@ -4,8 +4,8 @@ import { Dialog } from './dialogs';
 import { el, escapeHtml, q } from './dom';
 import { toast } from './toast';
 
-export const FOREIGN_EXTS = /\.(pdf|pub|qxd|qxp|pmd|p65|pm6|pm5|pm4|pm3|pt5|pt6|indd|indt|indb|inx)$/i;
-export const FOREIGN_ACCEPT = '.pdf,.pub,.qxd,.qxp,.pmd,.p65,.pm6,.pm5,.pm4,.pm3,.pt5,.pt6,.indd,.indt,.indb,.inx';
+export const FOREIGN_EXTS = /\.(pdf|pub|qxd|qxp|pmd|p65|pm6|pm5|pm4|pm3|pt5|pt6|dxf|dwg|indd|indt|indb|inx)$/i;
+export const FOREIGN_ACCEPT = '.pdf,.pub,.qxd,.qxp,.pmd,.p65,.pm6,.pm5,.pm4,.pm3,.pt5,.pt6,.dxf,.dwg,.indd,.indt,.indb,.inx';
 
 interface Probe { kind: string; name: string; pages?: number | null; message?: string; steps?: string[]; help?: string }
 interface Report {
@@ -15,7 +15,7 @@ interface Report {
   substituted: Array<{ source: string; family?: string; style?: string }>; notes: string[];
 }
 
-const LABEL: Record<string, string> = { pdf: 'PDF', publisher: 'Microsoft Publisher', quark: 'QuarkXPress', pagemaker: 'Adobe PageMaker' };
+const LABEL: Record<string, string> = { pdf: 'PDF', pub: '.pub file', qxp: '.qxd or .qxp file', pm: '.pmd or .p65 file' };
 
 function row(label: string, value: string): string {
   return `<div class="fd-report-row"><span class="fd-report-k">${escapeHtml(label)}</span><span class="fd-report-v">${escapeHtml(value)}</span></div>`;
@@ -44,9 +44,9 @@ function reportDialog(r: Report): void {
 }
 
 function inddDialog(p: Probe): void {
-  const d = new Dialog('InDesign files', 480);
+  const d = new Dialog('.indd files', 480);
   const steps = (p.steps ?? []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
-  d.body.append(el(`<div><p class="fd-note">${escapeHtml(p.message ?? '')}</p><ol class="fd-steps">${steps}</ol><p class="fd-note"><a class="fd-link" href="${escapeHtml(p.help ?? '#')}" target="_blank" rel="noopener noreferrer">How to export IDML from InDesign</a></p></div>`));
+  d.body.append(el(`<div><p class="fd-note">${escapeHtml(p.message ?? '')}</p><ol class="fd-steps">${steps}</ol>${p.help ? `<p class="fd-note"><a class="fd-link" href="${escapeHtml(p.help)}" target="_blank" rel="noopener noreferrer">How to export an IDML package</a></p>` : ''}</div>`));
   const ok = el<HTMLButtonElement>('<button class="cv-btn cv-btn-primary" type="button">Close</button>');
   ok.addEventListener('click', () => d.close());
   d.foot.append(ok);
@@ -80,7 +80,8 @@ export async function openForeign(file: File, refresh: () => void): Promise<void
     const path = up.files[0]?.path ?? '';
     const probe = await api<Probe>('/documents/probe', { json: { path } });
     if (probe.kind === 'indd') { inddDialog(probe); return; }
-    const choice = await chooseDialog(probe);
+    if (probe.kind === 'dwg') { toast(probe.message ?? '', 'error'); return; }
+    const choice = probe.kind === 'dxf' ? { backdrop: 'never' } : await chooseDialog(probe);
     if (!choice) return;
     toast(`Converting ${file.name}`);
     const r = await api<{ report: Report }>('/documents/import', { json: { path, options: { backdrop: choice.backdrop } } });

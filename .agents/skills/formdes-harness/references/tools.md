@@ -111,7 +111,7 @@ Opens a new document: from a template (with its sample content, or empty slots w
 
 ## open_document
 
-Opens a .fdes, .fdoc or .idml file. A .pdf, or a Publisher (.pub), QuarkXPress 3.1 to 4.1 (.qxd, .qxp) or PageMaker (.pmd, .p65) file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. .indd cannot be read: export IDML from InDesign.
+Opens a .fdes, .fdoc or .idml file. A .pdf, or a .pub, .qxd or .qxp (format versions 3.1 to 4.1), .pmd or .p65 file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. A .dxf drawing (model space; ASCII or binary) becomes one page sized to its extents with lines, polylines, arcs, circles, ellipses, splines and solid hatches as shapes and text as text frames; skipped entities are counted in the report. .dwg cannot be read (no permissively licensed reader): export a DXF. .indd cannot be read: export an IDML package from the application that made it.
 
 - `path`: string; required; Absolute path (~ is expanded).
 - `backdrop`: string (auto | never)
@@ -276,7 +276,7 @@ Note: writes or replaces files.
 
 ## find_change
 
-Find/Change across the active document, as in InDesign. mode text (plain words; ^p return, ^t tab, ^n line break, ^9 digit, ^$ letter, ^? any character), grep (regular expressions with InDesign's \r return, \n line break, ~= en dash, ~_ em dash, ~e ellipsis, ~{ ~} curly quotes, lookahead and lookbehind; $1 in change), glyph (glyph {char: a character or U+2014, fontFamily, fontStyle} to toGlyph) or object (object {kind: text|graphic|shape|line|group, fill, stroke, strokeWeight, opacity 0 to 1, layer, objectStyle} to objectChange). findFormat and changeFormat take paragraphStyle, characterStyle and character attributes (fontFamily, fontStyle, size, fill). op count, all (matches with page and context), change_all (one undo step; locked text is skipped), queries (the saved and built-in queries). query runs a saved query by name; save_as saves these settings. An empty change with no changeFormat deletes the matches.
+Find/Change across the active document. mode text (plain words; ^p return, ^t tab, ^n line break, ^9 digit, ^$ letter, ^? any character), grep (regular expressions with \r return, \n line break, ~= en dash, ~_ em dash, ~e ellipsis, ~{ ~} curly quotes, lookahead and lookbehind; $1 in change), glyph (glyph {char: a character or U+2014, fontFamily, fontStyle} to toGlyph) or object (object {kind: text|graphic|shape|line|group, fill, stroke, strokeWeight, opacity 0 to 1, layer, objectStyle} to objectChange). findFormat and changeFormat take paragraphStyle, characterStyle and character attributes (fontFamily, fontStyle, size, fill). op count, all (matches with page and context), change_all (one undo step; locked text is skipped), queries (the saved and built-in queries). query runs a saved query by name; save_as saves these settings. An empty change with no changeFormat deletes the matches.
 
 - `op`: string (count | all | change_all | queries); required
 - `mode`: string (text | grep | glyph | object); default "text"

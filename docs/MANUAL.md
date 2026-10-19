@@ -39,7 +39,7 @@ Open http://localhost:5196 after `./formdes boot`, or open the desktop app. With
 | --- | --- |
 | Make a layout (Ctrl+M) | opens the Make panel to build a layout from files and a brief |
 | New from template | the template gallery: pick one, then Create empty or Create with sample content |
-| Open (Ctrl+O) | a `.fdes`, `.fdoc` or `.idml` document; a PDF, or (through LibreOffice) a `.pub`, `.qxd` or `.qxp` (format versions 3.1 to 4.1), `.pmd` or `.p65` file, is rebuilt as an editable layout with a report of what carried over |
+| Open (Ctrl+O) | a `.fdes`, `.fdoc` or `.idml` document; a PDF, or (through LibreOffice) a `.pub`, `.qxd` or `.qxp` (format versions 3.1 to 4.1), `.pmd` or `.p65` file, is rebuilt as an editable layout with a report of what carried over; a `.dxf` drawing (ASCII or binary) becomes one page of shapes and text sized to the drawing, its layers, skipped entities and scale listed in the report; a `.dwg` is refused with a request for a DXF export, since no permissively licensed DWG reader exists |
 
 Recent documents are listed underneath. File > New Document (Ctrl+N) starts a blank document with print, web or mobile presets, margins, columns and bleed. Dropping files anywhere on the window starts a Make with them.
 

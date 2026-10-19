@@ -14,7 +14,7 @@ set "DATA=--add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\bac
 if exist "%ROOT%\backend\app\fonts" set "DATA=!DATA! --add-data "%ROOT%\backend\app\fonts;fonts""
 if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine
-pyinstaller --noconfirm --clean --onefile --name formdes-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller !DATA! --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring --collect-all pypdfium2 --collect-all pypdfium2_raw --hidden-import docx --hidden-import openpyxl --hidden-import striprtf "%ROOT%\backend\formdes_engine.py" || exit /b 1
+pyinstaller --noconfirm --clean --onefile --name formdes-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller !DATA! --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all ezdxf --hidden-import docx --hidden-import openpyxl --hidden-import striprtf "%ROOT%\backend\formdes_engine.py" || exit /b 1
 if not exist "%ROOT%\src-tauri\binaries" mkdir "%ROOT%\src-tauri\binaries"
 copy /y "dist-engine\formdes-engine.exe" "%ROOT%\src-tauri\binaries\formdes-engine-%TRIPLE%.exe" >nul
 copy /y "%ROOT%\native\target\release\formdes-core.exe" "%ROOT%\src-tauri\binaries\formdes-core-%TRIPLE%.exe" >nul

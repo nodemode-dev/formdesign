@@ -50,6 +50,7 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | Pillow | MIT-CMU | engine, image intake |
 | pypdfium2 (with PDFium) | Apache-2.0 or BSD-3-Clause (PDFium: BSD-3-Clause and Apache-2.0) | engine, reading PDFs into content packs |
 | python-docx, openpyxl | MIT | engine, Word and Excel intake |
+| ezdxf (with numpy, pyparsing) | MIT (numpy: BSD-3-Clause, pyparsing: MIT) | engine, reading DXF drawings |
 | markdown-it-py, mdit-py-plugins | MIT | engine, Markdown intake |
 | striprtf | BSD-3-Clause | engine, RTF intake |
 | fonttools, brotli | MIT | font library build and font inspection |
@@ -64,4 +65,4 @@ formdes is licensed under the Apache License 2.0 (see `LICENSE`). It includes or
 | PyInstaller | GPL-2.0 with the bootloader exception | freezes the engine; the exception covers the produced binaries |
 | Rust toolchain, cargo | MIT or Apache-2.0 | builds formdes-core and the shell |
 
-No Adobe icons, images, presets, templates or artwork are included. InDesign is named only to describe compatibility.
+No icons, images, presets, templates or artwork from other layout applications are included. Other applications' file formats are named only to describe compatibility.

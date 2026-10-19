@@ -117,7 +117,7 @@ class Documents:
             await core.call("exec", {"command": "file.openIdml", "params": {"base64": base64.b64encode(data).decode(), "name": name}}, source=source)
         elif ext == ".fdoc" or data[:2] == b"PK":
             await core.call("exec", {"command": "file.openBytes", "params": {"name": name, "base64": base64.b64encode(data).decode()}}, source=source)
-        elif ext in (".pdf", ".pub", ".qxd", ".qxp", ".pmd", ".p65", ".pm6", ".pm5", ".pm4", ".pm3", ".pt5", ".pt6", ".indd", ".indt", ".indb", ".inx"):
+        elif ext in (".pdf", ".pub", ".qxd", ".qxp", ".pmd", ".p65", ".pm6", ".pm5", ".pm4", ".pm3", ".pt5", ".pt6", ".dxf", ".dwg", ".indd", ".indt", ".indb", ".inx"):
             from app.services import layoutimport
             src = path
             if not src:

@@ -19,7 +19,7 @@ import type { MenuAddition, MenuName, PanelSpec, Workspace } from './workspace';
 import { VERSION } from '../version';
 
 const MENUS: MenuName[] = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'Effect', 'View', 'Window', 'Help'];
-const LAYOUT_EXTS = /\.(fdes|fdoc|idml|pub|qxd|qxp|pmd|p65|indd)$/i;
+const LAYOUT_EXTS = /\.(fdes|fdoc|idml|pub|qxd|qxp|pmd|p65|dxf|dwg|indd)$/i;
 
 export function coreCombo(shortcut: string | null): string | null {
   if (!shortcut) return null;
@@ -541,7 +541,7 @@ export class Shell implements Workspace {
     let path: string | undefined;
     if (as || !doc.path || !/\.fdes$/i.test(doc.path)) {
       const d = new Dialog(as ? 'Save As' : 'Save', 460);
-      d.body.append(el('<label class="fd-field"><span>Save to</span><input class="cv-search-input fd-save-path" type="text" spellcheck="false"></label><p class="fd-note">A .fdes file keeps the layout, its slots and the content it was made from. End the name with .idml for InDesign or .fdoc for the bare layout.</p>'));
+      d.body.append(el('<label class="fd-field"><span>Save to</span><input class="cv-search-input fd-save-path" type="text" spellcheck="false"></label><p class="fd-note">A .fdes file keeps the layout, its slots and the content it was made from. End the name with .idml for an IDML package or .fdoc for the bare layout.</p>'));
       const inp = q<HTMLInputElement>(d.body, '.fd-save-path');
       let dir = '';
       try { dir = ((await api<{ paths: { projects: string } }>('/capabilities')).paths?.projects) ?? ''; } catch { }

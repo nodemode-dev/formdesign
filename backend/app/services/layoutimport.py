@@ -21,25 +21,26 @@ WORK = config.CACHE_DIR / "layout-import"
 SRC = "layoutimport"
 CM = 72.0 / 2.54
 
-QUARK_EXTS = {".qxd", ".qxp"}
-PAGEMAKER_EXTS = {".pmd", ".p65", ".pm6", ".pm5", ".pm4", ".pm3", ".pt5", ".pt6"}
-PUBLISHER_EXTS = {".pub"}
-SOFFICE_EXTS = QUARK_EXTS | PAGEMAKER_EXTS | PUBLISHER_EXTS
-QUARK_VERSIONS = ("LibreOffice's QuarkXPress reader (libqxp) reads files saved by QuarkXPress 3.1 to 4.1; files from "
-                  "QuarkXPress 5 or later have no open reader, so export a PDF from QuarkXPress and open that as a layout")
+QXP_EXTS = {".qxd", ".qxp"}
+PM_EXTS = {".pmd", ".p65", ".pm6", ".pm5", ".pm4", ".pm3", ".pt5", ".pt6"}
+PUB_EXTS = {".pub"}
+SOFFICE_EXTS = QXP_EXTS | PM_EXTS | PUB_EXTS
+QXP_VERSIONS = ("LibreOffice's libqxp reader reads .qxd and .qxp files saved in format versions 3.1 to 4.1; files from "
+                "later versions have no open reader, so export a PDF from the application that made the file and open that as a layout")
 
 
-def quark_signature(path: Path) -> bool:
-    """QuarkXPress files carry MM or II (byte order), then XPR, from byte 2 (the system file(1) magic: MMXPR3, IIXPRa)."""
+def qxp_signature(path: Path) -> bool:
+    """A .qxd or .qxp file carries MM or II (byte order), then XPR, from byte 2 (the system file(1) magic: MMXPR3, IIXPRa)."""
     try:
         with path.open("rb") as fh:
             head = fh.read(8)
     except OSError:
         return False
     return len(head) >= 7 and head[2:4] in (b"MM", b"II") and head[4:7] == b"XPR"
-OPEN_EXTS = SOFFICE_EXTS | {".pdf"}
+DXF_EXTS = {".dxf"}
+DWG_EXTS = {".dwg"}
+OPEN_EXTS = SOFFICE_EXTS | DXF_EXTS | {".pdf"}
 INDD_EXTS = {".indd", ".indt", ".indb", ".inx"}
-IDML_HELP = "https://helpx.adobe.com/indesign/using/exporting-content-idml.html"
 
 SANS = ["Liberation Sans", "Inter", "FreeSans", "DejaVu Sans"]
 SERIF = ["Liberation Serif", "Source Serif 4", "FreeSerif", "DejaVu Serif"]
@@ -595,7 +596,7 @@ async def emit(sheet: Sheet, facing: bool = False) -> dict:
                 refs.append((i, it, n))
             elif k == "rect":
                 x0, y0, x1, y1 = it["rect"]
-                cmds.append({"command": "frame.create", "params": {"spread": n, "rect": [round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2)], "shape": "rectangle", "content": "unassigned"}})
+                cmds.append({"command": "frame.create", "params": {"spread": n, "rect": [round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2)], "shape": it.get("shape", "rectangle"), "content": "unassigned"}})
                 i = len(cmds) - 1
                 ids = [f"${i}.id"]
                 if it.get("fill"):
@@ -774,7 +775,7 @@ def finish_report(sheet: Sheet, kind: str, name: str) -> dict:
             "backdropPages": backdrops, "fonts": fonts, "substituted": [f for f in fonts if f.get("family") and not f.get("exact")], "notes": sheet.report["notes"]}
 
 
-# ---------------------------------------------------------------- LibreOffice route (Publisher, QuarkXPress, PageMaker)
+# ---------------------------------------------------------------- LibreOffice route (.pub, .qxd and .qxp, .pmd and .p65)
 
 async def soffice(path: Path, fmt: str, out: Path) -> Path:
     exe = shutil.which("soffice") or shutil.which("libreoffice")
@@ -1023,17 +1024,17 @@ async def import_odg(odg: Path, pdf: Path | None, name: str, label: str, options
 async def import_soffice(path: str, options: dict | None = None) -> dict:
     src = Path(path)
     ext = src.suffix.lower()
-    label = "quark" if ext in QUARK_EXTS else "pagemaker" if ext in PAGEMAKER_EXTS else "publisher"
-    if label == "quark" and not quark_signature(src):
-        raise CoreError(f"{src.name} is not a QuarkXPress document: its header lacks QuarkXPress's MMXPR or IIXPR signature (the file may be damaged or have the wrong extension)")
+    label = "qxp" if ext in QXP_EXTS else "pm" if ext in PM_EXTS else "pub"
+    if label == "qxp" and not qxp_signature(src):
+        raise CoreError(f"{src.name} is not a .qxd or .qxp document: its header lacks the MMXPR or IIXPR signature (the file may be damaged or have the wrong extension)")
     work = new_work("lo")
     safe = work / ("source" + ext)
     shutil.copyfile(src, safe)
     try:
         odg = await soffice(safe, "odg:draw8", work)
     except CoreError as exc:
-        if label == "quark":
-            raise CoreError(f"{exc}. {QUARK_VERSIONS}") from exc
+        if label == "qxp":
+            raise CoreError(f"{exc}. {QXP_VERSIONS}") from exc
         raise
     pdf = None
     try:
@@ -1045,16 +1046,20 @@ async def import_soffice(path: str, options: dict | None = None) -> dict:
     except CoreError as exc:
         # When libqxp declines a file, LibreOffice tries its other filters and can hand back an empty drawing rather
         # than an error (random bytes named .qxp did), so an empty result is reported as the reader's limit.
-        if label == "quark" and "no pages" in str(exc):
-            raise CoreError(f"{src.name} is a QuarkXPress document LibreOffice could not read. {QUARK_VERSIONS}") from exc
+        if label == "qxp" and "no pages" in str(exc):
+            raise CoreError(f"{src.name} is a .qxd or .qxp document LibreOffice could not read. {QXP_VERSIONS}") from exc
         raise
-    result["report"]["via"] = "LibreOffice " + ("libmspub" if label == "publisher" else "libqxp" if label == "quark" else "libpagemaker")
+    result["report"]["via"] = "LibreOffice " + ("libmspub" if label == "pub" else "libqxp" if label == "qxp" else "libpagemaker")
     return result
 
 
 def indd_message(name: str) -> dict:
-    return {"kind": "indd", "name": name, "message": "InDesign's .indd file format is closed and has no public reader, so FormDesign cannot open it directly. In InDesign choose File > Save As, pick InDesign Markup (IDML) as the type, and open the .idml file here; text, frames, styles and swatches carry over.",
-            "steps": ["Open the file in InDesign.", "Choose File > Save As (or File > Export for older versions) and set the type to InDesign Markup (IDML).", "Open the saved .idml file in FormDesign with File > Open."], "help": IDML_HELP}
+    return {"kind": "indd", "name": name, "message": "The .indd file format is closed and has no public reader, so FormDesign cannot open it directly. In the application that made the file, save or export it as IDML (.idml), and open the .idml file here; text, frames, styles and swatches carry over.",
+            "steps": ["Open the file in the application that made it.", "Save or export it as IDML (.idml), using the Save As or Export command.", "Open the saved .idml file in FormDesign with File > Open."]}
+
+
+def dwg_message(name: str) -> dict:
+    return {"kind": "dwg", "name": name, "message": f"{name} is a DWG drawing. DWG is a closed format and has no permissively licensed reader (the available readers need a proprietary converter or carry the GPL), so FormDesign cannot open it directly. Please export a DXF (.dxf) from the application that made the drawing and open that file instead."}
 
 
 async def open_layout(path: str, options: dict | None = None) -> dict:
@@ -1062,6 +1067,11 @@ async def open_layout(path: str, options: dict | None = None) -> dict:
     ext = p.suffix.lower()
     if ext in INDD_EXTS:
         raise CoreError(indd_message(p.name)["message"])
+    if ext in DWG_EXTS:
+        raise CoreError(dwg_message(p.name)["message"])
+    if ext in DXF_EXTS:
+        from app.services import dxfimport
+        return await dxfimport.import_dxf(str(p), options)
     if ext == ".pdf":
         return await import_pdf(str(p), options)
     if ext in SOFFICE_EXTS:
@@ -1071,7 +1081,7 @@ async def open_layout(path: str, options: dict | None = None) -> dict:
             if "could not convert" in str(exc) or "unreadable" in str(exc):
                 raise CoreError(f"{p.name} could not be read: {exc}") from exc
             raise
-    raise CoreError(f"{p.name} is not a layout format FormDesign converts (.pdf, .pub, .qxd, .qxp, .pmd, .p65)")
+    raise CoreError(f"{p.name} is not a layout format FormDesign converts (.pdf, .pub, .qxd, .qxp, .pmd, .p65, .dxf)")
 
 
 def probe(path: str) -> dict:
@@ -1079,6 +1089,10 @@ def probe(path: str) -> dict:
     ext = p.suffix.lower()
     if ext in INDD_EXTS:
         return indd_message(p.name)
+    if ext in DWG_EXTS:
+        return dwg_message(p.name)
+    if ext in DXF_EXTS:
+        return {"kind": "dxf", "name": p.name, "choices": ["layout"]}
     if ext == ".pdf":
         try:
             d = pdfium.PdfDocument(str(p))
@@ -1088,5 +1102,5 @@ def probe(path: str) -> dict:
             n = None
         return {"kind": "pdf", "name": p.name, "pages": n, "choices": ["layout", "place"]}
     if ext in SOFFICE_EXTS:
-        return {"kind": "quark" if ext in QUARK_EXTS else "pagemaker" if ext in PAGEMAKER_EXTS else "publisher", "name": p.name, "choices": ["layout"]}
+        return {"kind": "qxp" if ext in QXP_EXTS else "pm" if ext in PM_EXTS else "pub", "name": p.name, "choices": ["layout"]}
     return {"kind": "native", "name": p.name}

@@ -19,7 +19,7 @@ pyinstaller --noconfirm --clean --onefile --name formdes-engine \
   --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
   "${data[@]}" \
   --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring \
-  --collect-all pypdfium2 --collect-all pypdfium2_raw --hidden-import docx --hidden-import openpyxl --hidden-import striprtf \
+  --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all ezdxf --hidden-import docx --hidden-import openpyxl --hidden-import striprtf \
   "$FORMDES_ROOT/backend/formdes_engine.py"
 mkdir -p "$FORMDES_ROOT/src-tauri/binaries"
 out="$FORMDES_ROOT/src-tauri/binaries/formdes-engine-${triple}${ext}"

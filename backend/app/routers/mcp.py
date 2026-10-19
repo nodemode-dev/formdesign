@@ -23,7 +23,7 @@ from app.templates import brands, registry, spec
 
 router = APIRouter()
 VERSIONS = ["2026-07-28", "2025-11-25"]
-INSTRUCTIONS = ("FormDesign (the formdes server) is a page-layout app, an InDesign alternative, running on this computer; these tools lay out and edit the "
+INSTRUCTIONS = ("FormDesign (the formdes server) is a professional page-layout application, running on this computer; these tools lay out and edit the "
                 "documents open in its engine, and the FormDesign window shows every change live. The fast path: intake (files and a brief become a content pack), "
                 "make_layout (a template filled with that content, about 80 percent of the way there), preview to look, set_slots to fix what the report "
                 "lists, export_document. run_commands reaches every layout command for anything else; find_commands looks them up by word or domain and its "
@@ -92,7 +92,7 @@ TOOLS = [
     _tool("new_document", "Opens a new document: from a template (with its sample content, or empty slots with sample false) or blank with a size in points.",
           {"template": {"type": "string"}, "brand": {}, "sample": {"type": "boolean", "default": True}, "title": {"type": "string"},
            "width": {"type": "number"}, "height": {"type": "number"}, "pages": {"type": "integer", "minimum": 1}, "facing": {"type": "boolean"}, "preset": {"type": "string", "description": "Letter, A4, A5, Tabloid..."}}),
-    _tool("open_document", "Opens a .fdes, .fdoc or .idml file. A .pdf, or a Publisher (.pub), QuarkXPress 3.1 to 4.1 (.qxd, .qxp) or PageMaker (.pmd, .p65) file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. .indd cannot be read: export IDML from InDesign.", {"path": _PATH, "backdrop": {"type": "string", "enum": ["auto", "never"]}}, ["path"]),
+    _tool("open_document", "Opens a .fdes, .fdoc or .idml file. A .pdf, or a .pub, .qxd or .qxp (format versions 3.1 to 4.1), .pmd or .p65 file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. A .dxf drawing (model space; ASCII or binary) becomes one page sized to its extents with lines, polylines, arcs, circles, ellipses, splines and solid hatches as shapes and text as text frames; skipped entities are counted in the report. .dwg cannot be read (no permissively licensed reader): export a DXF. .indd cannot be read: export an IDML package from the application that made it.", {"path": _PATH, "backdrop": {"type": "string", "enum": ["auto", "never"]}}, ["path"]),
     _tool("save_document", "Saves the active document (.fdes by default, keeps slots and the content pack; .fdoc or .idml by extension).", {"path": _PATH}, destructive=True),
     _tool("export_document", "Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), a print booklet, "
           "or web: a responsive multi-page website (path is a folder, or a .zip). web options: split auto|articles|pages|single, layout article|landing|card|email|docs, "
@@ -134,8 +134,8 @@ TOOLS = [
           {"action": {"type": "string", "enum": ["list", "create", "info", "add", "remove", "move", "source", "paginate", "sync", "export"]}, "book": {"type": "string", "description": "The .fdbook path (from list or create)."},
            "name": {"type": "string"}, "doc": _PATH, "at": {"type": "integer", "minimum": 0}, "index": {"type": "integer", "minimum": 0}, "to": {"type": "integer", "minimum": 0}, "path": _PATH},
           ["action"], destructive=True),
-    _tool("find_change", "Find/Change across the active document, as in InDesign. mode text (plain words; ^p return, ^t tab, ^n line break, ^9 digit, ^$ letter, ^? any character), grep "
-          "(regular expressions with InDesign's \\r return, \\n line break, ~= en dash, ~_ em dash, ~e ellipsis, ~{ ~} curly quotes, lookahead and lookbehind; $1 in change), glyph "
+    _tool("find_change", "Find/Change across the active document. mode text (plain words; ^p return, ^t tab, ^n line break, ^9 digit, ^$ letter, ^? any character), grep "
+          "(regular expressions with \\r return, \\n line break, ~= en dash, ~_ em dash, ~e ellipsis, ~{ ~} curly quotes, lookahead and lookbehind; $1 in change), glyph "
           "(glyph {char: a character or U+2014, fontFamily, fontStyle} to toGlyph) or object (object {kind: text|graphic|shape|line|group, fill, stroke, strokeWeight, opacity 0 to 1, layer, "
           "objectStyle} to objectChange). findFormat and changeFormat take paragraphStyle, characterStyle and character attributes (fontFamily, fontStyle, size, fill). op count, all (matches "
           "with page and context), change_all (one undo step; locked text is skipped), queries (the saved and built-in queries). query runs a saved query by name; save_as saves these settings. "
@@ -498,7 +498,7 @@ async def _run(name: str, a: dict) -> dict:
         return _text(await _document("summary"))
     if name == "open_document":
         from app.services import layoutimport
-        if str(a["path"]).lower().endswith(tuple(layoutimport.OPEN_EXTS | layoutimport.INDD_EXTS)):
+        if str(a["path"]).lower().endswith(tuple(layoutimport.OPEN_EXTS | layoutimport.INDD_EXTS | layoutimport.DWG_EXTS)):
             return _text(await layoutimport.open_layout(str(_abs(a["path"])), {"backdrop": a.get("backdrop", "auto")}))
         return _text(await documents.open_path(str(_abs(a["path"])), source="mcp"))
     if name == "save_document":

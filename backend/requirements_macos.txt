@@ -6,6 +6,7 @@ pypdfium2
 pypdf
 python-docx
 openpyxl
+ezdxf
 markdown-it-py
 mdit-py-plugins
 striprtf
