@@ -2,6 +2,12 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.78.0 · 2026-10-19
+
+- The Claude dock: Terminal and the Claude chat move into a resizable dock under the canvas, with tabs for shells, Claude Code and Chat, Restart this tab, and an Ask line that talks to Claude Code or the chat with your document and selection attached. Title-bar Claude Code and Terminal buttons; Ctrl or Cmd+J shows the dock, Ctrl or Cmd+Shift+J starts Claude Code, Ctrl or Cmd+Alt+J opens the Chat. The chat's bar reads Stop, From Claude Code..., Open in Claude Code and New Chat. Claude Code reuses its running tab, starts in an agent folder (the engine's data folder's Agent unless Preferences or `FORMDES_AGENT_DIR` say otherwise), and outside agents cannot open, read or type into the dock or the chat. Go to Page keeps its menu item but no longer has Ctrl or Cmd+J.
+- Everyday first run: the Home screen has Start with tiles (flyer or poster, newsletter, presentation, social and ads, website, business stationery) and an Ask Claude action; Essentials, applied on first launch, shows Pages, Make, Properties and Swatches only; a new Working with Claude workspace opens the Chat beside the page; the title bar folds its zoom and undo controls on narrow windows instead of overlapping the menus.
+- The sparkle icon is gone from the app: Make uses a page-layout glyph and Claude a robot head, and the build laws ban sparkle icons.
+
 ## 0.77.0 · 2026-10-19
 
 - Open DXF drawings (ASCII or binary): File > Open, a drop on the window or the MCP open_document tool lays the drawing's model space on one page sized to it, with lines, polylines, arcs, circles, ellipses, splines, block references and solid hatches as shapes, text as text frames, and colours and line weights carried over; the fidelity report lists the layers and everything skipped or approximated. A `.dwg` is refused with a request for a DXF export, since no permissively licensed DWG reader exists. New engine dependency: ezdxf (MIT).
