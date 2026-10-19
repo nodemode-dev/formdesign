@@ -2,7 +2,7 @@
 <h1 align="center">FormDesign</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.76.0-f97316" alt="version 0.76.0">
+<img src="https://img.shields.io/badge/version-0.77.0-f97316" alt="version 0.77.0">
 <img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
 <img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
 <img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
@@ -38,7 +38,7 @@ Working end to end:
 - **26 languages.** Every interface string (1,703) in 26 languages, English by default.
 - **Your workspace.** Seven built-in workspaces and your own (Window > Workspace or the title-bar switcher); panel groups that move between columns, split, size and close; keyboard shortcut sets with every command and tool rebindable (Alt+Shift+Ctrl+K).
 
-Measured against two professional layout applications in 139 traced rows (full 1, partial 0.5, none 0), formdes scores 133.5 (96 percent) at 0.76.0: 97 percent of what the first documents and 96 of the second, up from 78 at 0.19.0. The 0.74.0 re-trace of the second added six rows, which is why the figure is lower than 0.67.0's 97.7 percent over 133; editing a placed image's pixels, inserting pages from another document and live image adjustments have since moved to full. Work on existing PDFs is not scored: it belongs to FormPDF, a separate app. A capability reachable only through a raw parameters box or MCP `run_commands` counts as partial. Open: .indd files (a closed format), CAD drawings and stock photo search (none); opening .ai and PSD files as artwork, persistent dimension lines, .qxd and .qxp files (format versions 3.1 to 4.1 through LibreOffice's libqxp, unconfirmed on a real file), cloud documents and a plug-in marketplace (partial).
+Measured against two professional layout applications in 139 traced rows (full 1, partial 0.5, none 0), formdes scores 134 (96.4 percent) at 0.77.0: 97 percent of what the first documents and 96 of the second, up from 78 at 0.19.0. The 0.74.0 re-trace of the second added six rows, which is why the figure is lower than 0.67.0's 97.7 percent over 133; editing a placed image's pixels, inserting pages from another document and live image adjustments have since moved to full. Work on existing PDFs is not scored: it belongs to FormPDF, a separate app. A capability reachable only through a raw parameters box or MCP `run_commands` counts as partial. Open: .indd files (a closed format) and stock photo search (none); CAD drawings (DXF opens as shapes, DWG has no permissively licensed reader), opening .ai and PSD files as artwork, persistent dimension lines, .qxd and .qxp files (format versions 3.1 to 4.1 through LibreOffice's libqxp, unconfirmed on a real file), cloud documents and a plug-in marketplace (partial).
 
 **Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
 
