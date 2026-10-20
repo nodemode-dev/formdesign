@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign"
-version = "0.79.0"
+version = "0.80.0"
 dependencies = [
  "formdesign-gpu",
  "regex",
@@ -999,7 +999,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-gpu"
-version = "0.79.0"
+version = "0.80.0"
 dependencies = [
  "bytemuck",
  "pollster",
