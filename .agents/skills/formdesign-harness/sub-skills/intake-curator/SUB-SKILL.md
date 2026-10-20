@@ -1,6 +1,6 @@
 ---
 name: intake-curator
-description: "Prepares material and the brief for formdes intake so the Make pass gets everything right the first time: which files to pass, how to write the brief, field lines, image roles and captions."
+description: "Prepares material and the brief for FormDesign intake so the Make pass gets everything right the first time: which files to pass, how to write the brief, field lines, image roles and captions."
 ---
 
 # Intake curator

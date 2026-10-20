@@ -1,11 +1,11 @@
 {
-  "skill_name": "formdes-template-creator",
-  "notes": "Run with the formdes engine running (MCP connected, or the API on 127.0.0.1:8196).",
+  "skill_name": "formdesign-template-creator",
+  "notes": "Run with the FormDesign engine running (MCP connected, or the API on 127.0.0.1:8196).",
   "evals": [
     {
       "id": 1,
       "name": "ramen-menu-template",
-      "prompt": "formdes has no good menu for my ramen bar. Make an A4 portrait menu template: a big name at the top, three sections (ramen, small plates, drinks) with five priced items each, a photo and an allergens line at the bottom.",
+      "prompt": "FormDesign has no good menu for my ramen bar. Make an A4 portrait menu template: a big name at the top, three sections (ramen, small plates, drinks) with five priced items each, a photo and an allergens line at the bottom.",
       "files": [],
       "expected_behavior": [
         "The spec uses category print, kinds menu, A4 with bleed and medium print",
@@ -31,14 +31,14 @@
       "prompt": "Use the newsletter template to lay out these three articles",
       "files": [],
       "expected_behavior": [
-        "No new template is created; the request is handed to the formdes-harness skill's intake and make_layout flow"
+        "No new template is created; the request is handed to the formdesign-harness skill's intake and make_layout flow"
       ]
     }
   ],
   "trigger_evals": [
-    { "query": "create a new formdes template for a wine label", "should_trigger": true },
+    { "query": "create a new FormDesign template for a wine label", "should_trigger": true },
     { "query": "can you make me a template like this pdf so I can reuse it", "should_trigger": true },
-    { "query": "add a 970x250 banner size to formdes", "should_trigger": true },
+    { "query": "add a 970x250 banner size to FormDesign", "should_trigger": true },
     { "query": "our report template needs a cover with a full bleed photo, make one", "should_trigger": true },
     { "query": "make a flyer for my yoga class", "should_trigger": false },
     { "query": "export this layout as a PDF", "should_trigger": false },

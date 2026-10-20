@@ -1,6 +1,6 @@
-# formdes MCP tools
+# FormDesign MCP tools
 
-Generated from the engine's catalogue by `./formdes agents sync`; do not edit by hand.
+Generated from the engine's catalogue by `./formdesign agents sync`; do not edit by hand.
 
 ## Contents
 
@@ -136,7 +136,7 @@ Note: writes or replaces files.
 
 ## publish_website
 
-Publish Online: the active document as a website that formdes serves on this computer at a link (127.0.0.1), kept up to date by publishing again. publish (options as export_document's web options; publishing the same document again updates its site). list: the published sites with their links. unpublish (slug). To put a site on the public web, export_document web to a folder or .zip and upload that to a static host.
+Publish Online: the active document as a website that FormDesign serves on this computer at a link (127.0.0.1), kept up to date by publishing again. publish (options as export_document's web options; publishing the same document again updates its site). list: the published sites with their links. unpublish (slug). To put a site on the public web, export_document web to a folder or .zip and upload that to a static host.
 
 - `action`: string (publish | list | unpublish); required
 - `slug`: string

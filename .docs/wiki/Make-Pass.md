@@ -1,6 +1,6 @@
 # The Make Pass
 
-The Make pass turns files and a brief into a filled layout in one call, about one second for most templates. It is the same code behind the Make panel, `./formdes make`, `POST /api/make` and the MCP tool `make_layout`. It aims to get a person most of the way and to say exactly what is left, never to invent copy.
+The Make pass turns files and a brief into a filled layout in one call, about one second for most templates. It is the same code behind the Make panel, `./formdesign make`, `POST /api/make` and the MCP tool `make_layout`. It aims to get a person most of the way and to say exactly what is left, never to invent copy.
 
 ## Steps
 

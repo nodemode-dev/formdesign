@@ -1,4 +1,4 @@
-# Design rules for formdes templates
+# Design rules for FormDesign templates
 
 What separates a template that looks professional from one that looks assembled. Each rule has a reason; break one only knowingly.
 

@@ -1,11 +1,11 @@
 # Development Workflow
 
-How changes are made to formdes. The branch model, commit format and version sites are in `.docs/BRANCHING.md`; this page covers the working rules.
+How changes are made to FormDesign. The branch model, commit format and version sites are in `.docs/BRANCHING.md`; this page covers the working rules.
 
 ## Before you edit
 
 1. Read the `HASHOUT_LOG.md` of the folder you are changing: `backend/HASHOUT_LOG.md`, `frontend/HASHOUT_LOG.md` or `native/HASHOUT_LOG.md`. Source files carry almost no comments; what they would have said is in these logs, indexed by file and symbol.
-2. Agents load `.claude/skills/formdes-skillset/SKILL.md`, which maps the three layers, lists the change recipes (a new panel, a new core method, a new MCP tool, a new template) and states the build laws.
+2. Agents load `.claude/skills/formdesign-skillset/SKILL.md`, which maps the three layers, lists the change recipes (a new panel, a new core method, a new MCP tool, a new template) and states the build laws.
 3. Find the subsystem's page in this wiki and read its contract section.
 
 ## The build laws
@@ -25,10 +25,10 @@ How changes are made to formdes. The branch model, commit format and version sit
 | Kind of change | Where it goes | Also do |
 | --- | --- | --- |
 | A panel, dialog or view | a module in `frontend/src/features/`, registered in `features/index.ts` | its stylesheet in `frontend/src/styles/`, imported by the module |
-| A core method | `native/formdes-core/src/core.rs` | add it to `JSON_METHODS` or `BINARY_METHODS` in `backend/app/routers/core_api.py` |
+| A core method | `native/formdesign-core/src/core.rs` | add it to `JSON_METHODS` or `BINARY_METHODS` in `backend/app/routers/core_api.py` |
 | An engine route | a router in `backend/app/routers/`, mounted in `backend/app/main.py` | |
-| An MCP tool | `TOOLS` in `backend/app/routers/mcp.py` | `./formdes agents sync` |
-| A built-in template | `backend/app/templates/library/[category]/` | the checker, both sweeps, `./formdes agents sync` |
+| An MCP tool | `TOOLS` in `backend/app/routers/mcp.py` | `./formdesign agents sync` |
+| A built-in template | `backend/app/templates/library/[category]/` | the checker, both sweeps, `./formdesign agents sync` |
 | A dependency | `frontend/package.json`, `backend/requirements.txt` (and the macOS twin), `native/Cargo.toml` | licence check, `NOTICE.md` |
 
 Then update the folder's `HASHOUT_LOG.md` for anything a reader would need explained, and this wiki's page when a contract changed.
@@ -40,7 +40,7 @@ Run what [[Verification]] lists for the layers you touched. For a quick local pa
 ```bash
 cd frontend && npx tsc --noEmit
 cd backend && venv/bin/python -m compileall -q app && venv/bin/python ../setup/agents.py sync --check
-./formdes make --brief "a flyer for a bake sale on Saturday at 10am" --out /tmp/flyer.png
+./formdesign make --brief "a flyer for a bake sale on Saturday at 10am" --out /tmp/flyer.png
 ```
 
 ## Planning documents

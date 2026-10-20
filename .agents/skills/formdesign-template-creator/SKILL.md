@@ -1,6 +1,6 @@
 ---
-name: formdes-template-creator
-description: "Designs, validates and saves new formdes layout templates as JSON specs. Use whenever someone asks to create, add, design, clone, adapt or fix a formdes template: a new magazine, newsletter, report, flyer, poster, menu, card, ad size, landing page, email or slide layout; a house style or brand template; 'make a template like this PDF or screenshot'; or 'formdes has no template for X'. A template carries page setup, theme, style kit, parents, frames with named slots and continuation pages. Not for filling an existing template with content (formdes-harness)."
+name: formdesign-template-creator
+description: "Designs, validates and saves new FormDesign layout templates as JSON specs. Use whenever someone asks to create, add, design, clone, adapt or fix a FormDesign template: a new magazine, newsletter, report, flyer, poster, menu, card, ad size, landing page, email or slide layout; a house style or brand template; 'make a template like this PDF or screenshot'; or 'FormDesign has no template for X'. A template carries page setup, theme, style kit, parents, frames with named slots and continuation pages. Not for filling an existing template with content (formdesign-harness)."
 license: Apache-2.0
 metadata:
   author: nodemode-ai
@@ -8,9 +8,9 @@ metadata:
   version: "0.6.0"
 ---
 
-# formdes template creator
+# FormDesign template creator
 
-A formdes template is one JSON file that the engine compiles into layout commands. Because it is data, a template written once is re-skinned by any brand kit, filled by the Make pass, ranked for briefs that fit it, and edited by hand or by an agent. This skill turns a request ("a menu template for a ramen bar", "our quarterly report style", "something like this PDF") into a template that renders like a professional's work and fills cleanly.
+A FormDesign template is one JSON file that the engine compiles into layout commands. Because it is data, a template written once is re-skinned by any brand kit, filled by the Make pass, ranked for briefs that fit it, and edited by hand or by an agent. This skill turns a request ("a menu template for a ramen bar", "our quarterly report style", "something like this PDF") into a template that renders like a professional's work and fills cleanly.
 
 What goes wrong without it: frames placed by eye in points that do not add up, text that overflows its frames at real lengths, hex colours that ignore brands, slots the Make pass does not know, and a template nobody checked by looking at it.
 

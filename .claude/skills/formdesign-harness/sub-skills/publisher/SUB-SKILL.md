@@ -1,6 +1,6 @@
 ---
 name: publisher
-description: "Saves and exports formdes documents: .fdes, PDF for print or screen, IDML, responsive multi-page websites and blogs, Publish Online links, HTML, EPUB, PNG and JPG images, text, packages, and books of several documents numbered and exported as one PDF."
+description: "Saves and exports FormDesign documents: .fdes, PDF for print or screen, IDML, responsive multi-page websites and blogs, Publish Online links, HTML, EPUB, PNG and JPG images, text, packages, and books of several documents numbered and exported as one PDF."
 ---
 
 # Publisher

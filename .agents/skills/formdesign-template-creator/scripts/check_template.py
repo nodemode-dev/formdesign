@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and render a formdes template JSON file through a running formdes engine.
+"""Validate and render a FormDesign template JSON file through a running FormDesign engine.
 
 usage: python3 check_template.py TEMPLATE.json [--renders DIR] [--engine http://127.0.0.1:8196] [--save]
 
@@ -23,11 +23,11 @@ def post(url: str, body: dict) -> dict:
     except urllib.error.HTTPError as exc:
         return {"ok": False, "error": exc.read().decode(errors="replace")}
     except (urllib.error.URLError, OSError) as exc:
-        return {"ok": False, "error": f"the formdes engine is not answering ({exc}); start it with ./formdes backend"}
+        return {"ok": False, "error": f"the FormDesign engine is not answering ({exc}); start it with ./formdesign backend"}
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Validate and render a formdes template")
+    ap = argparse.ArgumentParser(description="Validate and render a FormDesign template")
     ap.add_argument("file")
     ap.add_argument("--renders")
     ap.add_argument("--engine", default="http://127.0.0.1:8196")

@@ -1,6 +1,6 @@
-# formdes built-in templates
+# FormDesign built-in templates
 
-Generated from the template library by `./formdes agents sync`; do not edit by hand. The person's own templates are listed live by `list_templates`.
+Generated from the template library by `./formdesign agents sync`; do not edit by hand. The person's own templates are listed live by `list_templates`.
 
 Columns: id, size in the template's unit, pages, kinds the Make pass ranks it for, flows (running stories that add continuation pages), slots it fills.
 

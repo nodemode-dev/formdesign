@@ -1,6 +1,6 @@
 # Branching and release model
 
-formdes is built by a small team with agents doing much of the typing, so the process stays light: one protected mainline, short-lived work branches, and every change reviewed as a diff before it lands.
+FormDesign is built by a small team with agents doing much of the typing, so the process stays light: one protected mainline, short-lived work branches, and every change reviewed as a diff before it lands.
 
 ## The branches
 
@@ -21,7 +21,7 @@ main ──●────────●────────●────
 
 ## Area prefixes
 
-Name the area the change mostly lives in: `core` (native/formdes-core), `engine` (backend), `make` (backend/app/autolayout), `intake`, `templates`, `editor` (frontend/src/editor), `panels` (frontend/src/features), `desktop` (src-tauri), `agents` (.claude, MCP), `ci`, `docs`. Examples: `feat/panels-table`, `fix/make-fit-short-fields`.
+Name the area the change mostly lives in: `core` (native/formdesign-core), `engine` (backend), `make` (backend/app/autolayout), `intake`, `templates`, `editor` (frontend/src/editor), `panels` (frontend/src/features), `desktop` (src-tauri), `agents` (.claude, MCP), `ci`, `docs`. Examples: `feat/panels-table`, `fix/make-fit-short-fields`.
 
 ## Commits
 
@@ -40,16 +40,16 @@ Semver. Patch for fixes and docs, minor for new features or modules, major for m
 | `frontend/package-lock.json` | the top-level `version` and `packages[""].version` |
 | `frontend/src/version.ts` | `VERSION` |
 | `backend/app/__init__.py` | `__version__` |
-| `native/Cargo.toml` and `native/Cargo.lock` | `workspace.package.version`, the `formdes-core` entry |
-| `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` | the `formdes` package, `version` |
+| `native/Cargo.toml` and `native/Cargo.lock` | `workspace.package.version`, the `formdesign-core` entry |
+| `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` | the `formdesign` package, `version` |
 | `README.md` | the version badge and the Status heading |
 
 ## Releasing
 
 1. Merge the release pull request into `main` with the bump commit last.
-2. Tag it: `git tag -a v0.7.0 -m "formdes v0.7.0: ..."` and `git push origin main --tags`.
-3. The tag runs `.github/workflows/desktop.yml`: macOS arm64, Linux x64 and Windows x64 bundles, the Intel Mac core, and the `formdes-core-[triple]` assets go into a draft GitHub release.
-4. Review the draft and publish it. `./formdes install-core` downloads its prebuilt core from the published release, so a draft is not enough for machines without Rust.
+2. Tag it: `git tag -a v0.7.0 -m "FormDesign v0.7.0: ..."` and `git push origin main --tags`.
+3. The tag runs `.github/workflows/desktop.yml`: macOS arm64, Linux x64 and Windows x64 bundles, the Intel Mac core, and the `formdesign-core-[triple]` assets go into a draft GitHub release.
+4. Review the draft and publish it. `./formdesign install-core` downloads its prebuilt core from the published release, so a draft is not enough for machines without Rust.
 
 Signing secrets and the updater key are described on the wiki's Releasing page.
 

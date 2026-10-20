@@ -1,17 +1,17 @@
 ---
 name: layout-director
-description: "Runs the whole layout loop in formdes: intake, make, look, fix, deliver, with the gates between them. The entry point for any request to make or change a layout."
+description: "Runs the whole layout loop in FormDesign: intake, make, look, fix, deliver, with the gates between them. The entry point for any request to make or change a layout."
 ---
 
 # Layout director
 
 ## Purpose
 
-Takes a request in the person's words and returns a finished layout in formdes plus a short account of what is still theirs to supply. Owns the order of operations and the stopping rule.
+Takes a request in the person's words and returns a finished layout in FormDesign plus a short account of what is still theirs to supply. Owns the order of operations and the stopping rule.
 
 ## Preconditions
 
-The formdes MCP server answers (`list_documents` works). If it does not, `./formdes mcp` starts the engine on first use; if tools are missing entirely, load `cli-fallback`.
+The formdesign MCP server answers (`list_documents` works). If it does not, `./formdesign mcp` starts the engine on first use; if tools are missing entirely, load `cli-fallback`.
 
 ## Procedure
 
@@ -30,7 +30,7 @@ Done when the four gates in the master SKILL.md hold. Never claim a layout is fi
 
 ## Hands back
 
-The document open in formdes, saved and exported where asked, and a short summary naming anything still sample or placeholder.
+The document open in FormDesign, saved and exported where asked, and a short summary naming anything still sample or placeholder.
 
 ## Owned resources
 

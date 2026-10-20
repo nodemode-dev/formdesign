@@ -1,6 +1,6 @@
 {
-  "skill_name": "formdes-harness",
-  "notes": "Run with the formdes MCP server connected and the sample folder from the repository's TEST_PLAN (an article in markdown with front matter, a Word file, three photos, a transparent PNG logo, a magazine PDF).",
+  "skill_name": "formdesign-harness",
+  "notes": "Run with the formdesign MCP server connected and the sample folder from the repository's TEST_PLAN (an article in markdown with front matter, a Word file, three photos, a transparent PNG logo, a magazine PDF).",
   "evals": [
     {
       "id": 1,
@@ -71,7 +71,7 @@
     }
   ],
   "trigger_evals": [
-    { "query": "round the top corners of the box on page 2 in my formdes flyer", "should_trigger": true },
+    { "query": "round the top corners of the box on page 2 in my FormDesign flyer", "should_trigger": true },
     { "query": "make me a magazine layout from this markdown and these photos", "should_trigger": true },
     { "query": "can u design an instagram post for my bakery opening saturday", "should_trigger": true },
     { "query": "Please typeset the attached report as an A4 white paper and export a PDF.", "should_trigger": true },
@@ -80,8 +80,8 @@
     { "query": "extract the text from this PDF and lay it out as a brochure", "should_trigger": true },
     { "query": "turn the newsletter layout into a little website I can put on github pages", "should_trigger": true },
     { "query": "deploy my next.js site to vercel", "should_trigger": false },
-    { "query": "fix the bug in formdes's tile renderer", "should_trigger": false },
-    { "query": "add a new template to formdes for a wine label", "should_trigger": false },
+    { "query": "fix the bug in FormDesign's tile renderer", "should_trigger": false },
+    { "query": "add a new template to FormDesign for a wine label", "should_trigger": false },
     { "query": "write a blog post about slow craft", "should_trigger": false },
     { "query": "resize this photo to 1080 by 1080", "should_trigger": false }
   ]

@@ -1,6 +1,6 @@
 ---
 name: path-artist
-description: "Draws and reshapes vector art in formdes with path commands through run_commands: corners at chosen anchor points, offset paths, outline strokes, the ten Pathfinder operations, simplify, smooth and average, Shape Builder, blends, width profiles, live effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, gradient meshes, envelopes and artboards."
+description: "Draws and reshapes vector art in FormDesign with path commands through run_commands: corners at chosen anchor points, offset paths, outline strokes, the ten Pathfinder operations, simplify, smooth and average, Shape Builder, blends, width profiles, live effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, gradient meshes, envelopes and artboards."
 ---
 
 # Path artist

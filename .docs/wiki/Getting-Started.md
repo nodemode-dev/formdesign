@@ -16,19 +16,19 @@ Linux desktop builds also need the webview packages: `sudo apt install libwebkit
 ```bash
 git clone git@github.com:nodemode-ai/formdesign.git
 cd formdesign
-./formdes install      # engine venv, font library, layout core, frontend
-./formdes boot         # engine on 8196 and the window on 5196 together
+./formdesign install   # engine venv, font library, layout core, frontend
+./formdesign boot      # engine on 8196 and the window on 5196 together
 ```
 
-On Windows use `formdes.bat install` and `formdes.bat boot`; every command below has the same name there. The first install compiles formdes's own layout crates in `native/`, which takes a few minutes. `./formdes doctor` checks the toolchain, the installs and the ports.
+On Windows use `formdesign.bat install` and `formdesign.bat boot`; every command below has the same name there. The first install compiles FormDesign's own layout crates in `native/`, which takes a few minutes. `./formdesign doctor` checks the toolchain, the installs and the ports.
 
 ## Every command
 
 | Command | What it does |
 | --- | --- |
-| `./formdes` or `boot` | engine (8196) and window (5196) together |
+| `./formdesign` or `boot` | engine (8196) and window (5196) together |
 | `install [--lite]` | engine, fonts, core and frontend; `--lite` keeps a core that is already built |
-| `install-core` | build formdes-core with cargo, or download the prebuilt core for this version |
+| `install-core` | build formdesign-core with cargo, or download the prebuilt core for this version |
 | `install-fonts` | convert the bundled OFL font library into `backend/app/fonts` |
 | `install-desktop` | PyInstaller, and a check of Rust and the webview libraries |
 | `backend`, `frontend` | one side only |
@@ -49,11 +49,11 @@ On Windows use `formdes.bat install` and `formdes.bat boot`; every command below
 | Preview | http://localhost:5197 | `vite preview` of the production build |
 | Layout core | standard input and output | started and supervised by the engine |
 
-`FORMDES_UI_PORT` and `FORMDES_ENGINE_PORT` move the dev ports; `FORMDES_PORT` moves the engine.
+`FORMDESIGN_UI_PORT` and `FORMDESIGN_ENGINE_PORT` move the dev ports; `FORMDESIGN_PORT` moves the engine.
 
 ## The data folder
 
-Everything a person makes lives in `~/Formdes` (or `FORMDES_DATA_DIR`):
+Everything a person makes lives in `~/FormDesign` (or `FORMDESIGN_DATA_DIR`):
 
 | Folder | Holds |
 | --- | --- |
@@ -62,10 +62,10 @@ Everything a person makes lives in `~/Formdes` (or `FORMDES_DATA_DIR`):
 | `Brands/` | brand kits as JSON |
 | `Queries/` | your saved Find/Change queries |
 | `Preflight/` | your preflight profiles |
-| `Libraries/` | your libraries as `.fdlib` files (or `FORMDES_LIBRARIES_DIR`, to share a folder with others) |
+| `Libraries/` | your libraries as `.fdlib` files (or `FORMDESIGN_LIBRARIES_DIR`, to share a folder with others) |
 | `Workspaces/`, `Shortcuts/` | your saved workspaces and keyboard shortcut sets |
 | `Profiles/` | ICC profiles you loaded for proofing |
-| `Dictionaries/` | Hunspell dictionaries for spelling in languages other than US English, which is built into the core (`FORMDES_DICT_DIRS` adds more folders) |
+| `Dictionaries/` | Hunspell dictionaries for spelling in languages other than US English, which is built into the core (`FORMDESIGN_DICT_DIRS` adds more folders) |
 | `Intake/` | content packs, uploads, PDFs a layout was made from |
 | `Exports/` | exported files, book PDFs |
 | `Fonts/` | fonts you add |
@@ -76,7 +76,7 @@ The engine reads `backend/.env` (never committed; `backend/.env.example` lists e
 ## First layout in a minute
 
 ```bash
-./formdes make article.md photo.jpg --brief "a two page newsletter for the Elm Street garden club" --out newsletter.pdf
+./formdesign make article.md photo.jpg --brief "a two page newsletter for the Elm Street garden club" --out newsletter.pdf
 ```
 
 Or open http://localhost:5196, press Make a layout, drop the same files, write the brief, press Analyse and then Make layout.

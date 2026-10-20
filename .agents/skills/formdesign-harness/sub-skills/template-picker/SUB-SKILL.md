@@ -1,6 +1,6 @@
 ---
 name: template-picker
-description: "Chooses the formdes template for a request: reading the ranking, the 71 built-ins by category, size and slots, and when to override the top pick."
+description: "Chooses the FormDesign template for a request: reading the ranking, the 71 built-ins by category, size and slots, and when to override the top pick."
 ---
 
 # Template picker

@@ -1,6 +1,6 @@
 # Changelog
 
-Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
+Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
 ## 0.79.0 · 2026-10-20
 
@@ -9,7 +9,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.78.0 · 2026-10-19
 
-- The Claude dock: Terminal and the Claude chat move into a resizable dock under the canvas, with tabs for shells, Claude Code and Chat, Restart this tab, and an Ask line that talks to Claude Code or the chat with your document and selection attached. Title-bar Claude Code and Terminal buttons; Ctrl or Cmd+J shows the dock, Ctrl or Cmd+Shift+J starts Claude Code, Ctrl or Cmd+Alt+J opens the Chat. The chat's bar reads Stop, From Claude Code..., Open in Claude Code and New Chat. Claude Code reuses its running tab, starts in an agent folder (the engine's data folder's Agent unless Preferences or `FORMDES_AGENT_DIR` say otherwise), and outside agents cannot open, read or type into the dock or the chat. Go to Page keeps its menu item but no longer has Ctrl or Cmd+J.
+- The Claude dock: Terminal and the Claude chat move into a resizable dock under the canvas, with tabs for shells, Claude Code and Chat, Restart this tab, and an Ask line that talks to Claude Code or the chat with your document and selection attached. Title-bar Claude Code and Terminal buttons; Ctrl or Cmd+J shows the dock, Ctrl or Cmd+Shift+J starts Claude Code, Ctrl or Cmd+Alt+J opens the Chat. The chat's bar reads Stop, From Claude Code..., Open in Claude Code and New Chat. Claude Code reuses its running tab, starts in an agent folder (the engine's data folder's Agent unless Preferences or `FORMDESIGN_AGENT_DIR` say otherwise), and outside agents cannot open, read or type into the dock or the chat. Go to Page keeps its menu item but no longer has Ctrl or Cmd+J.
 - Everyday first run: the Home screen has Start with tiles (flyer or poster, newsletter, presentation, social and ads, website, business stationery) and an Ask Claude action; Essentials, applied on first launch, shows Pages, Make, Properties and Swatches only; a new Working with Claude workspace opens the Chat beside the page; the title bar folds its zoom and undo controls on narrow windows instead of overlapping the menus.
 - The sparkle icon is gone from the app: Make uses a page-layout glyph and Claude a robot head, and the build laws ban sparkle icons.
 
@@ -29,7 +29,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.74.0 · 2026-10-17
 
-- Parity re-traced against a second layout application's current features (Sprint 22 item 2.1). Six capabilities it documents were missing from the comparison and are now scored: adjustments that stay live on placed images, opening CAD drawings, opening .ai and PSD files as artwork, inserting pages from another document, stock photo search and persistent dimension lines. Editing a placed image's pixels moves to full. formdes is 132 of 139 (95 percent; 97 against the first application, 94 against the second). No code change.
+- Parity re-traced against a second layout application's current features (Sprint 22 item 2.1). Six capabilities it documents were missing from the comparison and are now scored: adjustments that stay live on placed images, opening CAD drawings, opening .ai and PSD files as artwork, inserting pages from another document, stock photo search and persistent dimension lines. Editing a placed image's pixels moves to full. FormDesign is 132 of 139 (95 percent; 97 against the first application, 94 against the second). No code change.
 
 ## 0.73.0 · 2026-10-17
 
@@ -55,7 +55,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 ## 0.68.0 · 2026-10-17
 
 - Sprint 21 closed. The README, the manual (a new Drawing chapter), the developer wiki and this changelog are up to date with every release since 0.28.0; parity re-traced at 130 of 133 (98 percent against each of the two reference applications).
-- The formdes-harness path-artist sub-skill covers the vector-art commands: Shape Builder, blends, width profiles, effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, meshes, envelopes and artboards.
+- The formdesign-harness path-artist sub-skill covers the vector-art commands: Shape Builder, blends, width profiles, effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, meshes, envelopes and artboards.
 
 ## 0.67.0 · 2026-10-17
 
@@ -225,21 +225,21 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.27.0 · 2026-10-16
 
-- One command catalogue, as formvis and formlit have: every engine and window command with what it does and when to use it, at `/api/commands`, through MCP `list_commands` and `run_command` (window commands included), and `./formdes cli list|describe|run`; commands Undo cannot reverse ask first. `./formdes counts --commands --check`.
+- One command catalogue, as formvis and formlit have: every engine and window command with what it does and when to use it, at `/api/commands`, through MCP `list_commands` and `run_command` (window commands included), and `./formdesign cli list|describe|run`; commands Undo cannot reverse ask first. `./formdesign counts --commands --check`.
 - Corner handles under Direct Selection: drag to round a corner (or every picked corner), Alt-click to change its kind.
 - Pathfinder has all ten operations: Divide, Trim, Merge, Crop and Outline join Add, Subtract, Intersect, Exclude Overlap and Minus Back.
 - Object > Paths: Simplify, Smooth Points, Average. Object > Shapes: Spiral, Arc, Rectangular Grid, Polar Grid. Object > Transform: Reflect, Shear, Transform Each.
 - Window > Actions: record a series of changes, save it by name and play it back as one undo step.
 - Every interface string translated in all 26 languages.
-- The formdes-harness skill gains a path-artist sub-skill.
+- The formdesign-harness skill gains a path-artist sub-skill.
 
 ## 0.26.0 · 2026-10-16
 
-- Claude Code inside the window: a Claude Code panel beside the Terminal runs your own Claude Code sign-in, connected to FormDesign's tools, with streamed replies, tool steps, usage, Stop, New chat, and hand-off to and from a Claude Code terminal. The Terminal's Claude Code preset now starts connected. Window > Claude Code (Alt+Mod+J) and Claude Code in Terminal (Shift+Mod+J); settings in Preferences > Agents; `./formdes claude` in a shell.
+- Claude Code inside the window: a Claude Code panel beside the Terminal runs your own Claude Code sign-in, connected to FormDesign's tools, with streamed replies, tool steps, usage, Stop, New chat, and hand-off to and from a Claude Code terminal. The Terminal's Claude Code preset now starts connected. Window > Claude Code (Alt+Mod+J) and Claude Code in Terminal (Shift+Mod+J); settings in Preferences > Agents; `./formdesign claude` in a shell.
 - One build script: `./build_app` (and `build_app.bat`) builds the desktop app from the repository root, start to finish, logging to build_app.log.
 - Live corners at anchor points: Object > Paths > Round Corners (round, inverted round, chamfer, inset) on selected anchors or every corner, kept while you edit the path; Corner Options now rounds polygons, stars and paths; Expand Corners.
 - Object > Paths > Offset Path and Outline Stroke.
-- 26 interface languages with English the default (Preferences > Appearance > Language); menus, commands and labels translated, long help sentences to follow. `./formdes i18n keys|check|export|import`.
+- 26 interface languages with English the default (Preferences > Appearance > Language); menus, commands and labels translated, long help sentences to follow. `./formdesign i18n keys|check|export|import`.
 
 ## 0.25.4 · 2026-10-12
 
@@ -261,7 +261,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.25.2 · 2026-10-12
 
-- The canvas draws through the GPU: WebGPU first, then WebGL2, then Canvas 2D (View > Renderer), with no blank frame on a lost context; formdes-gpu's frame model on the web.
+- The canvas draws through the GPU: WebGPU first, then WebGL2, then Canvas 2D (View > Renderer), with no blank frame on a lost context; formdesign-gpu's frame model on the web.
 - Parity batch five, nine graded rows move (116.5 to 121.5 of 133).
 - Variable fonts: axis sliders in the Character panel (type.fontAxes, fontVariations), named instances, embedded as instances in PDF.
 - Clipping paths from embedded paths, alpha channels or detected edges, text wrap to the contour, Convert Clipping Path to Frame.
@@ -285,7 +285,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.25.0 · 2026-10-12
 
-- Phase 5 begins: `native/formdes-gpu`, the canvas compositor on wgpu 30.0.1 (tile atlas with a memory budget, pasteboard, page shadows and tiles drawn through the view, white paper instead of a blank hole while a tile is missing, window display). The web display paths and the native canvas follow in 0.25.x.
+- Phase 5 begins: `native/formdesign-gpu`, the canvas compositor on wgpu 30.0.1 (tile atlas with a memory budget, pasteboard, page shadows and tiles drawn through the view, white paper instead of a blank hole while a tile is missing, window display). The web display paths and the native canvas follow in 0.25.x.
 - Paragraph borders in Paragraph Options and paragraph styles: per-side weights and offsets, solid or dashed, rounded corners, column or text width, consecutive borders merge.
 - Nested line styles: character styles for the first lines of a paragraph, re-applied as text reflows.
 - Object > Effects: Inner Shadow, Outer Glow, Inner Glow, Basic Feather and Directional Feather, on screen and in PDF (feathers as soft masks).
@@ -293,7 +293,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.24.0 · 2026-10-12
 
-- The repository is now called formdesign (folder, clone address, zips, updater and core downloads); the `formdes` command and MCP server keep their names.
+- The repository is now called formdesign (folder, clone address, zips, updater and core downloads); the command and the MCP server keep their earlier short name until 0.80.0.
 - Underline and strikethrough options: weight, offset, colour and tint, in Character Options.
 - Multilevel lists: a list level per paragraph, each level counting on its own and restarting under a higher level, with ^1 to ^9 for the higher levels' numbers (1, 1.1, 1.2, 2, 2.1, 2.1.1).
 - Layout > Pages > Parent Page Options: rename a parent and base it on another parent.
@@ -314,12 +314,12 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Window > Agent Connect: every agent that connects (Claude Code, Codex, Cursor and others, by name, version and transport), what each may do (Allow all, Ask for risky steps, Deny), set-up buttons that show what they will write first, requests waiting for your approval and a feed of every agent call.
 - Risky steps wait for you when an agent is set to Ask: publishing or taking down a website, saving or exporting over an existing file, packaging, printing and deleting more than one page.
 - Follow the agent scrolls to each change an agent makes; agents can also show you a page, a zoom, a panel or a tool with the new `show` tool (30 tools).
-- One catalogue of everything FormDesign can do (`./formdes actions`, GET /api/actions): engine commands, tools, the window's own actions and MCP tools.
+- One catalogue of everything FormDesign can do (`./formdesign actions`, GET /api/actions): engine commands, tools, the window's own actions and MCP tools.
 
 ## 0.21.0 · 2026-10-12
 
 - Window > Terminal: real terminals in a panel that docks like any other (by default in the left column, folding into the minirail). Start a Shell, Claude Code, Codex or Cursor CLI; agents start in the FormDesign folder already connected to its MCP server. Sessions survive a reload with their scrollback; no scrollbar is drawn.
-- `./formdes cmd ID key=value` runs any of the 311 engine commands on the document the window has open; `./formdes commands` lists them; `./formdes tools` and `./formdes tool NAME '{json}'` list and call the MCP tools agents use.
+- `./formdesign cmd ID key=value` runs any of the 311 engine commands on the document the window has open; `./formdesign commands` lists them; `./formdesign tools` and `./formdesign tool NAME '{json}'` list and call the MCP tools agents use.
 - Terminals answer only this computer's FormDesign window: other origins are refused and the connection needs a per-launch token.
 
 ## 0.20.1 · 2026-10-12
@@ -329,7 +329,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.20.0 · 2026-10-12
 
-- The product is called FormDesign: window, splash, home, About, status bar and the desktop bundle. The `formdes` command, the `formdes` MCP server, `FORMDES_*` settings and `.fdes` files keep their names.
+- The product is called FormDesign: window, splash, home, About, status bar and the desktop bundle. The command, the MCP server and the environment settings keep their earlier short name until 0.80.0; `.fdes` files keep theirs.
 - A left panel column between the tools and the canvas, with Pages, Layers and Links and Make and Slots by default; drag any panel group into or out of it, per workspace.
 - The left column folds into the tool rail as a minirail of icons, each opening its panels as a flyout; the Properties column and the dock fold into icon strips. Window > Collapse Left Panels to Minirail (Alt+Shift+Mod+L) and Collapse Right Panels to Icons (Shift+Tab). The folded state is remembered and kept in workspaces.
 - Edit > Search (Mod+K): every command, panel and tool, ranked as you type, with its menu path and keys.
@@ -359,16 +359,16 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.17.0 · 2026-10-10
 
-- formdes now runs on its own layout engine. The layout core answers the window, the engine service, the templates, the Make pass and agents from `native/formdes-engine` and its model, text, render and interchange crates; the engine crates it used before are no longer used or built. All 71 templates build and render; a layout made from Markdown threads onto its continuation pages.
-- The layout inside a `.fdes` is now formdes's own `.fdoc` file, and a bare layout saves and opens as `.fdoc`. Documents saved by earlier versions do not open; open their IDML export instead.
+- FormDesign now runs on its own layout engine. The layout core answers the window, the engine service, the templates, the Make pass and agents from `native/formdesign-engine` and its model, text, render and interchange crates; the engine crates it used before are no longer used or built. All 71 templates build and render; a layout made from Markdown threads onto its continuation pages.
+- The layout inside a `.fdes` is now FormDesign's own `.fdoc` file, and a bare layout saves and opens as `.fdoc`. Documents saved by earlier versions do not open; open their IDML export instead.
 - Source Serif 4, Source Sans 3, Inter and JetBrains Mono and a US English spelling dictionary are built into the layout core.
 - New Line (`line.create`) for rules in templates; a document whose start page number is even begins with a left page.
-- The PDF Reader is gone: viewing and editing existing PDFs moves to FormPDF, a separate app. formdes still makes layouts from PDFs, places them and exports PDF.
+- The PDF Reader is gone: viewing and editing existing PDFs moves to FormPDF, a separate app. FormDesign still makes layouts from PDFs, places them and exports PDF.
 - Not carried over yet: Overprint Preview, note and change markers and the highlight views on the canvas, profile-accurate soft proofing (the proof is an approximation), and typing inside table cells.
 
 ## 0.16.0 · 2026-10-10
 
-- formdes's own engine has its toolbox: Selection, Direct Selection, Page, Gap, Content Collector and Placer, Type, Type on a Path, Line, Pen with its anchor tools, Pencil, Smooth, Erase, frame and shape tools, Scissors, Free Transform, Rotate, Scale, Shear, Gradient Swatch and Feather, Note, Color Theme, Eyedropper and Measure, each with its standard shortcut. A drag previews live and lands as one undo step; Escape cancels it.
+- FormDesign's own engine has its toolbox: Selection, Direct Selection, Page, Gap, Content Collector and Placer, Type, Type on a Path, Line, Pen with its anchor tools, Pencil, Smooth, Erase, frame and shape tools, Scissors, Free Transform, Rotate, Scale, Shear, Gradient Swatch and Feather, Note, Color Theme, Eyedropper and Measure, each with its standard shortcut. A drag previews live and lands as one undo step; Escape cancels it.
 - Click the out port of a text frame to load its text and click or drag to thread it on; the place gun fills a frame, places at natural size or into a dragged frame.
 - Typing, caret and word movement, line-aware Up and Down, selection with Shift, Backspace and Delete respecting tracked changes, and nudging with the arrow keys; command and tool shortcuts are routed as the window expects.
 - The engine draws the canvas furniture the window shows: margins, columns, guides, bleed, baseline grid, frame edges, parent items, selection outlines, handles, ports and threads, path anchors, text highlights and the caret, and live tool feedback.
@@ -376,20 +376,20 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.15.0 · 2026-10-10
 
-- formdes's own engine has its command layer: `native/formdes-engine` holds open documents, the selection, undo and redo, and batches that run as one undo step with `$N` references between steps. It answers the 210 commands the window, the backend, the template compiler and agents send, from frames, objects, transforms, text, styles, swatches and tables to pages, parents, layers, links, review, XML, books, packaging and export, in the shapes they expect today.
-- `native/formdes-interchange` reads IDML packages (pages, parents, layers, swatches, styles, frames, threaded stories, tables, footnotes, images) and writes them; places tagged text, plain text, Markdown, HTML, RTF, Word and CSV into frames; and exports HTML and EPUB, reflowable or fixed layout.
+- FormDesign's own engine has its command layer: `native/formdesign-engine` holds open documents, the selection, undo and redo, and batches that run as one undo step with `$N` references between steps. It answers the 210 commands the window, the backend, the template compiler and agents send, from frames, objects, transforms, text, styles, swatches and tables to pages, parents, layers, links, review, XML, books, packaging and export, in the shapes they expect today.
+- `native/formdesign-interchange` reads IDML packages (pages, parents, layers, swatches, styles, frames, threaded stories, tables, footnotes, images) and writes them; places tagged text, plain text, Markdown, HTML, RTF, Word and CSV into frames; and exports HTML and EPUB, reflowable or fixed layout.
 - The page drawing now numbers folios on parent pages per page, draws table cell fills, alternating rows and border weights, hides tracked deletions and hidden conditional text, honours hyphenation exceptions and gradient stop opacity.
 - Still not wired into the app; the window keeps running on the engine crates it used before.
 
 ## 0.14.0 · 2026-10-10
 
-- formdes's own engine can draw and export pages. `native/formdes-render` turns a page into one list of drawing operations and draws it to PNG or JPEG, or writes it as a PDF with embedded subset fonts, CMYK kept as CMYK, selectable and searchable text, trim and bleed boxes, placed PDFs as vector pages and working links. Layers, parent pages, gradients, dashed strokes, drop shadows, images clipped to their frames, paragraph rules and shading, underlines, tab leaders, drop caps, footnotes and tables are drawn.
+- FormDesign's own engine can draw and export pages. `native/formdesign-render` turns a page into one list of drawing operations and draws it to PNG or JPEG, or writes it as a PDF with embedded subset fonts, CMYK kept as CMYK, selectable and searchable text, trim and bleed boxes, placed PDFs as vector pages and working links. Layers, parent pages, gradients, dashed strokes, drop shadows, images clipped to their frames, paragraph rules and shading, underlines, tab leaders, drop caps, footnotes and tables are drawn.
 - The text engine gained paragraphs that span or split columns, contour and inverted text wrap, text inside ellipses and polygons, optical margin alignment, glyph scaling in justification, balanced ragged lines, carets and hit-testing, and type on a path.
 - Still not wired into the app; the window keeps running on the engine crates it used before.
 
 ## 0.13.0 · 2026-10-10
 
-- formdes's own layout engine has begun, to replace the engine crates the core builds on today. `native/formdes-model` is the document model and the `.fdes` file format: pages, spreads, parents, sections, layers, items, stories, styles, swatches. `native/formdes-text` is the text engine: font matching with fallback, OpenType shaping, hyphenation, a Knuth and Plass paragraph composer, justification, tabs, drop caps, small caps, bidirectional text, lists, nested and GREP styles, and flow through threaded frames and columns with wrap, keep options, widow control, breaks, footnotes, tables and vertical justification. Neither is wired into the app yet; nothing you see changes in this release.
+- FormDesign's own layout engine has begun, to replace the engine crates the core builds on today. `native/formdesign-model` is the document model and the `.fdes` file format: pages, spreads, parents, sections, layers, items, stories, styles, swatches. `native/formdesign-text` is the text engine: font matching with fallback, OpenType shaping, hyphenation, a Knuth and Plass paragraph composer, justification, tabs, drop caps, small caps, bidirectional text, lists, nested and GREP styles, and flow through threaded frames and columns with wrap, keep options, widow control, breaks, footnotes, tables and vertical justification. Neither is wired into the app yet; nothing you see changes in this release.
 - Parity re-measured in 170 traced rows against professional layout and PDF applications: 93 (55 percent). The earlier 48.0 of 53 credited menu entries that fail or run without parameters in the window and left out work on existing PDFs.
 
 ## 0.12.0 · 2026-10-08
@@ -399,7 +399,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - An address for the site adds a sitemap, an RSS feed for articles, canonical and share links; every article page carries its headline, description and author for search engines.
 - Publish Online (File > Publish Online): the open document's site gets a link served from this computer, updated each time you publish again; the list of published sites opens, copies, shows, downloads as .zip or unpublishes each one.
 - Export reports what to fix before publishing: images without alt text, buttons without a link, placeholder art still in place, fonts that cannot be embedded.
-- For agents: `export_document` takes `web` and the `publish_website` tool publishes, lists and unpublishes (29 tools); `./formdes export FILE --out site.zip` from a terminal.
+- For agents: `export_document` takes `web` and the `publish_website` tool publishes, lists and unpublishes (29 tools); `./formdesign export FILE --out site.zip` from a terminal.
 - Parity with the reference layout application measured at 48.0 of 53, unchanged: HTML export and Publish Online (row 42) stays partial because a published site's link works on this computer only; a hosted publishing service is not built.
 
 ## 0.11.0 · 2026-10-08
@@ -418,7 +418,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - Buttons and Forms: buttons that go to a page or a URL; text fields, check boxes, combo boxes, list boxes and signature fields with names, defaults, choices, font size, multiline and required. Placed video and sound get Play on page load, Loop and Show controls.
 - Page Transitions: a transition and speed for each spread, Apply to All Spreads, Clear All.
 - The XML Tags and Structure panels (Alt+Ctrl+1): tag frames and text, map paragraph styles to tags, load a DTD and validate, import XML into tagged frames, export XML.
-- Libraries (Window > Library): libraries of saved pieces with thumbnails; add the selection, drag an item onto the page to place it there, or place it where it was; rename, delete and search. Libraries live in the data folder or in `FORMDES_LIBRARIES_DIR`.
+- Libraries (Window > Library): libraries of saved pieces with thumbnails; add the selection, drag an item onto the page to place it there, or place it where it was; rename, delete and search. Libraries live in the data folder or in `FORMDESIGN_LIBRARIES_DIR`.
 - The `library` MCP tool (28 tools): agents list, create and fill libraries and place their pieces.
 - Parity with the reference layout application measured at 47.0 of 53.
 
@@ -471,7 +471,7 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 - The desktop app for macOS, Windows and Linux (Tauri 2, the engine and the layout core as sidecars).
 - CI: frontend build, engine checks, template lint, skills drift, a command-line make, script syntax, the em dash and emoji scan; desktop bundles on each tag.
 - The PDF Reader: thumbnails, selectable text, search, outline, plain text, Extract into Make.
-- The agent skills: `formdes-harness` with eight sub-skills, `formdes-template-creator`, `formdes-skillset`; `CLAUDE.md`, `AGENTS.md`, the `.agents/skills` mirror.
+- The agent skills: `formdesign-harness` with eight sub-skills, `formdesign-template-creator`, `formdesign-skillset`; `CLAUDE.md`, `AGENTS.md`, the `.agents/skills` mirror.
 - Briefs are read for page counts, dates, times, issues, brands and event names.
 - Titles, dates and prices shrink further before any word is trimmed.
 
@@ -485,4 +485,4 @@ Every release of FormDesign (formdes until 0.19.0), newest first. Versions follo
 
 ## 0.1.0 · 2026-10-07
 
-- The scaffold: dispatcher and setup scripts, formdes-core over formdes's own layout crates, the FastAPI engine with the window socket, the Studio Dark shell and home screen.
+- The scaffold: dispatcher and setup scripts, formdesign-core over FormDesign's own layout crates, the FastAPI engine with the window socket, the Studio Dark shell and home screen.

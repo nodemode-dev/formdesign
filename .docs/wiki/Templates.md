@@ -16,7 +16,7 @@ A template is one JSON file: page setup, a theme and a style kit, parent pages, 
 | Web | 9 | landing page, long-read article, blog journal, docs reference, email digest, conference event, portfolio grid, press release, product detail |
 | Presentation | 5 | dark keynote, lookbook, pitch deck, quarterly review, workshop steps |
 
-`./formdes templates` lists them; `./formdes templates [id]` shows one with its slots. In the window, File > New from Template opens the gallery.
+`./formdesign templates` lists them; `./formdesign templates [id]` shows one with its slots. In the window, File > New from Template opens the gallery.
 
 ## Where things live
 
@@ -28,8 +28,8 @@ A template is one JSON file: page setup, a theme and a style kit, parent pages, 
 | `backend/app/templates/spec.py` | loading, resolving styles, the card the gallery and ranking use, the linter (`problems`) |
 | `backend/app/templates/compile.py` | the compiler to core commands: swatches through the colour engine, styles, parents, frames, slots, flows |
 | `backend/app/templates/registry.py` | building a template into a document, sample fills, checking a spec |
-| `backend/app/templates/brands.py` | brand kits in `~/Formdes/Brands` |
-| `~/Formdes/Templates/` | your own templates, any subfolder; they appear beside the built-ins |
+| `backend/app/templates/brands.py` | brand kits in `~/FormDesign/Brands` |
+| `~/FormDesign/Templates/` | your own templates, any subfolder; they appear beside the built-ins |
 
 ## Slots and flows
 
@@ -41,9 +41,9 @@ A brand kit is a palette (accent, accent2, ink, paper, dark, light, muted, tint)
 
 ## Adding a template
 
-1. Load the `formdes-template-creator` skill (`.claude/skills/formdes-template-creator/`), which carries the spec, design rules and a checklist.
-2. Write the JSON, then check it with the MCP tool `validate_template`, or with the engine running: `python3 .claude/skills/formdes-template-creator/scripts/check_template.py path/to/template.json --renders /tmp/r`. It compiles with sample content, reports problems, overset and preflight, and renders pages to look at. Built-ins can also be checked in bulk with `python -m app.templates.check [id ...] --out /tmp/renders` from `backend/` in its venv.
-3. Save it to `~/Formdes/Templates/` (MCP `save_template`) or, for a built-in, to `backend/app/templates/library/[category]/` and run `./formdes agents sync` so the harness skill's template list stays in step.
+1. Load the `formdesign-template-creator` skill (`.claude/skills/formdesign-template-creator/`), which carries the spec, design rules and a checklist.
+2. Write the JSON, then check it with the MCP tool `validate_template`, or with the engine running: `python3 .claude/skills/formdesign-template-creator/scripts/check_template.py path/to/template.json --renders /tmp/r`. It compiles with sample content, reports problems, overset and preflight, and renders pages to look at. Built-ins can also be checked in bulk with `python -m app.templates.check [id ...] --out /tmp/renders` from `backend/` in its venv.
+3. Save it to `~/FormDesign/Templates/` (MCP `save_template`) or, for a built-in, to `backend/app/templates/library/[category]/` and run `./formdesign agents sync` so the harness skill's template list stays in step.
 
 ## Contract
 

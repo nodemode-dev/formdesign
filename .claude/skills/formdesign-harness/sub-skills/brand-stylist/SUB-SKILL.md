@@ -1,6 +1,6 @@
 ---
 name: brand-stylist
-description: "Applies a brand to formdes layouts: brand kits (palette roles, font roles, logo), brief colours, and re-skinning an existing template or document."
+description: "Applies a brand to FormDesign layouts: brand kits (palette roles, font roles, logo), brief colours, and re-skinning an existing template or document."
 ---
 
 # Brand stylist

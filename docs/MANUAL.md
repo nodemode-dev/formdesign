@@ -1,10 +1,10 @@
-# formdes manual
+# FormDesign manual
 
-This manual is for people laying out documents with formdes. If you are changing formdes's code, the wiki (`.docs/wiki/`) is the place to start.
+This manual is for people laying out documents with FormDesign. If you are changing FormDesign's code, the wiki (`.docs/wiki/`) is the place to start.
 
 ## Contents
 
-1. [What formdes does](#what-formdes-does)
+1. [What FormDesign does](#what-formdesign-does)
 2. [Starting](#starting)
 3. [Making a layout from your files](#making-a-layout-from-your-files)
 4. [The workspace](#the-workspace)
@@ -27,13 +27,13 @@ This manual is for people laying out documents with formdes. If you are changing
 21. [Working with an agent](#working-with-an-agent)
 22. [Files, saving and recovery](#files-saving-and-recovery)
 
-## What formdes does
+## What FormDesign does
 
-formdes lays out magazines, newsletters, books, reports, flyers, posters, menus, cards, ads, web pages, emails and slides. You can start from a blank page, but the quickest start is to give formdes your material (an article in Markdown or Word, a PDF, photos, a few lines saying what you want) and let it build a first version from one of its 71 templates. You then finish that version with the tools and panels, or ask an agent to.
+FormDesign lays out magazines, newsletters, books, reports, flyers, posters, menus, cards, ads, web pages, emails and slides. You can start from a blank page, but the quickest start is to give FormDesign your material (an article in Markdown or Word, a PDF, photos, a few lines saying what you want) and let it build a first version from one of its 71 templates. You then finish that version with the tools and panels, or ask an agent to.
 
 ## Starting
 
-Open http://localhost:5196 after `./formdes boot`, or open the desktop app. With no document open you see the home screen:
+Open http://localhost:5196 after `./formdesign boot`, or open the desktop app. With no document open you see the home screen:
 
 | Button | What it does |
 | --- | --- |
@@ -48,7 +48,7 @@ Recent documents are listed underneath. File > New Document (Ctrl+N) starts a bl
 The Make panel (right column, or the Make button in the title bar) has three steps.
 
 1. **Content.** Drop files on the box or click it to choose: Markdown, Word, RTF, text, HTML, CSV and spreadsheets, PDFs, images and GIFs. A folder works too.
-2. **Brief.** Say what you want in plain words: "a two page newsletter for the Elm Street garden club, warm, green accent". formdes reads the kind of piece, the size (A4, Letter, square, story ad, 1080x1350), the page count, the tone, colours, brand, dates, times and calls to action. Lines like `Headline: The Slow Craft`, `CTA: Read the issue`, `Date: Saturday 12 June`, `Venue: The Old Tram Depot`, `Price: $18`, `URL: harbour.example` fill those slots exactly.
+2. **Brief.** Say what you want in plain words: "a two page newsletter for the Elm Street garden club, warm, green accent". FormDesign reads the kind of piece, the size (A4, Letter, square, story ad, 1080x1350), the page count, the tone, colours, brand, dates, times and calls to action. Lines like `Headline: The Slow Craft`, `CTA: Read the issue`, `Date: Saturday 12 June`, `Venue: The Old Tram Depot`, `Price: $18`, `URL: harbour.example` fill those slots exactly.
 3. **Analyse, then Make layout.** Analyse reads everything and shows the templates that fit, best first, with the reason. Pick one (or Browse all), choose a brand kit or let the brief's colours style it, and press Make layout. Variations 2 or 3 makes alternatives in other templates.
 
 The report under the button says what happened: which slots were filled, which still show the template's sample text, which image frames hold placeholder art, what copy was trimmed or shrunk to fit, which of your files were not used, and preflight problems. The Slots tab lists every named slot with its text or image, so you can replace what is still sample text without hunting for the frame.
@@ -68,7 +68,7 @@ Good habits: put the article's title as the first heading, a one-line deck as a 
 | Right dock | Make and Slots; Swatches, Styles and Table; Pages, Layers and Links; Preflight, Info and Separations; Structure and Tags; Library |
 | Status bar | the engine and layout core, the current page, the active tool, the proof condition when Proof Colors is on, the version |
 
-Panel groups can be minimised with the minus button. Drag a group by its header to move it up or down or into the other column; a line shows where it will land. Drag a tab onto another group's header to join that group, or between groups to make a new group of its own. The thin bar between two groups sets the upper one's height (double-click it to let the group size itself), and the bar left of the dock sets the dock's width. Right-click a group's header to close or minimise it; choosing one of its panels in the Window menu brings it back. Tab hides every panel. formdes remembers all of this.
+Panel groups can be minimised with the minus button. Drag a group by its header to move it up or down or into the other column; a line shows where it will land. Drag a tab onto another group's header to join that group, or between groups to make a new group of its own. The thin bar between two groups sets the upper one's height (double-click it to let the group size itself), and the bar left of the dock sets the dock's width. Right-click a group's header to close or minimise it; choosing one of its panels in the Window menu brings it back. Tab hides every panel. FormDesign remembers all of this.
 
 Window > Workspace, or the switcher in the title bar, arranges the panels for a kind of work: Essentials, Working with Claude, Advanced, Book, Digital Publishing, Interactive for PDF, Printing and Proofing and Typography. Essentials is the calm everyday arrangement: Pages and Make on the left, Properties with Swatches beneath it on the right, and the specialist panels (Preflight, Glyphs, Changes, Buttons, Structure and Library) out of the way until you choose them in the Window menu. Working with Claude keeps only Pages and Properties and opens the Claude dock on its Chat tab. A tab that is too narrow to show its whole name is shortened; hold the pointer over it to read the name. Choosing Reset or the workspace again gives a built-in workspace its newest arrangement; workspaces you saved are not changed. New Workspace saves the arrangement you have under a name of your own, Delete Workspace removes one of yours, and Reset puts the current workspace back as it was saved.
 
@@ -141,7 +141,7 @@ View > Proof Colors shows the page as it will print on the press chosen in View 
 
 ## Exporting and printing
 
-File > Export (Ctrl+E) exports PDF (print or interactive, page ranges, spreads, bleed and crop marks, transparency flattening, PDF/A-2b, PDF/A-2a and PDF/UA-1, tagged PDF with headings, reading order and alt text), IDML, EPUB and fixed-layout EPUB, HTML, a website, PNG, JPEG, SVG, text and XML, to a download or to the Exports folder. formdes does not write PDF/X; a printer that asks for it can usually take PDF/A-2b or a plain PDF with bleed. File > Package collects the document, its links, an IDML copy and a report into a folder for a printer (fonts are listed in the report, not copied). File > Print (Ctrl+P) picks a printer, copies, pages and bleed, and prints through the system's lp or lpr; File > Print Booklet imposes the pages two-up for saddle stitching or perfect binding, with creep, and downloads the PDF.
+File > Export (Ctrl+E) exports PDF (print or interactive, page ranges, spreads, bleed and crop marks, transparency flattening, PDF/A-2b, PDF/A-2a and PDF/UA-1, tagged PDF with headings, reading order and alt text), IDML, EPUB and fixed-layout EPUB, HTML, a website, PNG, JPEG, SVG, text and XML, to a download or to the Exports folder. FormDesign does not write PDF/X; a printer that asks for it can usually take PDF/A-2b or a plain PDF with bleed. File > Package collects the document, its links, an IDML copy and a report into a folder for a printer (fonts are listed in the report, not copied). File > Print (Ctrl+P) picks a printer, copies, pages and bleed, and prints through the system's lp or lpr; File > Print Booklet imposes the pages two-up for saddle stitching or perfect binding, with creep, and downloads the PDF.
 
 ## Websites and Publish Online
 
@@ -156,7 +156,7 @@ Export's **Website** format turns the open document into a site you can put on a
 
 The result lists what to fix before the site goes out: pictures without a description (Object > Object Export Options, Alt Text), buttons with no link (Window > Interactive > Hyperlinks), placeholder art from Make, and fonts whose licence does not allow putting them on a website (the site uses a similar system font instead). Fonts that can be shared go into the site with their licences.
 
-File > Publish Online gives the open document's site a link you can open now: formdes serves it from this computer, and publishing the same document again updates it. The list below shows every published site; for each you can open it in the browser, copy its link, show its folder, download it as a .zip, or unpublish it (click the bin twice). To put a site on the public web, download its .zip or export the website into a folder, and upload that folder to a static host such as GitHub Pages, Netlify or Cloudflare Pages.
+File > Publish Online gives the open document's site a link you can open now: FormDesign serves it from this computer, and publishing the same document again updates it. The list below shows every published site; for each you can open it in the browser, copy its link, show its folder, download it as a .zip, or unpublish it (click the bin twice). To put a site on the public web, download its .zip or export the website into a folder, and upload that folder to a static host such as GitHub Pages, Netlify or Cloudflare Pages.
 
 ## Books
 
@@ -178,20 +178,20 @@ The Tags and Structure panels (Window > XML Structure, Alt+Ctrl+1) give a docume
 
 ## Libraries
 
-A library keeps pieces you use again (a logo lockup, a footer, a pull-quote box) with their styles and colours. Window > Library opens the panel: choose a library or make a new one, select objects on the page and choose Add, and the piece is stored with a thumbnail. Drag a thumbnail onto the page to place a copy where you drop it, or pick it and choose Place to put it back where it was taken from. Double-click to rename; search finds pieces by name. Libraries are `.fdlib` files in `~/Formdes/Libraries`; set `FORMDES_LIBRARIES_DIR` to keep them in a shared folder instead.
+A library keeps pieces you use again (a logo lockup, a footer, a pull-quote box) with their styles and colours. Window > Library opens the panel: choose a library or make a new one, select objects on the page and choose Add, and the piece is stored with a thumbnail. Drag a thumbnail onto the page to place a copy where you drop it, or pick it and choose Place to put it back where it was taken from. Double-click to rename; search finds pieces by name. Libraries are `.fdlib` files in `~/FormDesign/Libraries`; set `FORMDESIGN_LIBRARIES_DIR` to keep them in a shared folder instead.
 
 ## Layouts from a PDF
 
-Drop a PDF on the Make panel or the canvas to lay it out again in a template: formdes reads its structure (title, sections, text) and its images and makes a layout from them, as with any other file. File > Place puts a PDF's pages on the page as graphics, and File > Export writes PDF. formdes does not view or edit PDFs themselves; that is FormPDF, a separate app.
+Drop a PDF on the Make panel or the canvas to lay it out again in a template: FormDesign reads its structure (title, sections, text) and its images and makes a layout from them, as with any other file. File > Place puts a PDF's pages on the page as graphics, and File > Export writes PDF. FormDesign does not view or edit PDFs themselves; that is FormPDF, a separate app.
 
 ## Working with an agent
 
-Claude Code, Codex and Cursor can make and finish layouts for you through formdes's MCP server; set them up once with `./formdes agents install` (Preferences, Agents shows the commands). Then ask in your own words: "make a two-page magazine feature from article.md and these photos, elegant, cream paper". The agent reads your files, makes the layout, looks at the pages, replaces sample text and exports, and its changes appear live in the open window, where you can keep editing. Everything an agent changes in one turn is one step in Edit > Undo (shown as Undo Agent Turn), so a single Undo takes back what one request did; your own edits in between stay separate steps. A turn ends when you send Claude Code your next prompt, or after two minutes without a call from that agent. From a terminal, `./formdes make files --brief "..." --out layout.pdf` does the same without an agent. Preferences > Agents has a switch for agent access: with it off, agents can see formdes's tools but every call is refused.
+Claude Code, Codex and Cursor can make and finish layouts for you through FormDesign's MCP server; set them up once with `./formdesign agents install` (Preferences, Agents shows the commands). Then ask in your own words: "make a two-page magazine feature from article.md and these photos, elegant, cream paper". The agent reads your files, makes the layout, looks at the pages, replaces sample text and exports, and its changes appear live in the open window, where you can keep editing. Everything an agent changes in one turn is one step in Edit > Undo (shown as Undo Agent Turn), so a single Undo takes back what one request did; your own edits in between stay separate steps. A turn ends when you send Claude Code your next prompt, or after two minutes without a call from that agent. From a terminal, `./formdesign make files --brief "..." --out layout.pdf` does the same without an agent. Preferences > Agents has a switch for agent access: with it off, agents can see FormDesign's tools but every call is refused.
 
 ### The Claude dock
 
-Window > Show Terminal (Ctrl or Cmd+J) shows or hides a dock under the canvas that holds terminals and Claude. Its Claude Code tab runs Claude Code already connected to formdes; the Claude Code button in the title bar (Ctrl or Cmd+Shift+J) opens that tab, or goes back to it if it is already running. Its Chat tab (Ctrl or Cmd+Alt+J, or Chat with Claude) is a conversation about the open document: type in the Ask line at the bottom and press Enter. From Claude Code brings a Claude Code conversation into the Chat tab, and Open in Claude Code continues the Chat conversation in the Claude Code tab. When a program ends, the tab says so, and Restart starts it again in the same tab and folder. Claude Code starts in the agent folder: set Starts in folder in Preferences > Agents (Claude Code in FormDesign), or the `FORMDES_AGENT_DIR` environment variable; otherwise it is the Agent folder inside formdes's data folder, which formdes creates when it is missing. The same section sets the Claude Code program and a message to start with. The Working with Claude workspace (Window > Workspace) arranges the window for this: Pages and Properties, and the dock open on its Chat tab.
+Window > Show Terminal (Ctrl or Cmd+J) shows or hides a dock under the canvas that holds terminals and Claude. Its Claude Code tab runs Claude Code already connected to FormDesign; the Claude Code button in the title bar (Ctrl or Cmd+Shift+J) opens that tab, or goes back to it if it is already running. Its Chat tab (Ctrl or Cmd+Alt+J, or Chat with Claude) is a conversation about the open document: type in the Ask line at the bottom and press Enter. From Claude Code brings a Claude Code conversation into the Chat tab, and Open in Claude Code continues the Chat conversation in the Claude Code tab. When a program ends, the tab says so, and Restart starts it again in the same tab and folder. Claude Code starts in the agent folder: set Starts in folder in Preferences > Agents (Claude Code in FormDesign), or the `FORMDESIGN_AGENT_DIR` environment variable; otherwise it is the Agent folder inside FormDesign's data folder, which FormDesign creates when it is missing. The same section sets the Claude Code program and a message to start with. The Working with Claude workspace (Window > Workspace) arranges the window for this: Pages and Properties, and the dock open on its Chat tab.
 
 ## Files, saving and recovery
 
-Save (Ctrl+S) writes a `.fdes` file to `~/Formdes/Projects` unless you choose another place. A `.fdes` keeps the layout, the slot names, and the content it was made from, so it can be made again in another template. Save As can also write `.idml` for an IDML package or a bare `.fdoc` layout. Documents saved by formdes before 0.17.0 no longer open; open an IDML export of them instead. Every minute formdes keeps a recovery copy of documents with unsaved changes; after a crash, File > Recover Unsaved Documents reopens them.
+Save (Ctrl+S) writes a `.fdes` file to `~/FormDesign/Projects` unless you choose another place. A `.fdes` keeps the layout, the slot names, and the content it was made from, so it can be made again in another template. Save As can also write `.idml` for an IDML package or a bare `.fdoc` layout. Documents saved by FormDesign before 0.17.0 no longer open; open an IDML export of them instead. Every minute FormDesign keeps a recovery copy of documents with unsaved changes; after a crash, File > Recover Unsaved Documents reopens them.

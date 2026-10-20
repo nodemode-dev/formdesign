@@ -1,9 +1,9 @@
 # Architecture
 
-formdes is three processes with one owner of the truth. The layout core owns every document; the engine wraps it with everything a layout program needs that is not layout; the window and every agent are clients of the engine.
+FormDesign is three processes with one owner of the truth. The layout core owns every document; the engine wraps it with everything a layout program needs that is not layout; the window and every agent are clients of the engine.
 
 ```
- window (frontend/, Vite)        agents (MCP over /mcp or ./formdes mcp)        CLI (./formdes make ...)
+ window (frontend/, Vite)        agents (MCP over /mcp or ./formdesign mcp)     CLI (./formdesign make ...)
         │  WebSocket /api/ws + REST /api           │  JSON over HTTP                     │  in-process
         └────────────────────────────┬─────────────┴──────────────────────────────────────┘
                                      ▼
@@ -11,7 +11,7 @@ formdes is three processes with one owner of the truth. The layout core owns eve
           documents · intake · templates · Make pass · books · MCP
                                      │  JSON lines on standard input and output
                                      ▼
-          layout core (native/formdes-core over formdes-engine, -text, -render, ...)
+          layout core (native/formdesign-core over formdesign-engine, -text, -render, ...)
           388 commands · composer · renderer · tiles · overlays · slots · fonts
 ```
 
@@ -19,7 +19,7 @@ formdes is three processes with one owner of the truth. The layout core owns eve
 
 | Layer | Source | Owns |
 | --- | --- | --- |
-| Layout core | `native/formdes-core/src/` over `native/formdes-*` | Documents, selection, tools, text composition (Knuth-Plass), rendering, PDF, IDML and EPUB export, undo |
+| Layout core | `native/formdesign-core/src/` over `native/formdesign-*` | Documents, selection, tools, text composition (Knuth-Plass), rendering, PDF, IDML and EPUB export, undo |
 | Engine | `backend/app/` | The core process, `.fdes` packages, intake (including layouts made from PDFs), templates and brand kits, the Make pass, books, MCP, the CLI |
 | Window | `frontend/src/` | Drawing tiles and overlays, sending pointer and key events, panels and dialogs; never layout logic |
 
@@ -35,9 +35,9 @@ An agent's `run_commands` call takes the same route from step 2, so its edits ap
 ## Why it is split this way
 
 - **One engine, many clients.** The window, the CLI and MCP act on the same documents, so an agent can lay out while a person watches, and a person can fix what the agent left.
-- **The layout engine is formdes's own.** formdes-core is a thin JSON-lines shell over the crates in `native/`: formdes-model (the document model and the `.fdoc` file), formdes-text (shaping, the Knuth and Plass composer, hyphenation, frames, tables, footnotes), formdes-render (raster and PDF), formdes-interchange (IDML, text import, HTML and EPUB) and formdes-engine (the session, undo, 388 commands, 41 tools, overlays, tiles). Engine changes go into `native/formdes-*` directly; everything that is not layout lives in the Python engine.
+- **The layout engine is FormDesign's own.** formdesign-core is a thin JSON-lines shell over the crates in `native/`: formdesign-model (the document model and the `.fdoc` file), formdesign-text (shaping, the Knuth and Plass composer, hyphenation, frames, tables, footnotes), formdesign-render (raster and PDF), formdesign-interchange (IDML, text import, HTML and EPUB) and formdesign-engine (the session, undo, 388 commands, 41 tools, overlays, tiles). Engine changes go into `native/formdesign-*` directly; everything that is not layout lives in the Python engine.
 - **The window is thin.** It renders pixels the core made, so what you see is what exports.
-- **Templates are data.** JSON specs compiled to core commands can be written by agents (`formdes-template-creator`) and re-skinned by brand kits without code.
+- **Templates are data.** JSON specs compiled to core commands can be written by agents (`formdesign-template-creator`) and re-skinned by brand kits without code.
 
 ## Where to read next
 

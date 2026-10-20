@@ -1,6 +1,6 @@
 ---
 name: layout-finisher
-description: "Takes a formdes Make result from about 80 percent to done: reading the report, replacing sample text and placeholder images through slots, and structural changes through layout commands."
+description: "Takes a FormDesign Make result from about 80 percent to done: reading the report, replacing sample text and placeholder images through slots, and structural changes through layout commands."
 ---
 
 # Layout finisher

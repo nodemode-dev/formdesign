@@ -1,6 +1,6 @@
-# formdes templates
+# FormDesign templates
 
-A formdes template is one JSON file that describes a document: its page setup, which theme and style kit it uses, its parent pages, its pages of frames, the named slots the Make pass pours content into, and the recipe for continuation pages when a story runs long. The engine compiles it into layout-core commands (`backend/app/templates/compile.py`), so a template never contains coordinates in anything but its own page space and never names a command.
+A FormDesign template is one JSON file that describes a document: its page setup, which theme and style kit it uses, its parent pages, its pages of frames, the named slots the Make pass pours content into, and the recipe for continuation pages when a story runs long. The engine compiles it into layout-core commands (`backend/app/templates/compile.py`), so a template never contains coordinates in anything but its own page space and never names a command.
 
 ## Contents
 
@@ -11,7 +11,7 @@ A formdes template is one JSON file that describes a document: its page setup, w
 - Rules for library templates
 - A minimal complete template
 
-Built-in templates live in `backend/app/templates/library/[category]/[id].json`; your own go in `~/Formdes/Templates/` (any subfolder) and appear beside them. Themes are in `library/_themes.json`, style kits in `library/_kits.json`.
+Built-in templates live in `backend/app/templates/library/[category]/[id].json`; your own go in `~/FormDesign/Templates/` (any subfolder) and appear beside them. Themes are in `library/_themes.json`, style kits in `library/_kits.json`.
 
 ## Checking a template
 
@@ -152,7 +152,7 @@ Palette roles: `ink` (text), `paper` (page), `accent`, `accent2`, `muted`, `tint
 
 Themes: editorial, swiss, modern-serif, classic, bold-sans, geometric, tech, warm, luxury, news, poster, playful, corporate, literary, retro, studio-dark, fresh, condensed-news. Kits: longform (base 9.5 pt), web (base 18 px), display (base 12), doc (base 9.5), news (base 9).
 
-Fonts available to templates: the families in `backend/app/fonts/fonts.json` (built by `./formdes install-fonts`) plus Inter, Source Sans 3, Source Serif 4 and JetBrains Mono inside the layout core. An unavailable family falls back by role.
+Fonts available to templates: the families in `backend/app/fonts/fonts.json` (built by `./formdesign install-fonts`) plus Inter, Source Sans 3, Source Serif 4 and JetBrains Mono inside the layout core. An unavailable family falls back by role.
 
 ## Kinds
 

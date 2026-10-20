@@ -9,7 +9,7 @@ What every change is checked against before it lands. CI does the mechanical par
 | Job | Checks |
 | --- | --- |
 | `frontend` | `npm ci`, then `npm run build` (type check and Vite build) |
-| `backend` | install, `compileall`, `formdes_engine.py --selfcheck`, the template linter over the whole library, `agents sync --check`, booting the engine and probing `/api/health`, `/api/capabilities`, `/api/templates` |
+| `backend` | install, `compileall`, `formdesign_engine.py --selfcheck`, the template linter over the whole library, `agents sync --check`, booting the engine and probing `/api/health`, `/api/capabilities`, `/api/templates` |
 | `layout` | builds the core, then lays out a newsletter (PDF and `.fdes`) and a flyer (PNG) from the command line |
 | `scripts` | `bash -n` over every shell script, and a scan of tracked text for em dashes and emoji |
 
@@ -18,9 +18,9 @@ What every change is checked against before it lands. CI does the mechanical par
 Before a release, every template is made twice and every report must come back without an error:
 
 ```bash
-for id in $(./formdes templates --json | python3 -c "import json,sys; print(' '.join(t['id'] for t in json.load(sys.stdin)))"); do
-  ./formdes make --template $id --brief "A feature for Harbour magazine, Spring issue. CTA: Read more" article.md photo1.jpg photo2.jpg --out /tmp/sweep/$id.fdes
-  ./formdes make --template $id --brief "a poster for the Harbour Jazz Festival, Friday 12 June 2026, 7pm to 11pm" --out /tmp/sweep/$id-brief.fdes
+for id in $(./formdesign templates --json | python3 -c "import json,sys; print(' '.join(t['id'] for t in json.load(sys.stdin)))"); do
+  ./formdesign make --template $id --brief "A feature for Harbour magazine, Spring issue. CTA: Read more" article.md photo1.jpg photo2.jpg --out /tmp/sweep/$id.fdes
+  ./formdesign make --template $id --brief "a poster for the Harbour Jazz Festival, Friday 12 June 2026, 7pm to 11pm" --out /tmp/sweep/$id-brief.fdes
 done
 ```
 
@@ -43,8 +43,8 @@ At 0.6.1 the main panels passed steps 2 to 4; the rulers, Glyphs, Tabs, Table, B
 
 ## The desktop smoke test
 
-After `./formdes desktop build`, launch the app with port 8196 already taken: it must still open on another port, show the home screen, and leave no engine or core process behind when it quits.
+After `./formdesign desktop build`, launch the app with port 8196 already taken: it must still open on another port, show the home screen, and leave no engine or core process behind when it quits.
 
 ## Tests
 
-formdes has no self-written test suite by design: tests written in the same session as the code tend to encode the code's own assumptions. The behaviours to test are specified in `TEST_PLAN.md` in the planning sidecar, written for someone who has not seen the implementation.
+FormDesign has no self-written test suite by design: tests written in the same session as the code tend to encode the code's own assumptions. The behaviours to test are specified in `TEST_PLAN.md` in the planning sidecar, written for someone who has not seen the implementation.

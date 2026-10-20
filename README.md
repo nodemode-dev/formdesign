@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/formdes_folder_icon.png" width="112" alt="FormDesign"></p>
+<p align="center"><img src="assets/formdesign_folder_icon.png" width="112" alt="FormDesign"></p>
 <h1 align="center">FormDesign</h1>
 <p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
@@ -12,9 +12,9 @@
 
 ## What it is
 
-FormDesign (formdes in code) is the form family's page-layout application for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. Its layout core is formdes's own engine (388 commands and 41 tools: spreads and parent pages, threaded stories, a Knuth-Plass paragraph composer, styles, tables, footnotes, vector drawing, PDF, IDML and EPUB), wrapped by formdes's own interface in formvis's Studio Dark language and by an engine service built for agents: drop in Markdown, PDFs, Word files, images and a brief, pick a template, and formdes lays it out.
+FormDesign is the form family's page-layout application for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. Its layout core is FormDesign's own engine (388 commands and 41 tools: spreads and parent pages, threaded stories, a Knuth-Plass paragraph composer, styles, tables, footnotes, vector drawing, PDF, IDML and EPUB), wrapped by FormDesign's own interface in formvis's Studio Dark language and by an engine service built for agents: drop in Markdown, PDFs, Word files, images and a brief, pick a template, and FormDesign lays it out.
 
-**Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdes-core, a JSON-lines sidecar over formdes's own layout crates) · Tauri 2.
+**Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdesign-core, a JSON-lines sidecar over FormDesign's own layout crates) · Tauri 2.
 
 ## Status at 0.68.0
 
@@ -24,7 +24,7 @@ Working end to end:
 - **71 templates** across magazine, newsletter, book, report, print, stationery, ad, web and presentation, each slotted for automatic filling and re-skinned by a brand kit. `docs/TEMPLATES.md` is the format; you can add your own.
 - **The Make pass.** Ranks templates for your content, fills them (titles, decks, bylines, stats, features, captions, contact fields), threads the article through continuation pages, matches images to frames, fits copy, and reports what is still sample text.
 - **Websites.** Any layout as a responsive multi-page site in its own type and colours: an article per page with a home page of cards, a web template's rows and columns that stack on a phone, a page-by-page edition, sitemap and feed (File > Export > Website), and File > Publish Online for a link served from this computer.
-- **Agents.** An MCP server with 38 tools (outline, inspect, look and use_tool let an agent read, measure, see and draw cheaply; errors name the fix) and five task prompts; Window > Agent Connect shows each agent that connects, lets you allow, ask or deny per agent, approve risky steps (publishing, overwriting files, deleting pages) and follow what an agent does; a terminal dock under the canvas (Ctrl or Cmd+J) starts Claude Code, Codex or Cursor already connected, with a title-bar Claude Code button (Ctrl or Cmd+Shift+J), a Chat tab with an Ask line (Ctrl or Cmd+Alt+J), the Working with Claude workspace and a calmer Essentials workspace for everyday work (`./formdes mcp`, `./formdes agents install` for Claude Code, Codex and Cursor), a CLI (`./formdes make FILES --brief "..." --out layout.pdf`, `./formdes export FILE --out site.zip`), and three skills in `.claude/skills` (mirrored to `.agents/skills`): `formdes-harness` (nine sub-skills from intake to publishing, path-artist among them for vector art), `formdes-template-creator` and `formdes-skillset`.
+- **Agents.** An MCP server with 38 tools (outline, inspect, look and use_tool let an agent read, measure, see and draw cheaply; errors name the fix) and five task prompts; Window > Agent Connect shows each agent that connects, lets you allow, ask or deny per agent, approve risky steps (publishing, overwriting files, deleting pages) and follow what an agent does; a terminal dock under the canvas (Ctrl or Cmd+J) starts Claude Code, Codex or Cursor already connected, with a title-bar Claude Code button (Ctrl or Cmd+Shift+J), a Chat tab with an Ask line (Ctrl or Cmd+Alt+J), the Working with Claude workspace and a calmer Essentials workspace for everyday work (`./formdesign mcp`, `./formdesign agents install` for Claude Code, Codex and Cursor), a CLI (`./formdesign make FILES --brief "..." --out layout.pdf`, `./formdesign export FILE --out site.zip`), and three skills in `.claude/skills` (mirrored to `.agents/skills`): `formdesign-harness` (nine sub-skills from intake to publishing, path-artist among them for vector art), `formdesign-template-creator` and `formdesign-skillset`.
 - **The editor.** Tiled rendering of the layout core with overlays, 41 tools, menus built from the core's 388 commands with a dialog for every command that takes options (row editors for styles, tabs, rules and gradient stops, never JSON), Edit > Search over every command, panel and tool, a left panel column that folds into the tool rail, autocorrect as you type, Package with fonts, colour themes from images, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
 - **Desktop.** A Tauri 2 app for macOS, Windows and Linux with the engine and the layout core as sidecars; CI builds the bundles on each `v*.*.*` tag.
 
@@ -38,18 +38,18 @@ Working end to end:
 - **26 languages.** Every interface string (1,703) in 26 languages, English by default.
 - **Your workspace.** Seven built-in workspaces and your own (Window > Workspace or the title-bar switcher); panel groups that move between columns, split, size and close; keyboard shortcut sets with every command and tool rebindable (Alt+Shift+Ctrl+K).
 
-Measured against two professional layout applications in 139 traced rows (full 1, partial 0.5, none 0), formdes scores 134 (96.4 percent) at 0.77.0: 97 percent of what the first documents and 96 of the second, up from 78 at 0.19.0. The 0.74.0 re-trace of the second added six rows, which is why the figure is lower than 0.67.0's 97.7 percent over 133; editing a placed image's pixels, inserting pages from another document and live image adjustments have since moved to full. Work on existing PDFs is not scored: it belongs to FormPDF, a separate app. A capability reachable only through a raw parameters box or MCP `run_commands` counts as partial. Open: .indd files (a closed format) and stock photo search (none); CAD drawings (DXF opens as shapes, DWG has no permissively licensed reader), opening .ai and PSD files as artwork, persistent dimension lines, .qxd and .qxp files (format versions 3.1 to 4.1 through LibreOffice's libqxp, unconfirmed on a real file), cloud documents and a plug-in marketplace (partial).
+Measured against two professional layout applications in 139 traced rows (full 1, partial 0.5, none 0), FormDesign scores 134 (96.4 percent) at 0.77.0: 97 percent of what the first documents and 96 of the second, up from 78 at 0.19.0. The 0.74.0 re-trace of the second added six rows, which is why the figure is lower than 0.67.0's 97.7 percent over 133; editing a placed image's pixels, inserting pages from another document and live image adjustments have since moved to full. Work on existing PDFs is not scored: it belongs to FormPDF, a separate app. A capability reachable only through a raw parameters box or MCP `run_commands` counts as partial. Open: .indd files (a closed format) and stock photo search (none); CAD drawings (DXF opens as shapes, DWG has no permissively licensed reader), opening .ai and PSD files as artwork, persistent dimension lines, .qxd and .qxp files (format versions 3.1 to 4.1 through LibreOffice's libqxp, unconfirmed on a real file), cloud documents and a plug-in marketplace (partial).
 
 **Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
 
 ## Try it
 
 ```bash
-./formdes boot                     # then open http://localhost:5196
-./formdes templates                # list the 71 templates
-./formdes cmd layout.pages.insert count=2   # any engine command, on the document the window has open
-./formdes tool preview '{"page": 1}'        # any MCP tool, the same way agents call it
-./formdes make article.md photo.jpg logo.png --brief "Square instagram ad for Northlight. CTA: Read the issue" --out ad.png
+./formdesign boot                  # then open http://localhost:5196
+./formdesign templates             # list the 71 templates
+./formdesign cmd layout.pages.insert count=2   # any engine command, on the document the window has open
+./formdesign tool preview '{"page": 1}'        # any MCP tool, the same way agents call it
+./formdesign make article.md photo.jpg logo.png --brief "Square instagram ad for Northlight. CTA: Read the issue" --out ad.png
 ```
 
 In the app, drop files on the Make panel (right column), write a brief, press Analyse, pick a template and press Make layout.
@@ -63,8 +63,8 @@ Requirements: Node 20.19 or newer (22 recommended), Python 3.12 or newer, Rust s
 ```bash
 git clone https://github.com/nodemode-ai/formdesign.git
 cd formdesign
-./formdes install
-./formdes boot
+./formdesign install
+./formdesign boot
 ```
 
 ### Windows
@@ -72,18 +72,18 @@ cd formdesign
 ```bat
 git clone https://github.com/nodemode-ai/formdesign.git
 cd formdesign
-formdes.bat install
-formdes.bat boot
+formdesign.bat install
+formdesign.bat boot
 ```
 
-The first `install` compiles the layout core (a few minutes on the first build). `./formdes help` lists every command; `./formdes doctor` checks the toolchain, the installs and the ports.
+The first `install` compiles the layout core (a few minutes on the first build). `./formdesign help` lists every command; `./formdesign doctor` checks the toolchain, the installs and the ports.
 
 | Service | URL | Notes |
 | --- | --- | --- |
 | Frontend (dev) | http://localhost:5196 | Vite, bound to localhost only, strict port |
-| Engine | http://127.0.0.1:8196 | FastAPI; API under `/api`, the window socket at `/api/ws`; serves the built app in `./formdes serve` |
+| Engine | http://127.0.0.1:8196 | FastAPI; API under `/api`, the window socket at `/api/ws`; serves the built app in `./formdesign serve` |
 | Preview | http://localhost:5197 | `vite preview` of the production build |
-| Layout core | standard input and output | `formdes-core`, started and supervised by the engine |
+| Layout core | standard input and output | `formdesign-core`, started and supervised by the engine |
 
 ### Desktop app
 
@@ -96,12 +96,12 @@ One step from the repository root (installs, builds the window, freezes the engi
 Or step by step:
 
 ```bash
-./formdes install-desktop          # PyInstaller, and checks Rust and the webview libraries
-./formdes desktop dev              # run the app against the frozen engine
-./formdes desktop build            # bundles in src-tauri/target/release/bundle (.dmg, .msi and .exe, .deb, .rpm, .AppImage)
+./formdesign install-desktop       # PyInstaller, and checks Rust and the webview libraries
+./formdesign desktop dev           # run the app against the frozen engine
+./formdesign desktop build         # bundles in src-tauri/target/release/bundle (.dmg, .msi and .exe, .deb, .rpm, .AppImage)
 ```
 
-On Windows use `formdes.bat install-desktop` and `formdes.bat desktop build`. Linux needs the webview packages first: `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf`. The desktop engine prefers port 8196 and takes a free port when 8196 is busy.
+On Windows use `formdesign.bat install-desktop` and `formdesign.bat desktop build`. Linux needs the webview packages first: `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf`. The desktop engine prefers port 8196 and takes a free port when 8196 is busy.
 
 ## Configuration
 
@@ -109,28 +109,28 @@ The engine reads `backend/.env`, which is never committed; `backend/.env.example
 
 | Variable | Purpose |
 | --- | --- |
-| `FORMDES_HOST` | Engine bind address |
-| `FORMDES_PORT` | Engine port |
-| `FORMDES_DATA_DIR` | Projects, templates, brand kits, intake and exports (default `~/Formdes`) |
-| `FORMDES_CORE` | Path to a formdes-core binary to use instead of the built one |
-| `FORMDES_FONT_DIRS` | Extra font folders for the layout core |
-| `FORMDES_SYSTEM_FONTS` | `0` keeps the core from cataloguing the system's fonts |
-| `FORMDES_CORS_ORIGINS` | Allowed browser origins for the dev frontend |
-| `FORMDES_DIST` | Built frontend folder the engine serves |
+| `FORMDESIGN_HOST` | Engine bind address |
+| `FORMDESIGN_PORT` | Engine port |
+| `FORMDESIGN_DATA_DIR` | Projects, templates, brand kits, intake and exports (default `~/FormDesign`) |
+| `FORMDESIGN_CORE` | Path to a formdesign-core binary to use instead of the built one |
+| `FORMDESIGN_FONT_DIRS` | Extra font folders for the layout core |
+| `FORMDESIGN_SYSTEM_FONTS` | `0` keeps the core from cataloguing the system's fonts |
+| `FORMDESIGN_CORS_ORIGINS` | Allowed browser origins for the dev frontend |
+| `FORMDESIGN_DIST` | Built frontend folder the engine serves |
 
 ## Architecture
 
 ```text
-formdes/
-├── formdes, formdes.bat           root dispatcher: install, boot, build, serve, desktop, make, mcp, agents, doctor
-├── formdes_oc_install(.bat)       one-command install
+formdesign/
+├── formdesign, formdesign.bat     root dispatcher: install, boot, build, serve, desktop, make, mcp, agents, doctor
+├── formdesign_oc_install(.bat)    one-command install
 ├── setup/                         one script per task, each with a .bat twin; lib.sh holds shared helpers
 ├── assets/                        repo art (README logo, desktop icon source)
-├── native/                        Rust workspace: formdes-core over formdes-model, -text, -render, -interchange and -engine
+├── native/                        Rust workspace: formdesign-core over formdesign-model, -text, -render, -interchange and -engine
 ├── backend/                       FastAPI engine: the core process, intake, templates, the Make pass, MCP
 ├── frontend/                      Vite app, vanilla TypeScript: the shell, the canvas, panels and dialogs
 ├── src-tauri/                     Tauri 2 desktop shell; the engine and the core ride along as sidecars
-├── .claude/skills/                formdes-harness, formdes-template-creator, formdes-skillset (mirrored to .agents/skills)
+├── .claude/skills/                formdesign-harness, formdesign-template-creator, formdesign-skillset (mirrored to .agents/skills)
 └── .github/workflows/             ci (checks and a command-line make) and desktop (bundles and the release)
 ```
 
@@ -144,4 +144,4 @@ Branch model: `main` plus short-lived work branches. Contributions follow the de
 
 ## Licensing
 
-Apache License 2.0. Copyright 2026 nodemode-ai. See `LICENSE` and `NOTICE.md` for the fonts, dictionaries and libraries formdes includes.
+Apache License 2.0. Copyright 2026 nodemode-ai. See `LICENSE` and `NOTICE.md` for the fonts, dictionaries and libraries FormDesign includes.

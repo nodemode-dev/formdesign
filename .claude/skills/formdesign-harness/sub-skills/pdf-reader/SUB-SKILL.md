@@ -1,6 +1,6 @@
 ---
 name: pdf-reader
-description: "Reads PDFs through formdes: structure-aware extraction of headings, paragraphs and lists, page text, search, page images, and turning a PDF into material for a new layout."
+description: "Reads PDFs through FormDesign: structure-aware extraction of headings, paragraphs and lists, page text, search, page images, and turning a PDF into material for a new layout."
 ---
 
 # PDF reader
