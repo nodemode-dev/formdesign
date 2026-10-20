@@ -2,6 +2,15 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.80.0 · 2026-10-20
+
+- One name everywhere: the command, scripts, MCP server, skills, crates, sidecars, settings, app identifier, data folder and every message are `formdesign` or FormDesign now. They used the short name `formdes` before. The `.fdes` extension is unchanged.
+- Nothing you made is lost. On first start the `~/Formdes` folder becomes `~/FormDesign`, the desktop app moves its stored settings from `ai.nodemode.formdes` to `ai.nodemode.formdesign`, the window keeps your panels, workspace, units and shortcuts, and `.fdes` files, books and assignment packages saved by earlier versions open as before.
+- Run `./formdesign` instead of `./formdes` (`formdesign.bat` on Windows). Agents: run `claude mcp remove formdes` once, then `./formdesign agents install` to register the `formdesign` server for Claude Code, Codex and Cursor; skills are `formdesign-harness`, `formdesign-skillset` and `formdesign-template-creator`.
+- Settings in your shell or `backend/.env` are read as `FORMDESIGN_*` only (for example `FORMDESIGN_PORT`, `FORMDESIGN_DATA_DIR`); rename any `FORMDES_*` you set.
+- Plug-ins call the `formdesign` object (`formdesign.registerCommand`, `formdesign.query`) and the bundled ones are `com.formdesign.*`; a plug-in written for the short name needs the same change.
+- An EPUB exported again gets a new identifier (`urn:formdesign:...`), so a reader may list it as a new book.
+
 ## 0.79.0 · 2026-10-20
 
 - A new app icon: the open spread redrawn as a tilted magazine with pages curving into the spine, a shadowed gutter and one gradient hero image across both pages, on the dark tile with a soft bloom. The macOS icon sits inside the standard margin with a drop shadow; sizes of 64 px and below use a simpler spread that still reads at 16 px. The window's mark, favicon and splash use the same drawing, and `assets/icon_src/` regenerates every size.
