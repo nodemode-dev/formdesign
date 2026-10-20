@@ -2,6 +2,11 @@
 
 Every release of FormDesign (formdes until 0.19.0), newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.79.0 · 2026-10-20
+
+- A new app icon: the open spread redrawn as a tilted magazine with pages curving into the spine, a shadowed gutter and one gradient hero image across both pages, on the dark tile with a soft bloom. The macOS icon sits inside the standard margin with a drop shadow; sizes of 64 px and below use a simpler spread that still reads at 16 px. The window's mark, favicon and splash use the same drawing, and `assets/icon_src/` regenerates every size.
+- The desktop build on macOS no longer stops at `phf` with "can't find crate for `phf_macros`": the release profile's symbol stripping now applies only to the app, not to the proc macros and build scripts that run while it compiles.
+
 ## 0.78.0 · 2026-10-19
 
 - The Claude dock: Terminal and the Claude chat move into a resizable dock under the canvas, with tabs for shells, Claude Code and Chat, Restart this tab, and an Ask line that talks to Claude Code or the chat with your document and selection attached. Title-bar Claude Code and Terminal buttons; Ctrl or Cmd+J shows the dock, Ctrl or Cmd+Shift+J starts Claude Code, Ctrl or Cmd+Alt+J opens the Chat. The chat's bar reads Stop, From Claude Code..., Open in Claude Code and New Chat. Claude Code reuses its running tab, starts in an agent folder (the engine's data folder's Agent unless Preferences or `FORMDES_AGENT_DIR` say otherwise), and outside agents cannot open, read or type into the dock or the chat. Go to Page keeps its menu item but no longer has Ctrl or Cmd+J.
