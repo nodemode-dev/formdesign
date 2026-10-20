@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-triple="$(fd_target_triple)" || fd_die "rustc not found; run ./formdes install-desktop"
-[ -x "$FORMDES_ROOT/src-tauri/binaries/formdes-engine-${triple}$(fd_exe)" ] || "$FORMDES_ROOT/setup/freeze_backend"
-cd "$FORMDES_ROOT"
+triple="$(fd_target_triple)" || fd_die "rustc not found; run ./formdesign install-desktop"
+[ -x "$FORMDESIGN_ROOT/src-tauri/binaries/formdesign-engine-${triple}$(fd_exe)" ] || "$FORMDESIGN_ROOT/setup/freeze_backend"
+cd "$FORMDESIGN_ROOT"
 exec frontend/node_modules/.bin/tauri dev "$@"

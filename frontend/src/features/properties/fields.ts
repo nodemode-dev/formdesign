@@ -403,7 +403,7 @@ export class Pick {
   setDisabled(off: boolean): void { this.select.disabled = off; }
 }
 
-const SEC_KEY = 'formdes.props.sections';
+const SEC_KEY = 'formdesign.props.sections';
 function secState(): Record<string, boolean> { try { return JSON.parse(localStorage.getItem(SEC_KEY) ?? '{}') as Record<string, boolean>; } catch { return {}; } }
 
 export class Section {

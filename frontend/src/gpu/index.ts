@@ -1,6 +1,6 @@
 // The display paths of the canvas. A Compositor draws one frame (pasteboard, page shadows, paper, tiles) from the tiles
 // it holds; viewport.ts decides which tiles and pages are in the frame and requests the ones that are missing. The
-// frame model mirrors native/formdes-gpu (composite.rs): pasteboard clear, a soft drop shadow under each page, white
+// frame model mirrors native/formdesign-gpu (composite.rs): pasteboard clear, a soft drop shadow under each page, white
 // paper under its tiles (so a tile that has not arrived leaves paper, never a hole), tiles through the view transform,
 // linear filtering when minified and nearest filtering, with edges on whole device pixels, at exactly 1:1.
 

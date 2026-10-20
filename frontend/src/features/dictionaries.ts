@@ -46,7 +46,7 @@ class DictionariesDialog {
   }
 
   private render(): void {
-    setText(q(this.root, '.fdi-note'), `English (USA) is checked with formdes's own word list. Other languages use Hunspell dictionaries kept in ${this.data.folder || 'the Dictionaries folder'}. Get downloads the LibreOffice project's dictionary for a language; each carries its own licence, linked beside it. Text is checked in the language set on it in the Character panel.`);
+    setText(q(this.root, '.fdi-note'), `English (USA) is checked with FormDesign's own word list. Other languages use Hunspell dictionaries kept in ${this.data.folder || 'the Dictionaries folder'}. Get downloads the LibreOffice project's dictionary for a language; each carries its own licence, linked beside it. Text is checked in the language set on it in the Character panel.`);
     patchList<Lang>(q(this.root, '.fdi-list'), this.data.languages, {
       key: (l) => l.code,
       create: (l) => {

@@ -10,7 +10,7 @@ import type { Workspace } from '../ui/workspace';
 interface Setup { target: string; intent: string; simulatePaper: boolean }
 interface Profile { name: string; kind: string; builtin: boolean }
 
-const KEY = 'formdes.proof';
+const KEY = 'formdesign.proof';
 const PRESETS: Array<[string, string, string]> = [
   ['working', 'workingCmyk', 'Working CMYK'], ['srgb', 'srgb', 'Internet Standard RGB (sRGB)'], ['mac', 'legacyMacRgb', 'Legacy Macintosh RGB'],
   ['monitor', 'monitorRgb', 'Monitor RGB'], ['protanopia', 'protanopia', 'Color Blindness, Protanopia'], ['deuteranopia', 'deuteranopia', 'Color Blindness, Deuteranopia'],

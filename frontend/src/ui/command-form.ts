@@ -22,7 +22,7 @@ function download(cmdId: string, b64: string): void {
   const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${(editor.doc?.title ?? 'formdes').replace(/[\\/:*?"<>|]+/g, '-')}${ext}`;
+  a.download = `${(editor.doc?.title ?? 'FormDesign').replace(/[\\/:*?"<>|]+/g, '-')}${ext}`;
   document.body.appendChild(a);
   a.click();
   a.remove();

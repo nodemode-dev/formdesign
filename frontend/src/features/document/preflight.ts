@@ -30,7 +30,7 @@ const KINDS: Record<string, { label: string; icon: string; order: number }> = {
 };
 
 interface Profile { name: string; note?: string; builtin?: boolean; checks: Record<string, boolean | number | null> }
-const PROFILE_KEY = 'formdes.preflight.profile';
+const PROFILE_KEY = 'formdesign.preflight.profile';
 const TOGGLES: Array<[string, string]> = [['overset', 'Overset text'], ['fonts', 'Missing fonts'], ['links', 'Missing links'], ['emptyFrames', 'Empty text frames'], ['rgb', 'RGB colour'], ['transparency', 'Transparency']];
 const LIMITS: Array<[string, string, string]> = [['minPpi', 'Images below', 'ppi'], ['maxPpi', 'Images above', 'ppi'], ['bleed', 'Bleed of at least', 'pt'], ['safety', 'Text kept inside the trim by', 'pt'], ['minType', 'Type smaller than', 'pt'], ['spotMax', 'Spot inks, at most', ''], ['pageMultiple', 'Page count in multiples of', '']];
 

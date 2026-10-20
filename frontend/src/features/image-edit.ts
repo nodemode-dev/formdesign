@@ -12,7 +12,7 @@ interface Item { id: number; asset?: number; children?: Item[] }
 interface Edit { crop: [number, number, number, number]; rotate: number; flipH: boolean; flipV: boolean; exposure: number; contrast: number; saturation: number; temperature: number; levels: [number, number, number] }
 const fresh = (): Edit => ({ crop: [0, 0, 1, 1], rotate: 0, flipH: false, flipV: false, exposure: 0, contrast: 0, saturation: 0, temperature: 0, levels: [0, 255, 1] });
 
-/** The same tone curve as formdes-render's pixedit::tone, so the preview shows what the engine will write. */
+/** The same tone curve as formdesign-render's pixedit::tone, so the preview shows what the engine will write. */
 function tone(v: number, e: Edit): number {
   const [black, white, gamma] = e.levels;
   if (black !== 0 || white !== 255 || gamma !== 1) {

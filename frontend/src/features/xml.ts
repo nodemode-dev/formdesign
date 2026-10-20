@@ -176,7 +176,7 @@ export class StructurePanel extends LivePanel {
       if (!r?.text) return;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([r.text], { type: 'application/xml' }));
-      a.download = `${(editor.doc?.title ?? 'formdes').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'formdes'}.xml`;
+      a.download = `${(editor.doc?.title ?? 'FormDesign').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'FormDesign'}.xml`;
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     });

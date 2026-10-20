@@ -9,7 +9,7 @@ const LEFT_W = 252;
 const GROUP_ICONS: Record<string, string> = { pages: 'layers', make: 'makeLayout', props: 'panelProps', swatches: 'swatchGrid', preflight: 'warning', typeextra: 'charA', review: 'check', interactive: 'play', xml: 'menu', library: 'folder', connect: 'agent' };
 export interface PanelLayout { dock: DockState; groups: Record<string, { tab?: string; min?: boolean }>; homes: Record<string, string> }
 
-const KEY = 'formdes.dock';
+const KEY = 'formdesign.dock';
 const W_MIN = 220, W_MAX = 560;
 const CUSTOM_ID = /^g[0-9a-z]{1,16}$/;
 

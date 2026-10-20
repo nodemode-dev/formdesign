@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 LAYERS = [
-    ("Layout core (Rust)", "native/formdes-core/src", (".rs",)),
+    ("Layout core (Rust)", "native/formdesign-core/src", (".rs",)),
     ("Engine (Python)", "backend/app", (".py",)),
     ("Window (TypeScript)", "frontend/src", (".ts",)),
     ("Window styles (CSS)", "frontend/src/styles", (".css",)),
@@ -31,7 +31,7 @@ def lines(root: Path, sub: str, exts: tuple[str, ...]) -> tuple[int, int]:
 def command_words(root: Path, check: bool) -> int:
     import json
     ids: dict[str, bool] = {}
-    for f in (root / "native/formdes-engine/src").rglob("*.rs"):
+    for f in (root / "native/formdesign-engine/src").rglob("*.rs"):
         text = f.read_text(encoding="utf-8")
         for m in re.finditer(r'cmd\(\s*"([^"]+)"\s*,\s*"[^"]*"\s*\)((?:\s*\.\w+\((?:"(?:[^"\\]|\\.)*"|[^()])*\))*)', text):
             ids[m.group(1)] = ".help(" in m.group(2)

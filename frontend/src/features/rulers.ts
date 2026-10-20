@@ -3,7 +3,7 @@ import { editor } from '../editor/editor';
 import { el } from '../ui/dom';
 import { readUnits, type Unit } from './document/units';
 
-const KEY = 'formdes.rulers';
+const KEY = 'formdesign.rulers';
 const SIZE = 18;
 const PER: Record<Unit, number> = { pt: 1, pc: 12, in: 72, mm: 72 / 25.4, px: 1 };
 const STEPS: Record<Unit, number[]> = {
@@ -55,7 +55,7 @@ class Rulers {
     const prev = vp.onView;
     vp.onView = () => { prev?.(); this.schedule(); };
     editor.on('layout', () => this.schedule());
-    window.addEventListener('formdes:units', () => this.schedule());
+    window.addEventListener('formdesign:units', () => this.schedule());
     new ResizeObserver(() => this.schedule()).observe(stage);
     stage.addEventListener('pointermove', (e) => {
       const r = stage.getBoundingClientRect();

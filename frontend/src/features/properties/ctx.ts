@@ -121,7 +121,7 @@ class Ctx {
     for (const ev of ['selection', 'docs', 'layout', 'ready', 'connection'] as const) editor.on(ev, () => this.schedule());
     editor.on('change', (e: { docChanged?: boolean } | undefined) => { if (e?.docChanged) this.docGen++; this.schedule(); });
     // Cloud Fonts activated or removed: the family list is read again.
-    document.addEventListener('formdes:fonts-changed', () => { this.fontsGen++; this.schedule(); });
+    document.addEventListener('formdesign:fonts-changed', () => { this.fontsGen++; this.schedule(); });
     editor.on('docs', () => {
       const d = editor.doc;
       const redo = d ? `${d.uid}:${d.canRedo}:${d.redoLabel ?? ''}` : '';
@@ -171,7 +171,7 @@ class Ctx {
   private async refresh(): Promise<void> {
     if (this.running) { this.again = true; return; }
     this.running = true;
-    try { await this.build(); } catch (err) { console.error('[formdes] properties', err); }
+    try { await this.build(); } catch (err) { console.error('[formdesign] properties', err); }
     this.running = false;
     if (this.again) { this.again = false; this.schedule(); }
   }
@@ -253,7 +253,7 @@ class Ctx {
 
   private publish(s: Snap): void {
     this.snap = s;
-    for (const fn of this.subs) { try { fn(s); } catch (err) { console.error('[formdes] properties view', err); } }
+    for (const fn of this.subs) { try { fn(s); } catch (err) { console.error('[formdesign] properties view', err); } }
   }
 
   async run(command: string, params: Record<string, unknown> = {}): Promise<boolean> {

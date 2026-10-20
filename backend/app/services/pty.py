@@ -26,7 +26,7 @@ PRESETS = [
 
 def workdir() -> Path:
     root = config.REPO_ROOT
-    if not config.FROZEN and (root / "formdes").exists():
+    if not config.FROZEN and (root / "formdesign").exists():
         return root
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     return config.DATA_DIR
@@ -56,8 +56,8 @@ def environment() -> dict[str, str]:
     root = str(workdir())
     env["TERM"] = "xterm-256color"
     env["COLORTERM"] = "truecolor"
-    env["FORMDES_ENGINE_URL"] = f"http://{config.HOST}:{config.PORT}"
-    env["FORMDES_TERMINAL"] = "1"
+    env["FORMDESIGN_ENGINE_URL"] = f"http://{config.HOST}:{config.PORT}"
+    env["FORMDESIGN_TERMINAL"] = "1"
     if not config.FROZEN:
         env["PATH"] = root + os.pathsep + env.get("PATH", "")
     return env

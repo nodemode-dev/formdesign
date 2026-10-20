@@ -5,7 +5,7 @@ export const UNIT_NAMES: Record<Unit, string> = { pt: 'Points', pc: 'Picas', in:
 export const CORE_UNITS: Record<Unit, string> = { pt: 'points', pc: 'picas', in: 'inches', mm: 'millimeters', px: 'pixels' };
 const PER: Record<Unit, number> = { pt: 1, pc: 12, in: 72, mm: 72 / 25.4, px: 1 };
 const DECIMALS: Record<Unit, number> = { pt: 2, pc: 3, in: 3, mm: 2, px: 1 };
-const KEY = 'formdes.units';
+const KEY = 'formdesign.units';
 
 export const toPt = (v: number, u: Unit): number => v * PER[u];
 export const fromPt = (pt: number, u: Unit): number => pt / PER[u];
@@ -28,7 +28,7 @@ export function readUnits(): Unit { return savedUnits() ?? 'pt'; }
 
 export function saveUnits(u: Unit): void {
   try { localStorage.setItem(KEY, u); } catch { }
-  window.dispatchEvent(new CustomEvent('formdes:units', { detail: { units: u } }));
+  window.dispatchEvent(new CustomEvent('formdesign:units', { detail: { units: u } }));
 }
 
 /** Reads a length typed in a field: a plain number is in `u`; a number with its own unit (12mm, 1.5in, 3p6) is converted. */

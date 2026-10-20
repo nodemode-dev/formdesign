@@ -42,7 +42,7 @@ def convert(src: Path, dest_dir: Path, base: str | None = None, weight: int = 40
 
 def main(fontsource: Path, dest: Path) -> int:
     if not fontsource.is_dir():
-        print(f"[formdes] no @fontsource packages at {fontsource}: run npm install in frontend/", file=sys.stderr)
+        print(f"[formdesign] no @fontsource packages at {fontsource}: run npm install in frontend/", file=sys.stderr)
         return 1
     dest.mkdir(parents=True, exist_ok=True)
     (dest / "licenses").mkdir(exist_ok=True)
@@ -72,7 +72,7 @@ def main(fontsource: Path, dest: Path) -> int:
             shutil.copyfile(lic, dest / "licenses" / f"OFL-{pkg.name}.txt")
     (dest / "fonts.json").write_text(json.dumps(manifest, indent=2, sort_keys=True))
     faces = sum(len(v) for v in manifest.values())
-    print(f"[formdes] font library: {len(manifest)} families, {faces} faces in {dest}")
+    print(f"[formdesign] font library: {len(manifest)} families, {faces} faces in {dest}")
     return 0
 
 

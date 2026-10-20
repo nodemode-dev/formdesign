@@ -40,7 +40,7 @@ def slug_of(name: str) -> str:
 
 
 def _get(url: str, timeout: int = 60) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "formdes"})
+    req = urllib.request.Request(url, headers={"User-Agent": "FormDesign"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.read()

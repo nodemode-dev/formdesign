@@ -89,7 +89,7 @@ export class TablePanel {
     q(this.root, '.ftb-newc').addEventListener('click', () => void this.newStyle('cell'));
     editor.on('selection', () => this.schedule(60));
     editor.on('change', (e: ChangeEvent) => this.schedule(e?.docChanged ? 120 : 400));
-    window.addEventListener('formdes:units', () => this.render());
+    window.addEventListener('formdesign:units', () => this.render());
   }
 
   onShow(): void { this.visible = true; this.schedule(0); }

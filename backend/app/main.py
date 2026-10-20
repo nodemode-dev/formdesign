@@ -25,8 +25,8 @@ from app.routers import actionsets as actionsets_api
 from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, versions as versions_api, website
 from app.services.pty import terminals
 
-logging.basicConfig(level=logging.INFO, format="[formdes] %(levelname)s %(name)s: %(message)s")
-log = logging.getLogger("formdes")
+logging.basicConfig(level=logging.INFO, format="[formdesign] %(levelname)s %(name)s: %(message)s")
+log = logging.getLogger("formdesign")
 
 
 @asynccontextmanager
@@ -45,7 +45,7 @@ async def lifespan(_: FastAPI):
     await core.stop()
 
 
-app = FastAPI(title="formdes engine", version=__version__, lifespan=lifespan)
+app = FastAPI(title="FormDesign engine", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 app.include_router(system.router, prefix="/api")
 app.include_router(core_api.router, prefix="/api")

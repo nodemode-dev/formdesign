@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-cd "$FORMDES_ROOT/native"
+cd "$FORMDESIGN_ROOT/native"
 exe="$(fd_exe)"
 if command -v cargo >/dev/null 2>&1; then
-  fd_say "building formdes-core (the first build compiles the layout engine: a few minutes)"
-  cargo build --release -p formdes-core
-  fd_say "layout core ready: native/target/release/formdes-core$exe"
+  fd_say "building formdesign-core (the first build compiles the layout engine: a few minutes)"
+  cargo build --release -p formdesign-core
+  fd_say "layout core ready: native/target/release/formdesign-core$exe"
   exit 0
 fi
-triple="${FORMDES_TARGET:-}"
+triple="${FORMDESIGN_TARGET:-}"
 if [ -z "$triple" ]; then
   case "$(fd_os)-$(uname -m)" in
     macos-arm64) triple=aarch64-apple-darwin ;;
@@ -19,10 +19,10 @@ if [ -z "$triple" ]; then
     *) fd_die "no Rust toolchain and no prebuilt core for this machine: install Rust from https://rustup.rs and rerun" ;;
   esac
 fi
-version="$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" "$FORMDES_ROOT/frontend/src/version.ts")"
-url="https://github.com/nodemode-ai/formdesign/releases/download/v${version}/formdes-core-${triple}${exe}"
+version="$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" "$FORMDESIGN_ROOT/frontend/src/version.ts")"
+url="https://github.com/nodemode-ai/formdesign/releases/download/v${version}/formdesign-core-${triple}${exe}"
 mkdir -p bin
 fd_say "no Rust toolchain: fetching the prebuilt core $url"
-curl -fL "$url" -o "bin/formdes-core$exe" || fd_die "download failed: install Rust from https://rustup.rs and rerun ./formdes install-core"
-chmod +x "bin/formdes-core$exe"
-fd_say "layout core ready: native/bin/formdes-core$exe"
+curl -fL "$url" -o "bin/formdesign-core$exe" || fd_die "download failed: install Rust from https://rustup.rs and rerun ./formdesign install-core"
+chmod +x "bin/formdesign-core$exe"
+fd_say "layout core ready: native/bin/formdesign-core$exe"

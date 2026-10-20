@@ -37,8 +37,8 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - run: python -m compileall -q app formdes_engine.py
-      - run: python formdes_engine.py --selfcheck
+      - run: python -m compileall -q app formdesign_engine.py
+      - run: python formdesign_engine.py --selfcheck
       - name: Template library lints clean
         run: |
           python - <<'PY'
@@ -74,14 +74,14 @@ jobs:
       - name: Install the engine, the font library and the layout core
         run: |
           ( cd backend && ./oc_install )
-          ./formdes install-fonts
-          ./formdes install-core
+          ./formdesign install-fonts
+          ./formdesign install-core
       - name: Lay out a newsletter and a flyer from the command line
         run: |
           mkdir -p "$RUNNER_TEMP/make"
           printf '# Spring in the beds\n\nThe club met on Saturday to plant the new herb garden.\n\nVolunteers brought cuttings, compost and coffee.\n' > "$RUNNER_TEMP/make/story.md"
-          ./formdes make --brief "a two page newsletter for the Elm Street garden club" "$RUNNER_TEMP/make/story.md" --out "$RUNNER_TEMP/make/newsletter.pdf" --out "$RUNNER_TEMP/make/newsletter.fdes"
-          ./formdes make --brief "a flyer for a bake sale on Saturday at 10am. CTA: Bring a friend" --out "$RUNNER_TEMP/make/flyer.png"
+          ./formdesign make --brief "a two page newsletter for the Elm Street garden club" "$RUNNER_TEMP/make/story.md" --out "$RUNNER_TEMP/make/newsletter.pdf" --out "$RUNNER_TEMP/make/newsletter.fdes"
+          ./formdesign make --brief "a flyer for a bake sale on Saturday at 10am. CTA: Bring a friend" --out "$RUNNER_TEMP/make/flyer.png"
           for f in newsletter.pdf newsletter.fdes flyer.png; do test -s "$RUNNER_TEMP/make/$f"; done
 
   scripts:
@@ -90,7 +90,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Shell syntax
         run: |
-          for f in formdes backend/oc_install frontend/oc_install setup/*; do
+          for f in formdesign backend/oc_install frontend/oc_install setup/*; do
             case "$f" in *.bat|*.py) continue ;; esac
             bash -n "$f"
           done

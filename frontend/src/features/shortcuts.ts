@@ -13,8 +13,8 @@ import type { Workspace } from '../ui/workspace';
 interface KeySet { name: string; keys: Record<string, string[]> }
 interface Row { id: string; label: string; area: string; keys: string }
 
-const SET_KEY = 'formdes.shortcuts.set';
-const CACHE_KEY = 'formdes.shortcuts.keys';
+const SET_KEY = 'formdesign.shortcuts.set';
+const CACHE_KEY = 'formdesign.shortcuts.keys';
 const AREAS = ['File', 'Edit', 'Layout', 'Type', 'Object', 'Table', 'Effect', 'View', 'Window', 'Help', 'Tools', 'Other'];
 
 const stored = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -171,7 +171,7 @@ class ShortcutsDialog {
       const a = this.areaOf(c);
       by.set(a, [...(by.get(a) ?? []), `${this.ws.commands.label(c).replace(/…$/, '')}\t${c.keys.map(formatKeys).join(', ')}`]);
     }
-    const text = [`formdes keyboard shortcuts: ${this.active()}`, '', ...AREAS.filter((a) => by.has(a)).flatMap((a) => [a, ...(by.get(a) ?? []).sort(), ''])].join('\n');
+    const text = [`FormDesign keyboard shortcuts: ${this.active()}`, '', ...AREAS.filter((a) => by.has(a)).flatMap((a) => [a, ...(by.get(a) ?? []).sort(), ''])].join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     a.download = `${this.active().replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'shortcuts'}.txt`;

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-exec python3 "$FORMDES_ROOT/setup/line_counts.py" "$FORMDES_ROOT" "$@"
+exec python3 "$FORMDESIGN_ROOT/setup/line_counts.py" "$FORMDESIGN_ROOT" "$@"

@@ -1,4 +1,4 @@
-//! The opt-in native canvas of the desktop app: the shell hosts formdes-gpu (wgpu: Metal, Vulkan, Direct3D 12) beside the
+//! The opt-in native canvas of the desktop app: the shell hosts formdesign-gpu (wgpu: Metal, Vulkan, Direct3D 12) beside the
 //! web view, the way formvis hosts formvis-render. Nothing is created until the page calls native_canvas_start (View >
 //! Renderer > Native), so the app is unchanged otherwise.
 //!
@@ -10,9 +10,9 @@
 //! the transparent window needs the private API (tauri.macos.conf.json); on Windows the swap chain of a window that also
 //! hosts WebView2 may need a composition visual. Only the owner's machines can confirm them.
 
-use formdes_gpu::composite::{Frame, PageRect};
-use formdes_gpu::display::{Display, Presented};
-use formdes_gpu::{Gpu, TileAtlas, TileKey, TILE};
+use formdesign_gpu::composite::{Frame, PageRect};
+use formdesign_gpu::display::{Display, Presented};
+use formdesign_gpu::{Gpu, TileAtlas, TileKey, TILE};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -91,18 +91,18 @@ fn rect_of(rect: Vec<f64>) -> Result<[f64; 4], String> {
 #[tauri::command]
 pub fn native_canvas_start(rect: Vec<f64>, dpr: f64, window: tauri::WebviewWindow, state: tauri::State<NativeState>) -> Result<bool, String> {
     let rect = rect_of(rect)?;
-    eprintln!("formdes: native canvas start requested at {rect:?}, dpr {dpr}");
+    eprintln!("formdesign: native canvas start requested at {rect:?}, dpr {dpr}");
     let mut guard = state.0.lock().map_err(|e| e.to_string())?;
     if guard.is_some() {
         return Ok(true);
     }
     let size = size_of(&window)?;
     let Some((gpu, surface)) = Gpu::for_window(window.clone()) else {
-        eprintln!("formdes: native canvas: no graphics adapter can draw into this window");
+        eprintln!("formdesign: native canvas: no graphics adapter can draw into this window");
         return Ok(false);
     };
     let display = Display::new(&gpu, surface, size.0, size.1);
-    eprintln!("formdes: native canvas on {} ({:?})", gpu.info.name, gpu.info.backend);
+    eprintln!("formdesign: native canvas on {} ({:?})", gpu.info.name, gpu.info.backend);
     *guard = Some(Native { gpu, display, atlas: TileAtlas::with_system_budget(), rect, dpr: dpr.max(1.0) as f32, size, evicted: Vec::new() });
     Ok(true)
 }

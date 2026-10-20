@@ -1,7 +1,7 @@
 @echo off
 setlocal
-if not defined FORMDES_CWD set "FORMDES_CWD=%CD%"
+if not defined FORMDESIGN_CWD set "FORMDESIGN_CWD=%CD%"
 cd /d "%~dp0..\backend"
-if not exist venv\Scripts\activate.bat ( echo [formdes] engine venv missing, run formdes.bat install & exit /b 1 )
+if not exist venv\Scripts\activate.bat ( echo [formdesign] engine venv missing, run formdesign.bat install & exit /b 1 )
 call venv\Scripts\activate.bat
 python -m app.cli %*

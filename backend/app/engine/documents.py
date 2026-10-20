@@ -12,10 +12,12 @@ from app import __version__
 from app.core import config
 from app.engine.core import CoreError, core
 
-log = logging.getLogger("formdes.documents")
+log = logging.getLogger("formdesign.documents")
 
 LAYOUT_EXTS = {".fdes", ".fdoc", ".idml"}
 INNER = "document.fdoc"
+META = "formdesign.json"
+META_MEMBERS = (META, "formdes.json")
 EXPORTS = {
     "pdf": ("file.exportPdf", ".pdf", "application/pdf"),
     "idml": ("file.exportIdml", ".idml", "application/vnd.adobe.indesign-idml-package"),
@@ -108,10 +110,11 @@ class Documents:
         if ext == ".fdes" or (data[:2] == b"PK" and _is_fdes(data)):
             with zipfile.ZipFile(io.BytesIO(data)) as z:
                 if INNER not in z.namelist():
-                    raise CoreError(f"{name} was saved by a formdes older than 0.17.0, whose layout engine is gone; open its IDML export instead")
+                    raise CoreError(f"{name} was saved by a FormDesign older than 0.17.0, whose layout engine is gone; open its IDML export instead")
                 inner = z.read(INNER)
-                if "formdes.json" in z.namelist():
-                    meta_json = json.loads(z.read("formdes.json"))
+                member = _meta_member(z.namelist())
+                if member:
+                    meta_json = json.loads(z.read(member))
             await core.call("exec", {"command": "file.openBytes", "params": {"name": Path(name).stem + ".fdoc", "base64": base64.b64encode(inner).decode()}}, source=source)
         elif ext == ".idml":
             await core.call("exec", {"command": "file.openIdml", "params": {"base64": base64.b64encode(data).decode(), "name": name}}, source=source)
@@ -145,7 +148,7 @@ class Documents:
         if m is None:
             raise CoreError("no document open")
         m.modified = time.time()
-        meta = {"format": "formdes", "version": 1, "app": __version__, "title": r.result.get("title"),
+        meta = {"format": "formdesign", "version": 1, "app": __version__, "title": r.result.get("title"),
                 "template": m.template, "brand": m.brand, "brief": m.brief, "pack": m.pack_id, "slots": m.slots,
                 "created": m.created, "modified": m.modified, "motion": m.motion, "workflow": m.workflow}
         thumb = None
@@ -156,7 +159,7 @@ class Documents:
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as z:
             z.writestr(zipfile.ZipInfo("mimetype"), config.FDES_MIME, compress_type=zipfile.ZIP_STORED)
-            z.writestr("formdes.json", json.dumps(meta, indent=2), compress_type=zipfile.ZIP_DEFLATED)
+            z.writestr(META, json.dumps(meta, indent=2), compress_type=zipfile.ZIP_DEFLATED)
             z.writestr(INNER, r.bin or b"", compress_type=zipfile.ZIP_STORED)
             if pack is not None:
                 z.writestr("content/pack.json", json.dumps(pack), compress_type=zipfile.ZIP_DEFLATED)
@@ -277,10 +280,14 @@ class Documents:
                 log.warning("recovery save failed: %s", exc)
 
 
+def _meta_member(names: list[str]) -> str | None:
+    return next((n for n in META_MEMBERS if n in names), None)
+
+
 def _is_fdes(data: bytes) -> bool:
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as z:
-            return "formdes.json" in z.namelist()
+            return _meta_member(z.namelist()) is not None
     except zipfile.BadZipFile:
         return False
 

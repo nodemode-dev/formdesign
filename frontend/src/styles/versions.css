@@ -1,4 +1,4 @@
-/* formdes · File > Version History and Save a Version */
+/* FormDesign · File > Version History and Save a Version */
 
 .fd-versions .cv-dialog-body { gap: 14px; padding: 18px 20px; }
 .fd-vh-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }

@@ -10,7 +10,7 @@ interface Chapter { path: string; name: string; pages: number | null; firstPage:
 interface BookInfo { path: string; name: string; styleSource: number; chapters: Chapter[]; changed?: string[]; reopen?: string[] }
 interface Listing { books: Array<{ path: string; name: string; documents: number }>; documents: Array<{ path: string; name: string }> }
 
-const KEY = 'formdes.book.last';
+const KEY = 'formdesign.book.last';
 
 class BookDialog {
   private readonly d = new Dialog('Book', 620);

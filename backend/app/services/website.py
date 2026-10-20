@@ -998,7 +998,7 @@ class Builder:
                 f"<title>{escape(full_title)}</title>\n" + (f'<meta name="description" content="{escape(desc[:300])}">\n' if desc else "")
                 + f'<meta property="og:title" content="{escape(title)}">\n' + (f'<meta property="og:description" content="{escape(desc[:300])}">\n' if desc else "")
                 + f'<meta property="og:type" content="{"article" if extra else "website"}">\n{img}\n{canon}\n{feed}\n'
-                f'<meta name="generator" content="formdes {__version__}">\n<link rel="stylesheet" href="assets/site.css">\n{extra}</head>\n')
+                f'<meta name="generator" content="FormDesign {__version__}">\n<link rel="stylesheet" href="assets/site.css">\n{extra}</head>\n')
 
     def chrome(self, page: WebPage | None, title: str, desc: str, path: str, main: str, image: str | None = None, extra: str = "", body_cls: str = "") -> str:
         cls = f"layout-{self.layout} kind-{page.kind if page else 'edition'} {body_cls}".strip()

@@ -70,7 +70,7 @@ export class TabsPanel {
     new ResizeObserver(() => this.render()).observe(this.ruler);
     editor.on('selection', () => this.schedule(60));
     editor.on('change', (e: ChangeEvent) => this.schedule(e?.docChanged ? 120 : 400));
-    window.addEventListener('formdes:units', () => { this.scaleKey = ''; this.render(); });
+    window.addEventListener('formdesign:units', () => { this.scaleKey = ''; this.render(); });
     this.render();
   }
 

@@ -61,7 +61,7 @@ async def open_target(body: dict = Body(...)):
     target = Path(str(body.get("path") or "")).expanduser().resolve()
     root = config.DATA_DIR.resolve()
     if not target.is_dir() or (target != root and root not in target.parents):
-        raise HTTPException(400, "only folders inside the formdes data folder can be opened")
+        raise HTTPException(400, "only folders inside the FormDesign data folder can be opened")
     if sys.platform == "darwin":
         subprocess.Popen(["open", str(target)])
     elif os.name == "nt":

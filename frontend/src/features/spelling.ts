@@ -12,7 +12,7 @@ interface Miss { story: number; start: number; end: number; word: string; lang?:
 interface Lang { language: string; code: string; installed: boolean; builtin: boolean; file?: string | null; downloadable?: boolean; removable?: boolean; source?: string | null }
 type Rect4 = [number, number, number, number];
 
-const DYNAMIC_KEY = 'formdes.dynamicSpelling';
+const DYNAMIC_KEY = 'formdesign.dynamicSpelling';
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 
 export class SpellWindow {
@@ -28,7 +28,7 @@ export class SpellWindow {
         <button class="cv-btn cv-btn-primary fsc-start" type="button">Start</button>
         <button class="cv-btn fsc-skip" type="button">Skip</button>
         <button class="cv-btn fsc-change" type="button">Change</button>
-        <button class="cv-btn fsc-ignore" type="button" title="Skip this word everywhere until formdes restarts">Ignore All</button>
+        <button class="cv-btn fsc-ignore" type="button" title="Skip this word everywhere until FormDesign restarts">Ignore All</button>
         <button class="cv-btn fsc-changeall" type="button">Change All</button>
         <button class="cv-btn fsc-add" type="button" title="Add the word to this document's dictionary">Add</button>
       </div>
@@ -45,7 +45,7 @@ export class SpellWindow {
     </div></section>`);
   private readonly to = q<HTMLInputElement>(this.root, '.fsc-to');
   private readonly scope = q<HTMLSelectElement>(this.root, '.fsc-scope');
-  private readonly place = floating(this.root, q(this.root, '.ff-head'), 'formdes.spell.pos', () => ({ x: Math.max(16, window.innerWidth - 400 - 660), y: 120 }));
+  private readonly place = floating(this.root, q(this.root, '.ff-head'), 'formdesign.spell.pos', () => ({ x: Math.max(16, window.innerWidth - 400 - 660), y: 120 }));
   private cur: Miss | null = null;
   private suggestions: string[] = [];
   private cursor: { story: number; pos: number } | null = null;

@@ -31,7 +31,7 @@ export function stem(title: string | null | undefined): string {
   return safeName((title || 'Untitled').replace(/\.(fdes|fdoc|idml|pdf)$/i, ''));
 }
 
-/** The folder holding the formdes launcher: the core binary sits in <repo>/native/target/... */
+/** The folder holding the formdesign launcher: the core binary sits in <repo>/native/target/... */
 export function repoDir(c: Capabilities): string {
   const bin = c.core?.binary ?? '';
   const m = bin.match(/^(.*?)[\\/]native[\\/]/);

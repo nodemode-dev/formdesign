@@ -77,7 +77,7 @@ export function startApp(): void {
   const root = q(host, '.fd-app');
   const shell = new Shell(root);
   for (const f of FEATURES) {
-    try { f.install(shell); } catch (err) { console.error('[formdes] a feature failed to install', err); }
+    try { f.install(shell); } catch (err) { console.error('[formdesign] a feature failed to install', err); }
   }
   shell.mountPanels();
   shell.viewport.readBackground();

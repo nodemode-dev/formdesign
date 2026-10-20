@@ -23,14 +23,14 @@ from app.templates import brands, registry, spec
 
 router = APIRouter()
 VERSIONS = ["2026-07-28", "2025-11-25"]
-INSTRUCTIONS = ("FormDesign (the formdes server) is a professional page-layout application, running on this computer; these tools lay out and edit the "
+INSTRUCTIONS = ("FormDesign (the formdesign server) is a professional page-layout application, running on this computer; these tools lay out and edit the "
                 "documents open in its engine, and the FormDesign window shows every change live. The fast path: intake (files and a brief become a content pack), "
                 "make_layout (a template filled with that content, about 80 percent of the way there), preview to look, set_slots to fix what the report "
                 "lists, export_document. run_commands reaches every layout command for anything else; find_commands looks them up by word or domain and its "
                 "errors name the fix. show moves the person's view so they can follow. Every change is undoable (undo). The person may have to approve risky "
                 "steps (publishing, overwriting files, deleting pages) in Agent Connect; if a call says it was not approved, ask them. Paths are absolute. "
                 "For the decision tree, get the layout_strategy prompt.")
-STRATEGY = """How to make a layout in formdes with these tools.
+STRATEGY = """How to make a layout in FormDesign with these tools.
 
 1. Gather. intake with the absolute paths of everything the person gave you (markdown, docx, pdf, txt, html, csv, images, gifs) and their brief in their words. It returns a compact content pack summary and the best templates for it. Do not read the files yourself first: intake is cheaper.
 2. Choose. Take the top ranked template unless the brief says otherwise; list_templates with a category or kind narrows the 71 built-ins and the person's own. get_template shows a template's slots.
@@ -98,7 +98,7 @@ TOOLS = [
           "or web: a responsive multi-page website (path is a folder, or a .zip). web options: split auto|articles|pages|single, layout article|landing|card|email|docs, "
           "edition (true adds the page-by-page edition), baseUrl (adds sitemap, feed and share links), title, description, language. Returns the pages made and warnings to fix.",
           {"format": {"type": "string", "enum": ["pdf", "idml", "html", "web", "epub", "epub-fixed", "txt", "rtf", "xml", "png", "jpg", "booklet"]}, "path": _PATH, "options": {"type": "object", "description": "Passed to the exporter (pdf: pages, bleed, marks...; web: split, layout, edition, baseUrl, title, description, language)."}}, ["format", "path"], destructive=True),
-    _tool("publish_website", "Publish Online: the active document as a website that formdes serves on this computer at a link (127.0.0.1), kept up to date by publishing again. "
+    _tool("publish_website", "Publish Online: the active document as a website that FormDesign serves on this computer at a link (127.0.0.1), kept up to date by publishing again. "
           "publish (options as export_document's web options; publishing the same document again updates its site). list: the published sites with their links. "
           "unpublish (slug). To put a site on the public web, export_document web to a folder or .zip and upload that to a static host.",
           {"action": {"type": "string", "enum": ["publish", "list", "unpublish"]}, "slug": {"type": "string"}, "options": _OBJ}, ["action"], destructive=True),
@@ -808,7 +808,7 @@ async def mcp(request: Request) -> Response:
     client, new_sid = A.identify(request.headers, params, method or "")
     version = meta.get("io.modelcontextprotocol/protocolVersion") or request.headers.get("mcp-protocol-version") or "2025-11-25"
     modern = version == "2026-07-28"
-    server = {"name": "formdes", "version": __version__}
+    server = {"name": "formdesign", "version": __version__}
     if version not in VERSIONS and method != "initialize":
         out = _err(req_id, -32602, f"Unsupported protocol version {version}; supported: {', '.join(VERSIONS)}")
     elif method == "server/discover":

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "formdes": {
-      "command": "${workspaceFolder}/formdes",
+    "formdesign": {
+      "command": "${workspaceFolder}/formdesign",
       "args": ["mcp"]
     }
   }

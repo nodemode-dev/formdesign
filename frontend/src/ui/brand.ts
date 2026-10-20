@@ -2,7 +2,7 @@ const MARK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><d
 
 let copies = 0;
 
-export function brandMark(size: number, label = 'formdes'): string {
+export function brandMark(size: number, label = 'FormDesign'): string {
   const p = `fd-mark${++copies}-`;
   return MARK.replace(/\{p\}/g, p).replace('<svg ', `<svg class="cv-mark" width="${size}" height="${size}" role="img" aria-label="${label}" `);
 }

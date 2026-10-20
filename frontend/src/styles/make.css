@@ -1,4 +1,4 @@
-/* formdes · Make, Slots, Template Gallery and Brand Kits (Studio Dark). */
+/* FormDesign · Make, Slots, Template Gallery and Brand Kits (Studio Dark). */
 
 .mk-page { --mk-bg: var(--bg-secondary); }
 .mk-page[hidden] { display: none; }

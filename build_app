@@ -26,13 +26,13 @@ for arg in "$@"; do
   esac
 done
 
-log="$FORMDES_ROOT/build_app.log"
+log="$FORMDESIGN_ROOT/build_app.log"
 : > "$log"
 exec > >(tee -a "$log") 2>&1
-trap 'status=$?; [ $status -eq 0 ] || printf "\n[formdes] the build stopped (exit %s). The full log is %s\n" "$status" "$log"' EXIT
+trap 'status=$?; [ $status -eq 0 ] || printf "\n[formdesign] the build stopped (exit %s). The full log is %s\n" "$status" "$log"' EXIT
 
 os="$(fd_os)"
-step() { printf '\n[formdes] == %s\n' "$*"; }
+step() { printf '\n[formdesign] == %s\n' "$*"; }
 
 rust_env() {
   [ -d "$HOME/.cargo/bin" ] && PATH="$HOME/.cargo/bin:$PATH"
@@ -40,7 +40,7 @@ rust_env() {
   unset RUSTC RUSTC_WORKSPACE_WRAPPER RUSTFLAGS CARGO_ENCODED_RUSTFLAGS CARGO_BUILD_RUSTFLAGS CARGO_BUILD_TARGET CARGO_TARGET_DIR CARGO_BUILD_TARGET_DIR CARGO_BUILD_RUSTC
   export RUSTC_WRAPPER="" CARGO_BUILD_RUSTC_WRAPPER=""
   if command -v rustup >/dev/null 2>&1 && rustup toolchain list 2>/dev/null | grep -q '^stable'; then
-    export RUSTUP_TOOLCHAIN="${FORMDES_RUST_TOOLCHAIN:-stable}"
+    export RUSTUP_TOOLCHAIN="${FORMDESIGN_RUST_TOOLCHAIN:-stable}"
   fi
 }
 
@@ -48,12 +48,12 @@ rust_fresh() {
   local now dir
   now="$(rustc -vV 2>/dev/null | tr '\n' ' ')"
   for dir in src-tauri native; do
-    if [ -d "$FORMDES_ROOT/$dir/target/release" ] && [ "$(cat "$FORMDES_ROOT/$dir/target/.formdes-rustc" 2>/dev/null)" != "$now" ]; then
+    if [ -d "$FORMDESIGN_ROOT/$dir/target/release" ] && [ "$(cat "$FORMDESIGN_ROOT/$dir/target/.formdesign-rustc" 2>/dev/null)" != "$now" ]; then
       fd_say "the Rust compiler differs from the one that built $dir/target; cleaning it"
-      ( cd "$FORMDES_ROOT/$dir" && cargo clean )
+      ( cd "$FORMDESIGN_ROOT/$dir" && cargo clean )
     fi
-    mkdir -p "$FORMDES_ROOT/$dir/target"
-    printf '%s' "$now" > "$FORMDES_ROOT/$dir/target/.formdes-rustc"
+    mkdir -p "$FORMDESIGN_ROOT/$dir/target"
+    printf '%s' "$now" > "$FORMDESIGN_ROOT/$dir/target/.formdesign-rustc"
   done
 }
 
@@ -89,7 +89,7 @@ if [ "$clean" = 1 ]; then
   step "cleaning earlier builds"
   ( cd src-tauri && cargo clean )
   ( cd native && cargo clean )
-  rm -rf backend/build/pyinstaller backend/dist-engine src-tauri/binaries/formdes-engine-* src-tauri/binaries/formdes-core-*
+  rm -rf backend/build/pyinstaller backend/dist-engine src-tauri/binaries/formdesign-engine-* src-tauri/binaries/formdesign-core-*
 fi
 rust_fresh
 
@@ -102,7 +102,7 @@ step "building the window"
 setup/build_frontend
 step "freezing the engine and copying the layout core into the app's sidecars"
 setup/freeze_backend
-[ -f src-tauri/icons/icon.icns ] || frontend/node_modules/.bin/tauri icon assets/formdes_icon.png -o src-tauri/icons
+[ -f src-tauri/icons/icon.icns ] || frontend/node_modules/.bin/tauri icon assets/formdesign_icon.png -o src-tauri/icons
 
 tauri_args=(build)
 case "$os" in
@@ -110,7 +110,7 @@ case "$os" in
     tauri_args+=(--bundles app)
     [ -n "${APPLE_SIGNING_IDENTITY:-}" ] || tauri_args+=(--config '{"bundle":{"macOS":{"signingIdentity":"-"}}}')
     ;;
-  linux) tauri_args+=(--bundles "${FORMDES_BUNDLES:-deb}") ;;
+  linux) tauri_args+=(--bundles "${FORMDESIGN_BUNDLES:-deb}") ;;
 esac
 
 step "building the desktop app (the first build compiles several hundred Rust crates)"
@@ -124,7 +124,7 @@ if ! frontend/node_modules/.bin/tauri "${tauri_args[@]}" 2>&1 | tee "$tlog"; the
 fi
 rm -f "$tlog"
 
-bundle="$FORMDES_ROOT/src-tauri/target/release/bundle"
+bundle="$FORMDESIGN_ROOT/src-tauri/target/release/bundle"
 version="$("$py" -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' src-tauri/tauri.conf.json)"
 
 if [ "$os" = macos ]; then
@@ -146,7 +146,7 @@ if [ "$os" = macos ]; then
   if [ "$install_app" != no ]; then
     dest=/Applications
     [ -w "$dest" ] || { dest="$HOME/Applications"; mkdir -p "$dest"; }
-    if pgrep -x formdes >/dev/null 2>&1; then
+    if pgrep -x formdesign >/dev/null 2>&1; then
       osascript -e 'tell application "FormDesign" to quit' >/dev/null 2>&1 || true
       sleep 2
     fi
@@ -167,7 +167,7 @@ else
     fd_say "install it with: sudo apt install $deb   (or run ./build_app --install)"
   fi
   if [ "$open_app" = 1 ]; then
-    if [ -x /usr/bin/formdes ]; then nohup /usr/bin/formdes >/dev/null 2>&1 & else "$FORMDES_ROOT/src-tauri/target/release/formdes" >/dev/null 2>&1 & fi
+    if [ -x /usr/bin/formdesign ]; then nohup /usr/bin/formdesign >/dev/null 2>&1 & else "$FORMDESIGN_ROOT/src-tauri/target/release/formdesign" >/dev/null 2>&1 & fi
   fi
 fi
 fd_say "done in ${SECONDS}s"

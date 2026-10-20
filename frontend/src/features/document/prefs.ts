@@ -168,7 +168,7 @@ export class PreferencesDialog {
   private agentsPage(): HTMLElement {
     const pg = el('<div class="cv-prefs-page fd-pr-page" hidden></div>');
     pg.dataset.page = 'agents';
-    const mcp = this.section('MCP endpoint', 'Agents read and lay out documents through this endpoint while formdes runs.');
+    const mcp = this.section('MCP endpoint', 'Agents read and lay out documents through this endpoint while FormDesign runs.');
     const ep = el(`<div class="fd-pr-line"></div>`);
     ep.append(this.endpoint, this.copyBtn(() => this.endpoint.textContent ?? ''));
     mcp.append(ep, this.mcpState);
@@ -176,14 +176,14 @@ export class PreferencesDialog {
     const toggle = el('<label class="cv-opt"><span>Let agents read and change documents</span></label>');
     toggle.prepend(this.agentsOn);
     this.agentsOn.addEventListener('change', () => void api('/mcp/settings', { json: { enabled: this.agentsOn.checked } })
-      .then(() => toast(this.agentsOn.checked ? 'Agents can work in formdes' : 'Agent access is off'))
+      .then(() => toast(this.agentsOn.checked ? 'Agents can work in FormDesign' : 'Agent access is off'))
       .catch((e) => { toast((e as Error).message, 'error'); this.agentsOn.checked = !this.agentsOn.checked; }));
     access.appendChild(toggle);
     pg.append(access, mcp, this.claudeSection());
     const rows: Array<{ id: string; title: string; note: string }> = [
-      { id: 'claude', title: 'Claude Code', note: 'Adds formdes as an MCP server over stdio.' },
-      { id: 'codex', title: 'Codex', note: 'Run in the formdes folder: installs the MCP server and the skill.' },
-      { id: 'cursor', title: 'Cursor', note: 'Run in the formdes folder: the same command sets up Cursor’s MCP config too.' },
+      { id: 'claude', title: 'Claude Code', note: 'Adds FormDesign as an MCP server over stdio.' },
+      { id: 'codex', title: 'Codex', note: 'Run in the FormDesign folder: installs the MCP server and the skill.' },
+      { id: 'cursor', title: 'Cursor', note: 'Run in the FormDesign folder: the same command sets up Cursor’s MCP config too.' },
     ];
     for (const r of rows) {
       const s = this.section(r.title, r.note);
@@ -262,11 +262,11 @@ export class PreferencesDialog {
 
   private async loadAgents(): Promise<void> {
     const c = await capabilities();
-    const repo = repoDir(c) || 'path/to/formdes';
+    const repo = repoDir(c) || 'path/to/formdesign';
     setText(this.endpoint, c.mcp ?? `${location.origin}/mcp`);
-    setText(this.lines.get('claude') ?? null, `claude mcp add formdes -- ${repo}/formdes mcp`);
-    setText(this.lines.get('codex') ?? null, `cd ${repo} && ./formdes agents install`);
-    setText(this.lines.get('cursor') ?? null, `cd ${repo} && ./formdes agents install`);
+    setText(this.lines.get('claude') ?? null, `claude mcp add formdesign -- ${repo}/formdesign mcp`);
+    setText(this.lines.get('codex') ?? null, `cd ${repo} && ./formdesign agents install`);
+    setText(this.lines.get('cursor') ?? null, `cd ${repo} && ./formdesign agents install`);
     try {
       const s = await api<{ tools?: number; calls?: number; enabled?: boolean }>('/mcp/status');
       setChecked(this.agentsOn, s.enabled !== false);

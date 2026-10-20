@@ -6,7 +6,7 @@ import { StylesPanel } from './styles';
 
 export type StyleKind = 'paragraph' | 'character' | 'object';
 
-const KEY = 'formdes.styles.kind';
+const KEY = 'formdesign.styles.kind';
 const LABELS: Record<StyleKind, string> = { paragraph: 'Paragraph', character: 'Character', object: 'Object' };
 
 export class StylesHub {

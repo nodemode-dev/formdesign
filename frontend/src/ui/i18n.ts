@@ -3,7 +3,7 @@ import { LANG_NAMES, LANG_PARENT, isLang as isLangCode, type Lang } from './i18n
 export type { Lang } from './i18n/langs';
 
 type Table = Record<string, string>;
-const STORE = 'formdes.language';
+const STORE = 'formdesign.language';
 const FILES = import.meta.glob<Table>('./i18n/tables/*.json', { import: 'default' });
 const tables = new Map<Lang, Table>([['en', {}]]);
 const listeners = new Set<() => void>();

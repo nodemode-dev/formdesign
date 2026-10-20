@@ -1,0 +1,27 @@
+[package]
+name = "formdesign-core"
+description = "FormDesign's layout core: formdesign-engine behind a JSON-lines protocol on standard input and output"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "formdesign-core"
+path = "src/main.rs"
+
+[dependencies]
+formdesign-model = { path = "../formdesign-model" }
+formdesign-text = { path = "../formdesign-text" }
+formdesign-render = { path = "../formdesign-render" }
+formdesign-engine = { path = "../formdesign-engine" }
+kurbo = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+fancy-regex = { workspace = true }
+spellbook = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

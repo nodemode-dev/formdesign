@@ -2,5 +2,5 @@
 set -e
 source "$(dirname "$0")/lib.sh"
 fd_venv
-[ -d "$FORMDES_ROOT/frontend/node_modules/@fontsource" ] || ( cd "$FORMDES_ROOT/frontend" && npm install )
-python "$FORMDES_ROOT/setup/fonts.py" "$FORMDES_ROOT/frontend/node_modules/@fontsource" "$FORMDES_ROOT/backend/app/fonts"
+[ -d "$FORMDESIGN_ROOT/frontend/node_modules/@fontsource" ] || ( cd "$FORMDESIGN_ROOT/frontend" && npm install )
+python "$FORMDESIGN_ROOT/setup/fonts.py" "$FORMDESIGN_ROOT/frontend/node_modules/@fontsource" "$FORMDESIGN_ROOT/backend/app/fonts"

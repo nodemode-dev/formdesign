@@ -1,10 +1,10 @@
 import { inTauri, type Compositor, type Frame, type Rect4, type TileSource } from './index';
 
-// The native canvas of the desktop app (src-tauri/src/native.rs over native/formdes-gpu): the same frame model as the web
+// The native canvas of the desktop app (src-tauri/src/native.rs over native/formdesign-gpu): the same frame model as the web
 // paths, drawn by wgpu in the window beneath the web view. It exists only inside Tauri; in a browser init() says no and the
 // selector moves on.
 //
-// The web viewport rasters 512 pixel tiles over the whole canvas at any scale; formdes-gpu composes 256 pixel tiles per
+// The web viewport rasters 512 pixel tiles over the whole canvas at any scale; formdesign-gpu composes 256 pixel tiles per
 // page at power-of-two levels. This class bridges the two: it keeps the web tiles it was given, and for every native tile
 // the frame needs it paints the web tiles that cover it into a 256 pixel canvas, reads the pixels back and sends them as raw
 // bytes, again only when the tiles under it changed. Commands are sent one at a time in order, and only the newest queued
@@ -32,7 +32,7 @@ type Job =
 
 const keyString = (k: KeyOut): string => `${k.page}|${k.level}|${k.tx}|${k.ty}`;
 
-/** The level for a scale in device pixels per canvas unit: ceil(log2(scale)), clamped, as formdes-gpu picks it. */
+/** The level for a scale in device pixels per canvas unit: ceil(log2(scale)), clamped, as formdesign-gpu picks it. */
 export function nativeLevel(scale: number): number {
   return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.ceil(Math.log2(Math.max(scale, 1e-6)) - 1e-3)));
 }

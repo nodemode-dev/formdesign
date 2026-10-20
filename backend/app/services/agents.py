@@ -16,7 +16,7 @@ APPROVAL_WAIT = 300.0
 KNOWN = {"claude-code": "Claude Code", "claude": "Claude Code", "codex": "Codex", "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor"}
 GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print": "prints", "file.printBooklet": "prints a booklet"}
 INAPP_TOKEN = secrets.token_urlsafe(24)
-INAPP_HEADER = "x-formdes-inapp"
+INAPP_HEADER = "x-formdesign-inapp"
 INAPP_CLIENT = "Claude Code in FormDesign"
 
 sessions: dict[str, dict] = {}
@@ -119,7 +119,7 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
     """The client making this request, and a new session id when it is initializing."""
     meta = params.get("_meta") or {}
     info = meta.get("io.modelcontextprotocol/clientInfo")
-    transport = headers.get("x-formdes-transport") or "http"
+    transport = headers.get("x-formdesign-transport") or "http"
     sid = headers.get("mcp-session-id")
     new_sid = None
     if method == "initialize":
@@ -216,7 +216,7 @@ def snapshot() -> dict:
     return {
         "enabled": d.get("enabled", True),
         "endpoint": f"http://{config.HOST}:{config.PORT}/mcp",
-        "stdio": "./formdes mcp",
+        "stdio": "./formdesign mcp",
         "clients": [{**clients.get(n, {"name": n, "version": None, "transport": None, "lastSeen": None, "calls": 0}), "policy": policy(n)} for n in names],
         "approvals": [{k: v for k, v in a.items() if k != "future"} for a in approvals.values()],
         "activity": list(activity)[:60],
@@ -228,7 +228,7 @@ def install(client: str, dry: bool) -> str:
         raise ValueError("client is claude, codex or cursor")
     script = config.REPO_ROOT / "setup" / "agents.py"
     if config.FROZEN or not script.exists():
-        raise ValueError("agent setup runs from a FormDesign source folder: ./formdes agents install " + client)
+        raise ValueError("agent setup runs from a FormDesign source folder: ./formdesign agents install " + client)
     args = [sys.executable, str(script), "install", client] + (["--dry-run"] if dry else [])
     r = subprocess.run(args, cwd=str(config.REPO_ROOT), capture_output=True, text=True, timeout=120)
     if r.returncode != 0:

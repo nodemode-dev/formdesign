@@ -17,10 +17,10 @@ FIELDS = ("claudeBin", "claudeFolder", "claudeFirstMessage")
 INSTALL = ("Claude Code is not installed: install it with npm install -g @anthropic-ai/claude-code (or from https://claude.com/claude-code), "
            "run claude once in a terminal to sign in, then open it here again")
 NOTE = ("You are Claude Code running inside FormDesign, the page layout and publishing app open on this computer. "
-        "Work on the open document with the formdes MCP server's tools: start with get_document or outline, find commands with find_commands, "
+        "Work on the open document with the formdesign MCP server's tools: start with get_document or outline, find commands with find_commands, "
         "change the layout with run_commands, and look with preview or look before and after a change. "
         "Every change lands in the document the person sees in the window and is one undo step. "
-        "Use the formdes-harness skill when it is available.")
+        "Use the formdesign-harness skill when it is available.")
 _cache: dict = {"at": 0.0, "value": None}
 
 
@@ -58,7 +58,7 @@ def login_shell() -> list[str]:
 def base_env() -> dict[str, str]:
     from app.services import pty
     env = pty.environment()
-    env["FORMDES_MCP_URL"] = engine_url() + "/mcp"
+    env["FORMDESIGN_MCP_URL"] = engine_url() + "/mcp"
     return env
 
 
@@ -90,7 +90,7 @@ def cli() -> str | None:
     chosen = prefs().get("claudeBin", "")
     if chosen and _runnable(chosen):
         return str(Path(chosen).expanduser())
-    found = os.environ.get("FORMDES_CLAUDE_BIN") or shutil.which("claude")
+    found = os.environ.get("FORMDESIGN_CLAUDE_BIN") or shutil.which("claude")
     if found:
         return found
     home = Path.home()
@@ -115,11 +115,11 @@ def info(fresh: bool = False) -> dict:
 
 
 def mcp_config() -> str:
-    return json.dumps({"mcpServers": {"formdes": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: agents.INAPP_TOKEN}}}})
+    return json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: agents.INAPP_TOKEN}}}})
 
 
 def workdir() -> Path:
-    raw = prefs().get("claudeFolder", "") or os.environ.get("FORMDES_AGENT_DIR", "").strip()
+    raw = prefs().get("claudeFolder", "") or os.environ.get("FORMDESIGN_AGENT_DIR", "").strip()
     folder = Path(raw).expanduser() if raw else config.DATA_DIR / "Agent"
     try:
         folder.mkdir(parents=True, exist_ok=True)
@@ -135,7 +135,7 @@ def wrap(cmd: list[str]) -> list[str]:
 
 
 def argv(path: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdes", "--append-system-prompt", NOTE]
+    cmd = [path, "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:

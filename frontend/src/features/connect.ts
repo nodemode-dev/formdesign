@@ -10,7 +10,7 @@ interface Approval { id: string; client: string; tool: string; args: string; rea
 interface Act { id: number; at: number; client: string; tool: string; args: string; ok: boolean; ms: number; note: string; changed: boolean }
 interface Snap { enabled: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
 
-const FOLLOW_KEY = 'formdes.connect.follow';
+const FOLLOW_KEY = 'formdesign.connect.follow';
 const INSTALL: Array<[string, string]> = [['claude', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor']];
 const ago = (t: number | null): string => {
   if (!t) return 'not seen';

@@ -8,14 +8,26 @@ REPO_ROOT = BACKEND_DIR.parent
 FROZEN = getattr(sys, "frozen", False)
 BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", APP_DIR))
 
-HOST = os.environ.get("FORMDES_HOST", "127.0.0.1")
-PORT = int(os.environ.get("FORMDES_PORT", "8196"))
+HOST = os.environ.get("FORMDESIGN_HOST", "127.0.0.1")
+PORT = int(os.environ.get("FORMDESIGN_PORT", "8196"))
 FRONTEND_PORT = 5196
 
 
 def _data_dir() -> Path:
-    raw = os.environ.get("FORMDES_DATA_DIR", "").strip()
-    return Path(raw).expanduser() if raw else Path.home() / "Formdes"
+    raw = os.environ.get("FORMDESIGN_DATA_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser()
+    home = Path.home() / "FormDesign"
+    _move_legacy_data_dir(Path.home() / "Formdes", home)
+    return home
+
+
+def _move_legacy_data_dir(old: Path, new: Path) -> None:
+    try:
+        if old.is_dir() and not new.exists():
+            old.rename(new)
+    except OSError:
+        pass
 
 
 DATA_DIR = _data_dir()
@@ -32,24 +44,24 @@ FONTS_DIR = (BUNDLE_DIR / "fonts") if FROZEN else (APP_DIR / "fonts")
 TEMPLATES_DIR = (BUNDLE_DIR / "templates" / "library") if FROZEN else (APP_DIR / "templates" / "library")
 
 CORS_ORIGINS = [o.strip() for o in os.environ.get(
-    "FORMDES_CORS_ORIGINS", f"http://localhost:{FRONTEND_PORT},http://127.0.0.1:{FRONTEND_PORT}").split(",") if o.strip()]
-DIST_DIR = Path(os.environ["FORMDES_DIST"]) if os.environ.get("FORMDES_DIST") else (
+    "FORMDESIGN_CORS_ORIGINS", f"http://localhost:{FRONTEND_PORT},http://127.0.0.1:{FRONTEND_PORT}").split(",") if o.strip()]
+DIST_DIR = Path(os.environ["FORMDESIGN_DIST"]) if os.environ.get("FORMDESIGN_DIST") else (
     (BUNDLE_DIR / "frontend_dist") if FROZEN else REPO_ROOT / "frontend" / "dist")
 
 MAX_UPLOAD_BYTES = 512 * 1024 * 1024
-FDES_MIME = "application/vnd.formdes+zip"
+FDES_MIME = "application/vnd.formdesign+zip"
 FDES_EXT = ".fdes"
 
 
 def core_binary() -> Path | None:
     exe = ".exe" if os.name == "nt" else ""
-    env = os.environ.get("FORMDES_CORE", "").strip()
+    env = os.environ.get("FORMDESIGN_CORE", "").strip()
     candidates = [Path(env)] if env else []
     if FROZEN:
-        candidates.append(Path(sys.executable).resolve().parent / f"formdes-core{exe}")
-    candidates += [REPO_ROOT / "native" / "target" / "release" / f"formdes-core{exe}",
-                   REPO_ROOT / "native" / "bin" / f"formdes-core{exe}",
-                   REPO_ROOT / "native" / "target" / "debug" / f"formdes-core{exe}"]
+        candidates.append(Path(sys.executable).resolve().parent / f"formdesign-core{exe}")
+    candidates += [REPO_ROOT / "native" / "target" / "release" / f"formdesign-core{exe}",
+                   REPO_ROOT / "native" / "bin" / f"formdesign-core{exe}",
+                   REPO_ROOT / "native" / "target" / "debug" / f"formdesign-core{exe}"]
     for c in candidates:
         if c.is_file():
             return c
@@ -57,7 +69,7 @@ def core_binary() -> Path | None:
 
 
 def font_dirs() -> list[Path]:
-    extra = [Path(p) for p in os.environ.get("FORMDES_FONT_DIRS", "").split(os.pathsep) if p.strip()]
+    extra = [Path(p) for p in os.environ.get("FORMDESIGN_FONT_DIRS", "").split(os.pathsep) if p.strip()]
     return [d for d in [FONTS_DIR, FONTS_USER_DIR, DATA_DIR / "Cloud Fonts", *extra] if d.is_dir()]
 
 
@@ -65,7 +77,7 @@ DICTIONARIES_DIR = DATA_DIR / "Dictionaries"
 
 
 def dictionary_dirs() -> list[Path]:
-    extra = [Path(p) for p in os.environ.get("FORMDES_DICT_DIRS", "").split(os.pathsep) if p.strip()]
+    extra = [Path(p) for p in os.environ.get("FORMDESIGN_DICT_DIRS", "").split(os.pathsep) if p.strip()]
     return [DICTIONARIES_DIR, *extra]
 
 

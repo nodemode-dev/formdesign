@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("/version")
 async def version():
-    return {"app": "formdes", "version": __version__, "core": core.version, "coreRunning": core.alive()}
+    return {"app": "formdesign", "version": __version__, "core": core.version, "coreRunning": core.alive()}
 
 
 @router.get("/health")

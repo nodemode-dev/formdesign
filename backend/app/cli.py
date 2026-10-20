@@ -16,7 +16,7 @@ from app.intake.store import packs
 from app.live_cli import add_parsers
 from app.templates import brands, registry, spec
 
-CWD = Path(os.environ.get("FORMDES_CWD") or os.getcwd())
+CWD = Path(os.environ.get("FORMDESIGN_CWD") or os.getcwd())
 
 
 def here(p: str) -> Path:
@@ -107,7 +107,7 @@ async def cmd_make(a) -> int:
         out(reports[0] if len(reports) == 1 else {"variations": reports}, a.json)
         return 0
     except CoreError as exc:
-        print(f"formdes: {exc}", file=sys.stderr)
+        print(f"formdesign: {exc}", file=sys.stderr)
         return 1
     finally:
         await core.stop()
@@ -129,7 +129,7 @@ async def cmd_export(a) -> int:
         out({"saved": saved}, a.json)
         return 0
     except CoreError as exc:
-        print(f"formdes: {exc}", file=sys.stderr)
+        print(f"formdesign: {exc}", file=sys.stderr)
         return 1
     finally:
         await core.stop()
@@ -157,7 +157,7 @@ async def cmd_check(a) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(prog="formdes", description="formdes from the command line: lay out content with templates, export documents, check templates.")
+    ap = argparse.ArgumentParser(prog="formdesign", description="FormDesign from the command line: lay out content with templates, export documents, check templates.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     t = sub.add_parser("templates", help="list templates, or show one")
     t.add_argument("id", nargs="?")

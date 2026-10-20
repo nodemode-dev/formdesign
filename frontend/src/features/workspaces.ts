@@ -23,7 +23,7 @@ const BUILTIN: Spec[] = [
   { name: 'Editor', side: ['review', 'props'], dock: ['pages'], open: ['review', 'props'], hidden: ['typeextra', 'interactive', 'xml', 'library', 'make', 'swatches', 'preflight'], tabs: { review: 'assignments', props: 'character', pages: 'pages' } },
 ];
 
-const KEY = 'formdes.workspace';
+const KEY = 'formdesign.workspace';
 const cmdId = (name: string) => `ui.workspace.${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
 export function installWorkspaces(ws: Workspace): void {
@@ -135,7 +135,7 @@ export function installWorkspaces(ws: Workspace): void {
   select.addEventListener('change', () => { if (select.value && select.value !== current) use(select.value); });
   sync();
   let first = false;
-  try { first = localStorage.getItem(KEY) === null && localStorage.getItem('formdes.dock') === null; } catch { first = false; }
+  try { first = localStorage.getItem(KEY) === null && localStorage.getItem('formdesign.dock') === null; } catch { first = false; }
   if (first) queueMicrotask(() => use(current));
   void load();
 }

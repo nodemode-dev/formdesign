@@ -12,8 +12,8 @@ import type { Workspace } from '../ui/workspace';
 interface Lib { name: string; file: string; items: number }
 interface Item { index: number; name: string; description: string; thumb: string }
 
-const LIB_KEY = 'formdes.library.current';
-const DRAG_TYPE = 'application/x-formdes-library';
+const LIB_KEY = 'formdesign.library.current';
+const DRAG_TYPE = 'application/x-formdesign-library';
 
 export class LibraryPanel {
   readonly root = el(`<div class="frv-panel flb">

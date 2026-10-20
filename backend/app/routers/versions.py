@@ -14,7 +14,7 @@ from app.engine.documents import documents
 from app.services import versions
 
 router = APIRouter()
-log = logging.getLogger("formdes.versions")
+log = logging.getLogger("formdesign.versions")
 WATCH_SECONDS = 3600
 _watching: dict[tuple[int, int], asyncio.Task] = {}
 

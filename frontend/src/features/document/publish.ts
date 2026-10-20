@@ -35,7 +35,7 @@ export class PublishDialog {
     const head = el(`<div class="fd-pub-head">${docIcon('globe', 16)}<span>Published sites</span></div>`);
     head.appendChild(this.count);
     const sites = el('<section class="fd-pub-sites"></section>');
-    sites.append(head, this.list, this.empty, el('<p class="fd-f-note">formdes serves these sites from this computer. To put one on the web, download it as a .zip and upload the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages or a bucket), or export straight into such a folder from File &gt; Export &gt; Website.</p>'));
+    sites.append(head, this.list, this.empty, el('<p class="fd-f-note">FormDesign serves these sites from this computer. To put one on the web, download it as a .zip and upload the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages or a bucket), or export straight into such a folder from File &gt; Export &gt; Website.</p>'));
     const opts = el('<section class="fd-pub-opts"></section>');
     opts.append(this.web.root);
     this.d.body.append(opts, this.result, sites);

@@ -60,7 +60,7 @@ export class Editor {
 
   emit(ev: EventName, payload?: unknown): void {
     for (const fn of this.listeners.get(ev) ?? []) {
-      try { fn(payload); } catch (err) { console.error('[formdes]', ev, err); }
+      try { fn(payload); } catch (err) { console.error('[formdesign]', ev, err); }
     }
   }
 

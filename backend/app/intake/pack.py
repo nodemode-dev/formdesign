@@ -17,7 +17,7 @@ TEXT_EXTS = {".md", ".markdown", ".mdx", ".txt", ".text", ".rtf", ".docx", ".htm
 SHEET_EXTS = {".csv", ".tsv", ".xlsx", ".xlsm"}
 BRIEF_NAMES = re.compile(r"(^|[-_ .])(brief|prompt|instructions|context|notes?)([-_ .]|$)", re.I)
 SKIP = re.compile(r"(^\.|__MACOSX|\.DS_Store|Thumbs\.db)")
-GENERATOR_NAMES = {"python-docx", "microsoft office user", "author", "admin", "user", "owner", "unknown", "formdes"}
+GENERATOR_NAMES = {"python-docx", "microsoft office user", "author", "admin", "user", "owner", "unknown", "formdesign"}
 
 
 class Intake:

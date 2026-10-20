@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-[ -f "$FORMDES_ROOT/frontend/dist/index.html" ] || "$FORMDES_ROOT/setup/build_frontend"
+[ -f "$FORMDESIGN_ROOT/frontend/dist/index.html" ] || "$FORMDESIGN_ROOT/setup/build_frontend"
 fd_venv
-cd "$FORMDES_ROOT/backend"
-export FORMDES_DIST="$FORMDES_ROOT/frontend/dist"
-fd_say "serving http://127.0.0.1:${FORMDES_PORT:-8196}"
-exec uvicorn app.main:app --host "${FORMDES_HOST:-127.0.0.1}" --port "${FORMDES_PORT:-8196}"
+cd "$FORMDESIGN_ROOT/backend"
+export FORMDESIGN_DIST="$FORMDESIGN_ROOT/frontend/dist"
+fd_say "serving http://127.0.0.1:${FORMDESIGN_PORT:-8196}"
+exec uvicorn app.main:app --host "${FORMDESIGN_HOST:-127.0.0.1}" --port "${FORMDESIGN_PORT:-8196}"

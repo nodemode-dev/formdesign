@@ -14,7 +14,7 @@ interface Missing { missing: Array<{ family: string; slug: string; reason: 'used
 const PAGE = 60;
 const REFRESH = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.7-4"/><path d="M13.5 2.5v3h-3"/></svg>';
 const SAMPLE = 'Sphinx of black quartz, judge my vow 0123456789';
-const FONTS_CHANGED = 'formdes:fonts-changed';
+const FONTS_CHANGED = 'formdesign:fonts-changed';
 
 export function docKey(): string { return editor.doc?.path ?? ''; }
 

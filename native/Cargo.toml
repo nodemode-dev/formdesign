@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["formdes-core", "formdes-model", "formdes-text", "formdes-render", "formdes-engine", "formdes-interchange", "formdes-gpu"]
+members = ["formdesign-core", "formdesign-model", "formdesign-text", "formdesign-render", "formdesign-engine", "formdesign-interchange", "formdesign-gpu"]
 
 [workspace.package]
 version = "0.79.0"

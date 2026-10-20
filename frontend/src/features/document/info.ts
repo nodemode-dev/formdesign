@@ -42,7 +42,7 @@ export class InfoPanel {
     editor.on('selection', () => this.scheduleFacts(40));
     editor.on('docs', () => this.scheduleFacts(40));
     editor.on('layout', () => this.scheduleFacts(40));
-    window.addEventListener('formdes:units', () => { this.unit = readUnits(); this.renderPointer(); void this.loadFacts(); });
+    window.addEventListener('formdesign:units', () => { this.unit = readUnits(); this.renderPointer(); void this.loadFacts(); });
     this.render();
   }
 

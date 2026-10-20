@@ -409,14 +409,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-core"
+name = "formdesign-core"
 version = "0.79.0"
 dependencies = [
  "fancy-regex",
- "formdes-engine",
- "formdes-model",
- "formdes-render",
- "formdes-text",
+ "formdesign-engine",
+ "formdesign-model",
+ "formdesign-render",
+ "formdesign-text",
  "kurbo",
  "log",
  "serde",
@@ -425,14 +425,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-engine"
+name = "formdesign-engine"
 version = "0.79.0"
 dependencies = [
  "fancy-regex",
- "formdes-interchange",
- "formdes-model",
- "formdes-render",
- "formdes-text",
+ "formdesign-interchange",
+ "formdesign-model",
+ "formdesign-render",
+ "formdesign-text",
  "i_overlay",
  "kurbo",
  "moxcms",
@@ -444,7 +444,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-gpu"
+name = "formdesign-gpu"
 version = "0.79.0"
 dependencies = [
  "bytemuck",
@@ -455,10 +455,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-interchange"
+name = "formdesign-interchange"
 version = "0.79.0"
 dependencies = [
- "formdes-model",
+ "formdesign-model",
  "kurbo",
  "quick-xml",
  "serde_json",
@@ -466,7 +466,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-model"
+name = "formdesign-model"
 version = "0.79.0"
 dependencies = [
  "kurbo",
@@ -476,11 +476,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-render"
+name = "formdesign-render"
 version = "0.79.0"
 dependencies = [
- "formdes-model",
- "formdes-text",
+ "formdesign-model",
+ "formdesign-text",
  "hayro",
  "image",
  "krilla",
@@ -492,12 +492,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "formdes-text"
+name = "formdesign-text"
 version = "0.79.0"
 dependencies = [
  "fancy-regex",
  "fontdb",
- "formdes-model",
+ "formdesign-model",
  "harfrust",
  "hypher",
  "kurbo",

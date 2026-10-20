@@ -14,7 +14,7 @@ for n,d in zip(sizes,ims): ent+=struct.pack('<BBBBHHII',n%256,n%256,0,0,1,32,len
 open(P('src-tauri/icons/icon.ico'),'wb').write(struct.pack('<HHH',0,1,len(sizes))+ent+b''.join(ims))
 for name,n in [('icon.png',512),('32x32.png',32),('64x64.png',64),('128x128.png',128),('128x128@2x.png',256),('StoreLogo.png',50)]+[(f'Square{n}x{n}Logo.png',n) for n in (30,44,71,89,107,142,150,284,310)]:
     full(n).save(P('src-tauri/icons/'+name))
-mac(1024).save(P('assets/formdes_icon_macos.png')); full(1024).save(P('assets/formdes_icon.png')); full(224).save(P('assets/formdes_folder_icon.png'))
+mac(1024).save(P('assets/formdesign_icon_macos.png')); full(1024).save(P('assets/formdesign_icon.png')); full(224).save(P('assets/formdesign_folder_icon.png'))
 at=Image.new('RGBA',(180,180),(16,15,20,255)); at.alpha_composite(full(180)); at.convert('RGB').save(P('frontend/public/apple-touch-icon.png'))
 fs=[16,32,48]; fi=[png(full(n)) for n in fs]; off=6+16*3; ent=b''
 for n,d in zip(fs,fi): ent+=struct.pack('<BBBBHHII',n,n,0,0,1,32,len(d),off); off+=len(d)

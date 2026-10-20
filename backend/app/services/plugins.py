@@ -21,7 +21,7 @@ from app.core import config
 PLUGINS_DIR = config.DATA_DIR / "Plug-ins"
 STATE = PLUGINS_DIR / "state.json"
 STAGE = config.CACHE_DIR / "plugin-stage"
-REPO_PLUGINS = Path(__import__("os").environ.get("FORMDES_PLUGINS") or (config.BUNDLE_DIR / "plugins" if config.FROZEN else config.REPO_ROOT / "plugins"))
+REPO_PLUGINS = Path(__import__("os").environ.get("FORMDESIGN_PLUGINS") or (config.BUNDLE_DIR / "plugins" if config.FROZEN else config.REPO_ROOT / "plugins"))
 DEFAULT_CATALOGUE = "/api/plugins/repo/catalogue.json"
 LOCAL_PREFIX = "/api/plugins/repo/"
 ID = re.compile(r"^[a-z0-9][a-z0-9._-]{1,63}$")
@@ -150,7 +150,7 @@ def _fetch(url: str, limit: int = MAX_ZIP) -> bytes:
     if not url.startswith("https://"):
         raise PluginError("catalogue and download addresses are https or the bundled catalogue")
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "formdes"}), timeout=60) as r:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "FormDesign"}), timeout=60) as r:
             data = r.read(limit + 1)
     except OSError as exc:
         raise PluginError(f"could not fetch {url}: {exc}") from exc

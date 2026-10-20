@@ -7,7 +7,7 @@ import { swatchNames } from './colour-tools';
 
 // Table > Table Style Options and Cell Style Options as structured forms, in place of the generic command form with a JSON
 // box. The attributes are the ones the layout core reads (table styles: border and altRows; cell styles: fill, fillTint,
-// insets, vj and per-side strokes; see formdes-render scene.rs and formdes-engine cmd/table.rs). Each form is built once; picking
+// insets, vj and per-side strokes; see formdesign-render scene.rs and formdesign-engine cmd/table.rs). Each form is built once; picking
 // another style patches the controls. Only attributes that changed are sent, and an attribute the form does not know about
 // is never touched, so a style made by a script or an agent keeps everything else it has.
 

@@ -1,16 +1,16 @@
 @echo off
 setlocal
 cd /d "%~dp0.."
-echo [formdes] installing the engine
+echo [formdesign] installing the engine
 pushd backend
 call oc_install.bat || ( popd & exit /b 1 )
 popd
-echo [formdes] installing the font library
-call setup\install_fonts.bat || echo [formdes] the font library did not install, retry with formdes.bat install-fonts
-echo [formdes] building the layout core
+echo [formdesign] installing the font library
+call setup\install_fonts.bat || echo [formdesign] the font library did not install, retry with formdesign.bat install-fonts
+echo [formdesign] building the layout core
 call setup\install_core.bat || exit /b 1
-echo [formdes] installing the frontend
+echo [formdesign] installing the frontend
 pushd frontend
 call oc_install.bat || ( popd & exit /b 1 )
 popd
-echo [formdes] done. Boot with formdes.bat
+echo [formdesign] done. Boot with formdesign.bat

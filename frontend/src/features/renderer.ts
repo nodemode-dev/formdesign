@@ -4,7 +4,7 @@ import type { SubMenu } from '../ui/menu';
 import type { Workspace } from '../ui/workspace';
 
 // View > Renderer: Auto, WebGPU, WebGL2 or Canvas 2D for the page canvas. The choice is kept by the viewport in
-// localStorage (formdes.renderer); this module only registers the menu and shows the active path in the status bar.
+// localStorage (formdesign.renderer); this module only registers the menu and shows the active path in the status bar.
 export function installRenderer(ws: Workspace): void {
   const vp = ws.viewport;
   // The Native (desktop) path exists only inside the Tauri shell; a browser never lists it.

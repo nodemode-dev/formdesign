@@ -10,7 +10,7 @@ interface Change { story: number; start: number; end: number; kind: 'inserted' |
 interface Note { story: number; id: number; at: number; author: string; text: string }
 interface Condition { name: string; color: number[]; visible: boolean }
 
-const AUTHOR_KEY = 'formdes.notes.author';
+const AUTHOR_KEY = 'formdesign.notes.author';
 const COLORS = [[230, 90, 60], [60, 140, 230], [70, 170, 90], [200, 150, 30], [150, 90, 200], [30, 160, 170]];
 
 function excerpt(t: string, n = 70): string {

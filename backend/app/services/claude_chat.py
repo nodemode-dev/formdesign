@@ -79,7 +79,7 @@ def _usage_of(u: dict) -> tuple[int, int]:
 
 def _argv(path: str, text: str, session: str | None) -> list[str]:
     cmd = [path, "-p", text, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-           "--mcp-config", claude_code.mcp_config(), "--allowedTools", "mcp__formdes", "--append-system-prompt", NOTE]
+           "--mcp-config", claude_code.mcp_config(), "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE]
     if session:
         cmd += ["--resume", session]
     return claude_code.wrap(cmd)

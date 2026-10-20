@@ -39,7 +39,7 @@ export class EngineClient {
 
   private emit(event: string, payload?: unknown): void {
     for (const fn of this.listeners.get(event) ?? []) {
-      try { fn(payload); } catch (e) { console.error('[formdes] listener failed', e); }
+      try { fn(payload); } catch (e) { console.error('[formdesign] listener failed', e); }
     }
   }
 
@@ -57,7 +57,7 @@ export class EngineClient {
         this.connected = false;
         this.ws = null;
         this.opening = null;
-        for (const [, p] of this.pending) p.reject(new EngineError('the formdes engine connection closed'));
+        for (const [, p] of this.pending) p.reject(new EngineError('the FormDesign engine connection closed'));
         this.pending.clear();
         if (was) this.emit('close');
         const wait = Math.min(4000, 250 * 2 ** this.retry++);
@@ -99,7 +99,7 @@ export class EngineClient {
   }
 
   private send(method: string, params: unknown, binary: boolean): Promise<any> {
-    if (!this.ws || !this.connected) return Promise.reject(new EngineError('the formdes engine is not connected'));
+    if (!this.ws || !this.connected) return Promise.reject(new EngineError('the FormDesign engine is not connected'));
     const id = ++this.seq;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject, binary });

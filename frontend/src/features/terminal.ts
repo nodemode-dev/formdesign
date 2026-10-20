@@ -22,7 +22,7 @@ export interface ChatView {
   onSuggest: (text: string) => void;
 }
 
-const HEIGHT_KEY = 'formdes.dock.height';
+const HEIGHT_KEY = 'formdesign.dock.height';
 const H_MIN = 140;
 const CHAT = 'chat';
 const ASK_CLAUDE = 'Ask Claude Code to work on your document';

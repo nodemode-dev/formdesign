@@ -1,0 +1,26 @@
+[package]
+name = "formdesign-engine"
+description = "FormDesign engine session: documents, selection, undo, the command catalogue and tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+formdesign-model = { path = "../formdesign-model" }
+formdesign-text = { path = "../formdesign-text" }
+formdesign-render = { path = "../formdesign-render" }
+formdesign-interchange = { path = "../formdesign-interchange" }
+kurbo = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+fancy-regex = { workspace = true }
+zip = { workspace = true }
+quick-xml = "0.38"
+i_overlay = { version = "2.2", default-features = false }
+qrcodegen = "1.8"
+moxcms = "0.8"
+
+[lints.rust]
+unsafe_code = "forbid"

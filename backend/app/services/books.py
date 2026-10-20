@@ -11,6 +11,8 @@ from app.engine.documents import INNER, documents
 
 BOOK_EXT = ".fdbook"
 BOOKS_DIR = config.PROJECTS_DIR / "Books"
+BOOK_FORMAT = "formdesign-book"
+BOOK_FORMATS = (BOOK_FORMAT, "formdes-book")
 
 
 class BookError(Exception):
@@ -46,14 +48,14 @@ def load(path: str) -> dict:
         b = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise BookError(f"cannot read the book {p.name}: {exc}") from exc
-    if b.get("format") != "formdes-book" or not isinstance(b.get("documents"), list):
-        raise BookError(f"{p.name} is not a formdes book")
+    if b.get("format") not in BOOK_FORMATS or not isinstance(b.get("documents"), list):
+        raise BookError(f"{p.name} is not a FormDesign book")
     b["styleSource"] = int(b.get("styleSource") or 0)
     return b
 
 
 def save(path: str, b: dict) -> None:
-    b = {"format": "formdes-book", "version": 1, "documents": b["documents"], "styleSource": b.get("styleSource", 0)}
+    b = {"format": BOOK_FORMAT, "version": 1, "documents": b["documents"], "styleSource": b.get("styleSource", 0)}
     Path(path).write_text(json.dumps(b, indent=2), encoding="utf-8")
 
 
@@ -156,7 +158,7 @@ async def run(path: str, steps: list[tuple[str, dict]], write_back: bool) -> dic
         dirty = [d.name for d in docs if opened.get(str(d.resolve()), {}).get("dirty")]
         if dirty:
             raise BookError("save these chapters first: " + ", ".join(dirty))
-    with tempfile.TemporaryDirectory(prefix="formdes-book-") as td:
+    with tempfile.TemporaryDirectory(prefix="formdesign-book-") as td:
         temps = []
         for i, d in enumerate(docs):
             t = Path(td) / f"{i:03d}.fdoc"

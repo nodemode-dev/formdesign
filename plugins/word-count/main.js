@@ -38,7 +38,7 @@
       read: words === 0 ? '0 sec' : mins < 1 ? Math.max(1, Math.round(mins * 60)) + ' sec' : Math.round(mins * 10) / 10 + ' min' };
   }
   async function story(id) {
-    var r = await formdes.query({ command: 'story.get', params: { story: id } });
+    var r = await formdesign.query({ command: 'story.get', params: { story: id } });
     return (r.data && r.data.text) || '';
   }
 
@@ -47,7 +47,7 @@
     if (running) { again = true; return; }
     running = true;
     try {
-      var st = (await formdes.query({ method: 'state' })).data || {};
+      var st = (await formdesign.query({ method: 'state' })).data || {};
       var sel = st.selection || {}, text = '', scope = 'Nothing to count';
       if (sel.text && sel.text.story !== undefined) {
         var all = await story(sel.text.story);
@@ -55,7 +55,7 @@
         if (a !== f) { text = slice(all, a, f); scope = 'Selected text'; }
         else { text = all; scope = 'Story being edited'; }
       } else if (sel.items && sel.items.length) {
-        var ins = (await formdes.query({ method: 'inspect' })).data || {};
+        var ins = (await formdesign.query({ method: 'inspect' })).data || {};
         var frames = {};
         (ins.spreads || []).forEach(function (sp) { (sp.items || []).forEach(function (it) { frames[it.id] = it; }); });
         var seen = {}, parts = [];
@@ -77,7 +77,7 @@
   }
 
   document.getElementById('go').addEventListener('click', count);
-  formdes.registerCommand('refresh', function () { count(); formdes.notify('Counted'); });
-  formdes.onChange(function () { count(); });
+  formdesign.registerCommand('refresh', function () { count(); formdesign.notify('Counted'); });
+  formdesign.onChange(function () { count(); });
   count();
 })();

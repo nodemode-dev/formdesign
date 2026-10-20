@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "formdes": {
+    "formdesign": {
       "type": "stdio",
-      "command": "${CLAUDE_PROJECT_DIR:-.}/formdes",
+      "command": "${CLAUDE_PROJECT_DIR:-.}/formdesign",
       "args": ["mcp"]
     }
   }

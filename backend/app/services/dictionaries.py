@@ -73,7 +73,7 @@ async def listing() -> dict:
 
 
 def _fetch(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "formdes"})
+    req = urllib.request.Request(url, headers={"User-Agent": "FormDesign"})
     with urllib.request.urlopen(req, timeout=90) as resp:
         return resp.read()
 

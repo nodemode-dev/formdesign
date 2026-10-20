@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""./formdes i18n keys|check|export LANG FILE.csv|import LANG FILE.csv
+"""./formdesign i18n keys|check|export LANG FILE.csv|import LANG FILE.csv
 
 keys    collect every English interface string into frontend/src/ui/i18n/keys.json
 check   list how many keys each language table is missing (exit 1 when any are)
@@ -18,7 +18,7 @@ SRC = ROOT / "frontend" / "src"
 I18N = SRC / "ui" / "i18n"
 TABLES = I18N / "tables"
 KEYS = I18N / "keys.json"
-ENGINE = ROOT / "native" / "formdes-engine" / "src"
+ENGINE = ROOT / "native" / "formdesign-engine" / "src"
 LANGS = ["es", "es-MX", "pt-BR", "fr", "fr-CA", "de", "it", "nl", "da", "fi", "nb", "sv", "ru", "pl", "cs", "hu", "uk", "tr", "zh-CN", "zh-TW", "ja", "ko", "id", "th", "vi"]
 VARIANTS = {"es-MX", "fr-CA"}
 
@@ -101,7 +101,7 @@ def main(argv: list[str]) -> int:
         keys = collect()
         I18N.mkdir(parents=True, exist_ok=True)
         KEYS.write_text(json.dumps(keys, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
-        print(f"[formdes] {len(keys)} interface strings in {KEYS.relative_to(ROOT)}")
+        print(f"[formdesign] {len(keys)} interface strings in {KEYS.relative_to(ROOT)}")
         return 0
     if cmd == "check":
         keys = json.loads(KEYS.read_text(encoding="utf-8"))
@@ -117,7 +117,7 @@ def main(argv: list[str]) -> int:
     if cmd in ("export", "import") and len(argv) == 3:
         lang, path = argv[1], Path(argv[2])
         if lang not in LANGS:
-            print(f"[formdes] language is one of {', '.join(LANGS)}", file=sys.stderr)
+            print(f"[formdesign] language is one of {', '.join(LANGS)}", file=sys.stderr)
             return 2
         if cmd == "export":
             keys = json.loads(KEYS.read_text(encoding="utf-8"))
@@ -127,7 +127,7 @@ def main(argv: list[str]) -> int:
                 w.writerow(["english", lang])
                 for k in keys:
                     w.writerow([k, t.get(k, "")])
-            print(f"[formdes] wrote {len(keys)} rows to {path}")
+            print(f"[formdesign] wrote {len(keys)} rows to {path}")
             return 0
         t = table(lang)
         with path.open(newline="", encoding="utf-8") as fh:
@@ -136,7 +136,7 @@ def main(argv: list[str]) -> int:
                     t[row[0]] = row[1].strip()
         TABLES.mkdir(parents=True, exist_ok=True)
         (TABLES / f"{lang}.json").write_text(json.dumps(dict(sorted(t.items())), ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
-        print(f"[formdes] {lang}: {len(t)} entries")
+        print(f"[formdesign] {lang}: {len(t)} entries")
         return 0
     print(__doc__)
     return 2

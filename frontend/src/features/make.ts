@@ -80,7 +80,7 @@ function install(ws: Workspace): void {
     return true;
   });
 
-  window.addEventListener('formdes:make-pack', (e: Event) => {
+  window.addEventListener('formdesign:make-pack', (e: Event) => {
     const detail = (e as CustomEvent<{ pack: string; title?: string }>).detail;
     if (!detail?.pack) return;
     showMake();

@@ -11,7 +11,7 @@ interface Reply { name: string; text: string; at: number; owner: boolean }
 interface Comment { id: number; page: number; x: number; y: number; name: string; text: string; at: number; resolved: boolean; replies: Reply[]; placed: boolean; note: { story: number; id: number } | null }
 interface Status { shared: boolean; token?: string; slug?: string; url?: string; title?: string; pages?: number; updated?: number; comments: Comment[] }
 
-const OWNER_KEY = 'formdes.notes.author';
+const OWNER_KEY = 'formdesign.notes.author';
 const COPY = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3.5V9A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>';
 const OPEN = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg>';
 

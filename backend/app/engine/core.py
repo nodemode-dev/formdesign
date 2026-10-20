@@ -9,11 +9,11 @@ from typing import Any
 
 from app.core import config
 
-log = logging.getLogger("formdes.core")
+log = logging.getLogger("formdesign.core")
 
 # The agent turn the running MCP tool belongs to (set by routers/mcp.call_tool). Requests that change the document
 # carry it as `turn`, and the core folds one turn's changes into one undo entry.
-turn_var: ContextVar[str | None] = ContextVar("formdes_turn", default=None)
+turn_var: ContextVar[str | None] = ContextVar("formdesign_turn", default=None)
 TURN_METHODS = ("exec", "batch", "text", "key", "pointer", "findChange")
 
 
@@ -45,18 +45,18 @@ class Core:
     async def start(self) -> None:
         binary = config.core_binary()
         if binary is None:
-            raise CoreError("the layout core is not built: run ./formdes install-core")
+            raise CoreError("the layout core is not built: run ./formdesign install-core")
         self.binary = binary
         env = dict(os.environ)
-        env["FORMDES_FONT_DIRS"] = os.pathsep.join(str(d) for d in config.font_dirs())
-        env["FORMDES_DICT_DIRS"] = os.pathsep.join(str(d) for d in config.dictionary_dirs())
+        env["FORMDESIGN_FONT_DIRS"] = os.pathsep.join(str(d) for d in config.font_dirs())
+        env["FORMDESIGN_DICT_DIRS"] = os.pathsep.join(str(d) for d in config.dictionary_dirs())
         self.proc = await asyncio.create_subprocess_exec(
             str(binary), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             env=env, limit=1 << 30)
         self._stderr_task = asyncio.create_task(self._drain_stderr())
         hello = await self.call("hello")
         self.version = hello.result.get("core", "")
-        log.info("formdes-core %s: %s commands, %s tools", self.version, hello.result.get("commands"), hello.result.get("tools"))
+        log.info("formdesign-core %s: %s commands, %s tools", self.version, hello.result.get("commands"), hello.result.get("tools"))
 
     async def _drain_stderr(self) -> None:
         assert self.proc and self.proc.stderr
@@ -127,7 +127,7 @@ class Core:
             if not self.alive():
                 if self.proc is not None:
                     self.restarts += 1
-                    log.error("formdes-core stopped (exit %s); restarting", self.proc.returncode)
+                    log.error("formdesign-core stopped (exit %s); restarting", self.proc.returncode)
                     await self._restart_unlocked()
                 else:
                     raise CoreError("the layout core is not running")
@@ -144,7 +144,7 @@ class Core:
                     data = await self.proc.stdout.readexactly(head["bin"]) if head.get("bin") else None
                     if head.get("id") in (None, self.next_id):
                         break
-                    log.warning("formdes-core: skipped the late reply to request %s", head.get("id"))
+                    log.warning("formdesign-core: skipped the late reply to request %s", head.get("id"))
             except (BrokenPipeError, ConnectionResetError, asyncio.IncompleteReadError) as exc:
                 raise CoreError(f"the layout core stopped while answering {method}: {exc}") from exc
         meta = {k: head.get(k) for k in ("rev", "selRev", "changed", "damage", "requests") if k in head}
@@ -157,8 +157,8 @@ class Core:
         self.proc = None
         binary = config.core_binary()
         env = dict(os.environ)
-        env["FORMDES_FONT_DIRS"] = os.pathsep.join(str(d) for d in config.font_dirs())
-        env["FORMDES_DICT_DIRS"] = os.pathsep.join(str(d) for d in config.dictionary_dirs())
+        env["FORMDESIGN_FONT_DIRS"] = os.pathsep.join(str(d) for d in config.font_dirs())
+        env["FORMDESIGN_DICT_DIRS"] = os.pathsep.join(str(d) for d in config.dictionary_dirs())
         self.proc = await asyncio.create_subprocess_exec(
             str(binary), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             env=env, limit=1 << 30)

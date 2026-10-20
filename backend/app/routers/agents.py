@@ -104,11 +104,11 @@ async def actions(request: Request, q: str = ""):
     tools = tools.get("tools", tools) if isinstance(tools, dict) else tools
     flat = [t for g in tools for t in (g if isinstance(g, list) else [g])] if isinstance(tools, list) else []
     out = [{"kind": "command", "id": c["id"], "label": c.get("label"), "menu": " > ".join(c.get("menu") or []), "keys": [c["shortcut"]] if c.get("shortcut") else [],
-            "params": c.get("params"), "reach": ["menu", "search", "cli: formdes cmd", "mcp: run_commands"]} for c in cmds]
+            "params": c.get("params"), "reach": ["menu", "search", "cli: formdesign cmd", "mcp: run_commands"]} for c in cmds]
     out += [{"kind": "tool", "id": t.get("id"), "label": t.get("label"), "menu": "Tools", "keys": [t["shortcut"]] if t.get("shortcut") else [],
              "reach": ["rail", "search", "mcp: show tool"]} for t in flat if isinstance(t, dict)]
     out += [{"kind": "window", **w, "reach": ["menu", "search"]} for w in _window_actions if not any(o["id"] == w["id"] for o in out)]
-    out += [{"kind": "mcp", "id": t["name"], "label": t["name"], "menu": "", "keys": [], "reach": ["mcp", "cli: formdes tool"]} for t in TOOLS]
+    out += [{"kind": "mcp", "id": t["name"], "label": t["name"], "menu": "", "keys": [], "reach": ["mcp", "cli: formdesign tool"]} for t in TOOLS]
     ql = q.lower().strip()
     if ql:
         out = [o for o in out if ql in str(o["id"]).lower() or ql in str(o.get("label") or "").lower() or ql in str(o.get("menu") or "").lower()]

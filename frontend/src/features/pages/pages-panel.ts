@@ -19,7 +19,7 @@ interface Remap { uid: number; count: number; from: (abs: number) => number | nu
 const SIZES: Record<string, number> = { small: 54, medium: 80, large: 116 };
 const LABEL_H = 18;
 const ROW_GAP = 10;
-const KEY = 'formdes.pages.thumbs';
+const KEY = 'formdesign.pages.thumbs';
 
 function loadSize(): string { try { const v = localStorage.getItem(KEY); return v && SIZES[v] ? v : 'medium'; } catch { return 'medium'; } }
 

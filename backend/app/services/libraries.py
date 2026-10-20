@@ -15,7 +15,7 @@ class LibraryError(ValueError):
 
 
 def folder() -> Path:
-    raw = os.environ.get("FORMDES_LIBRARIES_DIR", "").strip()
+    raw = os.environ.get("FORMDESIGN_LIBRARIES_DIR", "").strip()
     return Path(raw).expanduser() if raw else config.DATA_DIR / "Libraries"
 
 

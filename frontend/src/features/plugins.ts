@@ -35,9 +35,9 @@ window.addEventListener('message',function(e){
  else if(m.type==='change'){fns.forEach(function(f){try{f();}catch(x){}});}
  else if(m.type==='theme'){for(var k in m.vars)document.documentElement.style.setProperty(k,m.vars[k]);}
 });
-window.formdes={
+window.formdesign={
  call:function(tool,args){return req('call',{tool:tool,args:args||{}}).then(parse);},
- query:function(args){return window.formdes.call('query',args);},
+ query:function(args){return window.formdesign.call('query',args);},
  fetch:function(url){return req('fetch',{url:url});},
  notify:function(text){return req('notify',{text:String(text)});},
  registerCommand:function(id,fn){cmds[id]=fn;},

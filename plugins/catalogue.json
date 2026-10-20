@@ -2,7 +2,7 @@
   "name": "FormDesign bundled catalogue",
   "plugins": [
     {
-      "id": "com.formdes.word-count",
+      "id": "com.formdesign.word-count",
       "name": "Word Count",
       "version": "1.0.0",
       "author": "FormDesign",
@@ -10,10 +10,10 @@
       "minAppVersion": "0.25.0",
       "permissions": { "document.read": true, "panel": true, "menu": true, "commands": true },
       "download": "dist/word-count.fdplugin",
-      "sha256": "98a8afcb800aa03dd967d85e27a4a4c792a72449ed1b101f7808da7ef6758d0c"
+      "sha256": "1ecc5551ec00982c440834225c65f4a9ea505f093d91f5ffe796c31b2844535a"
     },
     {
-      "id": "com.formdes.lorem-fill",
+      "id": "com.formdesign.lorem-fill",
       "name": "Lorem Fill",
       "version": "1.0.0",
       "author": "FormDesign",
@@ -21,7 +21,7 @@
       "minAppVersion": "0.25.0",
       "permissions": { "document.read": true, "document.write": true, "menu": true, "commands": true },
       "download": "dist/lorem-fill.fdplugin",
-      "sha256": "351bece2f6e674e4fe05106475378c63a69a6e1d6e768aaa7c8d8fb7fb504ee3"
+      "sha256": "95f5a29226c42b3d8de6527cb8d354278b16fc198f0c362a1795801457f9ac7f"
     }
   ]
 }

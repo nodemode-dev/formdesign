@@ -5,7 +5,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-ENGINE = os.environ.get("FORMDES_ENGINE_URL", "http://127.0.0.1:8196").rstrip("/")
+ENGINE = os.environ.get("FORMDESIGN_ENGINE_URL", "http://127.0.0.1:8196").rstrip("/")
 
 
 def _post(path: str, body: dict) -> dict:
@@ -20,9 +20,9 @@ def _post(path: str, body: dict) -> dict:
             detail = json.loads(detail).get("detail", detail)
         except ValueError:
             pass
-        raise SystemExit(f"formdes: {detail}")
+        raise SystemExit(f"formdesign: {detail}")
     except urllib.error.URLError:
-        raise SystemExit(f"formdes: no engine at {ENGINE}. Start one with ./formdes or ./formdes backend.")
+        raise SystemExit(f"formdesign: no engine at {ENGINE}. Start one with ./formdesign or ./formdesign backend.")
 
 
 def _value(raw: str):
@@ -36,7 +36,7 @@ def params_of(pairs: list[str], extra: str | None) -> dict:
     out = json.loads(extra) if extra else {}
     for p in pairs:
         if "=" not in p:
-            raise SystemExit(f"formdes: `{p}` is not key=value")
+            raise SystemExit(f"formdesign: `{p}` is not key=value")
         k, v = p.split("=", 1)
         out[k] = _value(v)
     return out
@@ -71,7 +71,7 @@ def cmd_actions(a) -> int:
         with urllib.request.urlopen(f"{ENGINE}/api/actions?q={q}", timeout=60) as r:
             data = json.loads(r.read())
     except urllib.error.URLError:
-        raise SystemExit(f"formdes: no engine at {ENGINE}. Start one with ./formdes or ./formdes backend.")
+        raise SystemExit(f"formdesign: no engine at {ENGINE}. Start one with ./formdesign or ./formdesign backend.")
     if a.json:
         print(json.dumps(data, indent=1, ensure_ascii=False))
         return 0
@@ -84,7 +84,7 @@ def cmd_actions(a) -> int:
 def _rpc(method: str, params: dict) -> dict:
     r = _post("/mcp", {"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
     if "error" in r:
-        raise SystemExit(f"formdes: {r['error'].get('message')}")
+        raise SystemExit(f"formdesign: {r['error'].get('message')}")
     return r.get("result", {})
 
 
@@ -119,9 +119,9 @@ def _get(path: str) -> dict:
             detail = json.loads(detail).get("detail", detail)
         except ValueError:
             pass
-        raise SystemExit(f"formdes: {detail}")
+        raise SystemExit(f"formdesign: {detail}")
     except urllib.error.URLError:
-        raise SystemExit(f"formdes: no engine at {ENGINE}. Start one with ./formdes or ./formdes backend.")
+        raise SystemExit(f"formdesign: no engine at {ENGINE}. Start one with ./formdesign or ./formdesign backend.")
 
 
 def cmd_cli(a) -> int:
@@ -136,7 +136,7 @@ def cmd_cli(a) -> int:
         print(f"{data['count']} commands (! = Undo cannot reverse it)", file=sys.stderr)
         return 0
     if not a.target:
-        raise SystemExit("formdes: name a command id")
+        raise SystemExit("formdesign: name a command id")
     if a.action == "describe":
         c = _get("/api/commands/" + urllib.parse.quote(a.target))
         if a.json:
@@ -160,7 +160,7 @@ def add_parsers(sub) -> dict:
     k.add_argument("--params")
     k.add_argument("--yes", action="store_true")
     k.add_argument("--json", action="store_true")
-    c = sub.add_parser("cmd", help="run one engine command on the running engine's open document, e.g. formdes cmd layout.pages.add count=2")
+    c = sub.add_parser("cmd", help="run one engine command on the running engine's open document, e.g. formdesign cmd layout.pages.add count=2")
     c.add_argument("id")
     c.add_argument("pairs", nargs="*", help="key=value parameters; values are read as JSON when they parse")
     c.add_argument("--params", help="parameters as one JSON object")
@@ -173,7 +173,7 @@ def add_parsers(sub) -> dict:
     x.add_argument("--json", action="store_true")
     t = sub.add_parser("tools", help="list the MCP tools agents get")
     t.add_argument("--json", action="store_true")
-    o = sub.add_parser("tool", help="call one MCP tool on the running engine, e.g. formdes tool preview '{\"page\": 1}'")
+    o = sub.add_parser("tool", help="call one MCP tool on the running engine, e.g. formdesign tool preview '{\"page\": 1}'")
     o.add_argument("name")
     o.add_argument("args", nargs="?")
     o.add_argument("--json", action="store_true")

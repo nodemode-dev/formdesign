@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-FORMDES_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export FORMDES_ROOT
-fd_say() { printf '[formdes] %s\n' "$*"; }
-fd_die() { printf '[formdes] error: %s\n' "$*" >&2; exit 1; }
+FORMDESIGN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export FORMDESIGN_ROOT
+fd_say() { printf '[formdesign] %s\n' "$*"; }
+fd_die() { printf '[formdesign] error: %s\n' "$*" >&2; exit 1; }
 fd_os() {
   case "$(uname -s 2>/dev/null)" in
     Darwin) echo macos ;;
@@ -22,12 +22,12 @@ fd_python() {
   return 1
 }
 fd_venv() {
-  [ -f "$FORMDES_ROOT/backend/venv/bin/activate" ] || fd_die "engine venv missing, run ./formdes install"
+  [ -f "$FORMDESIGN_ROOT/backend/venv/bin/activate" ] || fd_die "engine venv missing, run ./formdesign install"
   # shellcheck disable=SC1091
-  source "$FORMDES_ROOT/backend/venv/bin/activate"
+  source "$FORMDESIGN_ROOT/backend/venv/bin/activate"
 }
 fd_target_triple() {
-  if [ -n "${FORMDES_TARGET:-}" ]; then echo "$FORMDES_TARGET"; return 0; fi
+  if [ -n "${FORMDESIGN_TARGET:-}" ]; then echo "$FORMDESIGN_TARGET"; return 0; fi
   command -v rustc >/dev/null 2>&1 || return 1
   rustc -vV | awk '/^host:/ {print $2}'
 }
@@ -35,8 +35,8 @@ fd_exe() { [ "$(fd_os)" = windows ] && echo ".exe" || echo ""; }
 fd_core() {
   local exe
   exe="$(fd_exe)"
-  if [ -n "${FORMDES_CORE:-}" ] && [ -x "$FORMDES_CORE" ]; then echo "$FORMDES_CORE"; return 0; fi
-  for p in "$FORMDES_ROOT/native/target/release/formdes-core$exe" "$FORMDES_ROOT/native/bin/formdes-core$exe"; do
+  if [ -n "${FORMDESIGN_CORE:-}" ] && [ -x "$FORMDESIGN_CORE" ]; then echo "$FORMDESIGN_CORE"; return 0; fi
+  for p in "$FORMDESIGN_ROOT/native/target/release/formdesign-core$exe" "$FORMDESIGN_ROOT/native/bin/formdesign-core$exe"; do
     if [ -x "$p" ]; then echo "$p"; return 0; fi
   done
   return 1

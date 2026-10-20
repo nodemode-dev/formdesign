@@ -1,7 +1,7 @@
 import { isOneToOne, place, sizeCanvas, SHADOW_ALPHA, SHADOW_BLUR, SHADOW_OFFSET, type Compositor, type Frame, type TileSource } from './index';
 
 // WebGPU path. One rgba8 texture per tile and one instanced quad per shadow, page and tile (the layout of
-// native/formdes-gpu/src/composite.wgsl): rect and uv in the instance, blended premultiplied, source over.
+// native/formdesign-gpu/src/composite.wgsl): rect and uv in the instance, blended premultiplied, source over.
 // The GPU types are not in this project's lib, so the objects are typed loosely.
 
 const WGSL = /* wgsl */ `

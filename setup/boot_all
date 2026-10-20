@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-cd "$FORMDES_ROOT"
-fd_core >/dev/null || fd_die "the layout core is not built: run ./formdes install-core"
+cd "$FORMDESIGN_ROOT"
+fd_core >/dev/null || fd_die "the layout core is not built: run ./formdesign install-core"
 pids=()
 ( cd backend && ./boot_backend ) &
 pids+=($!)
 ( cd frontend && ./boot_frontend ) &
 pids+=($!)
 trap 'kill "${pids[@]}" 2>/dev/null' EXIT INT TERM
-fd_say "frontend http://localhost:5196 · engine http://127.0.0.1:${FORMDES_PORT:-8196}"
+fd_say "frontend http://localhost:5196 · engine http://127.0.0.1:${FORMDESIGN_PORT:-8196}"
 wait

@@ -2,8 +2,8 @@ import { el, setClass, setTitle } from '../../ui/dom';
 import { ctx, type Snap } from './ctx';
 import { iconBtn, NumField, same, SwatchPick, Toggle, type NumVal } from './fields';
 
-const REF_KEY = 'formdes.props.ref';
-const LINK_KEY = 'formdes.props.constrain';
+const REF_KEY = 'formdesign.props.ref';
+const LINK_KEY = 'formdesign.props.constrain';
 const REF_NAMES = ['top left', 'top centre', 'top right', 'left centre', 'centre', 'right centre', 'bottom left', 'bottom centre', 'bottom right'];
 
 function load(key: string, def: number): number { try { const v = Number(localStorage.getItem(key)); return localStorage.getItem(key) === null || !Number.isFinite(v) ? def : v; } catch { return def; } }

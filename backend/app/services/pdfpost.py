@@ -493,17 +493,17 @@ class Builder:
         if "/CreationDate" not in info:
             info[NameObject("/CreationDate")] = TextStringObject(stamp)
         info[NameObject("/Title")] = TextStringObject(title or "Untitled")
-        info.setdefault(NameObject("/Creator"), TextStringObject("formdes"))
-        info[NameObject("/Producer")] = TextStringObject("formdes")
+        info.setdefault(NameObject("/Creator"), TextStringObject("FormDesign"))
+        info[NameObject("/Producer")] = TextStringObject("FormDesign")
         iso = now.strftime("%Y-%m-%dT%H:%M:%S+00:00")
         esc = lambda s: s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")  # noqa: E731
         xmp = f"""<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" xmlns:pdfx="http://ns.adobe.com/pdfx/1.3/" xmlns:pdfxid="http://www.npes.org/pdfx/ns/id/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/" xmlns:dc="http://purl.org/dc/elements/1.1/">
-<pdf:Producer>formdes</pdf:Producer><pdf:Trapped>False</pdf:Trapped>
+<pdf:Producer>FormDesign</pdf:Producer><pdf:Trapped>False</pdf:Trapped>
 <pdfxid:GTS_PDFXVersion>{spec['id']}</pdfxid:GTS_PDFXVersion>{"<pdfxid:GTS_PDFXConformance>" + spec['conformance'] + "</pdfxid:GTS_PDFXConformance>" if level == "x1a" else ""}
 <pdfx:GTS_PDFXVersion>{spec['id']}</pdfx:GTS_PDFXVersion>
-<xmp:CreatorTool>formdes</xmp:CreatorTool><xmp:CreateDate>{iso}</xmp:CreateDate><xmp:ModifyDate>{iso}</xmp:ModifyDate><xmp:MetadataDate>{iso}</xmp:MetadataDate>
+<xmp:CreatorTool>FormDesign</xmp:CreatorTool><xmp:CreateDate>{iso}</xmp:CreateDate><xmp:ModifyDate>{iso}</xmp:ModifyDate><xmp:MetadataDate>{iso}</xmp:MetadataDate>
 <xmpMM:DocumentID>uuid:{hashlib.md5((title + iso).encode()).hexdigest()}</xmpMM:DocumentID><xmpMM:InstanceID>uuid:{hashlib.md5((iso + title).encode()).hexdigest()}</xmpMM:InstanceID>
 <dc:format>application/pdf</dc:format><dc:title><rdf:Alt><rdf:li xml:lang="x-default">{esc(title or 'Untitled')}</rdf:li></rdf:Alt></dc:title>
 </rdf:Description></rdf:RDF></x:xmpmeta>

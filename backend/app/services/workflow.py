@@ -13,7 +13,8 @@ from app.engine.core import CoreError, core
 from app.engine.documents import DocMeta, documents
 from app.services import motion as M
 
-FORMAT = "formdes-assignment"
+FORMAT = "formdesign-assignment"
+FORMATS = (FORMAT, "formdes-assignment")
 EXT = ".fdes-assignment"
 USER_FILE = config.DATA_DIR / "workflow-user.json"
 COLORS = ["#e5654b", "#4b8fe5", "#46aa5a", "#c8961e", "#965ac8", "#1ea0aa"]
@@ -354,7 +355,7 @@ def read_package(data: bytes) -> tuple[dict, zipfile.ZipFile]:
         manifest = json.loads(z.read("manifest.json"))
     except (zipfile.BadZipFile, KeyError, ValueError) as exc:
         raise CoreError("this is not a FormDesign assignment package") from exc
-    if manifest.get("format") != FORMAT:
+    if manifest.get("format") not in FORMATS:
         raise CoreError("this is not a FormDesign assignment package")
     return manifest, z
 

@@ -18,11 +18,11 @@ PARAGRAPHS = [
 
 HEADLINES = {"title": "The Quiet Art of Layout", "subtitle": "How grids, type and colour turn words and pictures into pages people want to read",
              "kicker": "Feature", "byline": "By Mara Ellison", "date": "Spring 2026", "pullquote": "The best layouts disappear. What remains is the story.",
-             "quote": "The best layouts disappear. What remains is the story.", "cta": "Read the issue", "url": "formdes.app", "brand": "Northlight",
+             "quote": "The best layouts disappear. What remains is the story.", "cta": "Read the issue", "url": "formdesign.app", "brand": "Northlight",
              "tagline": "Stories worth slowing down for", "price": "$24", "caption": "Evening light over layered hills.", "credit": "Photograph: Studio archive",
              "name": "Alex Morgan", "role": "Creative Director", "phone": "+1 555 0142", "email": "hello@example.com", "address": "12 Harbour Street, Portland",
              "location": "Harbour Hall, Portland", "time": "Saturday 7 pm", "intro": PARAGRAPHS[0], "summary": PARAGRAPHS[1], "issue": "No. 01",
-             "section": "Design", "label": "New", "stat": "38%", "statLabel": "growth since 2020", "footer": "formdes.app", "nav": "Home    Stories    About    Subscribe"}
+             "section": "Design", "label": "New", "stat": "38%", "statLabel": "growth since 2020", "footer": "formdesign.app", "nav": "Home    Stories    About    Subscribe"}
 
 
 def sample_text(slot: str, item_sample) -> str | list[str]:

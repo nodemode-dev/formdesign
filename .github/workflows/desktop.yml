@@ -46,14 +46,14 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ./formdes install
-          ./formdes install-desktop
+          ./formdesign install
+          ./formdesign install-desktop
       - name: Install the engine, the layout core, the fonts and the desktop toolchain (Windows)
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call formdes.bat install || exit /b 1
-          call formdes.bat install-desktop || exit /b 1
+          call formdesign.bat install || exit /b 1
+          call formdesign.bat install-desktop || exit /b 1
       - name: Build the desktop bundle
         shell: bash
         env:
@@ -68,7 +68,7 @@ jobs:
         run: |
           [ -n "$APPLE_CERTIFICATE" ] || unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY
           [ -n "$APPLE_ID" ] || unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
-          fd() { if [ "$RUNNER_OS" = Windows ]; then cmd //d //c "formdes.bat $*"; else ./formdes "$@"; fi; }
+          fd() { if [ "$RUNNER_OS" = Windows ]; then cmd //d //c "formdesign.bat $*"; else ./formdesign "$@"; fi; }
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
             fd desktop build --config src-tauri/tauri.updater.conf.json
           else
@@ -83,11 +83,11 @@ jobs:
           b=src-tauri/target/release/bundle
           for f in $b/dmg/*.dmg $b/appimage/*.AppImage* $b/deb/*.deb $b/rpm/*.rpm $b/msi/*.msi* $b/nsis/*.exe*; do cp "$f" out/; done
           for f in $b/macos/*.app.tar.gz*; do n="$(basename "$f")"; cp "$f" "out/${n/.app.tar.gz/_${{ matrix.name }}.app.tar.gz}"; done
-          for f in src-tauri/binaries/formdes-core-*; do cp "$f" out/; done
+          for f in src-tauri/binaries/formdesign-core-*; do cp "$f" out/; done
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
-          name: formdes-${{ matrix.name }}
+          name: formdesign-${{ matrix.name }}
           if-no-files-found: error
           path: out/*
 
@@ -104,12 +104,12 @@ jobs:
       - name: The layout core for Intel Macs
         run: |
           cd native
-          cargo build --release -p formdes-core --target x86_64-apple-darwin
+          cargo build --release -p formdesign-core --target x86_64-apple-darwin
           mkdir -p ../out
-          cp target/x86_64-apple-darwin/release/formdes-core ../out/formdes-core-x86_64-apple-darwin
+          cp target/x86_64-apple-darwin/release/formdesign-core ../out/formdesign-core-x86_64-apple-darwin
       - uses: actions/upload-artifact@v4
         with:
-          name: formdes-core-macos-x64
+          name: formdesign-core-macos-x64
           if-no-files-found: error
           path: out/*
 
@@ -137,7 +137,7 @@ jobs:
                       platforms[key] = {'signature': open(f + '.sig').read().strip(), 'url': base + os.path.basename(f)}
                       break
           if platforms:
-              feed = {'version': tag.lstrip('v'), 'notes': f'formdes {tag}', 'platforms': platforms,
+              feed = {'version': tag.lstrip('v'), 'notes': f'FormDesign {tag}', 'platforms': platforms,
                       'pub_date': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}
               json.dump(feed, open('bundles/latest.json', 'w'), indent=2)
               print('latest.json written for', ', '.join(platforms))

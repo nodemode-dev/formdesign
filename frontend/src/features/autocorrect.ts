@@ -6,7 +6,7 @@ import type { Workspace } from '../ui/workspace';
 
 interface Settings { on: boolean; capitalize: boolean; pairs: Record<string, string> }
 
-const KEY = 'formdes.autocorrect';
+const KEY = 'formdesign.autocorrect';
 const DEFAULT_PAIRS: Record<string, string> = {
   teh: 'the', adn: 'and', taht: 'that', thier: 'their', recieve: 'receive', recieved: 'received', seperate: 'separate', definately: 'definitely',
   occured: 'occurred', occurence: 'occurrence', accomodate: 'accommodate', acheive: 'achieve', beleive: 'believe', wich: 'which', becuase: 'because',

@@ -1,4 +1,4 @@
-# HASHOUT_LOG · frontend · formdes
+# HASHOUT_LOG · frontend · FormDesign
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
@@ -19,7 +19,7 @@ frontend/
 ├── boot_frontend(.bat)           npm run dev
 ├── HASHOUT_LOG.md                this log
 ├── public/
-│   ├── favicon.svg, favicon.ico, apple-touch-icon.png   the formdes mark
+│   ├── favicon.svg, favicon.ico, apple-touch-icon.png   the FormDesign mark
 │   └── splash.html               the desktop splash while the engine starts
 └── src/
     ├── main.ts                   entry
@@ -57,15 +57,16 @@ frontend/
     ├── styles/
     │   ├── tokens.css            family tokens (vendored, verbatim from formvis 1.65.0)
     │   ├── shell.css, panels.css, dialogs.css, light-mode.css, scrollbars.css, fonts.css   family sheets (vendored)
-    │   └── formdes.css           formdes's own rules, tokens only
+    │   └── formdesign.css        FormDesign's own rules, tokens only
     └── ui/
         ├── dom.ts, themes.ts     zero-flash helpers and the 14 profiles (vendored)
-        ├── icons.ts              inline currentColor SVG set (vendored, grows with formdes's own)
+        ├── icons.ts              inline currentColor SVG set (vendored, grows with FormDesign's own)
         ├── menu.ts, commands.ts, toast.ts, dialogs.ts, dropdown.ts, panel-group.ts   family controls (vendored; panel-group adds startMin and border-aware tab fitting)
         ├── shell.ts, workspace.ts   the Shell implements the Workspace contract features install into
         ├── dock.ts               the two panel columns: order, hidden groups, heights, width, groups made from dropped tabs
         ├── tool-icons.ts         the tool rail glyphs
-        ├── brand.ts              the formdes mark
+        ├── brand.ts              the FormDesign mark
+        ├── storage-migrate.ts    moves browser storage keys saved under the previous name to the `formdesign.` prefix once at start
         └── home.ts               the start screen
 ```
 
@@ -98,7 +99,7 @@ frontend/
 - kind: rationale
 - logged: v0.1.0 · 2026-10-07
 
-Verbatim from formvis 1.65.0 (stylized-nodemode theme-boot.js, appearance generation 3, default profile `studio`, accent `#f97316`): the persisted profile and accent land on the root before the body paints, which is the whole mechanism behind no theme flash on reload. formdes shares the storage key `nodemode_ui_settings` with the family on purpose, so a theme chosen in formvis carries over. `formdes.css` loads after the family sheets and before `scrollbars.css`, which stays last.
+Verbatim from formvis 1.65.0 (stylized-nodemode theme-boot.js, appearance generation 3, default profile `studio`, accent `#f97316`): the persisted profile and accent land on the root before the body paints, which is the whole mechanism behind no theme flash on reload. FormDesign shares the storage key `nodemode_ui_settings` with the family on purpose, so a theme chosen in formvis carries over. `formdesign.css` loads after the family sheets and before `scrollbars.css`, which stays last.
 
 ---
 
@@ -109,7 +110,7 @@ Verbatim from formvis 1.65.0 (stylized-nodemode theme-boot.js, appearance genera
 - kind: explainer
 - logged: v0.1.0 · 2026-10-07
 
-The shell is formvis's grid (title bar, options row, rail, stage column with document tabs, a properties column, a resizer and a dock column, status bar) mounted once. In formdes the options row is the Control panel, the rail holds the core's tool catalog, and the stage carries three canvases: `fd-tiles` (pixels from the core), `fd-hilite` (text highlight, blended as difference so selected type inverts) and `fd-overlay` (selection, guides, tool feedback).
+The shell is formvis's grid (title bar, options row, rail, stage column with document tabs, a properties column, a resizer and a dock column, status bar) mounted once. In FormDesign the options row is the Control panel, the rail holds the core's tool catalog, and the stage carries three canvases: `fd-tiles` (pixels from the core), `fd-hilite` (text highlight, blended as difference so selected type inverts) and `fd-overlay` (selection, guides, tool feedback).
 
 ---
 
@@ -131,7 +132,7 @@ One socket to `/api/ws`. Requests get increasing ids and resolve when their repl
 - kind: rationale
 - logged: v0.1.0 · 2026-10-07
 
-Copied verbatim from formvis 1.65.0 (Apache-2.0, the same owner; dom.ts, themes.ts and part of icons.ts are the NodeMode stylized design system, MIT). Their in-file comments are kept as they are upstream so a later family update can be diffed and taken whole; formdes's own files carry none. formdes adds icons by appending to `ICONS`, never by editing the family's glyphs. Local changes to take care of in a family update (0.11.0): `commands.ts` gains `released`, `menu.ts` refreshes each row's keys when a menu opens, `panel-group.ts` gains the `tabIds` and `minimised` getters. formvis's `dock.ts` was not taken: formdes's `ui/dock.ts` is its own, written for groups that features register.
+Copied verbatim from formvis 1.65.0 (Apache-2.0, the same owner; dom.ts, themes.ts and part of icons.ts are the NodeMode stylized design system, MIT). Their in-file comments are kept as they are upstream so a later family update can be diffed and taken whole; FormDesign's own files carry none. FormDesign adds icons by appending to `ICONS`, never by editing the family's glyphs. Local changes to take care of in a family update (0.11.0): `commands.ts` gains `released`, `menu.ts` refreshes each row's keys when a menu opens, `panel-group.ts` gains the `tabIds` and `minimised` getters. formvis's `dock.ts` was not taken: FormDesign's `ui/dock.ts` is its own, written for groups that features register.
 
 ---
 
@@ -142,7 +143,7 @@ Copied verbatim from formvis 1.65.0 (Apache-2.0, the same owner; dom.ts, themes.
 - kind: explainer
 - logged: v0.1.0 · 2026-10-07
 
-The formdes mark in the family's construction (formvis's tile, rim and bloom, and its blue to violet to pink to amber paint gradient): an open spread, an image block and a headline bar in the paint gradient, text lines on paper. Ids are namespaced per copy so two marks on screen never share gradients. `assets/formdes_icon.png`, the favicons and the splash are renders of this same SVG.
+The FormDesign mark in the family's construction (formvis's tile, rim and bloom, and its blue to violet to pink to amber paint gradient): an open spread, an image block and a headline bar in the paint gradient, text lines on paper. Ids are namespaced per copy so two marks on screen never share gradients. `assets/formdesign_icon.png`, the favicons and the splash are renders of this same SVG.
 
 ---
 
@@ -153,7 +154,7 @@ The formdes mark in the family's construction (formvis's tile, rim and bloom, an
 - kind: explainer
 - logged: v0.1.0 · 2026-10-07
 
-formvis's start screen recipe (the first action white as the call to action, the rest dark, shortcut key caps, a drop hint, recent documents below). formdes leads with Make a layout, then New document and Open. It shows with no document open, or when forced from the brand button; Esc leaves it while a document is open.
+formvis's start screen recipe (the first action white as the call to action, the rest dark, shortcut key caps, a drop hint, recent documents below). FormDesign leads with Make a layout, then New document and Open. It shows with no document open, or when forced from the brand button; Esc leaves it while a document is open.
 
 ---
 
@@ -175,14 +176,14 @@ While the core wants text, a combo without Mod goes to the text so single letter
 - kind: explainer
 - logged: v0.8.0 · 2026-10-08
 
-Modes are Off, Separations and Ink Limit. The panel only sets `viewport.opts.plate` and `viewport.opts.inkLimit` and invalidates the tile cache; formdes-core renders the plate (0 to 3) as greys, or sums the four plates and paints red where the total passes the limit. The limit is clamped to 100 to 400. Overprint Preview is a separate tile option so it can be on in any mode; the View menu's checked state reads the same option.
+Modes are Off, Separations and Ink Limit. The panel only sets `viewport.opts.plate` and `viewport.opts.inkLimit` and invalidates the tile cache; formdesign-core renders the plate (0 to 3) as greys, or sums the four plates and paints red where the total passes the limit. The limit is clamped to 100 to 400. Overprint Preview is a separate tile option so it can be on in any mode; the View menu's checked state reads the same option.
 
 ### review.ts · ChangesPanel, NotesPanel, ConditionsPanel
 - refers-to: frontend/src/features/review.ts
 - kind: explainer
 - logged: v0.8.0 · 2026-10-08
 
-Three panels in the side column's Review group, each a keyed `patchList` over the core's lists (`changes.list`, `note.list`, `condition.list`) reloaded on document change. Track changes reads its checkbox from `editor.doc.trackChanges`, which formdes-core adds to each entry of the document list, because `inspect` settings do not carry it. Accept and reject address a change by story and start offset.
+Three panels in the side column's Review group, each a keyed `patchList` over the core's lists (`changes.list`, `note.list`, `condition.list`) reloaded on document change. Track changes reads its checkbox from `editor.doc.trackChanges`, which formdesign-core adds to each entry of the document list, because `inspect` settings do not carry it. Accept and reject address a change by story and start offset.
 
 ### object-styles.ts · ObjectStylesPanel
 - refers-to: frontend/src/features/object-styles.ts :: ObjectStylesPanel
@@ -345,7 +346,7 @@ The engine says which site belongs to the open document (`active`), because an u
 - kind: rationale
 - logged: v0.18.0 · 2026-10-10
 
-The layout core keeps the real clipboard (objects with their stories and pictures, formatted text); the window only mirrors its plain text onto the system clipboard after Copy and Cut, and hands the system clipboard's text to Paste so text copied in another app pastes in. Reading the system clipboard can prompt or hang in some browsers, so the read gives up after 600 ms and the paste goes ahead with formdes's own clipboard. With no text cursor, Paste sends the spread of the page in view and the view's centre in that spread's coordinates (the inverse of the slot transform from the layout), so pasted objects land where the person is looking. Mod+V reaches the command layer before the browser's paste event, which is why the old paste listener in shell.ts no longer sees canvas pastes.
+The layout core keeps the real clipboard (objects with their stories and pictures, formatted text); the window only mirrors its plain text onto the system clipboard after Copy and Cut, and hands the system clipboard's text to Paste so text copied in another app pastes in. Reading the system clipboard can prompt or hang in some browsers, so the read gives up after 600 ms and the paste goes ahead with FormDesign's own clipboard. With no text cursor, Paste sends the spread of the page in view and the view's centre in that spread's coordinates (the inverse of the slot transform from the layout), so pasted objects land where the person is looking. Mod+V reaches the command layer before the browser's paste event, which is why the old paste listener in shell.ts no longer sees canvas pastes.
 
 ## src/ui/command-form.ts {#cmdform0190}
 
@@ -384,7 +385,7 @@ The family's interface standard (FormWeb 0.3.4, formvis 1.66.1) puts one minirai
 - kind: rationale
 - logged: v0.20.0 · 2026-10-12
 
-Loaded after formdes.css and before light-mode.css and scrollbars.css. It redefines `.cv-main`'s tracks for six columns, keeps the options bar across rail, left column and canvas, and repeats the Hide Panels rule for six tracks; the five-track rules in shell.css stay for formvis parity and are overridden here.
+Loaded after formdesign.css and before light-mode.css and scrollbars.css. It redefines `.cv-main`'s tracks for six columns, keeps the options bar across rail, left column and canvas, and repeats the Hide Panels rule for six tracks; the five-track rules in shell.css stay for formvis parity and are overridden here.
 
 ### viewport.ts · resize draws in the same frame
 - refers-to: frontend/src/editor/viewport.ts :: resize
@@ -471,14 +472,14 @@ The panel shares the Terminal's group in the left column (Claude Code first), as
 - kind: rationale
 - logged: v0.26.0 · 2026-10-16
 
-The API and the page translator are formvis 1.72.8's (same owner): English is the source text and the key, `t()` sets a trailing "...", "…" or ":" aside, a regional variant (es-MX, fr-CA) falls back to its parent and then to English, and a MutationObserver translates text nodes and title, aria-label and placeholder attributes by exact match before the browser paints, keeping each node's English so switching back restores it. Text the person owns is skipped: inputs, editable text, the canvas, the terminal, Claude's and the Assistant's messages, code, and anything under `data-no-i18n`. The language is stored in localStorage `formdes.language`; main.ts loads that table before the window is built, so there is no English first paint. Tables are one JSON file per language, keyed by English, loaded lazily through `import.meta.glob`. `setup/i18n_keys.py keys` collects the strings from the window's templates, attributes, label and title properties, toasts, options and the engine's command labels, menu paths and help; it rejects code-shaped matches. At 0.26.0 the 1,405 strings of 40 characters or fewer are translated in every language (menus, commands, panel and dialog labels, buttons); the 114 longer help sentences show in English until the next pass, which `./formdes i18n check` lists. "Type" is the typography menu in every table, not "kind". Menu names built in the shell from its own list (File, Edit, Help and the rest) are translated when they are keys; Help was not collected yet. At 0.27.0 the extractor reads the shell's MENUS list and every one of the 1,526 strings is translated in all 23 full languages.
+The API and the page translator are formvis 1.72.8's (same owner): English is the source text and the key, `t()` sets a trailing "...", "…" or ":" aside, a regional variant (es-MX, fr-CA) falls back to its parent and then to English, and a MutationObserver translates text nodes and title, aria-label and placeholder attributes by exact match before the browser paints, keeping each node's English so switching back restores it. Text the person owns is skipped: inputs, editable text, the canvas, the terminal, Claude's and the Assistant's messages, code, and anything under `data-no-i18n`. The language is stored in localStorage `formdesign.language`; main.ts loads that table before the window is built, so there is no English first paint. Tables are one JSON file per language, keyed by English, loaded lazily through `import.meta.glob`. `setup/i18n_keys.py keys` collects the strings from the window's templates, attributes, label and title properties, toasts, options and the engine's command labels, menu paths and help; it rejects code-shaped matches. At 0.26.0 the 1,405 strings of 40 characters or fewer are translated in every language (menus, commands, panel and dialog labels, buttons); the 114 longer help sentences show in English until the next pass, which `./formdesign i18n check` lists. "Type" is the typography menu in every table, not "kind". Menu names built in the shell from its own list (File, Edit, Help and the rest) are translated when they are keys; Help was not collected yet. At 0.27.0 the extractor reads the shell's MENUS list and every one of the 1,526 strings is translated in all 23 full languages.
 
 ### ui/commands.ts, ui/shell.ts · the window's half of the command catalogue
 - refers-to: frontend/src/ui/commands.ts :: Command, CommandParam, Commands.call, onChange, blocked, why; frontend/src/ui/shell.ts :: publishActions, sendCatalogue, runForAgent
 - kind: rationale
 - logged: v0.27.0 · 2026-10-16
 
-The registry has formvis's fields and methods (group, description, when, params, mutates, risky; run with parameters, call that awaits, onChange, a blocked reason). The shell re-sends the catalogue 400 ms after any registration change (plugins, workspaces and shortcut sets add commands after start) and again when the engine connection reopens; the older `/actions/window` post is kept for `./formdes actions`. Commands an agent runs arrive on the engine socket and go through `call`, so a disabled command answers with its reason instead of running.
+The registry has formvis's fields and methods (group, description, when, params, mutates, risky; run with parameters, call that awaits, onChange, a blocked reason). The shell re-sends the catalogue 400 ms after any registration change (plugins, workspaces and shortcut sets add commands after start) and again when the engine connection reopens; the older `/actions/window` post is kept for `./formdesign actions`. Commands an agent runs arrive on the engine socket and go through `call`, so a disabled command answers with its reason instead of running.
 
 ### editor/viewport.ts · corner handles
 - refers-to: frontend/src/editor/viewport.ts :: drawSelection (corners)
@@ -511,7 +512,7 @@ Artboards are document data in the core (`artboard.*` commands); the window only
 PDF export (v0.60.0) goes through the socket rather than a REST route: `artboard.exportPdf` without a path answers with base64, which the window decodes into a Blob and downloads as `<title> artboards.pdf`. One engine call builds every page, so the throttled check made a single round trip instead of one fetch per artboard.
 
 ### features/appearance.ts · the Appearance panel
-- refers-to: frontend/src/features/appearance.ts :: AppearancePanel, rowsOf, effectName; frontend/src/ui/dom.ts :: patchList; native/formdes-engine/src/cmd/layout.rs :: item_json (appearance, effects)
+- refers-to: frontend/src/features/appearance.ts :: AppearancePanel, rowsOf, effectName; frontend/src/ui/dom.ts :: patchList; native/formdesign-engine/src/cmd/layout.rs :: item_json (appearance, effects)
 - kind: rationale
 - logged: v0.69.0 · 2026-10-17
 
@@ -550,18 +551,25 @@ The preview is the engine's (`image.adjustPreview`), so it cannot drift from wha
 - kind: rationale
 - logged: v0.78.0 · 2026-10-19
 
-The Terminal and Claude Code panels left the left panel group for one resizable dock under the canvas, inside the stage column, because a person working with Claude needs the page and the conversation in view together and a panel group hid one of them. The dock is static markup in `SHELL` (hidden at start) and `TerminalDock` only wires it, so opening it creates no nodes and the canvas keeps its top edge; only its height changes, which the viewport already follows. The height is kept in localStorage (`formdes.dock.height`, every access in try/catch) and written when a drag ends. Ownership: `terminal.ts` owns the dock, the shell and Claude Code tabs (xterm, loaded on first use, its token-authenticated socket and the theme tokens) and the four commands; `claude.ts` owns the chat view (`ClaudePanel`), which the dock hosts as its Chat tab through `registerChat`, so neither file imports the other's internals and the chat's events and replay are unchanged. The Ask line belongs to the dock and sends to the chat on the Chat tab and otherwise opens or reuses the Claude Code tab (`reuse: true`, the prompt typed into the live session), always with the open document, page and selected item ids from `documentContext`. A hand-off from the chat starts a new Claude Code tab with `resume` and no reuse. Keys typed in the dock stop at the dock, because the editor's key router ignores text fields anyway and a terminal must receive every key; the one exception is Mod+J, handled by the dock itself so it hides the dock from inside xterm. Mod+J was Go to Page (`pages.goTo` takes it only through `free()`); the toggle is registered after Pages and wins, and Go to Page is left without a key rather than shown with a key it no longer answers to. The old terminal stylesheet is gone with the panel; `connect: agent` is the one icon change in the panel dock.
+The Terminal and Claude Code panels left the left panel group for one resizable dock under the canvas, inside the stage column, because a person working with Claude needs the page and the conversation in view together and a panel group hid one of them. The dock is static markup in `SHELL` (hidden at start) and `TerminalDock` only wires it, so opening it creates no nodes and the canvas keeps its top edge; only its height changes, which the viewport already follows. The height is kept in localStorage (`formdesign.dock.height`, every access in try/catch) and written when a drag ends. Ownership: `terminal.ts` owns the dock, the shell and Claude Code tabs (xterm, loaded on first use, its token-authenticated socket and the theme tokens) and the four commands; `claude.ts` owns the chat view (`ClaudePanel`), which the dock hosts as its Chat tab through `registerChat`, so neither file imports the other's internals and the chat's events and replay are unchanged. The Ask line belongs to the dock and sends to the chat on the Chat tab and otherwise opens or reuses the Claude Code tab (`reuse: true`, the prompt typed into the live session), always with the open document, page and selected item ids from `documentContext`. A hand-off from the chat starts a new Claude Code tab with `resume` and no reuse. Keys typed in the dock stop at the dock, because the editor's key router ignores text fields anyway and a terminal must receive every key; the one exception is Mod+J, handled by the dock itself so it hides the dock from inside xterm. Mod+J was Go to Page (`pages.goTo` takes it only through `free()`); the toggle is registered after Pages and wins, and Go to Page is left without a key rather than shown with a key it no longer answers to. The old terminal stylesheet is gone with the panel; `connect: agent` is the one icon change in the panel dock.
 
 ### home.ts, workspaces.ts, dock.ts · everyday first run
-- refers-to: frontend/src/ui/home.ts :: TILES, HomeScreen; frontend/src/features/workspaces.ts :: BUILTIN, installWorkspaces; frontend/src/ui/dock.ts :: apply (is-dock-empty); frontend/src/styles/columns.css; frontend/src/styles/formdes.css (title bar under 1180 and 1020 px); frontend/src/features/make/gallery.ts :: open
+- refers-to: frontend/src/ui/home.ts :: TILES, HomeScreen; frontend/src/features/workspaces.ts :: BUILTIN, installWorkspaces; frontend/src/ui/dock.ts :: apply (is-dock-empty); frontend/src/styles/columns.css; frontend/src/styles/formdesign.css (title bar under 1180 and 1020 px); frontend/src/features/make/gallery.ts :: open
 - kind: rationale
 - logged: v0.78.0 · 2026-10-19
 
 A first launch used to show the panels where each feature registered them, three crowded columns with cut-off tabs, because a workspace was only applied when chosen. Now, when localStorage has neither a chosen workspace nor a dock layout, Essentials is applied in a microtask after the panels mount, before the first paint, so nothing moves on screen. Essentials keeps Pages and Make on the left and Properties over Swatches on the side, and hides the rest (Window brings any back). A column a workspace leaves empty folds to zero width (`is-dock-empty`, not while a group is being dragged). Working with Claude runs `ui.claude` after its layout through the spec's `then`, built-in workspaces only. The Home screen's Start with tiles open the template gallery on a category (`ui.templates` with `{category}`; without one the gallery keeps its last filter), the Recent section stays mounted with a quiet line when empty so the first document does not shift the screen, and the title bar drops the zoom controls under 1180 px and undo and redo under 1020 px instead of overlapping the menu names.
 
 ### brand.ts, splash.html, src-tauri/icons · the app icon redrawn as a tilted magazine spread
-- refers-to: frontend/src/ui/brand.ts :: MARK; frontend/public/favicon.svg; frontend/public/splash.html; src-tauri/icons/*; assets/formdes_icon.png, formdes_icon_macos.png, formdes_folder_icon.png; assets/icon_src/
+- refers-to: frontend/src/ui/brand.ts :: MARK; frontend/public/favicon.svg; frontend/public/splash.html; src-tauri/icons/*; assets/formdesign_icon.png, formdesign_icon_macos.png, formdesign_folder_icon.png; assets/icon_src/
 - kind: rationale
 - logged: v0.79.0 · 2026-10-20
 
 The flat spread kept its idea but now matches the redrawn family (FormDeck's fanned deck, formpdf's signed page, FormSurface's painted cube): the same tile, bloom, rim and drop shadow, the pages curving into the spine over a dark cover edge with a shadowed gutter, tilted five degrees, and one gradient hero image running across both pages under a headline bar, the spread layout a page-layout app is for. The macOS .icns uses the 824 px tile inside a 1024 canvas with a 100 px margin; .ico, the PNGs and the Square*Logo set stay full bleed as before. Sizes 64 px and below drop the body text for two heavy lines and a larger hero so the spread still reads at 16 px. MARK, favicon.svg and the splash share one filter-free drawing with a rounded-rect tile, keeping the {p} id prefix. assets/icon_src/ regenerates every file (python3 gen.py, node render.mjs, python3 build.py; python3 compact.py PREFIX prints the inline mark); the tile shadow is its own layer under an unfiltered tile, because a filter on the tile made Chromium band the gradient. compact.py strips the root's width and height once only: stripping every occurrence also took the size off the bloom rect, so the inline marks drew no bloom while the PNGs had one.
+
+### ui/storage-migrate.ts, main.ts · the formdesign rename
+- refers-to: frontend/src/ui/storage-migrate.ts :: migrateStorage; frontend/src/main.ts
+- kind: rationale
+- logged: v0.80.0 · 2026-10-20
+
+Browser storage keys, DOM events, the library drag type, console prefixes, the plugin global and the stylesheet (`styles/formdesign.css`) all use `formdesign` now. A person's saved panel layout, units, workspace, shortcuts and the rest sit under keys with the short prefix, so `migrateStorage` runs first in main.ts, before the language and the features read anything: each such key is copied to its `formdesign.` name unless that is already set, then removed. On the desktop the storage itself lives in the webview's folder for the app identifier, which the shell moves to the new identifier before any window opens (root HASHOUT_LOG); this module then renames the keys inside it. The theme boot script in index.html reads the family key `nodemode_ui_settings`, which the rename does not touch.

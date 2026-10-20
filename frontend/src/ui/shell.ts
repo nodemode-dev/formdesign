@@ -721,7 +721,7 @@ export class Shell implements Workspace {
 
   private syncStatus(on: boolean): void {
     const s = q(this.root, '.fd-st-engine');
-    if (!on) setText(s, engine.connected ? 'Engine running' : 'Connecting to the engine (./formdes boot)');
+    if (!on) setText(s, engine.connected ? 'Engine running' : 'Connecting to the engine (./formdesign boot)');
     else setText(s, editor.coreVersion ? `Layout core ${editor.coreVersion}` : 'Engine ready');
     setClass(this.root, 'is-offline', !on);
   }

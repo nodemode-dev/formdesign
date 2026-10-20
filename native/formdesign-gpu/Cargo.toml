@@ -1,0 +1,19 @@
+[package]
+name = "formdesign-gpu"
+description = "FormDesign's native GPU compositor: page tiles from the CPU raster, zoom, pan, page shadows and the pasteboard drawn on wgpu (Metal, Vulkan, Direct3D 12)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+wgpu = "30.0.1"
+pollster = "1"
+bytemuck = { version = "1", features = ["derive"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+
+[dev-dependencies]
+# Only for examples/headless.rs, to write the probe image; already in the workspace's lock through the raster stack.
+png = "0.18"

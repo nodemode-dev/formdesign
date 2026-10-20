@@ -33,7 +33,7 @@ const META: Record<string, Groups> = {
   ],
   grepChange: [['Found', [['$0', 'Found Text'], ['$1', 'Found 1'], ['$2', 'Found 2'], ['$3', 'Found 3'], ['$4', 'Found 4']]], ['Characters', CHARS_GREP]],
 };
-const POS_KEY = 'formdes.find.pos';
+const POS_KEY = 'formdesign.find.pos';
 const LINE_BREAK = new RegExp(String.fromCharCode(0x2028), 'g');
 const MARKERS = new RegExp(`[${String.fromCharCode(0xe000)}-${String.fromCharCode(0xf8ff)}]`, 'g');
 

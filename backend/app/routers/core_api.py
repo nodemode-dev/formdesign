@@ -9,7 +9,7 @@ from app.engine.core import CoreError, core
 from app.engine.documents import documents
 
 router = APIRouter()
-log = logging.getLogger("formdes.ws")
+log = logging.getLogger("formdesign.ws")
 
 JSON_METHODS = {"exec", "batch", "commands", "inspect", "state", "layout", "overlays", "pointer", "key", "text", "cursor",
                 "tool", "tools", "docs.activate", "docs.close", "fonts.families", "fonts.styles", "fonts.face", "story.paras", "objectStyles", "findChange", "spellMarks", "spellSuggest", "spellCheck", "spellLanguages", "pathType", "preflight", "hello", "ping", "slots",

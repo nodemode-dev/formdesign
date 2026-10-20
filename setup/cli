@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-export FORMDES_CWD="${FORMDES_CWD:-$PWD}"
+export FORMDESIGN_CWD="${FORMDESIGN_CWD:-$PWD}"
 fd_venv
-cd "$FORMDES_ROOT/backend"
+cd "$FORMDESIGN_ROOT/backend"
 exec python -m app.cli "$@"

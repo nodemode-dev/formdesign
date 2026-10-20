@@ -4,7 +4,7 @@ import { Canvas2dCompositor } from '../gpu/canvas2d';
 import { inTauri, type Compositor, type Frame, type FrameTile, type Preference } from '../gpu/index';
 import { chainFor, selectCompositor, type CanvasFactory, type PathId } from '../gpu/select';
 
-const RENDERER_KEY = 'formdes.renderer';
+const RENDERER_KEY = 'formdesign.renderer';
 const PATH_LABEL: Record<PathId, string> = { native: 'Native', webgpu: 'WebGPU', webgl2: 'WebGL2', canvas2d: 'Canvas 2D' };
 /** Set on the root while the native canvas is showing through the page's transparent stage. */
 const NATIVE_CLASS = 'is-native-canvas';
@@ -78,8 +78,8 @@ export class Viewport {
     editor.on('tool', () => this.refreshOverlays());
     matchMedia(`(resolution: ${this.dpr}dppx)`).addEventListener?.('change', () => { this.dpr = Math.max(1, window.devicePixelRatio || 1); this.resize(); });
     try { const p = localStorage.getItem(RENDERER_KEY); if (p === 'auto' || p === 'webgpu' || p === 'webgl2' || p === 'canvas2d' || (p === 'native' && inTauri())) this.rendererPref = p; } catch { }
-    // The desktop shell can start the page on the native canvas (FORMDES_RENDERER=native), ahead of the remembered choice.
-    if (inTauri() && (window as unknown as { __FORMDES_RENDERER__?: string }).__FORMDES_RENDERER__ === 'native') this.rendererPref = 'native';
+    // The desktop shell can start the page on the native canvas (FORMDESIGN_RENDERER=native), ahead of the remembered choice.
+    if (inTauri() && (window as unknown as { __FORMDESIGN_RENDERER__?: string }).__FORMDESIGN_RENDERER__ === 'native') this.rendererPref = 'native';
     if (this.rendererPref !== 'canvas2d') void this.chooseRenderer(this.rendererPref);
     else this.notifyRenderer();
   }

@@ -110,7 +110,7 @@ async def export(body: dict = Body(...)):
     if mime == "application/zip" and fmt == "html":
         ext = ".zip"
     state = await documents.overview()
-    title =Path(state["docs"][state["active"]]["title"]).stem if state.get("active") is not None else "formdes"
+    title =Path(state["docs"][state["active"]]["title"]).stem if state.get("active") is not None else "FormDesign"
     return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{title}{ext}"', "Cache-Control": "no-store"})
 
 

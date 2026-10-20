@@ -5,7 +5,7 @@ import { el, q, setHidden, setText, setValue } from '../ui/dom';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
 
-const RECENT_KEY = 'formdes.glyphs.recent';
+const RECENT_KEY = 'formdesign.glyphs.recent';
 const PAGE = 480;
 
 const SETS: Array<[string, string, Array<[number, number]>]> = [
