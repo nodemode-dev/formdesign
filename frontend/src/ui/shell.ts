@@ -10,6 +10,7 @@ import { el, escapeHtml, isMac, patchList, q, setClass, setHidden, setText, setT
 import { HomeScreen } from './home';
 import { icon } from './icons';
 import { Dock, type PanelLayout } from './dock';
+import { StatusBar } from './status';
 import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './menu';
 import { CaptionButtons, wantsCustomTitleBar } from './caption-buttons';
 import { onLanguage } from './i18n';
@@ -62,11 +63,13 @@ export class Shell implements Workspace {
   private groupMenu: PopupMenu | null = null;
   private palette: CommandPalette | null = null;
   private menuGroup = '';
+  private readonly status: StatusBar;
 
   constructor(readonly root: HTMLElement) {
     this.stage = q(root, '.fd-stage');
     this.viewport = new Viewport(this.stage, q(root, '.fd-tiles'), q(root, '.fd-hilite'), q(root, '.fd-overlay'));
     this.input = new Input(this.viewport, this.stage);
+    this.status = new StatusBar(q(root, '.fd-status'), this.viewport);
     this.input.onKeyCommand = (e) => this.onKeyCommand(e);
     root.appendChild(this.fileInput);
     this.home = new HomeScreen(this.stage.parentElement as HTMLElement, {
@@ -146,7 +149,7 @@ export class Shell implements Workspace {
   override(coreId: string, run: (params?: Record<string, unknown>) => void): void { this.overrides.set(coreId, run); }
   onDropFiles(handler: (files: File[]) => boolean): void { this.dropHandlers.push(handler); }
   onPlaceFile(handler: (path: string) => Promise<boolean>): void { this.placeHandlers.push(handler); }
-  setHint(text: string): void { setText(q(this.root, '.fd-st-hint'), text); }
+  setHint(text: string): void { this.status.setHint(text); }
   showHome(): void { this.home.show(); }
 
   setControl(id: string, node: HTMLElement | null, priority = 0): void {
@@ -730,6 +733,7 @@ export class Shell implements Workspace {
 
   private syncZoom(): void {
     setText(q(this.root, '.fd-zoom-label'), editor.hasDoc ? `${Math.round(this.viewport.view.zoom * 100)}%` : '');
+    this.status.syncView();
   }
 
   private syncPageLabel(): void {

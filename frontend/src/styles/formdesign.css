@@ -61,6 +61,20 @@
 }
 .fd-status { display: flex; align-items: center; gap: var(--space-4); padding: 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-11); }
 .fd-st-hint { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-status .cv-st-tools { display: flex; align-items: center; gap: 2px; flex: none; }
+.fd-status .cv-st-btn { width: var(--ctl-sm); height: var(--ctl-sm); }
+.fd-status .cv-st-btn svg { width: 14px; height: 14px; }
+.fd-status .cv-st-tools .cv-sep { height: 14px; margin: 0 var(--space-1); }
+.fd-status .cv-st-zoom { box-sizing: border-box; width: 64px; height: 20px; padding: 0 var(--space-1); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font: inherit; text-align: center; font-variant-numeric: tabular-nums; }
+.fd-status .cv-st-zoom:hover { border-color: var(--border-color); }
+.fd-status .cv-st-zoom:focus { outline: 0; border-color: var(--accent-color); }
+.fd-status .cv-st-dims { flex: none; width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.fd-status .cv-st-info { all: unset; box-sizing: border-box; flex: none; width: 196px; height: 20px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; color: var(--text-secondary); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
+.fd-status .cv-st-info:hover { color: var(--text-primary); }
+.fd-status .cv-st-info:focus-visible { outline: 1px solid var(--accent-line); outline-offset: 2px; }
+.fd-status .cv-st-busy { flex: none; width: 80px; }
+.fd-status .cv-st-engine { flex: none; width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.fd-status .fd-st-page { flex: none; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fd-zoom-label { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
 .fd-cmd-form { max-height: 62vh; overflow: auto; }
 .fd-cmd-form .fo-field textarea, .fto-body .fo-field textarea { min-height: calc(var(--ctl-md) * 1.6); padding: 6px 8px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface-field); color: var(--text-primary); font: inherit; font-size: var(--fs-12); resize: vertical; }

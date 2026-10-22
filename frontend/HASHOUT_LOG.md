@@ -608,3 +608,10 @@ The theme choice is shared across the Form family (`nodemode_ui_settings`) and f
 - logged: v0.82.0 · 2026-10-22
 
 Preferences is the formvis shell: a floating rail of section tabs (collapse state in `formdesign.prefsRailCollapsed`), one scrolling pane of foldable cards, a scroll spy, and an SVG wire and port from the active tab to the header, all built once and patched in place on open. The old four pages map to sections without renaming any stored key: Appearance to Interface, Units to Units & Rulers, Agents to Plugins, AI to AI; General is new and holds the read-only data folder and Reset All Preferences, which clears every `formdesign.` key and `nodemode_ui_settings` after a confirm. `open(page)` keeps its page ids and scrolls to the matching card. Workspace and Performance are not offered because the dialog has no rows for them yet; theme previews became the formvis swatch grid. New strings (section and group names, Reset text) are English only until the next translation pass.
+
+### ui/status.ts, styles/formdesign.css · the formvis status bar structure
+- refers-to: frontend/src/ui/status.ts :: StatusBar; frontend/src/styles/formdesign.css (fd-status block); frontend/src/ui/shell.ts :: setHint
+- kind: rationale
+- logged: v0.84.0 · 2026-10-22
+
+The footer is built once in the SHELL markup and StatusBar prepends the history and zoom tools, the page size, the click-to-cycle info readout (pages, slots, selection, history; Shift reverses; kept in `formdesign.statusInfo`) and adds the Working indicator after the hint. Existing slots (engine, page label, hint, version and the proof, renderer and draw mode chips that other modules insert by class) keep their classes. Every slot has a fixed width so cycling or a state change never reflows the bar; the zoom field is never written while focused. The hint shows whole " · " segments only, with the full text in the tooltip, and Working appears through pendingClass so quick jobs never flash. FormDesign's engine has no job list, so no jobs popup. The title bar keeps its own undo, redo and zoom tools.
