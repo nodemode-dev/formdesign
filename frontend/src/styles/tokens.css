@@ -65,6 +65,7 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
   --shadow-window: 0 24px 60px rgba(0,0,0,0.6);
+  --shadow-ink: #000;
 
   /* ── spacing (the app declares 1-3; 4-8 extend the same 4px step) ── */
   --space-1: 4px;

@@ -601,3 +601,10 @@ Off by default (`formdesign.customTitleBar`); turning it on takes the system fra
 - logged: v0.82.0 · 2026-10-22
 
 The theme choice is shared across the Form family (`nodemode_ui_settings`) and formvis offers 28 themes; FormDesign had 15, so a theme picked in formvis such as Pro Dark or Soft Light fell back to Studio. The 13 missing profiles are added with formvis's values to both tables, which must stay equal. Checked in headless Chromium with the store set to pro-dark, soft-light and nineties: the right `--bg-primary` at the first script turn and after start, `theme-light` on the light ones.
+
+### features/document/prefs.ts, styles/dialogs.css, ui/icons.ts · the formvis Preferences dialog
+- refers-to: frontend/src/features/document/prefs.ts :: PreferencesDialog; frontend/src/features/ai-settings.ts :: AiPage; frontend/src/styles/dialogs.css (cv-prefs block); frontend/src/ui/icons.ts (pfGeneral, pfInterface, pfUnits, pfPlugins, pfAssistant, pfFold)
+- kind: rationale
+- logged: v0.82.0 · 2026-10-22
+
+Preferences is the formvis shell: a floating rail of section tabs (collapse state in `formdesign.prefsRailCollapsed`), one scrolling pane of foldable cards, a scroll spy, and an SVG wire and port from the active tab to the header, all built once and patched in place on open. The old four pages map to sections without renaming any stored key: Appearance to Interface, Units to Units & Rulers, Agents to Plugins, AI to AI; General is new and holds the read-only data folder and Reset All Preferences, which clears every `formdesign.` key and `nodemode_ui_settings` after a confirm. `open(page)` keeps its page ids and scrolls to the matching card. Workspace and Performance are not offered because the dialog has no rows for them yet; theme previews became the formvis swatch grid. New strings (section and group names, Reset text) are English only until the next translation pass.

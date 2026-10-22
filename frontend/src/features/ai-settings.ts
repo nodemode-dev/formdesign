@@ -17,29 +17,29 @@ const IMAGE_HINT: Record<string, string> = { openai: 'gpt-image-1', stability: '
 
 /** Preferences > AI: one page, built once. Keys are typed here and sent once; the engine keeps them and only says whether one is set. */
 export class AiPage {
-  readonly root = el(`<div class="cv-prefs-page fd-pr-page" hidden data-page="ai">
-    <section class="fd-pr-sec">
-      <h3 class="fd-pr-h">Assistant and AI helpers</h3>
-      <p class="fd-f-note">Off by default. When on, the Assistant panel, Generate Alt Text, Auto Style (model path), Generate Image and Generative Expand send text or pictures to the provider you choose below. Nothing is sent while this is off.</p>
+  readonly root = el(`<div class="fd-pr-ai">
+    <section class="cv-prefs-group">
+      <h3 class="cv-prefs-label">Assistant and AI helpers</h3>
+      <p class="cv-note">Off by default. When on, the Assistant panel, Generate Alt Text, Auto Style (model path), Generate Image and Generative Expand send text or pictures to the provider you choose below. Nothing is sent while this is off.</p>
       <label class="cv-opt"><input class="fa-on" type="checkbox"><span>Turn on AI features</span></label>
     </section>
-    <section class="fd-pr-sec">
-      <h3 class="fd-pr-h">Language model</h3>
-      <p class="fd-f-note">Anthropic uses the Messages API with tool use. OpenAI compatible covers OpenAI, OpenRouter, LM Studio and vLLM (set the base URL). Ollama runs on this computer. Alt text needs a model that can read images.</p>
+    <section class="cv-prefs-group">
+      <h3 class="cv-prefs-label">Language model</h3>
+      <p class="cv-note">Anthropic uses the Messages API with tool use. OpenAI compatible covers OpenAI, OpenRouter, LM Studio and vLLM (set the base URL). Ollama runs on this computer. Alt text needs a model that can read images.</p>
       <label class="fa-row"><span>Provider</span><select class="cv-select fa-provider" aria-label="Provider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI compatible</option><option value="ollama">Ollama (local)</option></select></label>
       <label class="fa-row"><span>Model</span><input class="cv-input fa-model" type="text" autocomplete="off" spellcheck="false"></label>
       <label class="fa-row"><span>Base URL</span><input class="cv-input fa-url" type="text" autocomplete="off" spellcheck="false"></label>
       <label class="fa-row"><span>API key</span><span class="fa-keywrap"><input class="cv-input fa-key" type="password" autocomplete="new-password" spellcheck="false"><span class="fa-keystate"></span><button class="cv-btn fa-keyclear" type="button">Remove</button></span></label>
     </section>
-    <section class="fd-pr-sec">
-      <h3 class="fd-pr-h">Images</h3>
-      <p class="fd-f-note">For Generate Image and Generative Expand. An OpenAI compatible images endpoint (generations and edits with a mask) or a Stability compatible one. A blank key and address here use the language model's when it is OpenAI compatible.</p>
+    <section class="cv-prefs-group">
+      <h3 class="cv-prefs-label">Images</h3>
+      <p class="cv-note">For Generate Image and Generative Expand. An OpenAI compatible images endpoint (generations and edits with a mask) or a Stability compatible one. A blank key and address here use the language model's when it is OpenAI compatible.</p>
       <label class="fa-row"><span>Provider</span><select class="cv-select fa-iprovider" aria-label="Image provider"><option value="openai">OpenAI compatible</option><option value="stability">Stability compatible</option></select></label>
       <label class="fa-row"><span>Model</span><input class="cv-input fa-imodel" type="text" autocomplete="off" spellcheck="false"></label>
       <label class="fa-row"><span>Base URL</span><input class="cv-input fa-iurl" type="text" autocomplete="off" spellcheck="false"></label>
       <label class="fa-row"><span>API key</span><span class="fa-keywrap"><input class="cv-input fa-ikey" type="password" autocomplete="new-password" spellcheck="false"><span class="fa-ikeystate"></span><button class="cv-btn fa-ikeyclear" type="button">Remove</button></span></label>
     </section>
-    <section class="fd-pr-sec">
+    <section class="cv-prefs-group">
       <div class="fa-actions"><button class="cv-btn cv-btn-primary fa-save" type="button">Save</button><button class="cv-btn fa-test" type="button">Test the model</button><span class="fa-result"></span></div>
     </section>
   </div>`);

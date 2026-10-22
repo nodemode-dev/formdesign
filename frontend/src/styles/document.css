@@ -141,27 +141,8 @@
 .fd-setup .cv-dialog-body, .fd-package .cv-dialog-body { gap: 14px; padding: 18px 20px; }
 
 /* ── Preferences ── */
-.fd-prefs .cv-dialog-body.fd-pr-body { padding: 0; }
-.fd-pr { grid-template-columns: 184px minmax(0, 1fr); gap: 0; height: min(560px, calc(100vh - 190px)); }
-.fd-pr-nav { gap: 2px; padding: 12px 10px; border-right: 1px solid var(--surface-raised); background: var(--surface-1); }
-.fd-pr-tab { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; border-radius: 9px; font-size: var(--fs-13); }
-.fd-pr-tab .icon { color: var(--text-muted); }
-.fd-pr-tab.is-active { background: var(--surface-raised); color: var(--text-primary); }
-.fd-pr-tab.is-active .icon { color: var(--accent-ink); }
-.fd-pr-pages { padding: 18px 22px; }
-.fd-pr-page { gap: 22px; }
-.fd-pr-sec { display: flex; flex-direction: column; gap: 8px; }
-.fd-pr-h { margin: 0; color: var(--text-primary); font-size: var(--fs-13); font-weight: 600; }
-.fd-pr-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(102px, 1fr)); gap: 8px; margin-top: 2px; }
-.fd-pr-theme { display: flex; flex-direction: column; gap: 6px; padding: 5px 5px 7px; border: 1px solid var(--line-1); border-radius: 10px; background: var(--surface-2); color: var(--text-secondary); font: inherit; font-size: var(--fs-12); text-align: left; cursor: pointer; }
-.fd-pr-theme:hover { border-color: var(--line-3); color: var(--text-primary); }
-.fd-pr-theme.is-on { border-color: var(--accent-color); box-shadow: inset 0 0 0 1px var(--accent-color); color: var(--text-primary); }
-.fd-pr-tprev { position: relative; display: block; height: 50px; overflow: hidden; border: 1px solid transparent; border-radius: 7px; }
-.fd-pr-tbar { position: absolute; left: 0; right: 0; top: 0; height: 11px; }
-.fd-pr-tline { position: absolute; left: 8px; top: 21px; width: 58%; height: 3px; border-radius: 2px; opacity: 0.75; }
-.fd-pr-tline.is-short { top: 30px; width: 36%; opacity: 0.45; }
-.fd-pr-tdot { position: absolute; right: 7px; bottom: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-color); }
-.fd-pr-tname { padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-pr-ai { display: contents; }
+.fd-pr-group-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .fd-pr-accents { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .fd-pr-accent, .fd-pr-custom { position: relative; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 1px var(--border-soft); }
 .fd-pr-accent.is-on, .fd-pr-custom.is-on { outline: 2px solid var(--text-primary); outline-offset: 2px; }
