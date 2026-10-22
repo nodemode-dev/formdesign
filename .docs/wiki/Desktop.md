@@ -39,11 +39,11 @@ Windows uses `formdesign.bat install-desktop` and `formdesign.bat desktop build`
 | Platform | Bundles | Built and run so far |
 | --- | --- | --- |
 | Linux x64 | `.deb`, `.rpm`, `.AppImage` | `.deb` built and launched (0.6.0) |
-| macOS arm64 | `.dmg`, `.app` | by `desktop.yml` only |
-| Windows x64 | `.msi`, NSIS `-setup.exe` | by `desktop.yml` only |
+| macOS arm64 | `.dmg`, `.app` | by formcompiler only |
+| Windows x64 | `.msi`, NSIS `-setup.exe` | by formcompiler only |
 
 ## Contract
 
 - The window inside the app is the same build as the browser's; desktop-only behaviour goes in `src-tauri/src/main.rs`, not in the frontend.
 - Everything the engine reads at run time must be added to the freeze (`--add-data` in `setup/freeze_backend` and its `.bat` twin) and reported by `--selfcheck`.
-- No signing keys in the repository. Signing and the updater key come from GitHub secrets (see [[Releasing]]).
+- No signing keys in the repository. Signing and the updater key come from formcompiler's GitHub secrets (see [[Releasing]]).

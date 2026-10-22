@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | The status bar stays on "Connecting to the engine" | the engine is not running, or not on 8196 | `./formdesign backend` in a terminal shows why; `./formdesign doctor` checks the ports |
 | "the layout core is not built: run ./formdesign install-core" | formdesign-core was never built | `./formdesign install-core` (cargo build, a few minutes the first time) |
-| `install-core` fails to download without Rust | there is no published release for this version, or no prebuilt core for this machine (Linux arm64 has none) | install Rust from https://rustup.rs and rerun; or publish the draft release |
+| `install-core` fails to download without Rust | there is no published release for this version, or no prebuilt core for this machine (Linux arm64 has none) | install Rust from https://rustup.rs and rerun; or publish the draft `formdesign-v[version]` release on formcompiler |
 | Templates render in fallback fonts | the font library was not converted | `./formdesign install-fonts` |
 | Port 5196 or 8196 is busy | another FormDesign, or another program | stop it, or set `FORMDESIGN_UI_PORT` and `FORMDESIGN_ENGINE_PORT` (dev) or `FORMDESIGN_PORT` (engine) |
 | `install-desktop` stops on Linux | the webview libraries are missing | `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf build-essential libssl-dev` |

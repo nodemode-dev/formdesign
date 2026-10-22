@@ -47,11 +47,11 @@ Semver. Patch for fixes and docs, minor for new features or modules, major for m
 ## Releasing
 
 1. Merge the release pull request into `main` with the bump commit last.
-2. Tag it: `git tag -a v0.7.0 -m "FormDesign v0.7.0: ..."` and `git push origin main --tags`.
-3. The tag runs `.github/workflows/desktop.yml`: macOS arm64, Linux x64 and Windows x64 bundles, the Intel Mac core, and the `formdesign-core-[triple]` assets go into a draft GitHub release.
-4. Review the draft and publish it. `./formdesign install-core` downloads its prebuilt core from the published release, so a draft is not enough for machines without Rust.
+2. Push a compile branch from the bump commit: `git push origin HEAD:compile_v0.7.0`. CI runs on it. FormDesign builds nothing in this repository.
+3. formcompiler (`nodemode-ai/formcompiler`) picks the branch up on its next 8-hourly watch run, or at once when its watch is run by hand. Once CI has passed on that commit, it builds macOS arm64, Linux x64 and Windows x64 bundles, the Intel Mac core, and the `formdesign-core-[triple]` assets into a draft release `formdesign-v0.7.0` on its own release page.
+4. Review the draft and publish it there. `./formdesign install-core` downloads its prebuilt core from the published `formdesign-v[version]` release on formcompiler, so a draft is not enough for machines without Rust. Compile branches are kept as the record of what was built.
 
-Signing secrets and the updater key are described on the wiki's Releasing page.
+Signing secrets and the updater key live in formcompiler's repository and are described on the wiki's Releasing page.
 
 ## The wiki
 

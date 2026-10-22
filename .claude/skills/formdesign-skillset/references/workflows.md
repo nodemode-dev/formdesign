@@ -45,5 +45,5 @@
 ## A release
 
 1. Hand edits to the versions: `frontend/package.json`, the two fields in `frontend/package-lock.json`, `frontend/src/version.ts`, `backend/app/__init__.py`, `native/Cargo.toml` workspace version and the formdesign-core entry in `native/Cargo.lock`, the README badge.
-2. Commit the bump last; tag `vX.Y.Z`.
+2. Commit the bump last; push `compile_vX.Y.Z` from it, and formcompiler builds the release `formdesign-vX.Y.Z`.
 3. Zip a clean clone with `.git` (origin `git@github.com:nodemode-ai/formdesign.git`) as `formdesign_vX.Y.Z.zip` (folder `formdesign/`) and the planning sidecar as `formdesign_planning_docs_sidecar_vX.Y.Z.zip`, plus the updated FormAI parity tracker HTML with every version bump.
