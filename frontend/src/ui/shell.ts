@@ -11,6 +11,7 @@ import { HomeScreen } from './home';
 import { icon } from './icons';
 import { Dock, type PanelLayout } from './dock';
 import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './menu';
+import { CaptionButtons, wantsCustomTitleBar } from './caption-buttons';
 import { onLanguage } from './i18n';
 import { NativeMenus, wantsNativeMenus, menusInWindow, MENUS_IN_WINDOW_KEY } from './native-menu';
 import { PanelGroup, type GroupTab } from './panel-group';
@@ -78,9 +79,12 @@ export class Shell implements Workspace {
       { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
       { label: 'Ask Claude', command: 'ui.claude', icon: 'agentChat', hint: 'Describe what you want and Claude lays it out' },
     ]);
+    this.captionButtons = new CaptionButtons(q(root, '.cv-titlebar'), () => { try { return localStorage.getItem('formdesign.customTitleBar') === '1'; } catch { return false; } });
     this.uiCommands();
     this.wire();
   }
+
+  private readonly captionButtons: CaptionButtons;
 
   private recent: Array<{ name: string; path: string; modified?: number }> = [];
 
@@ -227,6 +231,10 @@ export class Shell implements Workspace {
       { id: 'ui.prevPage', label: 'Previous Page', keys: ['Shift+PageUp'], enabled: has, run: () => this.stepPage(-1) },
       { id: 'ui.nextPage', label: 'Next Page', keys: ['Shift+PageDown'], enabled: has, run: () => this.stepPage(1) },
       { id: 'ui.panels', label: 'Hide Panels', keys: ['Tab'], run: () => this.root.classList.toggle('is-panels-hidden') },
+      { id: 'ui.customTitleBar', label: 'Custom Title Bar', enabled: () => wantsCustomTitleBar(), checked: () => this.captionButtons.active, run: () => {
+        try { localStorage.setItem('formdesign.customTitleBar', this.captionButtons.active ? '0' : '1'); } catch { }
+        this.captionButtons.sync();
+      } },
       { id: 'ui.menusInWindow', label: 'Menus in Window', enabled: () => '__TAURI_INTERNALS__' in window && /Mac/.test(navigator.platform), checked: menusInWindow, run: () => {
         const next = menusInWindow() ? '0' : '1';
         try { localStorage.setItem(MENUS_IN_WINDOW_KEY, next); } catch { }
@@ -302,7 +310,7 @@ export class Shell implements Workspace {
     switch (name) {
       case 'File': return { pre: ['ui.open', 'ui.close', 'ui.save', 'ui.saveAs', '-', 'ui.place'], post: [] };
       case 'Edit': return { pre: ['ui.undo', 'ui.redo'], post: ['ui.search', 'ui.shortcuts'] };
-      case 'View': return { pre: ['ui.zoomIn', 'ui.zoomOut', 'ui.fitPage', 'ui.fitSpread', 'ui.actualSize', 'ui.fitAll', '-', 'ui.preview', 'ui.quality', '-', 'ui.rulers', 'ui.guides', 'ui.frames', 'ui.baseline', 'ui.threads', '-', 'ui.prevPage', 'ui.nextPage'], post: ['ui.menusInWindow'] };
+      case 'View': return { pre: ['ui.zoomIn', 'ui.zoomOut', 'ui.fitPage', 'ui.fitSpread', 'ui.actualSize', 'ui.fitAll', '-', 'ui.preview', 'ui.quality', '-', 'ui.rulers', 'ui.guides', 'ui.frames', 'ui.baseline', 'ui.threads', '-', 'ui.prevPage', 'ui.nextPage'], post: ['ui.customTitleBar', 'ui.menusInWindow'] };
       case 'Window': return { pre: this.panels.map((p) => `ui.panel.${p.id}`), post: ['ui.collapseLeft', 'ui.collapseRight', 'ui.panels', 'ui.home'] };
       case 'Help': return { pre: ['ui.about'], post: [] };
       default: return { pre: [], post: [] };
