@@ -115,7 +115,18 @@ export function reserve(el: HTMLElement, box: { width?: number; height?: number;
  * frames so fonts and layout settle before the single reveal. */
 export function revealApp(): void {
   if (document.body.classList.contains('app-ready')) return;
-  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.add('app-ready')));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.body.classList.add('app-ready');
+    if ('__TAURI_INTERNALS__' in window) {
+      requestAnimationFrame(() => {
+        try {
+          void Promise.resolve((window as any).__TAURI_INTERNALS__?.invoke?.('app_ready')).catch(() => undefined);
+        } catch {
+          return;
+        }
+      });
+    }
+  }));
 }
 
 /** Mount a fresh subtree from a template string ONCE into an empty host.

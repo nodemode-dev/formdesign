@@ -10,7 +10,7 @@ import { applyTheme } from './ui/themes';
 const mod = isMac ? 'Cmd' : 'Ctrl';
 
 const SHELL = `<div class="cv-app fd-app">
-<header class="cv-titlebar">
+<header class="cv-titlebar" data-tauri-drag-region>
 <button class="cv-brand" type="button" data-cmd="home" title="Home">${brandMark(18)}<span class="cv-brand-name">FormDesign</span></button>
 <nav class="cv-menubar" aria-label="Main menu"></nav>
 <div class="cv-zoom fd-title-tools">
@@ -82,5 +82,5 @@ export function startApp(): void {
   shell.mountPanels();
   shell.viewport.readBackground();
   void engine.connect();
-  revealApp();
+  void Promise.race([document.fonts.ready, new Promise((done) => setTimeout(done, 2500))]).then(revealApp, revealApp);
 }
