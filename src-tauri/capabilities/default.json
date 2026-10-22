@@ -6,6 +6,11 @@
   "remote": { "urls": ["http://127.0.0.1:*", "http://localhost:*"] },
   "permissions": [
     "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-set-title",
+    "allow-set-window-title",
+    "allow-app-ready",
     "allow-native-canvas-start",
     "allow-native-canvas-frame",
     "allow-native-canvas-tile",

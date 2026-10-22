@@ -7,6 +7,8 @@ fn main() {
         "native_canvas_tile",
         "native_canvas_resize",
         "native_canvas_stop",
+        "set_window_title",
+        "app_ready",
     ])))
     .expect("the tauri build failed");
 }

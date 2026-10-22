@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod native;
+mod reveal;
+mod traffic_lights;
 
 use std::sync::Mutex;
 
-use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
@@ -93,8 +95,22 @@ fn move_old_app_folders() {
 }
 
 fn main() {
+    reveal::mark_launch();
     move_old_app_folders();
     let app = tauri::Builder::default()
+        .on_window_event(|window, event| {
+            if window.label() == "main"
+                && matches!(
+                    event,
+                    WindowEvent::Resized(_)
+                        | WindowEvent::Focused(_)
+                        | WindowEvent::ThemeChanged(_)
+                        | WindowEvent::ScaleFactorChanged { .. }
+                )
+            {
+                traffic_lights::place(window);
+            }
+        })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -105,10 +121,13 @@ fn main() {
             native::native_canvas_frame,
             native::native_canvas_tile,
             native::native_canvas_resize,
-            native::native_canvas_stop
+            native::native_canvas_stop,
+            traffic_lights::set_window_title,
+            reveal::app_ready
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+            reveal::round_splash(&handle);
             let mut cmd = app.shell().sidecar("formdesign-engine")?.env("FORMDESIGN_PORT", "8196");
             if let Some(core) = core_path() {
                 cmd = cmd.env("FORMDESIGN_CORE", core);
@@ -154,15 +173,28 @@ fn main() {
                         };
                         // The window and its web view are transparent so the native canvas shows through the page's hole;
                         // the page paints every pixel itself unless that mode is on.
-                        let _ = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
+                        let builder = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
                             .transparent(true)
+                            .visible(reveal::BUILD_VISIBLE)
+                            .background_color(reveal::BACKGROUND)
                             .initialization_script(preset)
                             .title("FormDesign")
                             .inner_size(width, height)
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
-                            .center()
-                            .build();
-                        close_splash(&handle);
+                            .center();
+                        #[cfg(target_os = "macos")]
+                        let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true);
+                        let builder = builder.on_page_load(|window, payload| {
+                            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                                traffic_lights::place(&window.as_ref().window());
+                            }
+                        });
+                        if let Ok(window) = builder.build() {
+                            reveal::conceal(&window);
+                            traffic_lights::place(&window.as_ref().window());
+                        } else {
+                            close_splash(&handle);
+                        }
                         check_for_updates(handle.clone());
                     }
                     None => {

@@ -13,12 +13,16 @@
         "title": "FormDesign",
         "url": "splash.html",
         "width": 360,
-        "height": 180,
+        "height": 200,
         "resizable": false,
         "decorations": false,
-        "center": true
+        "center": true,
+        "transparent": true,
+        "shadow": false,
+        "visible": false
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
