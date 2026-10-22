@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'compile_v*']
   pull_request:
 
 permissions:
