@@ -3,7 +3,7 @@ resolver = "3"
 members = ["formdesign-core", "formdesign-model", "formdesign-text", "formdesign-render", "formdesign-engine", "formdesign-interchange", "formdesign-gpu"]
 
 [workspace.package]
-version = "0.83.0"
+version = "0.84.0"
 edition = "2024"
 license = "Apache-2.0"
 rust-version = "1.90"
