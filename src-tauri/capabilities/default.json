@@ -11,6 +11,7 @@
     "core:window:allow-set-title",
     "allow-set-window-title",
     "allow-app-ready",
+    "allow-text-edit",
     "allow-native-canvas-start",
     "allow-native-canvas-frame",
     "allow-native-canvas-tile",

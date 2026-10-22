@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-text-edit"
+description = "Enables the text_edit command without any pre-configured scope."
+commands.allow = ["text_edit"]
+
+[[permission]]
+identifier = "deny-text-edit"
+description = "Denies the text_edit command without any pre-configured scope."
+commands.deny = ["text_edit"]

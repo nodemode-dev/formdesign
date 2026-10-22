@@ -2,6 +2,7 @@
 
 mod native;
 mod reveal;
+mod text_edit;
 mod traffic_lights;
 
 use std::sync::Mutex;
@@ -123,7 +124,8 @@ fn main() {
             native::native_canvas_resize,
             native::native_canvas_stop,
             traffic_lights::set_window_title,
-            reveal::app_ready
+            reveal::app_ready,
+            text_edit::text_edit
         ])
         .setup(|app| {
             let handle = app.handle().clone();

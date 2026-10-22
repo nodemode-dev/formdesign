@@ -9,6 +9,7 @@ fn main() {
         "native_canvas_stop",
         "set_window_title",
         "app_ready",
+        "text_edit",
     ])))
     .expect("the tauri build failed");
 }
