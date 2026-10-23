@@ -2,6 +2,13 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.84.4 · 2026-10-23
+
+- Abril Fatface, Josefin Sans, Lora, Merriweather, Playfair Display and Raleway ship as their complete original font files, with every weight their variable fonts name.
+- PDF/X export in the desktop app finds its output profile again.
+- Slovak text is no longer hyphenated: its patterns are GPL and are left out of the layout core.
+- NOTICE.md lists the hyphenation pattern licences per language, PDFium's parts, the Pillow and numpy wheel libraries, certifi, pypdf, httpx and the desktop shell crates; the installers carry LICENSE and NOTICE.md; the macOS requirements are pinned.
+
 ## 0.80.0 · 2026-10-20
 
 - One name everywhere: the command, scripts, MCP server, skills, crates, sidecars, settings, app identifier, data folder and every message are `formdesign` or FormDesign now. They used the short name `formdes` before. The `.fdes` extension is unchanged.
