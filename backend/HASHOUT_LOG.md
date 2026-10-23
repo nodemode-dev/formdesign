@@ -2,10 +2,15 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.17.0
-Last updated: 2026-10-10 · `.fdes` stores `document.fdoc`; the PDF Reader routes removed
+Current build version: v0.84.4
+Last updated: 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.84.4 · bundle audit fixes (2026-10-23)
+
+- `setup/fonts.py` (font library build): Abril Fatface, Josefin Sans, Lora, Merriweather, Playfair Display and Raleway declare a Reserved Font Name, and the WOFF-to-TrueType conversion of their Fontsource subsets (with renamed name records for SemiBold and Black) made Modified Versions that kept the reserved names. `FULL` maps them to `assets/fonts/full/<folder>`, the unmodified google/fonts files (commit e7db6ca, with OFL.txt); `copy_full` copies them byte for byte into `backend/app/fonts` and builds their `fonts.json` styles from the fvar named instances (Lora: Regular to Bold and the italics; Merriweather: Light to Black; Raleway: Thin to Black). The six `@fontsource` packages are uninstalled, and the build now clears the old `*.ttf` first so a converted copy cannot linger. Checked: 33 families, 192 faces; the layout core resolves a named instance by style name (`formdesign-text/src/fonts.rs`, `resolve` and `instance_face`).
+- `services/pdfpost.py` reads `app/assets/CGATS001Compat-v2-micro.icc` beside the frozen module, but the freeze never added `backend/app/assets`, so PDF/X output intents failed in the desktop app. Both freeze scripts add it at `app/assets`.
 
 ## Org-navi-map
 
