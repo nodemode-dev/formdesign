@@ -16,7 +16,7 @@ fancy-regex = { workspace = true }
 fontdb = "0.23"
 harfrust = "0.13"
 skrifa = "0.46"
-hypher = "0.1"
+hypher = { version = "0.1", default-features = false, features = ["alloc", "afrikaans", "albanian", "assamese", "bengali", "belarusian", "bulgarian", "catalan", "croatian", "czech", "danish", "dutch", "english", "estonian", "finnish", "french", "galician", "georgian", "german", "greek", "gujarati", "hindi", "hungarian", "icelandic", "italian", "kannada", "kurmanji", "latin", "lithuanian", "malayalam", "marathi", "mongolian", "norwegian", "oriya", "panjabi", "polish", "portuguese", "russian", "sanskrit", "serbian", "slovenian", "spanish", "swedish", "tamil", "telugu", "turkish", "turkmen", "ukrainian"] }
 unicode-linebreak = "0.1"
 unicode-bidi = "0.3"
 unicode-segmentation = "1"

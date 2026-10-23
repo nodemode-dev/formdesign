@@ -2,10 +2,14 @@
 
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
-Current build version: v0.18.0
-Last updated: 2026-10-10 · 58 engine commands: clipboard, guides, paths, references, contents, index, data merge, Pathfinder, QR, outlines
+Current build version: v0.84.4
+Last updated: 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.84.4 · hypher without Slovak (2026-10-23)
+
+- `formdesign-text/Cargo.toml`: hypher's default `full` feature compiles every pattern file into the core, and `patterns/hyph-sk.tex` at v0.1.8 is GPL-2.0-or-later (read from the file's own licence block, cloned at the tag). The dependency now turns default features off and lists `alloc` and the other 47 languages, so the Slovak trie is not linked; `Lang::from_iso("sk")` returns None and Slovak text is simply not hyphenated. Every other pattern is MIT, LPPL, BSD, the Unlicense, a free-use grant, or (Hungarian) MPL-1.1 among three options; NOTICE.md lists them per language. Checked: `cargo build -p formdesign-text` passes and `cargo tree -e features -i hypher --workspace` shows no `slovak` feature.
 
 ## Org-navi-map
 
