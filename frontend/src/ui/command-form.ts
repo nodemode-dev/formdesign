@@ -157,6 +157,13 @@ function label(name: string): string {
   return s.replace(/\bIds?\b/, 'ID').replace(/\bPdf\b/, 'PDF').replace(/\bUrl\b/, 'URL');
 }
 
+const RULE_LABELS: Array<[string, string]> = [['guide', 'Stretch with page']];
+
+function choiceLabel(f: Field, c: string): string {
+  const own = f.name === 'rule' ? RULE_LABELS.find(([id]) => id === c) : undefined;
+  return own ? own[1] : label(c);
+}
+
 function coerce(text: string): unknown {
   const t = text.trim();
   if (t === '') return undefined;
@@ -205,7 +212,7 @@ export function openCommandForm(host: FormHost, cmd: CoreCommand, why: string, p
     } else if (f.kind === 'choice' || loader) {
       const sel = el<HTMLSelectElement>('<select></select>');
       if (f.optional) sel.append(new Option('', ''));
-      for (const c of f.choices) sel.append(new Option(label(c), c));
+      for (const c of f.choices) sel.append(new Option(choiceLabel(f, c), c));
       if (loader) {
         void loader().then((opts) => {
           for (const [v, l] of opts) sel.append(new Option(l, v));
