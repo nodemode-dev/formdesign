@@ -22,3 +22,11 @@ Route through `.claude/skills/formdesign-skillset/SKILL.md`: the map of the thre
 - Never copy another application's help text, presets, swatch libraries, templates or icons. Every new font, profile, dictionary, model or library gets a row in `NOTICE.md` with its source and licence before it ships.
 - Content-aware scale and skin protection are declined for patent reasons and never built in any form; see `docs/DECLINED.md`.
 - Planning documents (DEV_PLAN, BUILD_NOTES, TEST_PLAN, the root HASHOUT_LOG, dev-wise) ship in the planning sidecar zip, not in this tree.
+
+## Shape Crafter, Liquid Layout and Trace Image (declined for patent risk, 2026-10-23)
+
+Never add, under any name, and see `docs/DECLINED.md`:
+
+- Inferring the Shape Crafter operation (merge or erase) from where a stroke lands, how it crosses the shapes or how many regions it touches. The operation always comes from the Alt modifier or the `mode` argument; the stroke only chooses which regions.
+- Any Liquid Layout rule that reads a guide's contact with objects or a guide's orientation, or any export (PDF, HTML, EPUB, IDML or other) that carries Liquid Layout rules for a viewer or reader to reflow. Rules run only inside FormDesign when pages are resized. The `guide` rule id is kept for saved documents and agents; it stretches objects on both axes and is shown as "Stretch with page" in every language.
+- A trace between two clicked points, or any start and end point picking, in Trace Image. Tracing runs on the whole picture.

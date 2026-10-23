@@ -25,3 +25,4 @@ Follow `.claude/skills/formdesign-skillset/SKILL.md` (architecture map, change r
 
 - Never name another layout, drawing or photo application, or its maker, anywhere in the tree; describe the behaviour and name formats by extension. Interop literals a format defines (MIME types, XML namespaces, byte signatures) and licence credits are the only exceptions.
 - Content-aware scale and skin protection are declined for patent reasons and never built in any form; see `docs/DECLINED.md`.
+- Shape Crafter, Liquid Layout and Trace Image (declined for patent risk, 2026-10-23): never infer the Shape Crafter operation from where a stroke lands (it comes from Alt or `mode`); never read guide contact in a Liquid Layout rule or export rules for a viewer to reflow (the `guide` rule is shown as "Stretch with page"); never add tracing between two clicked points.

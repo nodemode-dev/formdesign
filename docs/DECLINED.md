@@ -6,6 +6,10 @@ Features FormDesign will not build, with the reason, so no later session, agent 
 | --- | --- | --- |
 | Content-aware scale: resizing an image by removing or inserting low-energy pixel paths (seam carving, retargeting, liquid rescale) so chosen content keeps its proportions | Declined | Patent risk |
 | Skin protection and protected regions for content-aware scale: detecting skin tones or a marked area so the resize avoids it | Declined | Patent risk |
+| Shape Crafter choosing its operation (merge or erase) from where the stroke lands, rather than from the Alt modifier or `mode` | Declined | Patent risk |
+| Liquid Layout rules that depend on a guide touching an object, or on a guide's orientation | Declined | Patent risk |
+| Exporting Liquid Layout rules inside content for a viewer or reader to reflow when the page size changes | Declined | Patent risk |
+| Trace Image between two clicked points: picking a start and an end point on a traced path, or choosing among candidate paths between them | Declined | Patent risk |
 
 ## What the rule covers
 

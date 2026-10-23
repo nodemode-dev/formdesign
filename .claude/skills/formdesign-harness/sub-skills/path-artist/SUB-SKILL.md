@@ -35,7 +35,7 @@ The art features, each kept live (editable, and undone in one step) unless the r
 
 | Need | Command | Key parameters |
 | --- | --- | --- |
-| Merge or erase the regions where shapes overlap | `path.shapeBuilder` | `points` inside the regions, `mode` merge or erase (makes new shapes) |
+| Merge or erase the regions where shapes overlap | `path.shapeBuilder` | `points` inside the regions, `mode` merge or erase, always your explicit choice (the points only pick regions; makes new shapes) |
 | Steps between two objects, morphing like shapes | `object.blend` | `steps` or `distance`, `spine` (id of a path to follow), `live` (rebuilds when an end or the spine changes); `object.blend.expand` |
 | A stroke that swells and tapers | `object.widthProfile` | `profile` lens, taperStart, taperEnd, bulge, pinch, wave; or `points` [[at, width]] |
 | Live effects and warps in the appearance | `object.effect` | `kind` roundCorners, zigZag, roughen, puckerBloat, twist, transform (with copies), warp (13 styles, `bend`); `index`, `remove`, `clear`; `object.expandAppearance` bakes them |
