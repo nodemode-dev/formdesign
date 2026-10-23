@@ -1,6 +1,6 @@
 {
   "id": "presentation-keynote-dark",
-  "name": "Keynote, Dark",
+  "name": "Conference Talk, Dark",
   "category": "presentation",
   "kinds": ["slides"],
   "tags": ["keynote", "talk", "conference", "dark", "16:9", "1920x1080", "quote", "section", "stats"],
