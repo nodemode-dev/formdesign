@@ -12,6 +12,27 @@ HEAVY = {"playfair-display", "fraunces", "montserrat", "archivo", "poppins", "wo
 SEMI = {"dm-sans", "manrope", "figtree", "outfit", "inter-tight", "space-grotesk", "work-sans", "poppins", "montserrat",
         "ibm-plex-sans", "barlow", "source-sans-3"}
 SKIP = {"inter", "jetbrains-mono"}
+FULL = {"abril-fatface": "abrilfatface", "josefin-sans": "josefinsans", "lora": "lora", "merriweather": "merriweather",
+        "playfair-display": "playfairdisplay", "raleway": "raleway"}
+FULL_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts" / "full"
+
+
+def copy_full(slug: str, folder: str, dest: Path, manifest: dict[str, list[str]]) -> None:
+    src = FULL_DIR / folder
+    for path in sorted(src.glob("*.ttf")):
+        shutil.copyfile(path, dest / path.name)
+        font = TTFont(str(path))
+        fam, sub = family_name(font)
+        styles = manifest.setdefault(fam, [])
+        names = [sub]
+        if "fvar" in font:
+            names = [font["name"].getDebugName(inst.subfamilyNameID) or sub for inst in font["fvar"].instances] or [sub]
+        for name in names:
+            if name not in styles:
+                styles.append(name)
+    lic = src / "OFL.txt"
+    if lic.is_file():
+        shutil.copyfile(lic, dest / "licenses" / f"OFL-{slug}.txt")
 
 
 def family_name(font: TTFont) -> tuple[str, str]:
@@ -47,7 +68,11 @@ def main(fontsource: Path, dest: Path) -> int:
     dest.mkdir(parents=True, exist_ok=True)
     (dest / "licenses").mkdir(exist_ok=True)
     manifest: dict[str, list[str]] = {}
-    for pkg in sorted(p for p in fontsource.iterdir() if p.is_dir() and p.name not in SKIP):
+    for old in dest.glob("*.ttf"):
+        old.unlink()
+    for slug, folder in FULL.items():
+        copy_full(slug, folder, dest, manifest)
+    for pkg in sorted(p for p in fontsource.iterdir() if p.is_dir() and p.name not in SKIP and p.name not in FULL):
         files = pkg / "files"
         if not files.is_dir():
             continue
