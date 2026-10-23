@@ -2,6 +2,11 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.84.5 · 2026-10-23
+
+- The Liquid Layout page rule that was called Guide is now called Stretch with page in every language, because it never read ruler guides: it stretches every object on both axes with the page. The rule id and saved documents are unchanged.
+- The declined record and the agent guides now say what Shape Crafter, Liquid Layout and Trace Image must not gain.
+
 ## 0.84.4 · 2026-10-23
 
 - Abril Fatface, Josefin Sans, Lora, Merriweather, Playfair Display and Raleway ship as their complete original font files, with every weight their variable fonts name.
