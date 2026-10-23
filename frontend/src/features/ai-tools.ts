@@ -110,9 +110,9 @@ class GenerateImageDialog {
   }
 }
 
-/** Object > Generative Expand: the placed picture is extended to fill its frame's shape. */
+/** Object > AI Expand: the placed picture is extended to fill its frame's shape. */
 class ExpandDialog {
-  private readonly d = new Dialog('Generative Expand', 460);
+  private readonly d = new Dialog('AI Expand', 460);
   private readonly prompt = el<HTMLTextAreaElement>('<textarea class="cv-input fa-prompt" rows="3" placeholder="Optional: what should appear in the new area" aria-label="Prompt"></textarea>');
   private readonly go: HTMLButtonElement;
 
@@ -142,7 +142,7 @@ export function installAiTools(ws: Workspace): void {
   ws.addCommands(
     { id: 'ui.ai.altText', label: 'Generate Alt Text…', enabled: has, run: () => void (alt ??= new AltTextDialog()).open() },
     { id: 'ui.ai.generateImage', label: 'Generate Image…', enabled: has, run: () => (gen ??= new GenerateImageDialog()).open() },
-    { id: 'ui.ai.expandImage', label: 'Generative Expand…', enabled: has, run: () => (exp ??= new ExpandDialog()).open() },
+    { id: 'ui.ai.expandImage', label: 'AI Expand…', enabled: has, run: () => (exp ??= new ExpandDialog()).open() },
     {
       id: 'ui.ai.autoStyle', label: 'Auto Style', enabled: has, run: () => {
         toast('Styling the text...');

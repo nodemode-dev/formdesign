@@ -147,6 +147,12 @@ native/
 
 ---
 
+## formdesign-engine/src/cmd/art.rs, trace.rs, tools/mod.rs · names of FormDesign's own (v0.84.2) {#own-names}
+
+- kind: rationale · logged: v0.84.2 · 2026-10-23
+- The labels, undo names, menus and messages of the fill-by-region commands, the region merge, the image tracer and the image expander used another application's feature names. They are now Fill Regions (with Make, Expand, Release and the Bucket), Shape Crafter (with its tool), Trace Image and AI Expand, the names the family IP plan approved on 2026-10-23. Command ids (`path.livePaint*`, `path.shapeBuilder`, `object.imageTrace`, `ui.ai.expandImage`), the tool id `shapeBuilder` and its icon keep their names, so documents, shortcuts and agent calls are unchanged.
+- Translations: the 12 English keys were renamed in place in `keys.json` and written new for the 23 tables (CSV per language through `./formdesign i18n import`); the old rows went with the new `i18n prune OLD.json`, which removes only the listed keys because some live strings (`PDF...`, `IDML...`, `Starts in`) have rows but are not collected into `keys.json`. The two variant tables lost their old Shape Builder overrides and now follow their base language. `keys.json` was not re-collected: `i18n keys` would also add about 20 strings no table has yet, which is separate work.
+
 ## Cargo.toml {#cargo}
 
 ### Cargo.toml · workspace.dependencies

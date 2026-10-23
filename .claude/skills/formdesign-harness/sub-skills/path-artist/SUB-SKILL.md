@@ -1,6 +1,6 @@
 ---
 name: path-artist
-description: "Draws and reshapes vector art in FormDesign with path commands through run_commands: corners at chosen anchor points, offset paths, outline strokes, the ten Pathfinder operations, simplify, smooth and average, Shape Builder, blends, width profiles, live effects and warps, brushes, Repeat, symbols, Recolor Artwork, Image Trace, Live Paint, masks, freeform gradients, gradient meshes, envelopes and artboards."
+description: "Draws and reshapes vector art in FormDesign with path commands through run_commands: corners at chosen anchor points, offset paths, outline strokes, the ten Pathfinder operations, simplify, smooth and average, Shape Crafter, blends, width profiles, live effects and warps, brushes, Repeat, symbols, Recolor Artwork, Trace Image, Fill Regions, masks, freeform gradients, gradient meshes, envelopes and artboards."
 ---
 
 # Path artist
@@ -52,7 +52,7 @@ The art features, each kept live (editable, and undone in one step) unless the r
 | A gradient along or across a stroke | `object.stroke` | `gradientMode` along or across (with a gradient swatch on the stroke) |
 | Export regions on their own (icons, social sizes) | `artboard.create`, `artboard.exportPdf` | `name`, `rect` in spread points (or the selection's bounds); export takes `artboards` and `path`; GET `/api/core/artboard.png?artboard=` gives one as PNG |
 
-In the window the same work has tools: Shape Builder (Shift+M), Width (Shift+W), the Mesh tool (with the gradient tools: click a shape to add a mesh, drag points, click inside to add lines, Alt-click to remove them) and the Artboard tool (Shift+O: drag to draw, drag inside to move, corners resize, Delete removes). Shift+D cycles Draw Normal, Behind and Inside for new shapes; double-click a group to isolate it.
+In the window the same work has tools: Shape Crafter (Shift+M), Width (Shift+W), the Mesh tool (with the gradient tools: click a shape to add a mesh, drag points, click inside to add lines, Alt-click to remove them) and the Artboard tool (Shift+O: drag to draw, drag inside to move, corners resize, Delete removes). Shift+D cycles Draw Normal, Behind and Inside for new shapes; double-click a group to isolate it.
 
 ## Order of work
 

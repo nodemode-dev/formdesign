@@ -20,8 +20,6 @@
 "Open Package": "Ouvrir le paquet",
 "Open an assignment package sent to you": "Ouvrir un paquet d'affectation qui vous a été envoyé",
 "Return Package": "Paquet de retour",
-"Shape Builder": "Concepteur de formes",
-"Shape Builder...": "Concepteur de formes...",
 "Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape.": "Divise les formes superposées sélectionnées en régions, puis fusionne les régions situées sous les points donnés en une seule forme (ou les efface avec mode erase), en conservant chacune des autres régions comme une forme distincte.",
 "Width Profile": "Profil de largeur",
 "Width Profile...": "Profil de largeur..."

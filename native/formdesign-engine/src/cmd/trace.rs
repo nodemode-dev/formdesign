@@ -283,12 +283,12 @@ fn trace(c: &mut Ctx, p: &Value) -> Result<Value> {
         doc.remove_item(id);
     }
     c.set_selection(Selection::items(vec![result]));
-    c.label("Image Trace");
+    c.label("Trace Image");
     Ok(json!({"id": result.0, "shapes": made.len(), "grid": [px.w, px.h]}))
 }
 
 pub fn register(r: &mut Registry) {
-    cmd("object.imageTrace", "Image Trace").menu(&["Object", "Image Trace", "Make and Expand..."]).needs(Needs::Items)
+    cmd("object.imageTrace", "Trace Image").menu(&["Object", "Trace Image", "Make and Expand..."]).needs(Needs::Items)
         .sig("{mode?: blackWhite|colors, threshold?: 0..255 (blackWhite, default 128), colors?: 2..32 (default 6), detail?: pixels on the long side (default 240), paths?: fit tolerance in pixels (default 0.5), noise?: smallest area in pixels (default 4), curves?: bool, ignoreWhite?: bool, keep?: bool (keep the image), ids?}")
         .help("Turns the selected placed image into vector shapes: black and white by a brightness threshold, or a palette of colours found in the image, each colour one compound shape stacked from light to dark; higher detail follows the image more closely, noise drops specks, paths sets how loosely the outlines are fitted.").reg(r, trace);
 }

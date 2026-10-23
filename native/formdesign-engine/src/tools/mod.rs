@@ -125,7 +125,7 @@ pub static GROUPS: &[&[ToolDef]] = &[
     &[t("rectangle", "Rectangle Tool", "tool-rect", Some("M")), t("ellipse", "Ellipse Tool", "tool-ellipse", Some("L")), t("polygon", "Polygon Tool", "tool-polygon", None)],
     &[],
     &[t("scissors", "Scissors Tool", "tool-scissors", Some("C"))],
-    &[t("shapeBuilder", "Shape Builder Tool", "tool-shape-builder", Some("Shift+M")), t("width", "Width Tool", "tool-width", Some("Shift+W"))],
+    &[t("shapeBuilder", "Shape Crafter Tool", "tool-shape-builder", Some("Shift+M")), t("width", "Width Tool", "tool-width", Some("Shift+W"))],
     &[t("freeTransform", "Free Transform Tool", "tool-free-transform", Some("E")), t("rotate", "Rotate Tool", "tool-rotate", Some("R")), t("scale", "Scale Tool", "tool-scale", Some("S")), t("shear", "Shear Tool", "tool-shear", Some("O"))],
     &[t("gradientSwatch", "Gradient Swatch Tool", "tool-gradient", Some("G")), t("gradientFeather", "Gradient Feather Tool", "tool-gradient-feather", Some("Shift+G")), t("mesh", "Mesh Tool", "tool-mesh", None)],
     &[],

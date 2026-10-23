@@ -627,7 +627,7 @@ fn live_paint(c: &mut Ctx, p: &Value) -> Result<Value> {
                 }
             }
         }
-        c.label("Live Paint");
+        c.label("Fill Regions");
         return Ok(json!({"group": gid, "fills": pts.len()}));
     }
     let ids = paint_order(doc, &ids);
@@ -667,7 +667,7 @@ fn live_paint(c: &mut Ctx, p: &Value) -> Result<Value> {
         list.splice(at..at, made.iter().copied());
     }
     c.set_selection(Selection::items(made.clone()));
-    c.label("Live Paint");
+    c.label("Fill Regions");
     Ok(json!({"ids": made}))
 }
 
@@ -688,7 +688,7 @@ fn regions(doc: &Doc, ids: &[ItemId]) -> Result<Vec<(Shapes, usize)>> {
         }
     }
     if shapes.is_empty() {
-        return Err(EngineError::new("Live Paint needs at least one closed shape among the selection; open paths then divide its regions"));
+        return Err(EngineError::new("Fill Regions needs at least one closed shape among the selection; open paths then divide its regions"));
     }
     let mut cuts: Shapes = Vec::new();
     for b in &blades {
@@ -827,7 +827,7 @@ fn live_paint_make(c: &mut Ctx, p: &Value) -> Result<Value> {
         g.extra.insert("livePaint".into(), json!({"fills": []}));
     }
     c.set_selection(Selection::items(vec![gid]));
-    c.label("Make Live Paint");
+    c.label("Make Fill Regions");
     Ok(json!({"group": gid}))
 }
 
@@ -836,7 +836,7 @@ fn live_paint_end(c: &mut Ctx, p: &Value, release: bool) -> Result<Value> {
     let doc = c.doc()?;
     let groups: Vec<ItemId> = ids.iter().filter_map(|id| live_paint_group(doc, &[*id])).collect();
     if groups.is_empty() {
-        return Err(EngineError::new("select a live paint group (made with Make Live Paint)"));
+        return Err(EngineError::new("select a fill regions group (made with Make Fill Regions)"));
     }
     let doc = c.doc_mut()?;
     let mut out = Vec::new();
@@ -861,7 +861,7 @@ fn live_paint_end(c: &mut Ctx, p: &Value, release: bool) -> Result<Value> {
         }
     }
     c.set_selection(Selection::items(out.clone()));
-    c.label(if release { "Release Live Paint" } else { "Expand Live Paint" });
+    c.label(if release { "Release Fill Regions" } else { "Expand Fill Regions" });
     Ok(json!({"ids": out}))
 }
 
@@ -886,11 +886,11 @@ fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
     let doc = c.doc()?;
     let ids = paint_order(doc, &ids);
     if ids.len() < 2 {
-        return Err(EngineError::new("Shape Builder needs two or more overlapping closed shapes selected"));
+        return Err(EngineError::new("Shape Crafter needs two or more overlapping closed shapes selected"));
     }
     let mut shapes = Vec::new();
     for id in &ids {
-        shapes.push(world_shape(doc, *id).ok_or_else(|| EngineError::new(format!("object {id} is a group, an open path or a line: Shape Builder works on closed shapes")))?);
+        shapes.push(world_shape(doc, *id).ok_or_else(|| EngineError::new(format!("object {id} is a group, an open path or a line: Shape Crafter works on closed shapes")))?);
     }
     let faces = faces_of(&shapes, None);
     let hit: Vec<bool> = faces.iter().map(|(s, _)| pts.iter().any(|q| s.iter().any(|shape| inside(shape, q[0], q[1])))).collect();
@@ -930,7 +930,7 @@ fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
         doc.remove_item(*id);
     }
     c.set_selection(Selection::items(made.clone()));
-    c.label("Shape Builder");
+    c.label("Shape Crafter");
     Ok(json!({"ids": made, "shapes": made.len()}))
 }
 
@@ -1154,12 +1154,12 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
 }
 
 pub fn register(r: &mut Registry) {
-    cmd("path.livePaint", "Live Paint Bucket").menu(&["Object", "Live Paint", "Fill Regions..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (inside the regions to fill), swatch, tint?, ids? (a live paint group, or a member of one, keeps the fills live: they follow the regions as the paths change)}")
+    cmd("path.livePaint", "Fill Regions Bucket").menu(&["Object", "Fill Regions", "Fill Regions..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (inside the regions to fill), swatch, tint?, ids? (a live paint group, or a member of one, keeps the fills live: they follow the regions as the paths change)}")
         .help("Fills the regions under the given points with a colour, where regions are formed by the selected closed shapes overlapping and by open paths crossing them; each fill is a new shape placed behind the selection, so the lines stay on top.").reg(r, live_paint);
-    cmd("path.livePaintMake", "Make Live Paint").menu(&["Object", "Live Paint", "Make"]).needs(Needs::Items).sig("{ids?: closed shapes and open paths}").reg(r, live_paint_make);
-    cmd("path.livePaintExpand", "Expand Live Paint").menu(&["Object", "Live Paint", "Expand"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_expand);
-    cmd("path.livePaintRelease", "Release Live Paint").menu(&["Object", "Live Paint", "Release"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_release);
-    cmd("path.shapeBuilder", "Shape Builder").menu(&["Object", "Paths", "Shape Builder..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (spread points inside the regions), mode?: merge|erase, ids?}")
+    cmd("path.livePaintMake", "Make Fill Regions").menu(&["Object", "Fill Regions", "Make"]).needs(Needs::Items).sig("{ids?: closed shapes and open paths}").reg(r, live_paint_make);
+    cmd("path.livePaintExpand", "Expand Fill Regions").menu(&["Object", "Fill Regions", "Expand"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_expand);
+    cmd("path.livePaintRelease", "Release Fill Regions").menu(&["Object", "Fill Regions", "Release"]).needs(Needs::Items).sig("{ids?: live paint groups}").reg(r, live_paint_release);
+    cmd("path.shapeBuilder", "Shape Crafter").menu(&["Object", "Paths", "Shape Crafter..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (spread points inside the regions), mode?: merge|erase, ids?}")
         .help("Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape.").reg(r, shape_builder);
     cmd("path.knife", "Knife").menu(&["Object", "Paths", "Knife..."]).needs(Needs::Items).sig("{points: [[x, y], ...] (a line or polyline in spread points), ids?}")
         .help("Cuts every selected closed shape that the line crosses into separate shapes along it, each keeping its fill and stroke.").reg(r, knife);

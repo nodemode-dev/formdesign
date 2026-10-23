@@ -20,7 +20,7 @@ export class AiPage {
   readonly root = el(`<div class="fd-pr-ai">
     <section class="cv-prefs-group">
       <h3 class="cv-prefs-label">Assistant and AI helpers</h3>
-      <p class="cv-note">Off by default. When on, the Assistant panel, Generate Alt Text, Auto Style (model path), Generate Image and Generative Expand send text or pictures to the provider you choose below. Nothing is sent while this is off.</p>
+      <p class="cv-note">Off by default. When on, the Assistant panel, Generate Alt Text, Auto Style (model path), Generate Image and AI Expand send text or pictures to the provider you choose below. Nothing is sent while this is off.</p>
       <label class="cv-opt"><input class="fa-on" type="checkbox"><span>Turn on AI features</span></label>
     </section>
     <section class="cv-prefs-group">
@@ -33,7 +33,7 @@ export class AiPage {
     </section>
     <section class="cv-prefs-group">
       <h3 class="cv-prefs-label">Images</h3>
-      <p class="cv-note">For Generate Image and Generative Expand. An OpenAI compatible images endpoint (generations and edits with a mask) or a Stability compatible one. A blank key and address here use the language model's when it is OpenAI compatible.</p>
+      <p class="cv-note">For Generate Image and AI Expand. An OpenAI compatible images endpoint (generations and edits with a mask) or a Stability compatible one. A blank key and address here use the language model's when it is OpenAI compatible.</p>
       <label class="fa-row"><span>Provider</span><select class="cv-select fa-iprovider" aria-label="Image provider"><option value="openai">OpenAI compatible</option><option value="stability">Stability compatible</option></select></label>
       <label class="fa-row"><span>Model</span><input class="cv-input fa-imodel" type="text" autocomplete="off" spellcheck="false"></label>
       <label class="fa-row"><span>Base URL</span><input class="cv-input fa-iurl" type="text" autocomplete="off" spellcheck="false"></label>

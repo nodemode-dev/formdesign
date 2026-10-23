@@ -32,8 +32,6 @@
 "Makes evenly spaced steps between two objects, interpolating fill and stroke colours, stroke weight and opacity; shapes with the same number of anchor points morph into each other, others move and scale.": "Crea pasos con espaciado uniforme entre dos objetos, interpolando los colores de relleno y de trazo, el grosor del trazo y la opacidad; las formas con el mismo número de puntos de ancla se transforman una en otra, las demás se mueven y se escalan.",
 "Paste in Place": "Pegar en su lugar",
 "Save a document to add it": "Guarde un documento para agregarlo",
-"Shape Builder": "Generador de formas",
-"Shape Builder...": "Generador de formas...",
 "Splits the selected overlapping shapes into their regions, then merges the regions under the given points into one shape (or erases them with mode erase), keeping every other region as its own shape.": "Divide las formas superpuestas seleccionadas en sus regiones y después une las regiones que están bajo los puntos indicados en una sola forma (o las borra con mode erase), conservando cada una de las demás regiones como una forma independiente.",
 "Width Profile": "Perfil de ancho",
 "Width Profile...": "Perfil de ancho..."
