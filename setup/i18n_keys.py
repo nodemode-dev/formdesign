@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""./formdesign i18n keys|check|export LANG FILE.csv|import LANG FILE.csv
+"""./formdesign i18n keys|check|prune OLD.json|export LANG FILE.csv|import LANG FILE.csv
 
 keys    collect every English interface string into frontend/src/ui/i18n/keys.json
 check   list how many keys each language table is missing (exit 1 when any are)
+prune OLD.json  drop the rows for the English keys listed in OLD.json, keys renamed away from keys.json
+        (only those: some live strings have rows but are not in keys.json, so a blanket prune would lose them)
 export  write one language's table to a CSV (key, translation) for review
 import  read a reviewed CSV back into that language's table"""
 
@@ -114,6 +116,19 @@ def main(argv: list[str]) -> int:
             bad += bool(missing)
             print(f"  {lang:6} {len(keys) - len(missing):5} of {len(keys)}" + (f"  missing e.g. {missing[0]!r}" if missing else ""))
         return 1 if bad else 0
+    if cmd == "prune" and len(argv) == 2:
+        old = set(json.loads(Path(argv[1]).read_text(encoding="utf-8")))
+        keys = set(json.loads(KEYS.read_text(encoding="utf-8")))
+        if old & keys:
+            print(f"[formdesign] still in keys.json, not removed: {sorted(old & keys)}", file=sys.stderr)
+            return 2
+        for lang in LANGS:
+            t = table(lang)
+            kept = {k: v for k, v in t.items() if k not in old}
+            if len(kept) != len(t):
+                (TABLES / f"{lang}.json").write_text(json.dumps(dict(sorted(kept.items())), ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
+            print(f"  {lang:6} {len(t) - len(kept)} stale rows removed")
+        return 0
     if cmd in ("export", "import") and len(argv) == 3:
         lang, path = argv[1], Path(argv[2])
         if lang not in LANGS:
