@@ -7,7 +7,7 @@ FormDesign is licensed under the Apache License 2.0 (see `LICENSE`). It includes
 | Work | License | Where |
 | --- | --- | --- |
 | NodeMode stylized design system: tokens, theme profiles, theme boot, dom-stable helpers, icon subset, by way of formvis 1.65.0 | MIT (design system), Apache-2.0 (formvis) | `frontend/src/styles/`, `frontend/src/ui/themes.ts`, `frontend/src/ui/dom.ts`, `frontend/src/ui/icons.ts`, `frontend/index.html` |
-| formvis 1.65.0 shell controls (menu, commands, toast, dialogs, dropdown, panel group), setup script layout, MCP stdio bridge pattern | Apache-2.0, Copyright 2026 nodemode-ai | `frontend/src/ui/`, `setup/` |
+| formvis 1.65.0 shell controls (menu, commands, toast, dialogs, dropdown, panel group), setup script layout, MCP stdio bridge pattern | Apache-2.0, Copyright 2026 NodeAgentc, Inc. | `frontend/src/ui/`, `setup/` |
 | CGATS001Compat-v2-micro.icc, a compact CMYK output profile from the Compact ICC Profiles collection by saucecontrol (https://github.com/saucecontrol/Compact-ICC-Profiles; 8464 bytes, creator signature `sawsctrl`, SHA-256 `73e1ba37d2bad5bab2a964f40a9eed96209666efc067c3322626214bbef234a0`) | CC0-1.0 (the collection states all its profiles are released to the public domain under CC0) | `backend/app/assets/`, the output intent `services/pdfpost.py` writes |
 
 ## Trademarks

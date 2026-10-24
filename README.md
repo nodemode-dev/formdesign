@@ -144,6 +144,6 @@ Branch model: `main` plus short-lived work branches. Contributions follow the de
 
 ## Licensing
 
-Apache License 2.0. Copyright 2026 nodemode-ai. See `LICENSE` and `NOTICE.md` for the fonts, dictionaries, the CMYK profile and the libraries FormDesign includes.
+Apache License 2.0. Copyright 2026 NodeAgentc, Inc. See `LICENSE` and `NOTICE.md` for the fonts, dictionaries, the CMYK profile and the libraries FormDesign includes.
 
 FormDesign names file formats by their extension and no other application. Product names a person may associate with those formats are the trademarks of their owners; FormDesign is not affiliated with or endorsed by any of them.
