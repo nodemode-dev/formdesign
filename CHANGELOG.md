@@ -2,6 +2,11 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.84.6 · 2026-10-24
+
+- The copyright holder in LICENSE, NOTICE.md and the README is NodeAgentc, Inc.
+- The Home screen credit reads "by nodemode.ai" in every language.
+
 ## 0.84.5 · 2026-10-23
 
 - The Liquid Layout page rule that was called Guide is now called Stretch with page in every language, because it never read ruler guides: it stretches every object on both axes with the page. The rule id and saved documents are unchanged.
