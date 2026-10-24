@@ -32,7 +32,7 @@ export class HomeScreen {
   constructor(host: HTMLElement, private readonly d: HomeDeps, actions: HomeAction[]) {
     const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
     const center = el(`<div class="cv-home-center">
-      <h1 class="cv-home-brand">FormDesign<span class="cv-home-by">by NodeMode</span></h1>
+      <h1 class="cv-home-brand">FormDesign<span class="cv-home-by">by nodemode.ai</span></h1>
       <p class="cv-home-sub">Make a flyer, a newsletter, a report or a website. Pick a starting point below, describe what you want to Claude, or open a file.</p>
       <div class="cv-home-actions"></div>
       <h2 class="cv-home-title cv-home-start-title">Start with</h2>

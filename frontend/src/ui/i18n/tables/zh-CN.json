@@ -1784,7 +1784,7 @@
 "[None]": "[无]",
 "a, b, c, d…": "a, b, c, d…",
 "boolean): Promise": "boolean): Promise",
-"by NodeMode": "由 NodeMode 提供",
+"by nodemode.ai": "由 nodemode.ai 提供",
 "e.g. Northlight": "例如 Northlight",
 "extends Reply": "extends Reply",
 "ex~am~ple, or a word never to break": "ex~am~ple，或绝不断开的单词",

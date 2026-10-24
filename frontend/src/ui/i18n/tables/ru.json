@@ -1784,7 +1784,7 @@
 "[None]": "[Нет]",
 "a, b, c, d…": "a, b, c, d…",
 "boolean): Promise": "boolean): Promise",
-"by NodeMode": "от NodeMode",
+"by nodemode.ai": "от nodemode.ai",
 "e.g. Northlight": "напр. Northlight",
 "extends Reply": "extends Reply",
 "ex~am~ple, or a word never to break": "при~мер или слово, которое нельзя переносить",
