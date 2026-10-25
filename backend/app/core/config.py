@@ -45,6 +45,14 @@ TEMPLATES_DIR = (BUNDLE_DIR / "templates" / "library") if FROZEN else (APP_DIR /
 
 CORS_ORIGINS = [o.strip() for o in os.environ.get(
     "FORMDESIGN_CORS_ORIGINS", f"http://localhost:{FRONTEND_PORT},http://127.0.0.1:{FRONTEND_PORT}").split(",") if o.strip()]
+
+
+def window_origins() -> list[str]:
+    ports = (FRONTEND_PORT, FRONTEND_PORT + 1)
+    dev = [f"http://{name}:{port}" for port in ports for name in ("localhost", "127.0.0.1")]
+    return [*CORS_ORIGINS, *dev, "tauri://localhost", "http://tauri.localhost"]
+
+
 DIST_DIR = Path(os.environ["FORMDESIGN_DIST"]) if os.environ.get("FORMDESIGN_DIST") else (
     (BUNDLE_DIR / "frontend_dist") if FROZEN else REPO_ROOT / "frontend" / "dist")
 

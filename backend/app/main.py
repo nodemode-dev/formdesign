@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.core import config
+from app.core.local_guard import LocalGuard
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 from app.services import userprefs as userprefs_service
@@ -47,6 +48,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="FormDesign engine", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(LocalGuard, origins=config.window_origins())
 app.include_router(system.router, prefix="/api")
 app.include_router(core_api.router, prefix="/api")
 app.include_router(versions_api.router, prefix="/api")

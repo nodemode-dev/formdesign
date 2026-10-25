@@ -2,10 +2,17 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.84.4
-Last updated: 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Current build version: v0.84.7
+Last updated: 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.84.7 · LocalGuard: only this computer's own window and agents reach the engine (2026-10-25)
+
+- The family stabilization plan's Phase 3a (`FAMILY_DEV_PLAN.md` v0.4.2, formai_dev sidecar; ledger FB-032). `app/main.py` had only CORS, which decides whether a page may read a response, not whether a request runs, and `curl -H 'Host: evil.example:8196' http://127.0.0.1:8196/api/health` answered 200. A DNS-rebinding page (a hostile name that resolves to 127.0.0.1 and sends its own Host) could therefore call every route as if it were the window: the terminal routes (`/api/term`, with a per-launch token only on its websocket), the Claude launcher, document open, save and export to paths, the package and publish routes, the plugin and agent routes, the workflow check-in and check-out routes and `/mcp`.
+- `app/core/local_guard.py` (new) is a pure ASGI middleware in front of every http and websocket scope, added after CORS so it is the outermost layer. It refuses a Host that is not 127.0.0.1, localhost or ::1. An Origin, when present, must be one of `config.window_origins()` (`CORS_ORIGINS`, that is `FORMDESIGN_CORS_ORIGINS` or the dev window on 5196, plus the dev window on 5196 and its preview on 5197 as `localhost` and `127.0.0.1`, `tauri://localhost`, `http://tauri.localhost`) or exactly the engine's own origin, compared on parsed scheme, host and port, never by prefix, so `http://localhost.evil.com` and `null` fail. The desktop window loads `http://127.0.0.1:<port>` (`WebviewUrl::External`) with a port picked at launch, so "own origin" is the request's own Host. Requests with no Origin (the CLI, `setup/mcp_stdio.py`, Claude Code's MCP client) pass once the Host is local. HTTP refusals answer 403 with a JSON detail; websocket refusals close before accept.
+- The existing terminal websocket check (`_local` origin and the token) stays; the guard is in front of it.
+- Checked against the running engine on 8196 (`FORMDESIGN_DIST` the built window; the layout core is not built in this sandbox, so `/api/health` reports `ok: false`): `Host: evil.example:8196`, `Origin: http://evil.example`, `http://localhost.evil.com` and `null` answer 403; no Origin, the engine's own origin, `http://localhost:5196` and `tauri://localhost` answer 200, and so does a `/mcp` `initialize` POST. `/api/ws` refuses a foreign Origin and a rebound Host (403) and opens for the engine's own origin, the dev origin and no Origin. `setup/mcp_stdio.py` forwards an `initialize` and gets the server's answer. The terminal websocket refuses every origin here because its token is missing, as before. The built window served by the engine in Chromium at 4x CPU and network throttling: layout shift 0 in two runs and one throttled run; the only console errors are four 422 answers from `GET /api/workflow`, which is the engine saying the layout core is not running (a missing core binary in this sandbox, not the guard); no 403 in the engine log except the deliberate probes.
 
 ## v0.84.4 · bundle audit fixes (2026-10-23)
 
