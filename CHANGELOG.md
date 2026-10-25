@@ -2,6 +2,10 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.84.7 · 2026-10-25
+
+- The engine answers only this computer's own window and agents.
+
 ## 0.84.6 · 2026-10-24
 
 - The copyright holder in LICENSE, NOTICE.md and the README is NodeAgentc, Inc.
