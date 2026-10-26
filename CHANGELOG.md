@@ -2,6 +2,11 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.85.0 · 2026-10-26
+
+- The desktop splash no longer shifts its logo when the rest of the card arrives.
+- A smoke test of the built window (no layout shift, no console error, no failed or refused request), run in CI.
+
 ## 0.84.9 · 2026-10-26
 
 - Only FormDesign's own window can change agent access or answer an approval; a call that needs approval is refused at once when no window is open to ask.
