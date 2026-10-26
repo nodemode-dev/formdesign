@@ -88,6 +88,7 @@ The Linux AppImage also carries the build machine's WebKitGTK, GTK and GLib (LGP
 | TypeScript, Vite | Apache-2.0, MIT | frontend build |
 | @tauri-apps/cli | Apache-2.0 or MIT | desktop bundles |
 | PyInstaller | GPL-2.0 with the bootloader exception | freezes the engine; the exception covers the produced binaries |
+| pytest 9.1.1 (with iniconfig, packaging, pluggy, pygments) | MIT (pytest, iniconfig, pluggy), Apache-2.0 OR BSD-2-Clause (packaging), BSD-2-Clause (pygments) | runs `backend/tests` in CI (`backend/requirements-test.txt`); never installed in the app |
 | Rust toolchain, cargo | MIT or Apache-2.0 | builds formdesign-core and the shell |
 
 No icons, images, presets, templates or artwork from other layout applications are included. Other applications' file formats are named only to describe compatibility.
