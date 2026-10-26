@@ -43,7 +43,7 @@ class LocalGuard:
             return False
         origin = headers.get("origin")
         if origin is None:
-            return True
+            return headers.get("sec-fetch-site", "").strip().lower() != "cross-site"
         key = _origin_key(origin)
         if key is None:
             return False
