@@ -1,6 +1,6 @@
 [package]
 name = "formdesign"
-version = "0.84.8"
+version = "0.84.9"
 description = "FormDesign desktop shell"
 authors = ["nodemode-ai"]
 license = "Apache-2.0"

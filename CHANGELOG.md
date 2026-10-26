@@ -2,6 +2,15 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.84.9 · 2026-10-26
+
+- Only FormDesign's own window can change agent access or answer an approval; a call that needs approval is refused at once when no window is open to ask.
+- Cross-site requests without an Origin are refused.
+- The Make report states the document's real page count when continuation pages are added.
+- A template spec of the wrong shape is reported as problems instead of failing.
+- Sample text fits its slot in the Department News and Reviews and Culture magazine templates.
+- Test suites for the layout core and the engine, run in CI.
+
 ## 0.84.8 · 2026-10-26
 
 - The desktop release build keeps its symbols, since macOS builds fail on a stripped binary.

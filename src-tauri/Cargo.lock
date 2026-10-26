@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign"
-version = "0.84.8"
+version = "0.84.9"
 dependencies = [
  "formdesign-gpu",
  "objc2",
@@ -1002,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-gpu"
-version = "0.84.8"
+version = "0.84.9"
 dependencies = [
  "bytemuck",
  "pollster",
