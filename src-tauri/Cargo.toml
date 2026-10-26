@@ -31,7 +31,7 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 panic = "abort"
-strip = true
+strip = false
 
 [profile.release.build-override]
 strip = false
