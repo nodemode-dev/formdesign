@@ -309,6 +309,12 @@ def problems(t: dict) -> list[str]:
     for k in ("id", "name", "category", "page", "pages"):
         if k not in t:
             out.append(f"missing `{k}`")
+    shapes = (("page", dict, "an object"), ("pages", list, "a list of page objects"), ("parents", dict, "an object of parent pages"), ("flow", dict, "an object of flows"))
+    wrong = [f"`{k}` must be {what}" for k, kind, what in shapes if k in t and not isinstance(t[k], kind)]
+    if isinstance(t.get("pages"), list) and not all(isinstance(p, dict) for p in t["pages"]):
+        wrong.append("every entry in `pages` must be an object")
+    if wrong:
+        return out + wrong
     if t.get("category") and t["category"] not in CATEGORIES:
         out.append(f"category must be one of {', '.join(sorted(CATEGORIES))}")
     th, kt = _base()
