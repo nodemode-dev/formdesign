@@ -3,12 +3,19 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from app.core import config
+from app.core.local_guard import from_window
 from app.engine.core import core
 from app.routers.terminal import _guard
 from app.services import agents as A
 
 router = APIRouter()
 _window_actions: list[dict] = []
+
+
+def window_only(request: Request) -> None:
+    if not from_window(request.headers.get("origin"), request.headers.get("host", ""), config.window_origins()):
+        raise HTTPException(403, "only FormDesign's own window changes agent access")
 
 
 class Policy(BaseModel):
@@ -41,14 +48,14 @@ async def agents(request: Request):
 
 @router.post("/agents/enabled")
 async def agents_enabled(body: Enabled, request: Request):
-    _guard(request)
+    window_only(request)
     A.set_enabled(body.enabled)
     return {"enabled": body.enabled}
 
 
 @router.post("/agents/policy")
 async def agents_policy(body: Policy, request: Request):
-    _guard(request)
+    window_only(request)
     try:
         A.set_policy(body.client, body.policy)
     except ValueError as e:
@@ -58,7 +65,7 @@ async def agents_policy(body: Policy, request: Request):
 
 @router.post("/agents/approvals/{aid}")
 async def agents_decide(aid: str, body: Decision, request: Request):
-    _guard(request)
+    window_only(request)
     if not A.decide(aid, body.approve):
         raise HTTPException(404, "that request is no longer waiting")
     return {"ok": True}
@@ -74,7 +81,7 @@ async def agents_turn_end(request: Request):
 
 @router.post("/agents/install")
 async def agents_install(body: Install, request: Request):
-    _guard(request)
+    window_only(request)
     try:
         text = await asyncio.to_thread(A.install, body.client, body.dry)
     except ValueError as e:

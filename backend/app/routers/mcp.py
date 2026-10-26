@@ -17,6 +17,7 @@ from app.engine.core import CoreError, core, turn_var
 from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
+from app.routers.agents import window_only
 from app.services import agents as A
 from app.services import books, libraries, pdfread, profiles, queries
 from app.templates import brands, registry, spec
@@ -769,6 +770,9 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
         return _fail(f"{client} is set to Deny in FormDesign's Agent Connect panel; the person can change that there.")
     reason = A.gate_reason(name, args)
     if reason and pol == "ask":
+        if not core.listeners:
+            A.record(client, name, args, False, 0, f"refused: {reason}, and no window is open to ask", core.rev)
+            return _fail(f"No FormDesign window is open to approve this ({reason}). Open FormDesign and retry, or set {client} to Allow in Agent Connect.")
         if not await A.ask(client, name, args, reason):
             A.record(client, name, args, False, 0, f"not approved: {reason}", core.rev)
             return _fail(f"The person did not approve this ({reason}) in FormDesign's Agent Connect panel within {int(A.APPROVAL_WAIT)} seconds, or declined it. Ask them, then retry.")
@@ -842,6 +846,7 @@ def status() -> dict:
 
 @router.post("/api/mcp/settings")
 async def settings(request: Request) -> dict:
+    window_only(request)
     body = json.loads(await request.body() or b"{}")
     if not isinstance(body, dict) or not isinstance(body.get("enabled"), bool):
         return {"ok": False, "error": "expected {enabled: true or false}"}

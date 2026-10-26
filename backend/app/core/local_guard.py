@@ -23,6 +23,15 @@ def _origin_key(value: str) -> tuple[str, str, int | None] | None:
     return parts.scheme.lower(), parts.hostname.lower(), port
 
 
+def from_window(origin: str | None, host: str, origins: list[str]) -> bool:
+    key = _origin_key(origin) if origin else None
+    if key is None:
+        return False
+    if key in {k for k in (_origin_key(o) for o in origins) if k is not None}:
+        return True
+    return key[0] == "http" and _origin_key(f"http://{host}") == key
+
+
 class LocalGuard:
     def __init__(self, app, origins: list[str]) -> None:
         self.app = app

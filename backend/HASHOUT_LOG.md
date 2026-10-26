@@ -7,6 +7,11 @@ Last updated: 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserve
 
 ---
 
+## v0.84.9 · fixes the family test suite found (2026-10-26)
+
+- FB-045, agent access changed only by the window. `/api/agents/enabled`, `/api/agents/policy`, `/api/agents/approvals/{id}`, `/api/agents/install` and `/api/mcp/settings` used the terminal router's `_guard`, which lets a request with no Origin through, so an outside agent's plain HTTP call (curl, a script it wrote) could set its own policy to allow, turn agent access on, or approve the very request it was waiting on (the approval id is in `GET /api/agents`). These routes now call `window_only` (`routers/agents.py`), which needs an Origin that `local_guard.from_window` accepts: one of `config.window_origins()` or the engine's own origin, the rule LocalGuard uses. A browser always sends Origin on a POST, so the window is unaffected; `GET /api/agents` and the prompt hook's `POST /api/agents/turn` (no Origin, it only splits undo steps) stay open. A process that forges the window's Origin, or edits `agents.json` in the data folder, is outside what an HTTP check can stop; the rule stops an agent from granting itself access by an ordinary request.
+- FB-045, no window to ask. A gated call from a client set to Ask waited `APPROVAL_WAIT` (300 s) for an approval no one could see when no window was open. `call_tool` now refuses at once when `core.listeners` is empty, saying so and naming Allow in Agent Connect (FAMILY_TEST_PLAN D2).
+
 ## v0.84.7 · LocalGuard: only this computer's own window and agents reach the engine (2026-10-25)
 
 - The family stabilization plan's Phase 3a (`FAMILY_DEV_PLAN.md` v0.4.2, formai_dev sidecar; ledger FB-032). `app/main.py` had only CORS, which decides whether a page may read a response, not whether a request runs, and `curl -H 'Host: evil.example:8196' http://127.0.0.1:8196/api/health` answered 200. A DNS-rebinding page (a hostile name that resolves to 127.0.0.1 and sends its own Host) could therefore call every route as if it were the window: the terminal routes (`/api/term`, with a per-launch token only on its websocket), the Claude launcher, document open, save and export to paths, the package and publish routes, the plugin and agent routes, the workflow check-in and check-out routes and `/mcp`.
