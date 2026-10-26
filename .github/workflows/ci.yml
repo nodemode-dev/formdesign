@@ -22,6 +22,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm audit --audit-level=low
       - run: npm run build
 
   backend:
@@ -83,6 +84,34 @@ jobs:
           ./formdesign make --brief "a two page newsletter for the Elm Street garden club" "$RUNNER_TEMP/make/story.md" --out "$RUNNER_TEMP/make/newsletter.pdf" --out "$RUNNER_TEMP/make/newsletter.fdes"
           ./formdesign make --brief "a flyer for a bake sale on Saturday at 10am. CTA: Bring a friend" --out "$RUNNER_TEMP/make/flyer.png"
           for f in newsletter.pdf newsletter.fdes flyer.png; do test -s "$RUNNER_TEMP/make/$f"; done
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: native
+      - name: Install the engine, the font library and the layout core
+        run: |
+          ( cd backend && ./oc_install )
+          ./formdesign install-fonts
+          ./formdesign install-core
+      - name: Layout core tests
+        working-directory: native
+        run: cargo test --release --locked -p formdesign-engine
+      - name: Engine tests
+        working-directory: backend
+        run: |
+          venv/bin/pip install -r requirements-test.txt
+          venv/bin/python -m pytest tests -q
 
   scripts:
     runs-on: ubuntu-latest
