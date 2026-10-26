@@ -22,7 +22,7 @@ Route through `.claude/skills/formdesign-skillset/SKILL.md`: the map of the thre
 - Never copy another application's help text, presets, swatch libraries, templates or icons. Every new font, profile, dictionary, model or library gets a row in `NOTICE.md` with its source and licence before it ships.
 - Content-aware scale and skin protection are declined for patent reasons and never built in any form; see `docs/DECLINED.md`.
 - Planning documents (DEV_PLAN, BUILD_NOTES, TEST_PLAN, the root HASHOUT_LOG, dev-wise) ship in the planning sidecar zip, not in this tree.
-- Tests live in `tests/` folders and run in CI; write only tests this plan or its successor names (`FAMILY_TEST_PLAN.md` in the formai_dev sidecar): `backend/tests` and `native/*/tests`.
+- Tests live in `tests/` folders and run in CI; write only tests this plan or its successor names (`FAMILY_TEST_PLAN.md` in the formai_dev sidecar): `backend/tests`, `native/*/tests` and `frontend/tests/window` (the window smoke).
 
 ## Shape Crafter, Liquid Layout and Trace Image (declined for patent risk, 2026-10-23)
 
