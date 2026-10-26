@@ -2,6 +2,10 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.84.8 · 2026-10-26
+
+- The desktop release build keeps its symbols, since macOS builds fail on a stripped binary.
+
 ## 0.84.7 · 2026-10-25
 
 - The engine answers only this computer's own window and agents.
