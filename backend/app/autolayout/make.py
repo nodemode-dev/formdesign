@@ -380,7 +380,10 @@ async def make(core: Core, pack: dict, template_id: str | None = None, *, brand:
     unused_imgs = [i["id"] for i in pack.get("images") or [] if i["id"] not in used_imgs and i.get("role") != "logo"]
     unused_arts = [a["id"] for a in (pack.get("articles") or [])[1:] if not any(a["title"] and a["title"] in str(v) for v in done.values())]
     report["unused"] = {k: v for k, v in (("images", unused_imgs), ("articles", unused_arts)) if v}
-    report["pages"] = page_count
+    pages_now = (await core.inspect()).get("pageCount") or page_count
+    if pages_now > page_count:
+        report["addedPages"] = report.get("addedPages", 0) + pages_now - page_count
+    report["pages"] = pages_now
     report["brand"] = (brand or {}).get("name") or ("from brief colours" if brand else None)
     if ranked:
         report["alternatives"] = [{"id": x["id"], "score": x["score"]} for x in ranked[1:]]
