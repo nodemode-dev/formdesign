@@ -113,6 +113,41 @@ jobs:
           venv/bin/pip install -r requirements-test.txt
           venv/bin/python -m pytest tests -q
 
+  window:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: native
+      - name: Install the engine, the font library and the layout core
+        run: |
+          ( cd backend && ./oc_install )
+          ./formdesign install-fonts
+          ./formdesign install-core
+      - name: Build the window
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Playwright and its Chromium
+        run: |
+          backend/venv/bin/pip install pytest==9.1.1 playwright==1.63.0
+          backend/venv/bin/python -m playwright install --with-deps chromium
+      - name: Window smoke (F7)
+        env:
+          FORMDESIGN_CORE: ${{ github.workspace }}/native/target/release/formdesign-core
+        run: backend/venv/bin/python -m pytest frontend/tests/window -q -p no:cacheprovider
+
   scripts:
     runs-on: ubuntu-latest
     steps:
