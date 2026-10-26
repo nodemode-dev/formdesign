@@ -60,7 +60,7 @@
       {"kind": "line", "from": [297.64, 440], "to": [297.64, 670.84], "stroke": {"color": "muted", "weight": 0.5}},
       {"kind": "rect", "rect": [40, 693, 515.28, 91], "fill": "tint"},
       {"kind": "text", "rect": [56, 708.64, 200, 10], "style": "Rev Meta", "text": "Also out this month"},
-      {"kind": "text", "slot": "list", "rect": [56, 728.51, 483.28, 47], "style": "Also", "sample": ["• Second Spring, a podcast about people who changed careers after sixty", "• The reissue of Night Garden, the 1978 ambient album that started it all", "• A pocket guide to the city's tiled doorways, with a fold-out map"]},
+      {"kind": "text", "slot": "list", "rect": [56, 728.51, 483.28, 47], "style": "Also", "sample": ["• Second Spring, a podcast about people who changed careers after sixty", "• The reissue of Night Garden, the 1978 ambient album that started it all"]},
       {"kind": "line", "from": [40, 800], "to": [555.28, 800], "stroke": {"color": "muted", "weight": 0.5}},
       {"kind": "text", "rect": [40, 806, 300, 9], "style": "Folio", "text": "Cinder · Culture"},
       {"kind": "text", "rect": [255.28, 806, 300, 9], "style": "Folio Right", "text": "<page>"}
