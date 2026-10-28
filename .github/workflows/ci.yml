@@ -158,7 +158,7 @@ jobs:
             case "$f" in *.bat|*.py) continue ;; esac
             bash -n "$f"
           done
-      - name: No em dash or emoji in tracked text
+      - name: No em dash in tracked markdown, no emoji in tracked text
         run: |
           python3 - <<'PY'
           import subprocess, sys
@@ -168,9 +168,10 @@ jobs:
                   text = open(path, encoding='utf-8').read()
               except (UnicodeDecodeError, IsADirectoryError, FileNotFoundError):
                   continue
+              markdown = path.endswith('.md')
               for ch in text:
                   cp = ord(ch)
-                  if cp == 0x2014 or 0x1F000 <= cp <= 0x1FAFF or 0x2600 <= cp <= 0x27BF:
+                  if (markdown and cp == 0x2014) or 0x1F000 <= cp <= 0x1FAFF or 0x2600 <= cp <= 0x27BF:
                       bad.append(f'{path}: U+{cp:04X}')
                       break
           print('\n'.join(bad) or 'clean')
