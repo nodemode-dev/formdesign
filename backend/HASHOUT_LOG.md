@@ -3,9 +3,14 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.0
-Last updated: 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.1 · Windows desktop build exit status (2026-10-30)
+
+- `setup/desktop_build.bat` ended with an `echo` after `tauri.cmd build %*`, so a failed bundle step still left the script at exit 0 and formcompiler's Windows job carried on to staging with no installers. The build line now ends `|| exit /b 1`, as the frontend and freeze lines above it already did. `setup/desktop_build` (bash) already stops through `set -e`.
+- The terminal on Windows (`services/pty.py`, `from winpty import PtyProcess` inside the spawn path) needs no extra flag in `setup/freeze_backend.bat`: `--collect-submodules app` makes PyInstaller trace that import, so `winpty` and its extension come in with the app modules. The Unix freeze has no counterpart because the POSIX path uses the standard library's `pty`, not ptyprocess. If a frozen Windows engine ever reports the terminal missing, `--collect-all winpty` (formlit's flag) also brings the package's data files.
 
 ## v0.84.9 · fixes the family test suite found (2026-10-26)
 
