@@ -2,7 +2,7 @@
 
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
-Current build version: v0.85.0
+Current build version: v0.85.1
 Last updated: 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---

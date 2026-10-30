@@ -2,6 +2,11 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.85.1 · 2026-10-30
+
+- The Windows desktop build stops with an error when the bundle step fails, instead of reporting success with no installers.
+- Line endings are fixed for Windows checkouts: CRLF for .bat, .cmd and .ps1 scripts, LF for everything else.
+
 ## 0.85.0 · 2026-10-26
 
 - The desktop splash no longer shifts its logo when the rest of the card arrives.
