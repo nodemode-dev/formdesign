@@ -7,6 +7,12 @@ Last updated: 2026-10-30 · the Windows desktop build stops on a failed bundle s
 
 ---
 
+## v0.85.2 · formdesign-core links the C runtime statically on Windows (2026-10-31)
+
+- refers-to: setup/install_core.bat :: the cargo build line
+
+`setup/install_core.bat` builds `formdesign-core.exe`, the layout core sidecar, with plain `cargo build`, and Rust's MSVC target links the Visual C++ runtime (`vcruntime140.dll`) dynamically by default, so on a Windows PC without the Visual C++ Redistributable the core would not start. The script now adds `-C target-feature=+crt-static` to `RUSTFLAGS` for that build; its `setlocal` keeps the flag from reaching anything else. The Tauri shell is not affected: `tauri build` already links its runtime statically through tauri-build's `static_vcruntime`. Not run on Windows here; `dumpbin /dependents formdesign-core.exe` on a build should no longer list VCRUNTIME140.dll.
+
 ## v0.85.2 · .js, .mjs and .css keep their types on Windows (2026-10-31)
 
 - refers-to: app/main.py :: the three mimetypes.add_type calls after the last import
