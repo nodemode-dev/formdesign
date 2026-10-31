@@ -7,6 +7,12 @@ Last updated: 2026-10-30 · the Windows desktop build stops on a failed bundle s
 
 ---
 
+## v0.85.2 · .js, .mjs and .css keep their types on Windows (2026-10-31)
+
+- refers-to: app/main.py :: the three mimetypes.add_type calls after the last import
+
+Python's `mimetypes` takes file types from the Windows registry (`HKEY_CLASSES_ROOT\.js`, value `Content Type`) over its own table, and some installers and editors set `.js` to `text/plain`. On those PCs the engine served the built window's scripts as `text/plain`, WebView2 refused every module script under strict MIME checking, and the desktop window stayed blank; macOS, Linux, dev mode (Vite serves the page) and Windows PCs with the default value never showed it. The three calls pin `.js` and `.mjs` to `text/javascript` and `.css` to `text/css`, which covers `StaticFiles`, `FileResponse` and any direct `guess_type`. They sit after the last import, not above the imports: a module that re-reads the registry while importing cannot undo them, and no import follows a statement (E402). They look redundant off Windows; keep them. Repro on a Windows PC: `reg add "HKCU\Software\Classes\.js" /v "Content Type" /d "text/plain" /f`, then launch the rebuilt app; restore with `/d "text/javascript"`. Checked here: with the table poisoned to `text/plain` for js, mjs and css through `mimetypes.init(files=...)`, the three calls return `text/javascript`, `text/javascript` and `text/css`; `py_compile` passes. Not yet run on a Windows PC.
+
 ## v0.85.1 · Windows desktop build exit status (2026-10-30)
 
 - `setup/desktop_build.bat` ended with an `echo` after `tauri.cmd build %*`, so a failed bundle step still left the script at exit 0 and formcompiler's Windows job carried on to staging with no installers. The build line now ends `|| exit /b 1`, as the frontend and freeze lines above it already did. `setup/desktop_build` (bash) already stops through `set -e`.

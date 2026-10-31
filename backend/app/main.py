@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -25,6 +26,10 @@ from app.routers import commands as commands_api
 from app.routers import actionsets as actionsets_api
 from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, versions as versions_api, website
 from app.services.pty import terminals
+
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("text/css", ".css")
 
 logging.basicConfig(level=logging.INFO, format="[formdesign] %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("formdesign")
