@@ -2,6 +2,11 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.85.2 · 2026-10-31
+
+- The Windows desktop app no longer opens to a blank window on PCs where an installer set the `.js` file type to `text/plain` in the registry: the engine now serves scripts and stylesheets with their real types.
+- The Windows layout core includes the Visual C++ runtime, so it starts on PCs without the Visual C++ Redistributable.
+
 ## 0.85.1 · 2026-10-30
 
 - The Windows desktop build stops with an error when the bundle step fails, instead of reporting success with no installers.
