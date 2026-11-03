@@ -410,7 +410,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-core"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "fancy-regex",
  "formdesign-engine",
@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-engine"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "fancy-regex",
  "formdesign-interchange",
@@ -445,7 +445,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-gpu"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "bytemuck",
  "png",
@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-interchange"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "formdesign-model",
  "kurbo",
@@ -467,7 +467,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-model"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "kurbo",
  "serde",
@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-render"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "formdesign-model",
  "formdesign-text",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "formdesign-text"
-version = "0.85.2"
+version = "0.85.3"
 dependencies = [
  "fancy-regex",
  "fontdb",
