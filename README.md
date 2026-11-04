@@ -1,149 +1,215 @@
-<p align="center"><img src="assets/formdesign_folder_icon.png" width="112" alt="FormDesign"></p>
-<h1 align="center">FormDesign</h1>
-<p align="center"><b>Page layout and publishing for the web and the desktop, made for people and their agents, in the NodeMode design system.</b></p>
 <p align="center">
-<img src="https://img.shields.io/badge/version-0.85.2-f97316" alt="version 0.85.2">
-<img src="https://img.shields.io/badge/node-22-339933" alt="node 22">
-<img src="https://img.shields.io/badge/python-3.12-3776AB" alt="python 3.12">
-<img src="https://img.shields.io/badge/rust-1.90-B7410E" alt="rust 1.90">
-<img src="https://img.shields.io/badge/tauri-2-24C8DB" alt="tauri 2">
-<img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="Apache 2.0 license">
+  <img src="assets/app-icon/formdesign-256.png" width="128" height="128" alt="FormDesign icon">
 </p>
 
-## What it is
+<h1 align="center">FormDesign</h1>
 
-FormDesign is the form family's page-layout application for magazines, newsletters, books, reports, print pieces, ads, websites and blogs. Its layout core is FormDesign's own engine (388 commands and 41 tools: spreads and parent pages, threaded stories, a Knuth-Plass paragraph composer, styles, tables, footnotes, vector drawing, PDF, IDML and EPUB), wrapped by FormDesign's own interface in formvis's Studio Dark language and by an engine service built for agents: drop in Markdown, PDFs, Word files, images and a brief, pick a template, and FormDesign lays it out.
+<p align="center">
+  <b>Page layout and publishing; magazines, books, reports, print and websites on its own Rust layout engine.</b><br>
+  Spreads, threaded stories, styles, tables, vector drawing and templates,<br>
+  with an MCP server for agents. Local-first, no account.
+</p>
 
-**Stack.** Vanilla TypeScript and Vite · Python and FastAPI · Rust (formdesign-core, a JSON-lines sidecar over FormDesign's own layout crates) · Tauri 2.
+<p align="center">
+  <img alt="version 0.85.4" src="https://img.shields.io/badge/version-0.85.4-eef0f4?style=flat-square">
+  <img alt="Rust" src="https://img.shields.io/badge/rust-layout%20core-B7410E?style=flat-square&logo=rust&logoColor=white">
+  <img alt="TypeScript and Python" src="https://img.shields.io/badge/typescript%20%2B%20python-engine%20and%20window-3178c6?style=flat-square">
+  <img alt="macOS, Windows and Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
+  <img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-3a3a3a?style=flat-square">
+  <img alt="Status: active" src="https://img.shields.io/badge/status-active-d69e2e?style=flat-square">
+</p>
 
-## Status at 0.68.0
+<p align="center">
+  <a href="https://formdesign.formai.studio/"><b>Download FormDesign on formai.studio</b></a> ·
+  <a href="#run-it-from-source">Run it from source</a> ·
+  <a href="#the-form-family">All Form apps</a>
+</p>
 
-Working end to end:
+<br>
 
-- **Intake.** Markdown, Word, RTF, text, HTML, CSV and spreadsheets, PDFs (structure-aware extraction), images and GIFs, and a brief in plain words become one compact content pack. Key: value lines become fields, and the brief is read for kind, size, page count, tone, colours, brand, event name, date, time, issue and call to action.
-- **71 templates** across magazine, newsletter, book, report, print, stationery, ad, web and presentation, each slotted for automatic filling and re-skinned by a brand kit. `docs/TEMPLATES.md` is the format; you can add your own.
-- **The Make pass.** Ranks templates for your content, fills them (titles, decks, bylines, stats, features, captions, contact fields), threads the article through continuation pages, matches images to frames, fits copy, and reports what is still sample text.
-- **Websites.** Any layout as a responsive multi-page site in its own type and colours: an article per page with a home page of cards, a web template's rows and columns that stack on a phone, a page-by-page edition, sitemap and feed (File > Export > Website), and File > Publish Online for a link served from this computer.
-- **Agents.** An MCP server with 38 tools (outline, inspect, look and use_tool let an agent read, measure, see and draw cheaply; errors name the fix) and five task prompts; Window > Agent Connect shows each agent that connects, lets you allow, ask or deny per agent, approve risky steps (publishing, overwriting files, deleting pages) and follow what an agent does; a terminal dock under the canvas (Ctrl or Cmd+J) starts Claude Code, Codex or Cursor already connected, with a title-bar Claude Code button (Ctrl or Cmd+Shift+J), a Chat tab with an Ask line (Ctrl or Cmd+Alt+J), the Working with Claude workspace and a calmer Essentials workspace for everyday work (`./formdesign mcp`, `./formdesign agents install` for Claude Code, Codex and Cursor), a CLI (`./formdesign make FILES --brief "..." --out layout.pdf`, `./formdesign export FILE --out site.zip`), and three skills in `.claude/skills` (mirrored to `.agents/skills`): `formdesign-harness` (nine sub-skills from intake to publishing, path-artist among them for vector art), `formdesign-template-creator` and `formdesign-skillset`.
-- **The editor.** Tiled rendering of the layout core with overlays, 41 tools, menus built from the core's 388 commands with a dialog for every command that takes options (row editors for styles, tabs, rules and gradient stops, never JSON), Edit > Search over every command, panel and tool, a left panel column that folds into the tool rail, autocorrect as you type, Package with fonts, colour themes from images, document tabs, and first versions of the Make, Slots, Properties, Character, Paragraph, Swatches, Styles, Pages, Layers, Links and Preflight panels and the New Document and Export dialogs.
-- **Desktop.** A Tauri 2 app for macOS, Windows and Linux with the engine and the layout core as sidecars; CI builds the bundles on each `v*.*.*` tag.
+<p align="center">
+  <img src="docs/images/formdesign-hero.png" alt="The Event Poster, Type-Led template open in FormDesign: the poster on the canvas, the Pages panel on the left and document properties on the right" width="100%">
+  <br>
+  <sub>The "Ink. Paper. People." poster template open in the editor, with the Pages panel and Properties visible.</sub>
+</p>
 
-- **Workspace pieces.** Rulers with drag-out guides (Ctrl+R), the Glyphs panel, the Tabs ruler, one Styles tab for paragraph, character and object styles, the Table panel (options, alternating rows, cell and table styles), Books (File > Book: chapters, numbering, style sync, one PDF) and the Story Editor (Ctrl+Y) with a style-name column and the overset line.
-- **Review and output.** Track Changes, Notes and Conditional Text panels; Separations Preview with the ink limit (Shift+F6) and Overprint Preview; soft proofing through ICC profiles (View > Proof Setup and Proof Colors, with paper simulation, and colour-blindness views); the Ink Manager; Object Style Options, Redefine and Delete; preflight profiles (Commercial print, PDF/X-1a, booklets, digital, your own) with bleed, trim, type size, resolution, spot ink, transparency and page count checks.
-- **Long documents and production.** Copy and paste across documents, Step and Repeat, Create Guides, Pathfinder and compound paths, Convert Shape, QR codes, Create Outlines, anchored objects; hyperlinks, PDF bookmarks, text variables, footnotes, a table of contents, an index and cross-references that update, and data merge from CSV with pictures; endnotes; liquid and alternate layouts and gatefold spreads; Paragraph and Character Options with every composer, hyphenation, keep, drop cap, column and OpenType setting; CSV and Excel placed as tables; Smart Text Reflow; tagged PDF, PDF/A and PDF/UA; SVG export; Print and Print Booklet dialogs.
-- **Editing text at scale.** Find/Change (Ctrl+F) with Text, GREP, Glyph and Object tabs, formats, scopes and saved queries, also as the `find_change` MCP tool; Check Spelling (Ctrl+I) and Dynamic Spelling in the text's own language (US English built in, twenty more from Edit > Language Dictionaries) and a dictionary per document; Type on a Path Options.
-- **Interactive, structure and reuse.** Object States, Buttons and Forms (with media options) and Page Transitions panels; the XML Tags and Structure panels (Alt+Ctrl+1) with style mapping, DTD validation, import and export; Libraries of saved pieces with thumbnails, dragged onto the page, also as the `library` MCP tool.
-- **Drawing.** Corners at any anchor, offset path, outline stroke, all ten Pathfinder operations, simplify, the Curvature and Knife tools, arrowheads; the Shape Builder and Width tools, variable-width strokes, live blends along a spine; live effects and thirteen warps with several fills and strokes per object; calligraphic, scatter, art and pattern brushes with corner tiles; live Repeat, symbols, Recolor Artwork, Image Trace and Live Paint; opacity and clipping masks, freeform gradients, gradients along a stroke, Draw Behind and Inside, isolation mode; gradient meshes with the Mesh tool, exported to PDF as vector mesh shadings (CMYK for PDF/X); Envelope Distort and pin warps; artboards apart from pages with the Artboard tool and PNG and PDF export.
-- **Footnotes and tables from the page-layout wishlist.** Footnotes spanning columns, in their own column count, run-in, restarting per page or section or numbered across stories; table rows that split across frames under repeated headers, slanted and dimensioned cell styles, non-adjacent row selection, rounded table corners; text wrap for anchored objects before their anchor; several character styles stacked on the same text.
-- **26 languages.** Every interface string (1,703) in 26 languages, English by default.
-- **Your workspace.** Seven built-in workspaces and your own (Window > Workspace or the title-bar switcher); panel groups that move between columns, split, size and close; keyboard shortcut sets with every command and tool rebindable (Alt+Shift+Ctrl+K).
+<p align="center">
+  <a href="#features">Features</a> · <a href="#everything-in-the-box">In the box</a> · <a href="#built-for-agents">Agents</a> · <a href="#under-the-hood">Under the hood</a> · <a href="#download">Download</a> · <a href="#run-it-from-source">Run from source</a> · <a href="#the-form-family">Form family</a>
+</p>
 
-Measured against two professional layout applications in 139 traced rows (full 1, partial 0.5, none 0), FormDesign scores 134 (96.4 percent) at 0.77.0: 97 percent of what the first documents and 96 of the second, up from 78 at 0.19.0. The 0.74.0 re-trace of the second added six rows, which is why the figure is lower than 0.67.0's 97.7 percent over 133; editing a placed image's pixels, inserting pages from another document and live image adjustments have since moved to full. Work on existing PDFs is not scored: it belongs to FormPDF, a separate app. A capability reachable only through a raw parameters box or MCP `run_commands` counts as partial. Open: .indd files (a closed format) and stock photo search (none); CAD drawings (DXF opens as shapes, DWG has no permissively licensed reader), opening .ai and PSD files as artwork, persistent dimension lines, .qxd and .qxp files (format versions 3.1 to 4.1 through LibreOffice's libqxp, unconfirmed on a real file), cloud documents and a plug-in marketplace (partial).
+<br>
 
-**Documentation.** `docs/MANUAL.md` is the user manual; `.docs/wiki/` is the developer wiki (published to the GitHub wiki); `.docs/BRANCHING.md` the branch and release model; `CHANGELOG.md` every release.
+<table>
+  <tr>
+    <td width="25%" valign="top"><h3>Own layout core</h3>A Rust core with its own paragraph composer, spreads, parent pages, threaded stories, footnotes and tables.</td>
+    <td width="25%" valign="top"><h3>Templates that fill</h3>71 slotted templates; drop in Markdown, Word, PDFs and images with a brief and Make lays them out.</td>
+    <td width="25%" valign="top"><h3>Print and web</h3>Export PDF, IDML, EPUB, HTML, PNG, JPEG and SVG, or publish a responsive multi-page website.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same engine from the window, the CLI and an MCP server with 38 tools.</td>
+  </tr>
+</table>
 
-## Try it
+<br>
 
-```bash
-./formdesign boot                  # then open http://localhost:5196
-./formdesign templates             # list the 71 templates
-./formdesign cmd layout.pages.insert count=2   # any engine command, on the document the window has open
-./formdesign tool preview '{"page": 1}'        # any MCP tool, the same way agents call it
-./formdesign make article.md photo.jpg logo.png --brief "Square instagram ad for Northlight. CTA: Read the issue" --out ad.png
+## Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdesign-inspector.png" alt="A text frame selected on the poster, with transform, appearance, character and paragraph controls in the Properties panel" width="100%">
+      <br><sub>A headline frame selected, with its Properties on the right.</sub>
+      <h3>Inspect and edit anything</h3>
+      Transform, appearance, character and paragraph controls follow the selection. Styles, swatches and tables sit in the same column.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdesign-templates.png" alt="The New from Template dialog showing magazine templates with thumbnails and a preview of Feature Spread" width="100%">
+      <br><sub>New from Template, filtered to magazines.</sub>
+      <h3>71 templates</h3>
+      Magazine, newsletter, book, report, print, stationery, ad, web and presentation, each re-skinned by a brand kit.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdesign-export.png" alt="The Export dialog listing PDF, IDML, EPUB, HTML, website, PNG, JPEG, SVG, text and XML formats, with PDF print options" width="100%">
+      <br><sub>The Export dialog, with PDF print options.</sub>
+      <h3>Export what the job needs</h3>
+      Bleed, crop marks, transparency flattening, PDF standards and tagged PDF, or a website your readers open on a phone.
+    </td>
+    <td width="50%" valign="top">
+      <h3>The Make pass</h3>
+      Intake reads your files and brief, ranks templates, fills the slots, threads the article across pages and reports what is still sample text.
+    </td>
+  </tr>
+</table>
+
+## Everything in the box
+
+<table>
+  <tr>
+    <td width="33%" valign="top"><h4>394 layout commands</h4>Spreads and parent pages · Threaded stories · Styles · Tables · Footnotes · Books · Track changes · Preflight · Find/Change · Libraries</td>
+    <td width="33%" valign="top"><h4>41 tools</h4>Selection · Type · Pen · Shape Builder · Curvature · Knife · Gradient mesh · Artboards · Hand · Zoom</td>
+    <td width="33%" valign="top"><h4>Formats</h4>Opens: Markdown, Word, RTF, HTML, CSV, spreadsheets, PDF, images · Saves: PDF, IDML, EPUB, HTML, PNG, JPEG, SVG, website</td>
+  </tr>
+</table>
+
+## Built for agents
+
+The window, the CLI and the MCP server drive the same engine, and the MCP server exposes 38 tools and five task prompts.
+
+```sh
+./formdesign make article.md photo.jpg --brief "Square ad for Northlight" --out ad.png   # intake, template, fill, export
+./formdesign templates                       # list the 71 templates
+./formdesign tool preview '{"page": 1}'      # call any MCP tool from a shell
+./formdesign mcp                             # MCP server on stdio for Claude Code, Codex and Cursor
 ```
 
-In the app, drop files on the Make panel (right column), write a brief, press Analyse, pick a template and press Make layout.
+`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. `./formdesign agents install` registers it for your account. See [`AGENTS.md`](AGENTS.md).
 
-## Quick Start
+## Under the hood
 
-Requirements: Node 20.19 or newer (22 recommended), Python 3.12 or newer, Rust stable (for the layout core; without it the installer fetches a prebuilt core when a release has one), git.
+- **Layout core:** a Rust workspace (`formdesign-core` over model, text, render, engine, interchange and gpu crates) talking JSON lines to the engine.
+- **Engine:** FastAPI service with intake, templates, the Make pass, MCP, and the window socket at `/api/ws`.
+- **Window:** vanilla TypeScript and Vite, tiled rendering of the core with overlays, in 26 languages.
+- **Desktop:** Tauri 2 shell with the engine and the core as sidecars.
+- **Tested:** 66 backend test functions (exports, templates, Make, MCP, consent, sockets, boot) and a window test suite.
 
-### macOS and Linux
+## Download
 
-```bash
-git clone https://github.com/nodemode-ai/formdesign.git
+**Get the app:** download FormDesign from [formai.studio](https://formdesign.formai.studio/). That is the easiest way to install it.
+
+**Releases:** builds are published at [`nodemode-dev/formcompiler`](https://github.com/nodemode-dev/formcompiler/releases?q=formdesign-v&expanded=true).
+
+**Keep it updated:** [FormPortal](https://github.com/nodemode-dev/formportal) installs, updates and rolls back every Form app from the same signed catalogue.
+
+| Platform | Builds |
+|---|---|
+| macOS Apple silicon | macos-arm64 |
+| Linux | linux-x64 |
+| Windows | windows-x64 |
+
+All FormDesign builds are compiled and released from FormCompiler, not from this repo. This repo holds the source.
+
+## Run it from source
+
+Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.
+
+**Requires:** Node 20.19 or newer, Python 3.12 or newer, Rust stable (for the layout core), git.
+
+```sh
+git clone git@github.com:nodemode-dev/formdesign.git
 cd formdesign
-./formdesign install
-./formdesign boot
+./formdesign install     # engine venv, layout core, font library, frontend (Windows: formdesign.bat)
+./formdesign boot        # web UI at http://localhost:5196, engine on http://127.0.0.1:8196
 ```
 
-### Windows
+The first `install` compiles the layout core, which takes several minutes. `./formdesign doctor` checks the toolchain and ports. `./formdesign desktop dev` opens the desktop window instead; `./build_app` bundles it. Settings live in `backend/.env` (see `backend/.env.example`).
 
-```bat
-git clone https://github.com/nodemode-ai/formdesign.git
-cd formdesign
-formdesign.bat install
-formdesign.bat boot
-```
+> [!IMPORTANT]
+> **Status:** active. Opening .indd files, stock photo search, DWG drawings and .ai or PSD artwork are not supported; work on existing PDFs belongs to FormPDF.
 
-The first `install` compiles the layout core (a few minutes on the first build). `./formdesign help` lists every command; `./formdesign doctor` checks the toolchain, the installs and the ports.
+**Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
-| Service | URL | Notes |
-| --- | --- | --- |
-| Frontend (dev) | http://localhost:5196 | Vite, bound to localhost only, strict port |
-| Engine | http://127.0.0.1:8196 | FastAPI; API under `/api`, the window socket at `/api/ws`; serves the built app in `./formdesign serve` |
-| Preview | http://localhost:5197 | `vite preview` of the production build |
-| Layout core | standard input and output | `formdesign-core`, started and supervised by the engine |
+Repository: `native/` (Rust layout core), `backend/` (FastAPI engine), `frontend/` (Vite window), `src-tauri/` (desktop shell), `setup/` (scripts), `docs/` (manual, template format).
 
-### Desktop app
+Docs: [`.docs/wiki`](.docs/wiki) · Agents: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) · Contributing: [`.docs/BRANCHING.md`](.docs/BRANCHING.md)
 
-One step from the repository root (installs, builds the window, freezes the engine, bundles; macOS installs to Applications, Linux makes a .deb):
+## The Form family
 
-```bash
-./build_app                        # build_app.bat on Windows; --open, --install (Linux), --no-install (macOS), --clean
-```
+FormDesign is one of the **Form apps**: native creative tools that install, update and roll back through FormPortal and can all be driven by agents.
 
-Or step by step:
+| | App | What it's for | Download | Code |
+|:-:|---|---|---|---|
+| <img src=".github/assets/family/form.md.png" alt="" width="32" height="32"> | **form.md** | Documents, databases and realtime editing together | [formai.studio](https://formmd.formai.studio/) | [GitHub](https://github.com/nodemode-dev/form.md) |
+| <img src=".github/assets/family/format.png" alt="" width="32" height="32"> | **FormAT** | Chat and agent workspace on your key | [formai.studio](https://format.formai.studio/) | [GitHub](https://github.com/nodemode-dev/format) |
+| <img src=".github/assets/family/formCAD.png" alt="" width="32" height="32"> | **FormCAD** | Drafting, parametric parts and NURBS surfaces | | [GitHub](https://github.com/nodemode-dev/formCAD) |
+| <img src=".github/assets/family/formcel.png" alt="" width="32" height="32"> | **FormCel** | Spreadsheets agents can read and edit | [formai.studio](https://formcel.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formcel) |
+| <img src=".github/assets/family/formcraft.png" alt="" width="32" height="32"> | **FormCraft** | Generate images, video, audio, 3D and worlds | | [GitHub](https://github.com/nodemode-dev/formcraft) |
+| <img src=".github/assets/family/formcut.png" alt="" width="32" height="32"> | **FormCut** | Multi-track video editing with no upload | [formai.studio](https://formcut.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formcut) |
+| <img src=".github/assets/family/formDAM.png" alt="" width="32" height="32"> | **FormDAM** | Photo library and asset manager | [formai.studio](https://formdam.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formDAM) |
+| <img src=".github/assets/family/formdeck.png" alt="" width="32" height="32"> | **FormDeck** | Presentations and pitch decks | [formai.studio](https://formdeck.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formdeck) |
+| <img src=".github/assets/family/formdesign.png" alt="" width="32" height="32"> | **FormDesign** | Page layout for print and the web | [formai.studio](https://formdesign.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formdesign) |
+| <img src=".github/assets/family/formencoder.png" alt="" width="32" height="32"> | **FormEncoder** | Media encoding queue with presets | [formai.studio](https://formencoder.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formencoder) |
+| <img src=".github/assets/family/formfabric.png" alt="" width="32" height="32"> | **FormFabric** | Sewing patterns draped with cloth simulation | | [GitHub](https://github.com/nodemode-dev/formfabric) |
+| <img src=".github/assets/family/formlit.png" alt="" width="32" height="32"> | **FormLit** | Photo library and raw development | [formai.studio](https://formlit.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formlit) |
+| <img src=".github/assets/family/formmorpheus.png" alt="" width="32" height="32"> | **FormMorpheus** | Frame-by-frame and performed animation | | [GitHub](https://github.com/nodemode-dev/formmorpheus) |
+| <img src=".github/assets/family/formNET.png" alt="" width="32" height="32"> | **FormNET** | See what your computer sends online | | [GitHub](https://github.com/nodemode-dev/formNET) |
+| <img src=".github/assets/family/formpath.png" alt="" width="32" height="32"> | **FormPath** | Vector illustration with artboards and type | [formai.studio](https://formpath.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formpath) |
+| <img src=".github/assets/family/formpdf.png" alt="" width="32" height="32"> | **FormPDF** | Edit, redact, sign and fill PDFs | [formai.studio](https://formpdf.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formpdf) |
+| <img src=".github/assets/family/formpromo.png" alt="" width="32" height="32"> | **FormPromo** | Promo films from your own media | [formai.studio](https://formpromo.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formpromo) |
+| <img src=".github/assets/family/formref.png" alt="" width="32" height="32"> | **FormRef** | Reference boards for creative work | [formai.studio](https://formref.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formref) |
+| <img src=".github/assets/family/formrig.png" alt="" width="32" height="32"> | **FormRig** | Rig, skin and retarget any mesh | | [GitHub](https://github.com/nodemode-dev/formrig) |
+| <img src=".github/assets/family/formsculpt.png" alt="" width="32" height="32"> | **FormSculpt** | 3D sculpting, remeshing and painting | [formai.studio](https://formsculpt.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formsculpt) |
+| <img src=".github/assets/family/formsurface.png" alt="" width="32" height="32"> | **FormSurface** | Texture painting with PBR export | [formai.studio](https://formsurface.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formsurface) |
+| <img src=".github/assets/family/formtools.png" alt="" width="32" height="32"> | **FormTools** | Viewers, batch tools and file utilities | | [GitHub](https://github.com/nodemode-dev/formtools) |
+| <img src=".github/assets/family/formtxt.png" alt="" width="32" height="32"> | **FormTxt** | Word processing with .docx round trips | [formai.studio](https://formtxt.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formtxt) |
+| <img src=".github/assets/family/formvfx.png" alt="" width="32" height="32"> | **FormVFX** | Motion graphics and VFX compositing | [formai.studio](https://formvfx.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formvfx) |
+| <img src=".github/assets/family/formvis.png" alt="" width="32" height="32"> | **FormVis** | Layered image editing with local AI | [formai.studio](https://formvis.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formvis) |
+| <img src=".github/assets/family/formwav.png" alt="" width="32" height="32"> | **FormWav** | Multitrack audio editing and mixing | [formai.studio](https://formwav.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formwav) |
+| <img src=".github/assets/family/formweb.png" alt="" width="32" height="32"> | **FormWeb** | Visual website building with a CMS | [formai.studio](https://formweb.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formweb) |
+| <img src=".github/assets/family/formportal.png" alt="" width="32" height="32"> | **FormPortal** | Install, update and roll back Form apps | [formai.studio](https://formportal.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formportal) |
+| <img src=".github/assets/family/formtray.png" alt="" width="32" height="32"> | **FormTray** | One dock icon for every app | [formai.studio](https://formtray.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formtray) |
+| <img src=".github/assets/family/formMCP.png" alt="" width="32" height="32"> | **FormMCP** | One MCP connection to the family | [formai.studio](https://formmcp.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formMCP) |
+| <img src=".github/assets/family/formskills.png" alt="" width="32" height="32"> | **FormSkills** | Every app's agent skills in one place | [formai.studio](https://formskill.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formskills) |
+| <img src=".github/assets/family/formbench.png" alt="" width="32" height="32"> | **FormBench** | Parity, testing and rankings for the family | [formai.studio](https://formranker.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formbench) |
+| <img src=".github/assets/family/formslot.png" alt="" width="32" height="32"> | **FormSlot** | Codebase memory for coding agents | | [GitHub](https://github.com/nodemode-dev/formslot) |
+| <img src=".github/assets/family/subform.png" alt="" width="32" height="32"> | **SubForm** | Workbench for parallel Claude Code agents | | [GitHub](https://github.com/nodemode-dev/subform) |
+| <img src=".github/assets/family/formcompiler.png" alt="" width="32" height="32"> | **FormCompiler** | Builds, signs and releases every app | [formai.studio](https://formcompiler.formai.studio/) | [GitHub](https://github.com/nodemode-dev/formcompiler) |
+| <img src=".github/assets/family/formpipe.png" alt="" width="32" height="32"> | **FormPipe** | Release pipeline and update feeds | | [GitHub](https://github.com/nodemode-dev/formpipe) |
 
-```bash
-./formdesign install-desktop       # PyInstaller, and checks Rust and the webview libraries
-./formdesign desktop dev           # run the app against the frozen engine
-./formdesign desktop build         # bundles in src-tauri/target/release/bundle (.dmg, .msi and .exe, .deb, .rpm, .AppImage)
-```
+<br>
 
-On Windows use `formdesign.bat install-desktop` and `formdesign.bat desktop build`. Linux needs the webview packages first: `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf`. The desktop engine prefers port 8196 and takes a free port when 8196 is busy.
+---
 
-## Configuration
+## Maintainers
 
-The engine reads `backend/.env`, which is never committed; `backend/.env.example` is the template.
+| Maintainer | Role |
+|---|---|
+| [@nodemode-ai](https://github.com/nodemode-ai) | Owner |
+| [@gbarnai](https://github.com/gbarnai) | Co-owner |
 
-| Variable | Purpose |
-| --- | --- |
-| `FORMDESIGN_HOST` | Engine bind address |
-| `FORMDESIGN_PORT` | Engine port |
-| `FORMDESIGN_DATA_DIR` | Projects, templates, brand kits, intake and exports (default `~/FormDesign`) |
-| `FORMDESIGN_CORE` | Path to a formdesign-core binary to use instead of the built one |
-| `FORMDESIGN_FONT_DIRS` | Extra font folders for the layout core |
-| `FORMDESIGN_SYSTEM_FONTS` | `0` keeps the core from cataloguing the system's fonts |
-| `FORMDESIGN_CORS_ORIGINS` | Allowed browser origins for the dev frontend |
-| `FORMDESIGN_DIST` | Built frontend folder the engine serves |
+Code owners are set in [`.github/CODEOWNERS`](.github/CODEOWNERS).
 
-## Architecture
+## License
 
-```text
-formdesign/
-├── formdesign, formdesign.bat     root dispatcher: install, boot, build, serve, desktop, make, mcp, agents, doctor
-├── formdesign_oc_install(.bat)    one-command install
-├── setup/                         one script per task, each with a .bat twin; lib.sh holds shared helpers
-├── assets/                        repo art (README logo, desktop icon source)
-├── native/                        Rust workspace: formdesign-core over formdesign-model, -text, -render, -interchange and -engine
-├── backend/                       FastAPI engine: the core process, intake, templates, the Make pass, MCP
-├── frontend/                      Vite app, vanilla TypeScript: the shell, the canvas, panels and dialogs
-├── src-tauri/                     Tauri 2 desktop shell; the engine and the core ride along as sidecars
-├── .claude/skills/                formdesign-harness, formdesign-template-creator, formdesign-skillset (mirrored to .agents/skills)
-└── .github/workflows/             ci (checks and a command-line make) and desktop (bundles and the release)
-```
+FormDesign is licensed under the Apache License 2.0 ([`LICENSE`](LICENSE), SPDX `Apache-2.0`). Copyright 2026 NodeAgentc, Inc. Third-party notices: [`NOTICE.md`](NOTICE.md).
 
-## Development
-
-Branch model: `main` plus short-lived work branches. Contributions follow the dev-rules laws: single-region hand edits, zero DOM flash or re-render, no emoji, no em dash, no icon-library dependencies, `v*.*.*` versions, Conventional Commits. Read `frontend/HASHOUT_LOG.md`, `backend/HASHOUT_LOG.md` and `native/HASHOUT_LOG.md` before editing.
-
-## Contributors
-
-- **nodemode-ai** · owner and build
-
-## Licensing
-
-Apache License 2.0. Copyright 2026 NodeAgentc, Inc. See `LICENSE` and `NOTICE.md` for the fonts, dictionaries, the CMYK profile and the libraries FormDesign includes.
-
-FormDesign names file formats by their extension and no other application. Product names a person may associate with those formats are the trademarks of their owners; FormDesign is not affiliated with or endorsed by any of them.
+<sub>FormDesign names file formats by their extension and no other application. Product names a person may associate with those formats are the trademarks of their owners; FormDesign is not affiliated with or endorsed by any of them.</sub>
