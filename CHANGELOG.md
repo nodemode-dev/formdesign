@@ -2,6 +2,15 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.85.4 · 2026-11-04
+
+- The README is rewritten in the Form family layout, with screenshots of the editor, the template gallery and the Export dialog.
+
+## 0.85.3 · 2026-11-03
+
+- The app icon is the unified v3 icon in the desktop app, the window's favicon and the README; the old SVG favicon is gone.
+- GitHub code ownership: `@gbarnai` co-owns the repo.
+
 ## 0.85.2 · 2026-10-31
 
 - The Windows desktop app no longer opens to a blank window on PCs where an installer set the `.js` file type to `text/plain` in the registry: the engine now serves scripts and stylesheets with their real types.
