@@ -131,7 +131,13 @@ def workdir() -> Path:
 def wrap(cmd: list[str]) -> list[str]:
     if os.name == "nt":
         return cmd
-    return login_shell() + ["-c", "exec " + shlex.join(cmd)]
+    shell = login_shell()
+    name = Path(shell[0]).name
+    if name == "fish":
+        return shell + ["-c", "exec " + " ".join("'" + a.replace("\\", "\\\\").replace("'", "\\'") + "'" for a in cmd)]
+    if name in ("bash", "zsh", "sh", "dash", "ksh"):
+        return shell + ["-c", "exec " + shlex.join(cmd)]
+    return ["/bin/sh", "-l", "-c", "exec " + shlex.join(cmd)]
 
 
 def argv(path: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
