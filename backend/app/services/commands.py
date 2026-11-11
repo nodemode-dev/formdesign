@@ -99,8 +99,11 @@ def _push(ev: dict) -> int:
 async def run(cid: str, params: dict, source: str = "rest") -> dict:
     entry = await describe(cid)
     if entry["kind"] == "command":
-        from app.routers.core_api import routed_exec
-        res = await routed_exec({"command": cid, "params": params or {}}, source)
+        from app.routers.core_api import ROUTED, routed_exec
+        if cid in ROUTED:
+            res = await routed_exec({"command": cid, "params": params or {}}, source)
+        else:
+            res = await core.exec(cid, params or {}, source=source)
         return {"ran": True, "kind": "command", "result": res}
     rid = secrets.token_hex(6)
     fut = asyncio.get_running_loop().create_future()

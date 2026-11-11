@@ -6,7 +6,7 @@ export interface CoreMeta {
   requests?: UiRequest[];
 }
 
-export interface UiRequest { kind: 'dialog' | 'view' | 'pick'; id?: string; purpose?: string; params?: Record<string, unknown> }
+export interface UiRequest { kind: 'dialog' | 'view' | 'pick' | 'toast'; id?: string; text?: string; purpose?: string; params?: Record<string, unknown> }
 
 export interface ChangeEvent { type: 'changed'; rev: number; selRev: number; docChanged: boolean; damage?: number[][] | null; source: string; method: string }
 

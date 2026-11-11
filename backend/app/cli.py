@@ -76,7 +76,7 @@ async def save_outputs(paths: list[str], stem: str) -> list[dict]:
             n = ins.get("pageCount") or 1
             for i in range(n):
                 target = p if n == 1 else p.with_name(f"{p.stem}-{i + 1}{p.suffix}")
-                res, _, _ = await documents.export(ext, str(target), {"page": i, "scale": 2.0})
+                res, _, _ = await documents.export(ext, str(target), {"page": i + 1, "scale": 2.0})
                 saved.append(res)
         else:
             res, _, _ = await documents.export({"htm": "html", "zip": "web"}.get(ext, ext), str(p))

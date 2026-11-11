@@ -1,3 +1,4 @@
+import base64
 import os
 import shutil
 import socket
@@ -116,3 +117,27 @@ def test_window_loads_throttled_without_shift_errors_or_refusals(engine, path):
     assert not failed, f"failed requests: {failed}"
     assert not errors, f"console errors: {errors}"
     assert cls <= CLS_LIMIT, f"layout shift {cls}: {shifts}"
+
+
+def test_a_core_toast_request_reaches_the_screen(engine):
+    from playwright.sync_api import sync_playwright
+
+    bad = base64.b64encode(b"this is not a picture").decode()
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1440, "height": 900})
+        page.goto(engine + "/", wait_until="load", timeout=120_000)
+        page.wait_for_load_state("networkidle", timeout=120_000)
+        page.evaluate("""async (b64) => {
+            const post = async (path, body) => { const r = await fetch('/api' + path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}); if (!r.ok) throw new Error(path + ' ' + r.status); };
+            await post('/documents/new', {preset: 'Letter', pages: 1});
+            await post('/core/exec', {command: 'file.place', params: {base64: b64, name: 'broken.png'}});
+        }""", bad)
+        page.wait_for_timeout(1500)
+        box = page.locator("canvas").first.bounding_box()
+        page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        toast = page.locator("#toast-root .cv-toast.is-error", has_text="cannot place broken.png")
+        toast.wait_for(timeout=10_000)
+        text = toast.first.inner_text()
+        browser.close()
+    assert "cannot read this image" in text, text

@@ -173,7 +173,7 @@ def _run(text: str, path: str, folder: str) -> None:
                 per = (ev.get("modelUsage") or {}).get(usage["model"]) or {}
                 usage["window"] = int(per.get("contextWindow") or usage["window"] or 0)
         proc.wait(timeout=30)
-    except (OSError, subprocess.SubprocessError) as e:
+    except (OSError, subprocess.SubprocessError, claude_code.ClaudeError) as e:
         reply["error"] = f"Claude Code could not run: {e}"
     finally:
         STATE["proc"] = None

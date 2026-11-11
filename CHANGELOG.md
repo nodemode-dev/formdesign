@@ -2,6 +2,16 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.85.6 · 2026-11-11
+
+- The MCP `run_command` tool and `POST /api/commands/{id}` run engine commands in the active document instead of opening a new blank document.
+- A failed place, mesh or draw in the layout core shows its message on the screen.
+- Saving to a folder that cannot be made answers with the reason instead of a server error.
+- PSD files that are PSB, cut short, past 30000 pixels a side or in an unsupported depth or colour mode are refused when placed, with the reason, instead of placing an empty frame.
+- An MCP `tools/call` whose tool name is not text gets a JSON-RPC error instead of a server error.
+- PNG and JPEG export count `options.page` from 1, like SVG export and every other page number agents use; page 0 is refused.
+- The in-app Claude Code gets FormDesign's MCP access token from a file only you can read, no longer on its command line where other processes could see it.
+
 ## 0.85.5 · 2026-11-10
 
 - The caret, clicks and selection stay on the right character after a page number marker, a text variable, a cross-reference or a footnote number.

@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 import shlex
 import shutil
 import subprocess
@@ -13,6 +14,7 @@ KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_U
 CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
 SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
 PREFS = config.DATA_DIR / "claude.json"
+MCP_FILE = config.DATA_DIR / "claude-mcp.json"
 FIELDS = ("claudeBin", "claudeFolder", "claudeFirstMessage")
 INSTALL = ("Claude Code is not installed: install it with npm install -g @anthropic-ai/claude-code (or from https://claude.com/claude-code), "
            "run claude once in a terminal to sign in, then open it here again")
@@ -115,7 +117,17 @@ def info(fresh: bool = False) -> dict:
 
 
 def mcp_config() -> str:
-    return json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: agents.INAPP_TOKEN}}}})
+    body = json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: agents.INAPP_TOKEN}}}})
+    tmp = MCP_FILE.with_name(f".{MCP_FILE.name}.{secrets.token_hex(6)}")
+    try:
+        MCP_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with os.fdopen(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
+            f.write(body)
+        os.replace(tmp, MCP_FILE)
+    except OSError as e:
+        tmp.unlink(missing_ok=True)
+        raise ClaudeError(f"Claude Code cannot be connected to FormDesign: {MCP_FILE} cannot be written ({e.strerror or e})") from None
+    return str(MCP_FILE)
 
 
 def workdir() -> Path:

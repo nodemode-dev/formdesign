@@ -67,13 +67,78 @@ pub fn is_psd(b: &[u8]) -> bool {
     b.starts_with(b"8BPS")
 }
 
+pub const MAX_SIDE: u32 = 30_000;
+
 pub fn header_size(b: &[u8]) -> Option<(u32, u32)> {
-    if !is_psd(b) || b.len() < 26 {
-        return None;
+    check(b).ok()
+}
+
+pub fn check(b: &[u8]) -> Result<(u32, u32), String> {
+    let mut r = R { d: b, p: 0 };
+    let short = || "the file is cut short".to_string();
+    if r.take(4) != Some(b"8BPS".as_slice()) {
+        return Err("not a PSD file".into());
     }
-    let h = u32::from_be_bytes(b[14..18].try_into().ok()?);
-    let w = u32::from_be_bytes(b[18..22].try_into().ok()?);
-    (w > 0 && h > 0).then_some((w, h))
+    match r.u16().ok_or_else(short)? {
+        1 => {}
+        2 => return Err("it is a large document (PSB) file, which FormDesign cannot read; save it as PSD (at most 30000 pixels a side)".into()),
+        v => return Err(format!("unknown PSD version {v}")),
+    }
+    r.take(6).ok_or_else(short)?;
+    let channels = r.u16().ok_or_else(short)?;
+    let height = r.u32().ok_or_else(short)?;
+    let width = r.u32().ok_or_else(short)?;
+    let depth = r.u16().ok_or_else(short)?;
+    let mode = r.u16().ok_or_else(short)?;
+    if !(1..=56).contains(&channels) {
+        return Err(format!("{channels} channels (a PSD file has 1 to 56)"));
+    }
+    if !matches!(depth, 8 | 16) {
+        return Err(format!("{depth} bits per channel (FormDesign reads 8 and 16)"));
+    }
+    let need_colors = match mode {
+        1 | 8 => 1,
+        3 => 3,
+        4 => 4,
+        _ => return Err(format!("colour mode {} (FormDesign reads greyscale, duotone, RGB and CMYK)", mode_name(mode))),
+    };
+    if channels < need_colors {
+        return Err(format!("{channels} channels for a colour mode that needs {need_colors}"));
+    }
+    if !(1..=MAX_SIDE).contains(&width) || !(1..=MAX_SIDE).contains(&height) {
+        return Err(format!("{width} x {height} pixels (a PSD file is 1 to {MAX_SIDE} pixels a side)"));
+    }
+    for _ in 0..3 {
+        let n = r.u32().ok_or_else(short)? as usize;
+        r.take(n).ok_or_else(short)?;
+    }
+    let comp = r.u16().ok_or_else(short)?;
+    let body = &b[r.p..];
+    let (w, h, chans) = (width as usize, height as usize, channels as usize);
+    let need = match comp {
+        0 => w.saturating_mul(depth as usize / 8).saturating_mul(h).saturating_mul(chans),
+        1 => {
+            let mut counts = R { d: body, p: 0 };
+            let mut total = 0usize;
+            for _ in 0..h * chans {
+                total += counts.u16().ok_or_else(short)? as usize;
+            }
+            counts.p + total
+        }
+        2 | 3 => 1,
+        c => return Err(format!("unknown compression {c} in the image data")),
+    };
+    if body.len() < need { Err(short()) } else { Ok((width, height)) }
+}
+
+fn mode_name(mode: u16) -> String {
+    match mode {
+        0 => "bitmap".into(),
+        2 => "indexed".into(),
+        7 => "multichannel".into(),
+        9 => "Lab".into(),
+        m => m.to_string(),
+    }
 }
 
 pub fn parse_resources(d: &[u8], base: usize) -> Vec<Resource> {

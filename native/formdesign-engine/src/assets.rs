@@ -93,6 +93,9 @@ pub fn make(name: &str, data: Vec<u8>, link: Option<String>, page: u32) -> Resul
             return Err(EngineError::new(format!("{name} has {count} pages (page indices are 0-based)")));
         }
         (Some((w.round() as u32, h.round() as u32)), None)
+    } else if mime.starts_with("image/") && formdesign_render::psd::is_psd(&data) {
+        let dims = formdesign_render::psd::check(&data).map_err(|why| EngineError::new(format!("{name}: cannot read this PSD file: {why}")))?;
+        (Some(dims), density(&data).or_else(|| formdesign_render::psd::density(&data)))
     } else if mime.starts_with("image/") {
         let dims = formdesign_render::images::image_size(&data).ok_or_else(|| EngineError::new(format!("{name}: cannot read this image (supported: JPEG, PNG, GIF, WebP, BMP, TIFF and PDF)")))?;
         (Some(dims), density(&data).or_else(|| formdesign_render::psd::density(&data)))

@@ -99,7 +99,7 @@ TOOLS = [
            "width": {"type": "number"}, "height": {"type": "number"}, "pages": {"type": "integer", "minimum": 1}, "facing": {"type": "boolean"}, "preset": {"type": "string", "description": "Letter, A4, A5, Tabloid..."}}),
     _tool("open_document", "Opens a .fdes, .fdoc or .idml file. A .pdf, or a .pub, .qxd or .qxp (format versions 3.1 to 4.1), .pmd or .p65 file, is rebuilt as an editable layout (pages at the source size, text frames with fonts, sizes and colours, placed pictures, rectangles and lines; what cannot be converted stays as a locked backdrop layer) and a fidelity report comes back; backdrop: auto or never. A .dxf drawing (model space; ASCII or binary) becomes one page sized to its extents with lines, polylines, arcs, circles, ellipses, splines and solid hatches as shapes and text as text frames; skipped entities are counted in the report. .dwg cannot be read (no permissively licensed reader): export a DXF. .indd cannot be read: export an IDML package from the application that made it.", {"path": _PATH, "backdrop": {"type": "string", "enum": ["auto", "never"]}}, ["path"]),
     _tool("save_document", "Saves the active document (.fdes by default, keeps slots and the content pack; .fdoc or .idml by extension).", {"path": _PATH}, destructive=True),
-    _tool("export_document", "Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page from 0), a print booklet, "
+    _tool("export_document", "Exports the active document: pdf, idml, html, epub, epub-fixed, txt, rtf, xml, png or jpg (one page: options.page counts from 1), a print booklet, "
           "or web: a responsive multi-page website (path is a folder, or a .zip). web options: split auto|articles|pages|single, layout article|landing|card|email|docs, "
           "edition (true adds the page-by-page edition), baseUrl (adds sitemap, feed and share links), title, description, language. Returns the pages made and warnings to fix.",
           {"format": {"type": "string", "enum": ["pdf", "idml", "html", "web", "epub", "epub-fixed", "txt", "rtf", "xml", "png", "jpg", "booklet"]}, "path": _PATH, "options": {"type": "object", "description": "Passed to the exporter (pdf: pages, bleed, marks...; web: split, layout, edition, baseUrl, title, description, language)."}}, ["format", "path"], destructive=True),
@@ -851,7 +851,12 @@ async def mcp(request: Request) -> Response:
         out = _ok(req_id, {"tools": TOOLS}, modern)
     elif method == "tools/call":
         name, args = params.get("name"), params.get("arguments") or {}
-        out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id")), modern) if name in NAMES and isinstance(args, dict) else _err(req_id, -32602, f"No tool named {name}")
+        if not isinstance(name, str) or name not in NAMES:
+            out = _err(req_id, -32602, f"No tool named {name}" if isinstance(name, str) else "`name` must be a tool name (a string); tools/list shows them")
+        elif not isinstance(args, dict):
+            out = _err(req_id, -32602, f"`arguments` for {name} must be an object")
+        else:
+            out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id")), modern)
     else:
         out = _err(req_id, -32601, f"Method not found: {method}")
     if new_sid:
