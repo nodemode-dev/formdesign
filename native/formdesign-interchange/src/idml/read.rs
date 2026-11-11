@@ -898,13 +898,22 @@ fn graphic(c: &mut Ctx, doc: &mut Doc, root: &El) {
 pub fn read(bytes: &[u8]) -> Result<Doc, String> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("not an IDML package: {e}"))?;
     let mut files = HashMap::new();
+    let cap: u64 = 64 << 20;
+    let mut total: u64 = 0;
     for i in 0..z.len() {
         let mut f = z.by_index(i).map_err(|e| e.to_string())?;
         if !f.name().ends_with(".xml") {
             continue;
         }
+        if f.size() > cap {
+            return Err(format!("IDML part {} is too large", f.name()));
+        }
         let mut s = String::new();
-        if f.read_to_string(&mut s).is_ok() {
+        if (&mut f).take(cap + 1).read_to_string(&mut s).is_ok() {
+            total += s.len() as u64;
+            if s.len() as u64 > cap || total > 8 * cap {
+                return Err(format!("IDML part {} is too large", f.name()));
+            }
             files.insert(f.name().to_string(), s);
         }
     }

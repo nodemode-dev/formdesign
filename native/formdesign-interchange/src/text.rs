@@ -380,10 +380,11 @@ fn attr(e: &quick_xml::events::BytesStart, key: &[u8]) -> Option<String> {
 pub fn docx(bytes: &[u8]) -> Result<Imported, String> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("not a Word file: {e}"))?;
     let mut read = |name: &str| -> Option<String> {
-        let mut f = z.by_name(name).ok()?;
+        let cap: u64 = 64 << 20;
+        let mut f = z.by_name(name).ok().filter(|f| f.size() <= cap)?;
         let mut s = String::new();
-        f.read_to_string(&mut s).ok()?;
-        Some(s)
+        (&mut f).take(cap + 1).read_to_string(&mut s).ok()?;
+        Some(s).filter(|s| s.len() as u64 <= cap)
     };
     let doc = read("word/document.xml").ok_or("not a Word file: no word/document.xml")?;
     let styles_xml = read("word/styles.xml").unwrap_or_default();
@@ -552,10 +553,11 @@ fn csv_rows(text: &str) -> Vec<Vec<String>> {
 fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("spreadsheet: {e}"))?;
     let mut read = |name: &str| -> Option<String> {
-        let mut f = z.by_name(name).ok()?;
+        let cap: u64 = 64 << 20;
+        let mut f = z.by_name(name).ok().filter(|f| f.size() <= cap)?;
         let mut s = String::new();
-        f.read_to_string(&mut s).ok()?;
-        Some(s)
+        (&mut f).take(cap + 1).read_to_string(&mut s).ok()?;
+        Some(s).filter(|s| s.len() as u64 <= cap)
     };
     let shared_xml = read("xl/sharedStrings.xml").unwrap_or_default();
     let sheet = read("xl/worksheets/sheet1.xml").ok_or("spreadsheet: no first worksheet (xl/worksheets/sheet1.xml)")?;

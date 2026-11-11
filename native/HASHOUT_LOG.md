@@ -3,9 +3,17 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · size limit on zipped XML parts (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` read; `formdesign-interchange/src/text.rs` docx and xlsx `read` closures
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`read_to_string` inflated each entry with no limit, and the IDML reader read every `.xml` entry, referenced or not, so a 4 GB entry of zeros (about 4 MB deflated) made the core abort on a failed allocation. Each XML part is now refused when `size()` is over 64 MB and read through `take(cap + 1)`, refused if more than the cap arrives; IDML also stops past 512 MB of XML in total and names the part. In DOCX and XLSX an oversized part reads as missing. Checked: `cargo check -p formdesign-interchange`.
 
 ## v0.85.5 · XML nesting depth limit (2026-11-10)
 
