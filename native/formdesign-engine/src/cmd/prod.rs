@@ -155,7 +155,11 @@ fn change_case(c: &mut Ctx, p: &Value) -> Result<Value> {
                         if sentence_start && ch.is_alphabetic() { ch.to_uppercase().collect() } else { ch.to_lowercase().collect() }
                     }
                 };
-                out.push_str(&next);
+                let mut one = next.chars();
+                out.push(match (one.next(), one.next()) {
+                    (Some(m), None) => m,
+                    _ => ch,
+                });
                 if ch.is_alphabetic() {
                     sentence_start = false;
                 }
