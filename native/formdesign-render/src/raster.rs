@@ -43,7 +43,8 @@ fn paint(b: &Brush, dev: Affine) -> PaintType {
         }
         Brush::Radial { center, radius, stops, alpha } => {
             let st: Vec<(f32, AlphaColor<Srgb>)> = stops.iter().map(|(o, c, a)| (*o as f32, rgb(*c, *alpha * *a))).collect();
-            let k = dev.as_coeffs()[0].abs().max(1e-6);
+            let c = dev.as_coeffs();
+            let k = (c[0] * c[3] - c[1] * c[2]).abs().sqrt().max(1e-6);
             PaintType::Gradient(peniko::Gradient::new_radial(dev * *center, (*radius * k) as f32).with_stops(st.as_slice()))
         }
     }
@@ -160,7 +161,7 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
                     }
                     if let Some((b, wgt)) = &g.stroke {
                         ctx.set_paint(paint(&plate_brush(b, env), brush_xf));
-                        ctx.set_stroke(Stroke::new(wgt * s));
+                        ctx.set_stroke(Stroke::new(wgt * px_size / g.size.max(1e-6)));
                         ctx.stroke_path(&p);
                     }
                 }
