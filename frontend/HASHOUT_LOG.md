@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -692,3 +692,10 @@ A layout slot's `spread` is a serialized `SpreadRef` (`{"kind":"doc","index":N}`
 - logged: v0.85.5 · 2026-11-10
 
 With an object without animation selected, `render()` hid `.fan-body` but left the previous object's values in its fields, and `write()` read them when a preset was picked, so the new animation took the previous object's duration, delay, play count, event, speed, loop and end state; only `hideBefore` followed the preset. `render()` now resets those fields when the first selected object has no animation (event `load`, numbers empty, speed `preset`, loop off), and `write()` maps the empty fields to its defaults; the stale event no longer trips the "no button" check either. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/document/setup.ts · Document Setup keeps a per-side bleed
+- refers-to: frontend/src/features/document/setup.ts :: DocumentSetupDialog.open, apply
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`layout.documentSetup` returns the bleed as `[top, bottom, inside, outside]` and the dialog shows `bleed[0]`. `apply` sent the field as one bleed whenever any side differed from it, so a document with bleed 9, 9, 0, 9 got 9 pt on every side after any OK, unseen. The bleed is now sent only when the field differs from the value it was filled with. Showing four fields would let the sides be edited apart; not done here. Checked with `tsc --noEmit`; not run in a browser.
