@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -255,6 +255,13 @@ Batches run through formdesign-engine's `Session::batch`: one undo step, `$N` an
 - logged: v0.7.0 · 2026-10-08
 
 The Glyphs panel draws characters in the document's own fonts, which the window cannot otherwise reach. `fonts.styles` lists a family's styles; `fonts.face` answers the face's character map as JSON (every code point the cmap maps); `fonts.data` answers the font file as binary, served by the engine at `/api/core/font` with a private one-hour cache.
+
+### core.rs · fonts.add invalidates layouts
+- refers-to: native/formdesign-core/src/core.rs :: Core::dispatch ("fonts.add")
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The engine caches a document's layout and drawing operations by its revision (`DocState::layout`, `DocState::ops`), and `fonts.add` loaded faces into the shared font book without touching any revision, so a document drawn with a fallback face kept the fallback's metrics and glyphs on the canvas and in overset, preflight and export until an unrelated edit. When at least one face is added, every open document's revision now moves on and `prev_doc` is dropped, so the caches rebuild and the reply's damage is `null` (full repaint). Checked with `cargo check -p formdesign-core`; not driven with a missing font.
 
 ### core.rs · object_styles
 - refers-to: native/formdesign-core/src/core.rs :: Core::object_styles

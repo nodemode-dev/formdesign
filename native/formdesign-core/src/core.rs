@@ -228,7 +228,14 @@ impl Core {
                 if let Some(dir) = s(p, "dir") {
                     fonts.load_dir(std::path::Path::new(dir));
                 }
-                Ok(json!({"faces": fonts.len().saturating_sub(before)}).into())
+                let faces = fonts.len().saturating_sub(before);
+                if faces > 0 {
+                    for st in &mut self.ses.docs {
+                        st.revision += 1;
+                    }
+                    self.prev_doc = None;
+                }
+                Ok(json!({"faces": faces}).into())
             }
             "fonts.families" => Ok(json!(self.ses.renderer.fonts.families()).into()),
             "fonts.styles" => Ok(json!(self.ses.renderer.fonts.styles_of(s(p, "family").unwrap_or_default())).into()),
