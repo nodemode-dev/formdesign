@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -734,3 +734,10 @@ The constructor listened to `(resolution: Ndppx)` built once from the starting r
 - logged: v0.85.5 · 2026-11-10
 
 `saved` was filled only by `onShow` → `load()`, so `actions.play` from an agent, a shortcut or the palette in a session where the panel had not been shown found nothing and returned quietly; a wrong name was quiet too. `play` now loads the list first when it is not loaded, and an unknown name shows an error toast and throws, so `commands.call` hands the error to the agent (the palette's `run` does not await, hence the toast). The Play buttons' disabled state came from `editor.docs.length` only when a row was drawn; the panel now draws again on `editor.on('docs')`. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/pages.ts, features/terminal.ts · Ctrl+J is shown only on Show Terminal
+- refers-to: frontend/src/features/pages.ts (pages.goTo); frontend/src/features/terminal.ts :: installTerminal; frontend/src/features/shortcuts.ts :: apply (resetKeys)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`pages.goTo` was registered with `free('Mod+J')`, which was still free when pages installed, and `installTerminal` then took Mod+J and filtered it out of `goTo.keys` directly. That edit did not change `Commands.defaults`, and `resetKeys()` runs on every `commands` event (each engine connect), so Go to Page got Mod+J back: its menu item showed Ctrl+J (Cmd+J) while the key opened the terminal, Keyboard Shortcuts listed it on two commands and the native macOS menus gave both a CmdOrCtrl+J accelerator. Go to Page now has no default key and the two stripping lines in terminal.ts are gone; the terminal is installed unconditionally, so nothing else wanted the key. A user's own shortcut set can still bind it. Checked with `tsc --noEmit`; not run in a browser.

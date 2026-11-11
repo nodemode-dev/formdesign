@@ -332,7 +332,7 @@ export const feature: Feature = {
       { id: 'pages.last', label: 'Last Page', keys: free('Shift+Mod+PageDown'), enabled: has, run: () => ws.viewport.showPage(pages.pages.length - 1) },
       { id: 'pages.prevSpread', label: 'Previous Spread', keys: free('Alt+PageUp'), enabled: has, run: () => stepSpread(-1) },
       { id: 'pages.nextSpread', label: 'Next Spread', keys: free('Alt+PageDown'), enabled: has, run: () => stepSpread(1) },
-      { id: 'pages.goTo', label: 'Go to Page…', keys: free('Mod+J'), enabled: has, run: () => void goToDialog() },
+      { id: 'pages.goTo', label: 'Go to Page…', enabled: has, run: () => void goToDialog() },
       { id: 'layers.new', label: 'New Layer', enabled: () => editor.hasDoc, run: () => void editor.exec('layer.new', {}) },
       { id: 'layers.delete', label: () => `Delete Layer${layers.activeLayerInfo ? ` "${layers.activeLayerInfo.name}"` : ''}`, enabled: () => layerReady() && layers.layers.length > 1, run: () => void deleteLayer() },
       { id: 'layers.options', label: () => `Layer Options${layers.activeLayerInfo ? ` for "${layers.activeLayerInfo.name}"` : ''}…`, enabled: layerReady, run: () => void layerOptions() },

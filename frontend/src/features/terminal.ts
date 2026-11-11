@@ -424,8 +424,6 @@ export function installTerminal(ws: Workspace): void {
     { id: 'ui.terminal.new', label: 'New Terminal', run: async () => { const made = await d.show(); if (!made) await d.open(); } },
     { id: 'ui.terminal.claude', label: 'Claude Code', keys: ['Shift+Mod+J'], run: async () => { await d.show(false); await d.claude(); } },
   );
-  const goTo = ws.commands.get('pages.goTo');
-  if (goTo?.keys?.includes('Mod+J')) goTo.keys = goTo.keys.filter((k) => k !== 'Mod+J');
   ws.addMenuItems({ menu: 'Window', items: ['ui.terminal.toggle', 'ui.terminal.new', 'ui.terminal.claude', 'ui.claude'], at: 'end' });
   ws.addMenuItems({ menu: 'Help', items: ['ui.claude', 'ui.terminal.claude'], at: 'end' });
 }
