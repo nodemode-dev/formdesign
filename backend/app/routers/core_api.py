@@ -125,6 +125,10 @@ async def ws(socket: WebSocket):
         except CoreError as exc:
             await send_json({"id": rid, "ok": False, "error": str(exc)})
             return
+        except Exception as exc:
+            log.exception("window request %s failed", method)
+            await send_json({"id": rid, "ok": False, "error": f"{exc.__class__.__name__}: {exc}"})
+            return
         if r.bin is not None:
             await send_bytes(_frame({"id": rid, "ok": True, "result": r.result, **r.meta}, r.bin))
         else:
@@ -139,6 +143,8 @@ async def ws(socket: WebSocket):
             try:
                 msg = json.loads(raw)
             except ValueError:
+                continue
+            if not isinstance(msg, dict):
                 continue
             t = asyncio.create_task(handle(msg))
             tasks.add(t)
