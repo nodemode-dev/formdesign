@@ -59,6 +59,7 @@ impl Gpu {
             ..Default::default()
         }))
         .ok()?;
+        device.on_uncaptured_error(std::sync::Arc::new(|e: wgpu::Error| eprintln!("[formdesign-gpu] {e}")));
         Some((Gpu { device, queue, info, limits, adapter }, surface))
     }
 }
