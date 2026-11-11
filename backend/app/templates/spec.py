@@ -313,8 +313,18 @@ def problems(t: dict) -> list[str]:
     wrong = [f"`{k}` must be {what}" for k, kind, what in shapes if k in t and not isinstance(t[k], kind)]
     if isinstance(t.get("pages"), list) and not all(isinstance(p, dict) for p in t["pages"]):
         wrong.append("every entry in `pages` must be an object")
+    if isinstance(t.get("parents"), dict) and not all(isinstance(v, list) for v in t["parents"].values()):
+        wrong.append("every parent in `parents` must be a list of items")
+    if isinstance(t.get("flow"), dict) and not all(not f or (isinstance(f, dict) and isinstance(f.get("page") or {}, dict)) for f in t["flow"].values()):
+        wrong.append("every flow in `flow` must be an object, with `page` an object")
+    if t.get("styles") is not None and not (isinstance(t["styles"], dict) and isinstance(t["styles"].get("paragraph") or {}, dict)):
+        wrong.append("`styles` must be an object, with `paragraph` an object")
     if wrong:
         return out + wrong
+    lists = [*(t.get("parents") or {}).values(), *(p.get("items", []) for p in t.get("pages") or []),
+             *(((f or {}).get("page") or {}).get("items", []) for f in (t.get("flow") or {}).values())]
+    if not all(isinstance(li, list) and all(isinstance(it, dict) for it in li) for li in lists):
+        return out + ["every `items` list must be a list of item objects"]
     if t.get("category") and t["category"] not in CATEGORIES:
         out.append(f"category must be one of {', '.join(sorted(CATEGORIES))}")
     th, kt = _base()
