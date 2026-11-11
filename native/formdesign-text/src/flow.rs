@@ -682,6 +682,7 @@ impl<'a> Flower<'a> {
         let mut first_line = true;
         let mut placed_here: Vec<usize> = Vec::new();
         let mut anchor_marks: Vec<usize> = Vec::new();
+        let mut note_added: Vec<Vec<f64>> = Vec::new();
         let mut widow_fixed = false;
         let mut tries = 0;
         loop {
@@ -753,8 +754,8 @@ impl<'a> Flower<'a> {
                     break;
                 }
                 let has_note = built.specials.iter().any(|(at, s)| matches!(s, Special::Footnote { .. }) && *at >= line.start && *at < line.end.max(line.start + 1));
+                let mut added: Vec<f64> = Vec::new();
                 if has_note {
-                    let mut added: Vec<f64> = Vec::new();
                     for (at, s) in &built.specials {
                         if let Special::Footnote { ordinal, paras } = s
                             && *at >= line.start
@@ -796,6 +797,7 @@ impl<'a> Flower<'a> {
                     out.drops.push(PlacedDrop { para: pi, frame: slot.frame, x: drop_x, baseline: baseline + lead * (d.lines as f64 - 1.0), drop: d.clone() });
                 }
                 anchor_marks.push(out.anchors.len());
+                note_added.push(added);
                 for (at, s) in &built.specials {
                     if let Special::Anchored { item, inline, attrs } = s
                         && *at >= line.start
@@ -830,10 +832,23 @@ impl<'a> Flower<'a> {
                         widow_fixed = true;
                         let line_idx = placed_here[cut];
                         let (f, c, start) = (out.lines[line_idx].frame, out.lines[line_idx].column, out.lines[line_idx].line.start);
+                        for k in (cut..placed_here.len()).rev() {
+                            let (lf, lc) = (out.lines[placed_here[k]].frame, out.lines[placed_here[k]].column);
+                            for h in note_added[k].iter().rev() {
+                                if let Some(n) = out.notes.pop()
+                                    && let Some(cols) = self.note_cols.borrow_mut().get_mut(&n.frame)
+                                    && let Some(v) = cols.get_mut(n.sub)
+                                {
+                                    *v = n.top;
+                                }
+                                *self.note_height.borrow_mut().entry(self.note_key(lf, lc)).or_insert(0.0) -= h;
+                            }
+                        }
                         out.lines.truncate(line_idx);
                         out.anchors.truncate(anchor_marks[cut]);
                         placed_here.truncate(cut);
                         anchor_marks.truncate(cut);
+                        note_added.truncate(cut);
                         if let Some(nc) = self.next_column(Cursor { frame: f, column: c, y: 0.0, baseline: None, top: true }) {
                             from_byte = start;
                             cur = nc;
