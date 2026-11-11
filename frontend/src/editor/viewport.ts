@@ -515,7 +515,7 @@ export class Viewport {
         notes: this.opts.notes, changes: this.opts.changes, ...(this.opts.plate != null ? { plate: this.opts.plate } : {}),
         ...(this.opts.inkLimit ? { inkLimit: this.opts.inkLimit } : {}), ...(this.opts.proof ? { proof: this.opts.proof } : {}),
       });
-      if (uid !== this.uid) return;
+      if (uid !== this.uid) { this.requestDraw(); return; }
       const bytes = new Uint8ClampedArray(rep.data);
       await Promise.all(rep.result.tiles.map(async (info) => {
         const t = this.tiles.get(String(info.key));

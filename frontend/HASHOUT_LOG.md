@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -713,3 +713,10 @@ With an object without animation selected, `render()` hid `.fan-body` but left t
 - logged: v0.85.5 · 2026-11-10
 
 A long text or flow slot shows a preview ending in "…" (`partial`), and `beginEdit` loads the full text with `story.get` on focus. Typing before the answer set `dirty`, so the answer was dropped; a failed call was swallowed. On blur `commit` then saved the preview with its "…" and the edit as the whole slot, deleting the rest of the story. The textarea is now `readOnly` while the full text loads, and `commit` refuses a slot still marked partial: it puts the preview back, clears `dirty` and shows "The full text did not load; edit not saved". Checked with `tsc --noEmit`; not run in a browser.
+
+### editor/viewport.ts · tiles load for the new document when the tab changes during a tile request
+- refers-to: frontend/src/editor/viewport.ts :: Viewport.pump
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A `tiles` reply for a document no longer shown hit `if (uid !== this.uid) return;` inside the `try`; `finally` cleared `inflight` but the `requestDraw()` after the block was skipped. The draws the tab switch asked for had already run `pump()` while `inflight` was true and given up, so the new document stayed blank paper until a pan, zoom or edit. The stale reply now calls `requestDraw()` before it returns; the draw runs at the next frame, after `finally` has cleared `inflight`. Checked with `tsc --noEmit`; not run in a browser.
