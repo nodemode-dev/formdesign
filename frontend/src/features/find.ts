@@ -176,6 +176,7 @@ class GlyphPick {
   private readonly ch = q<HTMLInputElement>(this.root, '.ff-gch');
   private readonly prev = q(this.root, '.ff-gprev');
   private static faces = new Map<string, string>();
+  private static seq = 0;
   onChange: (() => void) | null = null;
 
   constructor(anyLabel: string) {
@@ -227,7 +228,7 @@ class GlyphPick {
     const key = `${fam}/${sty}`;
     let name = GlyphPick.faces.get(key);
     if (!name) {
-      name = `fd-ff-${GlyphPick.faces.size + 1}`;
+      name = `fd-ff-${++GlyphPick.seq}`;
       try {
         const f = new FontFace(name, `url(/api/core/font?family=${encodeURIComponent(fam)}&style=${encodeURIComponent(sty)})`);
         document.fonts.add(await f.load());

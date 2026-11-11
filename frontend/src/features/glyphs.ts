@@ -38,6 +38,7 @@ export class GlyphsPanel {
   private faceName = '';
   private faceKey = '';
   private readonly loaded = new Map<string, string>();
+  private seq = 0;
   private recent: number[] = [];
   private visible = false;
   private families: string[] = [];
@@ -101,7 +102,7 @@ export class GlyphsPanel {
     this.faceKey = key;
     let name = this.loaded.get(key);
     if (!name) {
-      name = `fd-glyph-${this.loaded.size + 1}`;
+      name = `fd-glyph-${++this.seq}`;
       try {
         const face = new FontFace(name, `url(/api/core/font?family=${encodeURIComponent(family)}&style=${encodeURIComponent(style)})`);
         document.fonts.add(await face.load());
