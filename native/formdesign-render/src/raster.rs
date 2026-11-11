@@ -197,7 +197,8 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
             Op::PushMask(inner) => {
                 let (w, h) = (ctx.width(), ctx.height());
                 let mut mctx = RenderContext::new(w, h);
-                draw_ops(&mut mctx, inner, env);
+                let menv = DrawEnv { doc: env.doc, outlines: env.outlines, images: env.images, dev: env.dev, scale: env.scale, greek_px: env.greek_px, plate: None };
+                draw_ops(&mut mctx, inner, &menv);
                 mctx.flush();
                 let mut pm = Pixmap::new(w, h);
                 mctx.render(&mut pm, &mut Resources::default());
