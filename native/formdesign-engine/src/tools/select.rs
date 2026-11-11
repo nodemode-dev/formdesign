@@ -386,7 +386,7 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
             let rect = if g.moved && (p - g.start_sp).hypot() > view.tol(8.0) && target.is_none() { Rect::from_points(g.start_sp, p) } else { Rect::new(p.x, p.y, p.x + src.width(), p.y + src.height()) };
             let slot = g.slot;
             let layer = ses.active().and_then(|s| s.active_layer).filter(|l| doc.layer(*l).is_some()).unwrap_or_else(|| ops::active_layer(&doc));
-            ses.edit_now("Thread Text Frames", |d, sel| {
+            ses.edit_now_if("Thread Text Frames", |d, sel| {
                 let to = match target {
                     Some(t) => Some(t),
                     None => {
@@ -403,7 +403,9 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                     && ops::thread(d, from, to).is_ok()
                 {
                     *sel = Selection::items(vec![to]);
+                    return true;
                 }
+                false
             });
         }
         G::None => {}

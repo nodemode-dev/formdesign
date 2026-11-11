@@ -252,7 +252,26 @@ fn char_attrs(doc: &Doc, a: &Attrs, colors: &mut Colors) -> (String, String) {
         }
     }
     if let Some(v) = a.get("language").and_then(Value::as_str) {
-        let _ = write!(at, " AppliedLanguage=\"$ID/{}\"", esc(v).replace(':', "%3a"));
+        let name = match v {
+            "en-US" => "English: USA",
+            "en-GB" => "English: UK",
+            "en-CA" => "English: Canadian",
+            "de-DE" => "German: 2006 Reform",
+            "fr-FR" => "French",
+            "es-ES" => "Spanish",
+            "it-IT" => "Italian",
+            "nl-NL" => "Dutch: 2005 Reform",
+            "pt-PT" => "Portuguese",
+            "pt-BR" => "Portuguese: Brazilian",
+            "sv-SE" => "Swedish",
+            "da-DK" => "Danish",
+            "nb-NO" => "Norwegian: Bokmal",
+            "fi-FI" => "Finnish",
+            "pl-PL" => "Polish",
+            "" => "[No Language]",
+            other => other,
+        };
+        let _ = write!(at, " AppliedLanguage=\"$ID/{}\"", esc(name).replace(':', "%3a"));
     }
     if let Some(v) = a.get("font").and_then(Value::as_str) {
         let _ = write!(props, "<AppliedFont type=\"string\">{}</AppliedFont>", esc(v));
@@ -485,9 +504,13 @@ impl W<'_> {
                     let tag = if pdf { "PDF" } else { "Image" };
                     let uri = a.link.clone().unwrap_or_else(|| format!("file:{}", a.name));
                     let contents = if a.data.is_empty() { String::new() } else { format!("<Contents><![CDATA[{}]]></Contents>", b64(&a.data)) };
+                    let ppi = match a.ppi {
+                        Some((px, py)) if !pdf => format!(" ActualPpi=\"{} {}\"", num(px), num(py)),
+                        _ => String::new(),
+                    };
                     let _ = write!(
                         out,
-                        "<{tag} Self=\"{}i\" ItemTransform=\"{}\"><Properties><GraphicBounds Left=\"0\" Top=\"0\" Right=\"{}\" Bottom=\"{}\"/>{contents}</Properties><Link Self=\"{}l\" LinkResourceURI=\"{}\" StoredState=\"{}\"/></{tag}>",
+                        "<{tag} Self=\"{}i\" ItemTransform=\"{}\"{ppi}><Properties><GraphicBounds Left=\"0\" Top=\"0\" Right=\"{}\" Bottom=\"{}\"/>{contents}</Properties><Link Self=\"{}l\" LinkResourceURI=\"{}\" StoredState=\"{}\"/></{tag}>",
                         uid(id.0),
                         matrix(g.content),
                         num(w),
@@ -608,13 +631,8 @@ impl W<'_> {
             let _ = write!(out, "<CharacterStyleRange AppliedCharacterStyle=\"{}\"{ca}>{}", esc(&style_ref(StyleKind::Character, cs)), props_wrap(&cp));
             match seg {
                 Seg::Text { text, .. } => {
-                    for (k, part) in text.split('\u{2028}').enumerate() {
-                        if k > 0 {
-                            out.push_str("<Br/>");
-                        }
-                        if !part.is_empty() {
-                            let _ = write!(out, "<Content>{}</Content>", esc(part));
-                        }
+                    if !text.is_empty() {
+                        let _ = write!(out, "<Content>{}</Content>", esc(text));
                     }
                 }
                 Seg::Inline { inline, .. } => self.inline(inline, out),

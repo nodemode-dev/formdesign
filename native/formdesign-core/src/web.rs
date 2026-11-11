@@ -121,7 +121,7 @@ fn char_style_json(d: &Doc, name: &str) -> Option<Value> {
     if let Some(k) = a.get("caps").and_then(Value::as_str) {
         let c = match k {
             "all" | "allCaps" => "all",
-            "small" | "smallCaps" | "allSmall" => "small",
+            "small" | "smallCaps" | "allSmall" | "allSmallCaps" => "small",
             _ => "none",
         };
         v.insert("caps".into(), json!(c));

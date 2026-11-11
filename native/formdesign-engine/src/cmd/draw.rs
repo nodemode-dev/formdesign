@@ -566,6 +566,7 @@ fn blend_into(doc: &mut formdesign_model::doc::Doc, ids: [ItemId; 2], mut steps:
         let stroke_paint = mix_paint(doc, &ia.stroke.paint, &ib.stroke.paint, t);
         let Some(nid) = ops::duplicate(doc, ids[0], Vec2::ZERO, None) else { continue };
         let local = doc.world_xf(nid).inverse() * world;
+        crate::cmd::art::drop_text(doc, nid);
         if let Some(it) = doc.item_mut(nid) {
             it.shape = Shape::Path { path: local, closed: ia.shape.closed() };
             it.corner = Default::default();
@@ -752,6 +753,7 @@ fn expand_appearance(c: &mut Ctx, p: &Value) -> Result<Value> {
             let Some(nid) = ops::duplicate(doc, *id, Vec2::ZERO, None) else { continue };
             let fx = e.get("effects").and_then(Value::as_array).cloned().unwrap_or_default();
             let path = fx.iter().fold(base.clone(), |q, f| formdesign_model::effects::one(f, &q));
+            crate::cmd::art::drop_text(doc, nid);
             if let Some(d) = doc.item_mut(nid) {
                 d.shape = Shape::Path { path, closed: it.shape.closed() };
                 d.corner = Default::default();

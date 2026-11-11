@@ -230,6 +230,7 @@ fn trace(c: &mut Ctx, p: &Value) -> Result<Value> {
         layers.push(([0.0, 0.0, 0.0], path));
     } else {
         let (centres, label) = kmeans(&px, k);
+        let k = centres.len();
         let mut order: Vec<usize> = (0..k).collect();
         order.sort_by(|a, b| lum([centres[*b][0], centres[*b][1], centres[*b][2], 1.0]).total_cmp(&lum([centres[*a][0], centres[*a][1], centres[*a][2], 1.0])));
         for j in order {

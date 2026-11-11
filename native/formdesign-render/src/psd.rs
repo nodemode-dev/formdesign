@@ -247,17 +247,23 @@ impl<'a> Psd<'a> {
     }
 
     fn decode(&self, comp: u16, body: &[u8], w: usize, h: usize, chans: usize) -> Option<Vec<Vec<u8>>> {
+        if !matches!(self.depth, 8 | 16) || chans == 0 || chans > 56 {
+            return None;
+        }
         let bps = if self.depth == 16 { 2 } else { 1 };
-        let row = w * bps;
+        let row = w.checked_mul(bps)?;
+        let need = row.checked_mul(h)?.checked_mul(chans)?;
         match comp {
             0 => {
-                let need = row * h * chans;
                 let body = body.get(..need)?;
                 Some(body.chunks_exact(row * h).map(|c| to8(c, self.depth)).collect())
             }
             1 => {
+                if need / 64 > body.len() {
+                    return None;
+                }
                 let mut r = R { d: body, p: 0 };
-                let mut counts = Vec::with_capacity(h * chans);
+                let mut counts = Vec::new();
                 for _ in 0..h * chans {
                     counts.push(r.u16()? as usize);
                 }
@@ -576,6 +582,9 @@ pub fn density(bytes: &[u8]) -> Option<(f64, f64)> {
 
 pub fn decode(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     let p = Psd::parse(bytes)?;
+    if !matches!(p.mode, 1 | 3 | 4 | 8) {
+        return None;
+    }
     let rgba = p.composite(&|l: &Layer| l.visible)?;
     Some((p.width, p.height, rgba))
 }

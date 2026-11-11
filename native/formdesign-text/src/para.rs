@@ -181,9 +181,6 @@ pub fn build_with(styles: &Styles, para: &Para, list_number: Option<&ListNo>, fo
                         let ordinal = footnote_base + footnotes;
                         let n = ctx.footnote_number(ordinal);
                         text.push_str(&n);
-                        for _ in 1..n.chars().count() {
-                            chars.push(start);
-                        }
                         let mut sup = Attrs::new();
                         sup.insert("position".into(), serde_json::json!("superscript"));
                         runs.push((start..text.len(), seg.style().map(str::to_string), merge(seg.over(), &sup)));
@@ -197,16 +194,10 @@ pub fn build_with(styles: &Styles, para: &Para, list_number: Option<&ListNo>, fo
                     Inline::Variable { name } => {
                         let v = ctx.variable(name, frame);
                         text.push_str(&v);
-                        for _ in 1..v.chars().count() {
-                            chars.push(start);
-                        }
                     }
                     Inline::Marker { marker } => {
                         let v = ctx.marker(*marker, frame);
                         text.push_str(&v);
-                        for _ in 1..v.chars().count() {
-                            chars.push(start);
-                        }
                     }
                     Inline::Break { brk: kind } => {
                         brk = Some(*kind);
@@ -217,9 +208,6 @@ pub fn build_with(styles: &Styles, para: &Para, list_number: Option<&ListNo>, fo
                     Inline::Note { .. } | Inline::Index { .. } | Inline::Anchor { .. } => {}
                     Inline::Xref { text: v, .. } => {
                         text.push_str(v);
-                        for _ in 1..v.chars().count() {
-                            chars.push(start);
-                        }
                     }
                 }
             }

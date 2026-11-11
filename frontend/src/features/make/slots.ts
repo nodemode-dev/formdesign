@@ -230,6 +230,7 @@ export class SlotsView {
   private async beginEdit(n: HTMLElement, ta: HTMLTextAreaElement): Promise<void> {
     n.dataset.editing = '1';
     if (n.dataset.partial !== '1' || n.dataset.dirty) return;
+    ta.readOnly = true;
     try {
       const r = await engine.call<{ text?: string }>('exec', { command: 'story.get', params: { frame: Number(n.dataset.id) } });
       const full = r.result?.text ?? '';
@@ -241,11 +242,17 @@ export class SlotsView {
       n.dataset.partial = '';
       ta.setSelectionRange(Math.min(at, value.length), Math.min(at, value.length));
       this.fit(ta);
-    } catch { }
+    } catch { } finally { ta.readOnly = false; }
   }
 
   private async commit(n: HTMLElement, ta: HTMLTextAreaElement): Promise<void> {
     if (!n.dataset.dirty) return;
+    if (n.dataset.partial === '1') {
+      delete n.dataset.dirty;
+      ta.value = n.dataset.orig ?? ta.value;
+      toast('The full text did not load; edit not saved', 'error');
+      return;
+    }
     const slot = n.dataset.slot ?? '';
     const value = ta.value;
     delete n.dataset.dirty;

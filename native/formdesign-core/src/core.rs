@@ -132,7 +132,20 @@ impl Core {
     /// It lasts for this request only, so a person's edit between two agent requests stays its own step.
     pub fn call(&mut self, method: &str, p: Value) -> Result<Reply, String> {
         self.ses.turn = p.get("turn").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string);
-        let r = self.dispatch(method, &p);
+        let before = self.ses.active().map(|s| (s.uid, s.doc.clone(), s.selection.clone()));
+        let r = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.dispatch(method, &p))) {
+            Ok(r) => r,
+            Err(_) => {
+                if let Some((uid, doc, sel)) = before
+                    && let Some(st) = self.ses.docs.iter_mut().find(|s| s.uid == uid)
+                {
+                    st.doc = doc;
+                    st.selection = sel;
+                    st.revision += 1;
+                }
+                Err(format!("`{method}` failed inside the layout core; the document was restored"))
+            }
+        };
         self.ses.turn = None;
         self.settle();
         r
@@ -182,6 +195,9 @@ impl Core {
                 if i >= self.ses.docs.len() {
                     return Err(format!("no document {i}"));
                 }
+                if self.ses.active != Some(i) {
+                    self.ses.reset_tools();
+                }
                 self.ses.active = Some(i);
                 self.ses.sel_rev += 1;
                 Ok(self.state().into())
@@ -215,7 +231,14 @@ impl Core {
                 if let Some(dir) = s(p, "dir") {
                     fonts.load_dir(std::path::Path::new(dir));
                 }
-                Ok(json!({"faces": fonts.len().saturating_sub(before)}).into())
+                let faces = fonts.len().saturating_sub(before);
+                if faces > 0 {
+                    for st in &mut self.ses.docs {
+                        st.revision += 1;
+                    }
+                    self.prev_doc = None;
+                }
+                Ok(json!({"faces": faces}).into())
             }
             "fonts.families" => Ok(json!(self.ses.renderer.fonts.families()).into()),
             "fonts.styles" => Ok(json!(self.ses.renderer.fonts.styles_of(s(p, "family").unwrap_or_default())).into()),

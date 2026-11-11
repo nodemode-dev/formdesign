@@ -733,7 +733,7 @@ fn apply(core: &mut Core, label: &str, mut hs: Vec<Hit>, spec: &Spec, select_las
     let chr = spec.to.chr.clone();
     let key = |l: &Loc| {
         let sub = match l.sub {
-            None => (0, 0, 0, 0),
+            None => (3, 0, 0, 0),
             Some(Sub::Cell { at, row, col }) => (1, at, row, col),
             Some(Sub::Note { n }) => (2, n, 0, 0),
         };

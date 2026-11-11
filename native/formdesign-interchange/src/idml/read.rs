@@ -27,6 +27,7 @@ struct Ctx {
     stories: HashMap<String, StoryId>,
     frames: Vec<(String, ItemId, String, String, String)>,
     pending_anchors: Vec<(ItemId, StoryId)>,
+    item_ids: HashMap<String, ItemId>,
 }
 
 fn matrix(s: Option<&str>) -> Affine {
@@ -315,6 +316,7 @@ fn lang(l: &str) -> String {
         "Finnish" => "fi-FI",
         "Polish" => "pl-PL",
         "[No Language]" => "",
+        _ if l.len() <= 16 && l.contains('-') && !l.contains(' ') => l,
         _ => "en-US",
     }
     .to_string()
@@ -336,22 +338,59 @@ fn mime(name: &str) -> String {
 
 fn uri_path(u: &str) -> String {
     let p = u.strip_prefix("file://").or_else(|| u.strip_prefix("file:")).unwrap_or(u);
-    let mut out = String::new();
+    let mut out: Vec<u8> = Vec::new();
     let b = p.as_bytes();
     let mut i = 0;
     while i < b.len() {
         if b[i] == b'%'
             && i + 2 < b.len()
+            && b[i + 1].is_ascii_hexdigit()
+            && b[i + 2].is_ascii_hexdigit()
             && let Ok(v) = u8::from_str_radix(&p[i + 1..i + 3], 16)
         {
-            out.push(v as char);
+            out.push(v);
             i += 3;
             continue;
         }
-        out.push(b[i] as char);
+        out.push(b[i]);
         i += 1;
     }
-    out
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+fn read_link(path: &str) -> Vec<u8> {
+    use std::io::Read;
+    const CAP: u64 = 256 << 20;
+    if path.starts_with("\\\\") || path.starts_with("//") {
+        return Vec::new();
+    }
+    let Ok(meta) = std::fs::metadata(path) else { return Vec::new() };
+    if !meta.is_file() || meta.len() > CAP {
+        return Vec::new();
+    }
+    let Ok(mut f) = std::fs::File::open(path) else { return Vec::new() };
+    let mut head = [0u8; 12];
+    if f.read_exact(&mut head).is_err() {
+        return Vec::new();
+    }
+    let known = head.starts_with(b"\x89PNG")
+        || head.starts_with(&[0xFF, 0xD8, 0xFF])
+        || head.starts_with(b"GIF8")
+        || head.starts_with(b"II*\0")
+        || head.starts_with(b"MM\0*")
+        || (head.starts_with(b"RIFF") && &head[8..12] == b"WEBP")
+        || head.starts_with(b"%PDF")
+        || head.starts_with(b"8BPS")
+        || head.starts_with(b"%!PS")
+        || head.starts_with(&[0xC5, 0xD0, 0xD3, 0xC6]);
+    if !known {
+        return Vec::new();
+    }
+    let mut data = head.to_vec();
+    if f.take(CAP).read_to_end(&mut data).is_err() {
+        return Vec::new();
+    }
+    data
 }
 
 const ITEM_TAGS: &[&str] = &["TextFrame", "Rectangle", "Oval", "Polygon", "GraphicLine", "Group"];
@@ -390,6 +429,9 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
         },
         ..Stroke::default()
     };
+    if let (Some(t), Paint::Swatch { tint, .. }) = (el.num("StrokeTint").filter(|t| *t >= 0.0), &mut it.stroke.paint) {
+        *tint = t / 100.0;
+    }
     it.hidden = el.flag("Visible") == Some(false);
     it.locked = el.flag("Locked") == Some(true);
     it.nonprinting = el.flag("Nonprinting") == Some(true);
@@ -496,6 +538,9 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
     }
     let media = el.child("Image").or_else(|| el.child("PDF")).or_else(|| el.child("EPS"));
     let id = doc.insert_item(it, home);
+    if let Some(s) = el.attr("Self") {
+        c.item_ids.insert(s.to_string(), id);
+    }
     if el.name == "TextFrame" {
         c.frames.push((el.attr("ParentStory").unwrap_or("").to_string(), id, el.attr("Self").unwrap_or("").to_string(), el.attr("PreviousTextFrame").unwrap_or("n").to_string(), el.attr("NextTextFrame").unwrap_or("n").to_string()));
     }
@@ -515,7 +560,7 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
         if data.is_empty()
             && let Some(l) = &link
         {
-            data = std::fs::read(l).unwrap_or_default();
+            data = read_link(l);
         }
         let (px, py) = if ppi.len() == 2 && m.name == "Image" { (ppi[0], ppi[1]) } else { (72.0, 72.0) };
         let mut mt = mime(&name);
@@ -685,8 +730,10 @@ fn paragraph_range(c: &mut Ctx, doc: &mut Doc, sid: StoryId, psr: &El, paras: &m
 }
 
 fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
-    let rows = e.all("Row");
-    let cols = e.all("Column");
+    let mut rows = e.all("Row");
+    let mut cols = e.all("Column");
+    cols.truncate(1000);
+    rows.truncate((100_000 / cols.len().max(1)).max(1));
     let mut t = Table::new(rows.len().max(1), cols.len().max(1), 100.0 * cols.len().max(1) as f64);
     t.cells.clear();
     t.heights = rows.iter().map(|r| r.num("SingleRowHeight").unwrap_or(18.0)).collect();
@@ -704,6 +751,9 @@ fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
     t.style = e.attr("AppliedTableStyle").map(style_name).filter(|s| s != "No Table Style");
     for cell in e.all("Cell") {
         let (col, row) = cell.attr("Name").and_then(|n| n.split_once(':')).map(|(a, b)| (a.parse().unwrap_or(0), b.parse().unwrap_or(0))).unwrap_or((0, 0));
+        if row >= t.rows() || col >= t.cols() {
+            continue;
+        }
         let mut paras = Vec::new();
         story_content(c, doc, sid, cell, &mut paras);
         for p in paras.iter_mut() {
@@ -743,9 +793,18 @@ fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
         }
         t.cells.push(TableCell { row, col, rows: cell.num("RowSpan").unwrap_or(1.0).max(1.0) as usize, cols: cell.num("ColumnSpan").unwrap_or(1.0).max(1.0) as usize, paras, attrs, style: cell.attr("AppliedCellStyle").map(style_name).filter(|s| s != "None") });
     }
-    for r in 0..t.rows() {
-        for col in 0..t.cols() {
-            if t.cell(r, col).is_none() {
+    let (nr, nc) = (t.rows(), t.cols());
+    let mut covered = vec![false; nr * nc];
+    for cl in &t.cells {
+        for r in cl.row..cl.row.saturating_add(cl.rows).min(nr) {
+            for col in cl.col..cl.col.saturating_add(cl.cols).min(nc) {
+                covered[r * nc + col] = true;
+            }
+        }
+    }
+    for r in 0..nr {
+        for col in 0..nc {
+            if !covered[r * nc + col] {
                 t.cells.push(TableCell { row: r, col, rows: 1, cols: 1, paras: vec![Para::empty(BASIC_PARA)], attrs: Attrs::new(), style: None });
             }
         }
@@ -863,17 +922,26 @@ fn graphic(c: &mut Ctx, doc: &mut Doc, root: &El) {
 pub fn read(bytes: &[u8]) -> Result<Doc, String> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("not an IDML package: {e}"))?;
     let mut files = HashMap::new();
+    let cap: u64 = 64 << 20;
+    let mut total: u64 = 0;
     for i in 0..z.len() {
         let mut f = z.by_index(i).map_err(|e| e.to_string())?;
         if !f.name().ends_with(".xml") {
             continue;
         }
+        if f.size() > cap {
+            return Err(format!("IDML part {} is too large", f.name()));
+        }
         let mut s = String::new();
-        if f.read_to_string(&mut s).is_ok() {
+        if (&mut f).take(cap + 1).read_to_string(&mut s).is_ok() {
+            total += s.len() as u64;
+            if s.len() as u64 > cap || total > 8 * cap {
+                return Err(format!("IDML part {} is too large", f.name()));
+            }
             files.insert(f.name().to_string(), s);
         }
     }
-    let mut c = Ctx { files, paints: HashMap::new(), pstyles: HashMap::new(), cstyles: HashMap::new(), ostyles: HashMap::new(), layers: HashMap::new(), masters: HashMap::new(), stories: HashMap::new(), frames: Vec::new(), pending_anchors: Vec::new() };
+    let mut c = Ctx { files, paints: HashMap::new(), pstyles: HashMap::new(), cstyles: HashMap::new(), ostyles: HashMap::new(), layers: HashMap::new(), masters: HashMap::new(), stories: HashMap::new(), frames: Vec::new(), pending_anchors: Vec::new(), item_ids: HashMap::new() };
     let dm = c.file("designmap.xml").ok_or("not an IDML package: no designmap.xml")?;
     let dm = dm.child("Document").cloned().ok_or("designmap.xml has no Document")?;
     let prefs = c.file("Resources/Preferences.xml");
@@ -953,6 +1021,7 @@ pub fn read(bytes: &[u8]) -> Result<Doc, String> {
             .map(|(w, h, _, p)| {
                 let mut pg = make_page(&mut doc, *w, *h, p);
                 pg.parent = p.attr("AppliedMaster").and_then(|m| c.masters.get(m)).copied();
+                pg.detached = p.attr("OverrideList").unwrap_or("").split_whitespace().filter_map(|s| c.item_ids.get(s).copied()).collect();
                 page_selfs.push(p.attr("Self").unwrap_or("").to_string());
                 pg
             })

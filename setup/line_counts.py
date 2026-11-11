@@ -69,7 +69,7 @@ def main() -> int:
     problems = []
     if f"{templates} templates" not in readme:
         problems.append(f"README does not say {templates} templates")
-    for m in re.finditer(r"(\d+) tools", readme):
+    for m in re.finditer(r"(?:server with|exposes) (\d+) tools", readme):
         if int(m.group(1)) != tools:
             problems.append(f"README says {m.group(1)} tools, the engine has {tools}")
     for p in problems:

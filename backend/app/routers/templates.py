@@ -85,7 +85,10 @@ async def save_template(body: dict = Body(...)):
     res = await registry.check_spec(t, render=False)
     if not res.get("ok"):
         raise HTTPException(422, res.get("error", "the template does not compile"))
-    f = registry.user_path(t)
+    try:
+        f = registry.user_path(t)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(json.dumps({k: v for k, v in t.items() if not k.startswith("_")}, indent=2, ensure_ascii=False))
     registry.templates(refresh=True)

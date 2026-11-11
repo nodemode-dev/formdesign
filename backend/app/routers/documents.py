@@ -1,4 +1,5 @@
 import hashlib
+import urllib.parse
 from pathlib import Path
 
 from fastapi import APIRouter, Body, File, HTTPException, UploadFile
@@ -13,6 +14,11 @@ router = APIRouter()
 
 def _fail(exc: Exception) -> HTTPException:
     return HTTPException(422, str(exc))
+
+
+def attachment(name: str) -> str:
+    plain = "".join(c if c.isprintable() and c not in '"\\' else "_" for c in name.encode("ascii", "replace").decode())
+    return f"attachment; filename=\"{plain}\"; filename*=UTF-8''{urllib.parse.quote(name)}"
 
 
 @router.get("/documents")
@@ -111,7 +117,7 @@ async def export(body: dict = Body(...)):
         ext = ".zip"
     state = await documents.overview()
     title =Path(state["docs"][state["active"]]["title"]).stem if state.get("active") is not None else "FormDesign"
-    return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{title}{ext}"', "Cache-Control": "no-store"})
+    return Response(data, media_type=mime, headers={"Content-Disposition": attachment(f"{title}{ext}"), "Cache-Control": "no-store"})
 
 
 @router.post("/documents/activate")
@@ -119,7 +125,7 @@ async def activate(body: dict = Body(...)):
     try:
         await core.call("docs.activate", {"index": int(body.get("index", 0))}, source="window")
         return await documents.overview()
-    except CoreError as exc:
+    except (CoreError, ValueError, TypeError) as exc:
         raise _fail(exc) from exc
 
 
@@ -129,5 +135,5 @@ async def close(body: dict = Body(default={})):
         params = {"index": int(body["index"])} if "index" in body else {}
         await core.call("docs.close", params, source="window")
         return await documents.overview()
-    except CoreError as exc:
+    except (CoreError, ValueError, TypeError) as exc:
         raise _fail(exc) from exc

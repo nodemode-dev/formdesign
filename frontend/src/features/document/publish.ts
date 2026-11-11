@@ -57,8 +57,11 @@ export class PublishDialog {
     if (!editor.hasDoc) { toast('Open a document to publish it'); return; }
     setHidden(this.result, true);
     setText(this.status, '');
+    this.current = null;
+    setDisabled(this.go, true);
     this.d.open(this.go);
     await this.refresh(true);
+    setDisabled(this.go, this.running);
   }
 
   private async refresh(adopt = false): Promise<void> {

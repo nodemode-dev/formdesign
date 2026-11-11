@@ -176,6 +176,7 @@ class GlyphPick {
   private readonly ch = q<HTMLInputElement>(this.root, '.ff-gch');
   private readonly prev = q(this.root, '.ff-gprev');
   private static faces = new Map<string, string>();
+  private static seq = 0;
   onChange: (() => void) | null = null;
 
   constructor(anyLabel: string) {
@@ -227,7 +228,7 @@ class GlyphPick {
     const key = `${fam}/${sty}`;
     let name = GlyphPick.faces.get(key);
     if (!name) {
-      name = `fd-ff-${GlyphPick.faces.size + 1}`;
+      name = `fd-ff-${++GlyphPick.seq}`;
       try {
         const f = new FontFace(name, `url(/api/core/font?family=${encodeURIComponent(fam)}&style=${encodeURIComponent(sty)})`);
         document.fonts.add(await f.load());
@@ -573,8 +574,8 @@ export class FindWindow {
     const scope = p.scope;
     if (scope !== 'toEnd' && scope !== 'selection') return undefined;
     const key = JSON.stringify(p);
-    if (this.within && this.withinKey === key) return this.within;
     const t = editor.selection?.text as { story: number; anchor: number; focus: number; cell?: Cell } | undefined;
+    if (this.within && this.withinKey === key && (!t || t.story === this.within.story)) return this.within;
     if (!t) { this.status(scope === 'toEnd' ? 'Click in a story to search to its end.' : 'Select some text to search within it.', true); return null; }
     const a = Math.min(t.anchor, t.focus), b = Math.max(t.anchor, t.focus);
     if (scope === 'selection' && a === b) { this.status('Select some text to search within it.', true); return null; }

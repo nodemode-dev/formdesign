@@ -2,6 +2,148 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.85.5 · 2026-11-10
+
+- The caret, clicks and selection stay on the right character after a page number marker, a text variable, a cross-reference or a footnote number.
+- In table cells the caret, selection, tab leaders and later paragraphs sit inside their cell.
+- A footnote on a line moved by widow control prints once.
+- No Break keeps a phrase on one line, and No Break words are not hyphenated.
+- A drop cap's letters no longer take room in the first line, so justified first lines reach the right edge.
+- A character no installed font covers no longer makes the layout core load every installed font.
+- A paragraph border set in Text Options draws, and OK keeps unset borders and lists unset.
+- Editing a heading repaints the running headers and live captions that show it.
+- Fonts added while documents are open are used at once.
+- Gradient-filled text shows its gradient on the canvas and in PNG and JPEG export.
+- Radial gradients on a rotated spread, and stroked text in a scaled frame, draw at their real size.
+- Feathers, drop shadows and opacity masks keep their fade in the Separations preview.
+- Zooming over a placed PDF keeps at most two renders of it in memory.
+- PSD files that are 32-bit, indexed, Lab or damaged report that they cannot be read instead of showing noise or stopping the layout core.
+- The native canvas draws every page shadow before any page, so no shadow lies over the left page at the spine.
+- The GPU tile budget stops at 1.5 GiB, and a GPU error is logged instead of closing the app.
+- An opened IDML reads only regular image and PDF files for its links, so a crafted package cannot hang the layout core or pull a private file into an export.
+- Deeply nested XML in an IDML is refused instead of crashing the layout core.
+- IDML, DOCX and XLSX parts larger than 64 MB are refused instead of inflated.
+- Large or malformed tables in IDML, XLSX, CSV and text files import in bounded time and memory.
+- A forced line break stays a line break in IDML export.
+- Text languages survive an IDML round trip.
+- Overridden parent page items no longer show twice after an IDML round trip.
+- Stroke tints and image resolution survive an IDML round trip.
+- Linked files with non-ASCII names in an IDML are found, and a stray % no longer stops the import.
+- RTF curly quotes, dashes and Unicode characters import as written.
+- Placed HTML turns entities such as `&rsquo;` and `&#8217;` into their characters, and Markdown keeps underscores inside words.
+- Import XML keeps numeric character references.
+- Font names cannot break out of an HTML or EPUB export's style sheet.
+- A fixed-layout EPUB marks every animated page as scripted.
+- An old recovery copy no longer comes back over a newer save.
+- Undo after a long batch never steps into the batch's half-finished states.
+- A command that fails inside the layout core leaves the document as it was before the request.
+- Closing a background document keeps the active document active.
+- Switching, opening or closing a document drops the tools' state from the previous one.
+- A stale text caret no longer panics or types in the wrong place.
+- Text frames turned into plain shapes take their text with them.
+- Copy, cut and paste work with the caret in a table cell.
+- Text and styles pasted into another document bring the swatches they use.
+- Copied shapes and pictures paste as themselves, not as old clipboard text.
+- Change All with a format-only find puts in the change text.
+- Change All changes matches in table cells after the body text around the table changed.
+- Find/Change searches the story the caret is in after the caret moves to another story.
+- Find `^I` and `~I` find index markers.
+- Change Case changes a run even when one letter would change length.
+- Releasing anchored objects deletes their own markers in any order.
+- Threading refuses a group, a line or a frame holding a picture; the loaded text cursor refuses them too, and a refused thread adds no undo step.
+- Renaming a table or cell style keeps the tables that use it.
+- A style cannot be based on itself through another style.
+- Duplicate Spread and Move Pages keep section starts on their pages.
+- A duplicated frame's layer choice no longer changes the original.
+- Deleting pages removes the anchored objects and links that hung off their objects.
+- Deleting overlapping selected rows or columns deletes only those.
+- Insert Row Below on a footer row keeps the footer.
+- Sort Rows moves each row's exact-height setting with it.
+- Arrange keeps the stacking order of several selected objects.
+- Page ranges can name a page whose name has a hyphen.
+- Aligning objects refuses an edge it does not know.
+- Batch steps can pass text such as "$5" with a "$$" escape.
+- Trace Image in colours mode reports a transparent picture instead of tracing nothing.
+- Tag Text and Map Styles to Tags refuse names XML cannot use.
+- The generated index sorts accented topics with their letter.
+- A colour string with a non-ASCII character is refused instead of crashing the layout core.
+- Colour arrays in 0 to 255 or percent are scaled as a whole, so rgb [255, 1, 0] stays red.
+- A grey of 1 percent or less reads back as the same grey.
+- Preflight's bleed and trim-safety checks look inside groups.
+- Placing a file that cannot be placed says why and leaves no empty frame.
+- A document from a newer FormDesign is reported as such, also when its shape changed or it is raw JSON.
+- Website export keeps all-small-caps character styles in small caps.
+- Save As, Save of an untitled document and Open as layout pass the answer on.
+- A cancelled file picker no longer hands the next pick to the old action.
+- The Missing Fonts dialog shows the document title as text.
+- The property panels follow a new selection or caret, not only a new revision.
+- Margins and columns in the panels come from the page in view.
+- A Library item dropped on a page lands on that page's spread.
+- The Story Editor sends whole characters when emoji are edited.
+- A closed dropdown leaves no popup or listener behind.
+- Tiles load for the new document when the tab changes during a tile request.
+- Every change of the device pixel ratio resizes the canvases.
+- Ctrl+J is shown only on Show Terminal, not on Go to Page as well.
+- Object Style Options keeps the default stroke weight when the field is empty.
+- The last raw stacking values use the layer scale, and two colours name real design tokens.
+- A new animation starts from the preset's defaults.
+- Document Setup keeps a per-side bleed unless the Bleed field is changed.
+- The Slots panel never saves a shortened preview over a long story.
+- Make no longer reuses the content of a removed file.
+- Play Action plays a saved action without the Actions panel open first.
+- The Editor role hides the Layout, Object and Table menus in every language.
+- Ticked stories in Assignments stay with their own document.
+- Pica lengths with a minus sign or a lone point read correctly.
+- The Adjustments curve keeps drawing when two points share an input.
+- Each font in the Glyphs panel and the Find glyph pickers gets its own name.
+- The Plugins setup commands work for folders with spaces and on Windows.
+- Generate Alt Text shows only the answer for the latest request.
+- Publish Online cannot update another document's site before its list loads.
+- A plug-in's panel title is set as text, never parsed as HTML.
+- A plug-in's fetch checks every redirect hop against its network list.
+- Only the window installs, enables and removes plug-ins.
+- Only the in-app token makes a client the in-app Claude Code.
+- run_commands asks for approval wherever run_command does.
+- save_document asks before overwriting the file it will really write.
+- An MCP tool that fails, or a malformed MCP request, gets a JSON-RPC answer instead of a bare 500.
+- Intake and PDF reading by agents no longer freeze the engine.
+- PDF-as-layout, DXF and PDF comment imports and the Claude Code probe run off the engine's event loop.
+- The MCP stdio bridge starts under an older system python3, such as macOS's Python 3.9.
+- `agents install codex` writes a valid config.toml on Windows.
+- A template is saved only inside the template library.
+- A wrong-shaped template spec answers with its problems instead of a 500.
+- A template thumbnail that fails to build leaves no document open in the auxiliary core.
+- Published sites and placed assets run sandboxed, away from the engine.
+- A website export never deletes files it did not write.
+- Document text stays inside a published page's JSON-LD block.
+- Links found in contact and footer text keep their query strings in website export.
+- An uploaded file name cannot leave its pack folder.
+- Phone photos are measured and placed upright.
+- A bad or empty zip becomes an intake warning instead of a failed intake.
+- One-column CSV files are read.
+- Images from different sources with the same name stay distinct.
+- Text with a non-ASCII paragraph or character style name is placed by Make.
+- Bad input to open, pack edits, Make, tabs and media answers with a 4xx error, not a 500.
+- Malformed agent, plug-in, package and book input gets an error message, not a 500.
+- Book operations run one at a time on the layout core's single book.
+- Edit Original opens only image, vector and PDF files.
+- A video's poster file is used only when it is a real image.
+- Downloads with non-Latin names arrive instead of answering 500.
+- Libraries, profiles, queries, workspaces and review sites save non-Latin names on Windows.
+- Names without Latin letters get their own file.
+- Review comments posted at the same time all stay, each with its own id.
+- Every window socket request gets an answer, also when it fails unexpectedly.
+- An engine on a fallback port tells everyone its real port.
+- A long paste reaches the terminal whole and the socket stays up.
+- The context sent to Claude Code names the open document.
+- A Claude Code launch is quoted for the login shell that runs it, and a prompt that starts with "-" reaches it as a prompt.
+- Claude chat history is found when the agent folder has non-ASCII letters, and Claude chat keeps only the screenshots its messages still show.
+- LibreOffice gets a well-formed profile URL on every system, so .pub, .qxp and .pmd files open on Windows.
+- `formdesign.bat serve` builds the window when it is missing and then serves it.
+- `formdesign.bat clean --all` removes every folder it names.
+- `build_app.bat` checks Node the way Vite does (20.19 or newer, or 22.12 or newer), and `formdesign.bat install --lite` keeps a built layout core.
+- `./formdesign counts --check` reads only the README's MCP tool count.
+
 ## 0.85.4 · 2026-11-04
 
 - The README is rewritten in the Form family layout, with screenshots of the editor, the template gallery and the Export dialog.

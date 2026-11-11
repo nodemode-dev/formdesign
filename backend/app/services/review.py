@@ -5,6 +5,7 @@ posted back to /api/review/public/{token}/comments, kept in Reviews/{token}.json
 the page position (services.notes), so they show up in the Notes panel as they arrive. The engine listens on loopback only
 and the public routes accept only same-origin requests whose Host is a loopback name, so a page on another site cannot post.
 """
+import asyncio
 import json
 import re
 import secrets
@@ -24,6 +25,7 @@ REVIEWS_DIR = config.DATA_DIR / "Reviews"
 MAX_TEXT, MAX_NAME, MAX_COMMENTS, MAX_REPLIES = 2000, 60, 500, 50
 WINDOW, WINDOW_MAX = 60.0, 30
 _hits: dict[str, list[float]] = {}
+_locks: dict[str, asyncio.Lock] = {}
 
 
 def loopback_host(host: str | None) -> bool:
@@ -128,11 +130,11 @@ class Reviews:
             (tmp / "pages" / f"p{p['abs'] + 1}.jpg").write_bytes(r.bin or b"")
             sizes.append({"w": r.result.get("width"), "h": r.result.get("height"), "name": p.get("name"), "pt": [p["rect"][2] - p["rect"][0], p["rect"][3] - p["rect"][1]]})
         cfg = {"token": rec["token"], "title": title, "pages": sizes, "built": time.time()}
-        (tmp / "review.json").write_text(json.dumps(cfg))
-        (tmp / "index.html").write_text(SITE_HTML.replace("{{title}}", escape(title)))
-        (tmp / "review.css").write_text(SITE_CSS)
-        (tmp / "review.js").write_text(SITE_JS)
-        (tmp / "404.html").write_text("<!doctype html><meta charset=utf-8><title>Not found</title><p>This review link is not available.</p>")
+        (tmp / "review.json").write_text(json.dumps(cfg), encoding="utf-8")
+        (tmp / "index.html").write_text(SITE_HTML.replace("{{title}}", escape(title)), encoding="utf-8")
+        (tmp / "review.css").write_text(SITE_CSS, encoding="utf-8")
+        (tmp / "review.js").write_text(SITE_JS, encoding="utf-8")
+        (tmp / "404.html").write_text("<!doctype html><meta charset=utf-8><title>Not found</title><p>This review link is not available.</p>", encoding="utf-8")
         old = PUBLISHED_DIR / f"{rec['slug']}.old"
         shutil.rmtree(old, ignore_errors=True)
         if target.exists():
@@ -183,6 +185,10 @@ class Reviews:
                 await core.call("docs.activate", {"index": prev}, source="review")
 
     async def post(self, rec: dict, name: str, text: str, page: int, x: float, y: float) -> dict:
+        async with _locks.setdefault(rec["token"], asyncio.Lock()):
+            return await self._post(self.get(rec["token"]) or rec, name, text, page, x, y)
+
+    async def _post(self, rec: dict, name: str, text: str, page: int, x: float, y: float) -> dict:
         if len(rec["comments"]) >= MAX_COMMENTS:
             raise CoreError("this review has reached its comment limit")
         if page < 0 or page >= int(rec.get("pages") or 0):
@@ -226,6 +232,10 @@ class Reviews:
         await self._in_document(rec, edit)
 
     async def reply(self, rec: dict, cid: int, name: str, text: str, owner: bool) -> dict:
+        async with _locks.setdefault(rec["token"], asyncio.Lock()):
+            return await self._reply(self.get(rec["token"]) or rec, cid, name, text, owner)
+
+    async def _reply(self, rec: dict, cid: int, name: str, text: str, owner: bool) -> dict:
         c = next((x for x in rec["comments"] if x["id"] == cid), None)
         if c is None:
             raise CoreError(f"no comment {cid}")
@@ -237,6 +247,10 @@ class Reviews:
         return c
 
     async def resolve(self, rec: dict, cid: int, resolved: bool) -> dict:
+        async with _locks.setdefault(rec["token"], asyncio.Lock()):
+            return await self._resolve(self.get(rec["token"]) or rec, cid, resolved)
+
+    async def _resolve(self, rec: dict, cid: int, resolved: bool) -> dict:
         c = next((x for x in rec["comments"] if x["id"] == cid), None)
         if c is None:
             raise CoreError(f"no comment {cid}")
@@ -246,6 +260,10 @@ class Reviews:
         return c
 
     async def remove(self, rec: dict, cid: int) -> bool:
+        async with _locks.setdefault(rec["token"], asyncio.Lock()):
+            return await self._remove(self.get(rec["token"]) or rec, cid)
+
+    async def _remove(self, rec: dict, cid: int) -> bool:
         c = next((x for x in rec["comments"] if x["id"] == cid), None)
         if c is None:
             return False

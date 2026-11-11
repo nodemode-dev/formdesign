@@ -284,7 +284,9 @@ fn rows_of(asset: &Asset) -> Option<(&'static str, Vec<Row>)> {
 
 fn drop_view(c: &mut Ctx, id: ItemId) -> Result<()> {
     let view = c.doc()?.item(id).and_then(|i| i.extra.get("layers")).and_then(|l| l.get("view")).and_then(Value::as_u64);
-    if let Some(v) = view {
+    if let Some(v) = view
+        && !c.doc()?.items.values().any(|i| i.id != id && i.extra.get("layers").and_then(|l| l.get("view")).and_then(Value::as_u64) == Some(v))
+    {
         let doc = c.doc_mut()?;
         doc.assets.remove(&AssetId(v));
         c.session.renderer.images.forget(AssetId(v));
@@ -299,7 +301,6 @@ fn apply_layers(c: &mut Ctx, id: ItemId, change: Option<&Value>, show_all: bool,
     let asset = doc.assets.get(&src).cloned().ok_or_else(|| EngineError::new("the graphic's file is missing"))?;
     let (kind, rows) = rows_of(&asset).ok_or_else(|| EngineError::new("this graphic has no layers (placed PDFs with optional content groups and PSD files with layers have them)"))?;
     let prev = it.extra.get("layers").cloned().unwrap_or(Value::Null);
-    let old_view = prev.get("view").and_then(Value::as_u64);
     let mut over: BTreeMap<String, bool> = prev.get("overrides").and_then(Value::as_object).map(|o| o.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect()).unwrap_or_default();
     over.retain(|k, _| rows.iter().any(|r| &r.id == k));
     let mode = update.map(str::to_string).or_else(|| prev.get("update").and_then(Value::as_str).map(str::to_string)).unwrap_or_else(|| "keep".into());
@@ -347,13 +348,14 @@ fn apply_layers(c: &mut Ctx, id: ItemId, change: Option<&Value>, show_all: bool,
         }
     }
     let changed = change.is_some() || show_all || reset || update.is_some();
-    let mut view_id = old_view;
+    let view_id: Option<u64>;
     if changed {
         match &view_bytes {
             Some((bytes, mime)) => {
+                drop_view(c, id)?;
                 let doc = c.doc_mut()?;
                 let na = Asset {
-                    id: AssetId(view_id.unwrap_or(0)),
+                    id: AssetId(0),
                     name: format!("{} (layers)", asset.name),
                     mime: (*mime).to_string(),
                     link: None,

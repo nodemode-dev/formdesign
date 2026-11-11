@@ -71,6 +71,7 @@ class Session:
     fd: int = -1
     win: object = None
     buffer: bytearray = field(default_factory=bytearray)
+    out: bytearray = field(default_factory=bytearray)
     listeners: set = field(default_factory=set)
     exited: int | None = None
     title: str = ""
@@ -91,7 +92,34 @@ class Session:
         if self.win is not None:
             self.win.write(data.decode("utf-8", "replace"))
         else:
-            os.write(self.fd, data)
+            self.out.extend(data)
+            self._flush()
+
+    def _flush(self) -> None:
+        fd = self.fd
+        while self.out and fd >= 0:
+            try:
+                n = os.write(fd, self.out)
+            except BlockingIOError:
+                break
+            except OSError:
+                self.out.clear()
+                break
+            del self.out[:n]
+        if fd < 0:
+            return
+        if self.out:
+            asyncio.get_running_loop().add_writer(fd, self._flush)
+        else:
+            asyncio.get_running_loop().remove_writer(fd)
+
+    def drop_pending(self) -> None:
+        self.out.clear()
+        if self.fd >= 0:
+            try:
+                asyncio.get_running_loop().remove_writer(self.fd)
+            except (RuntimeError, ValueError):
+                pass
 
     def resize(self, cols: int, rows: int) -> None:
         cols, rows = max(2, min(500, cols)), max(1, min(300, rows))
@@ -143,7 +171,7 @@ class Terminals:
         elif preset == "claude":
             title = "Claude Code (from Chat)" if resume else "Claude Code"
             from app.services import claude_code
-            found = claude_code.info(fresh=True)
+            found = await asyncio.to_thread(claude_code.info, True)
             if not found["installed"]:
                 raise ValueError(claude_code.INSTALL)
             try:
@@ -198,6 +226,7 @@ class Terminals:
         s.gen += 1
         old, was_alive = s.proc, s.exited is None
         if s.fd >= 0:
+            s.drop_pending()
             try:
                 loop.remove_reader(s.fd)
             except (RuntimeError, ValueError):
@@ -262,6 +291,7 @@ class Terminals:
         s.exited = code
         line = "Claude Code exited" if s.preset == "claude" else f"Process exited with code {code}"
         s.feed(f"\r\n[{line} · Restart runs it again]\r\n".encode())
+        s.drop_pending()
         if s.fd >= 0:
             try:
                 os.close(s.fd)
@@ -282,6 +312,7 @@ class Terminals:
             except (OSError, ProcessLookupError):
                 pass
         if s.fd >= 0:
+            s.drop_pending()
             try:
                 asyncio.get_running_loop().remove_reader(s.fd)
             except (RuntimeError, ValueError):

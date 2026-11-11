@@ -155,7 +155,11 @@ fn change_case(c: &mut Ctx, p: &Value) -> Result<Value> {
                         if sentence_start && ch.is_alphabetic() { ch.to_uppercase().collect() } else { ch.to_lowercase().collect() }
                     }
                 };
-                out.push_str(&next);
+                let mut one = next.chars();
+                out.push(match (one.next(), one.next()) {
+                    (Some(m), None) => m,
+                    _ => ch,
+                });
                 if ch.is_alphabetic() {
                     sentence_start = false;
                 }
@@ -1123,6 +1127,40 @@ fn style_group(c: &mut Ctx, p: &Value) -> Result<Value> {
     Ok(json!({"grouped": n, "group": group}))
 }
 
+fn rename_table_refs(doc: &mut Doc, kind: StyleKind, from: &str, to: &str) {
+    const REGIONS: [&str; 5] = ["headerCellStyle", "footerCellStyle", "leftColumnCellStyle", "rightColumnCellStyle", "bodyCellStyle"];
+    let rename_regions = |attrs: &mut Attrs| {
+        for k in REGIONS {
+            if attrs.get(k).and_then(Value::as_str) == Some(from) {
+                attrs.insert(k.into(), json!(to));
+            }
+        }
+    };
+    let has_table = |p: &Para| p.segs.iter().any(|s| matches!(s, Seg::Inline { inline: formdesign_model::story::Inline::Table { .. }, .. }));
+    crate::walk::paras_where(doc, &has_table, &mut |p| {
+        for s in p.segs.iter_mut() {
+            let Seg::Inline { inline: formdesign_model::story::Inline::Table { table }, .. } = s else { continue };
+            if kind == StyleKind::Table {
+                if table.style.as_deref() == Some(from) {
+                    table.style = Some(to.to_string());
+                }
+                continue;
+            }
+            for cell in table.cells.iter_mut() {
+                if cell.style.as_deref() == Some(from) {
+                    cell.style = Some(to.to_string());
+                }
+            }
+            rename_regions(&mut table.attrs);
+        }
+    });
+    if kind == StyleKind::Cell {
+        for st in doc.styles.list_mut(StyleKind::Table).iter_mut() {
+            rename_regions(&mut st.attrs);
+        }
+    }
+}
+
 fn table_style_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
     let kind = if args::opt_str(p, "kind") == Some("cell") { StyleKind::Cell } else { StyleKind::Table };
     let name = formdesign_model::style::style_key(args::str_(p, "name", "the style's name")?);
@@ -1144,10 +1182,12 @@ fn table_style_edit(c: &mut Ctx, p: &Value) -> Result<Value> {
             }
         }
     }
-    if let Some(r) = args::opt_str(p, "rename").filter(|r| !r.trim().is_empty()) {
-        st.name = r.trim().to_string();
+    let mut out = json!({"name": st.name, "attrs": st.attrs});
+    if let Some(to) = args::opt_str(p, "rename").filter(|r| !r.trim().is_empty()).map(formdesign_model::style::style_key).filter(|t| *t != name) {
+        doc.styles.rename(kind, &name, &to)?;
+        rename_table_refs(doc, kind, &name, &to);
+        out["name"] = json!(to);
     }
-    let out = json!({"name": st.name, "attrs": st.attrs});
     c.label(if kind == StyleKind::Cell { "Cell Style Options" } else { "Table Style Options" });
     Ok(out)
 }

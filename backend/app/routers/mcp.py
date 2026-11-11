@@ -1,6 +1,8 @@
+import asyncio
 import base64
 import difflib
 import json
+import logging
 import re
 import time
 import urllib.parse
@@ -18,12 +20,14 @@ from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
 from app.routers.agents import window_only
+from app.routers.templates import ID as TEMPLATE_ID
 from app.services import agents as A
 from app.services import books, libraries, pdfread, profiles, queries
 from app.templates import brands, registry, spec
 
 router = APIRouter()
-VERSIONS = ["2026-07-28", "2025-11-25"]
+log = logging.getLogger("formdesign.mcp")
+VERSIONS =["2026-07-28", "2025-11-25"]
 INSTRUCTIONS = ("FormDesign (the formdesign server) is a professional page-layout application, running on this computer; these tools lay out and edit the "
                 "documents open in its engine, and the FormDesign window shows every change live. The fast path: intake (files and a brief become a content pack), "
                 "make_layout (a template filled with that content, about 80 percent of the way there), preview to look, set_slots to fix what the report "
@@ -441,9 +445,9 @@ async def _run(name: str, a: dict) -> dict:
         missing = [str(p) for p in paths if not p.exists()]
         if missing:
             return _fail(f"not found: {', '.join(missing[:5])}")
-        pack = P.ingest(paths, a.get("brief") or "", {"kind": a["kind"]} if a.get("kind") else {})
+        pack = await asyncio.to_thread(P.ingest, paths, a.get("brief") or "", {"kind": a["kind"]} if a.get("kind") else {})
         s = P.summary(pack)
-        s["ranked"] = [{"id": r["id"], "score": r["score"], "why": r["why"]} for r in R.rank(pack, limit=5)]
+        s["ranked"] = [{"id": r["id"], "score": r["score"], "why": r["why"]} for r in await asyncio.to_thread(R.rank, pack, limit=5)]
         return _text(s)
     if name == "list_templates":
         cards = registry.cards(a.get("category"), a.get("kind"), a.get("query"))
@@ -565,16 +569,16 @@ async def _run(name: str, a: dict) -> dict:
         p = str(_abs(a["path"]))
         mode = a.get("mode", "structure")
         if mode == "info":
-            return _text(pdfread.info(p))
+            return _text(await asyncio.to_thread(pdfread.info, p))
         if mode == "search":
-            return _text(pdfread.search(p, a.get("query") or "")[:60])
+            return _text((await asyncio.to_thread(pdfread.search, p, a.get("query") or ""))[:60])
         if mode == "text":
             pages = a.get("pages") or [1]
-            return _text({str(n): pdfread.page_text(p, n - 1) for n in pages[:20]})
-        st = pdfread.structure(p)
+            return _text({str(n): await asyncio.to_thread(pdfread.page_text, p, n - 1) for n in pages[:20]})
+        st = await asyncio.to_thread(pdfread.structure, p)
         return _text({k: v for k, v in st.items() if k != "spans"})
     if name == "pdf_page_image":
-        png = pdfread.render(str(_abs(a["path"])), max(0, int(a.get("page", 1)) - 1), max_side=float(a.get("max_size", 1100)))
+        png = await asyncio.to_thread(pdfread.render, str(_abs(a["path"])), max(0, int(a.get("page", 1)) - 1), max_side=float(a.get("max_size", 1100)))
         return _image(png)
     if name == "list_brands":
         return _text(brands.listing())
@@ -591,6 +595,8 @@ async def _run(name: str, a: dict) -> dict:
         return {"content": content}
     if name == "save_template":
         t = a.get("spec") or {}
+        if not isinstance(t, dict) or not TEMPLATE_ID.match(str(t.get("id", ""))):
+            return _fail("id must be kebab-case letters, digits and hyphens")
         existing = registry.get(t.get("id", ""))
         if existing is not None and not existing.get("_user"):
             return _fail(f"{t.get('id')} is a built-in template id; choose another")
@@ -768,7 +774,16 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
     if pol == "deny":
         A.record(client, name, args, False, 0, "refused: this client is set to Deny in Agent Connect", core.rev)
         return _fail(f"{client} is set to Deny in FormDesign's Agent Connect panel; the person can change that there.")
-    reason = A.gate_reason(name, args)
+    gate_args = args
+    if name == "save_document":
+        try:
+            m = await documents.meta_for_active()
+            if args.get("path") or (m is not None and not m.path):
+                target = await documents.save_target(str(_abs(args["path"])) if args.get("path") else None)
+                gate_args = {**args, "path": str(target)} if target is not None else args
+        except (CoreError, ValueError, OSError):
+            gate_args = args
+    reason = A.gate_reason(name, gate_args)
     if reason and pol == "ask":
         if not core.listeners:
             A.record(client, name, args, False, 0, f"refused: {reason}, and no window is open to ask", core.rev)
@@ -788,6 +803,9 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
         out = _fail(f"{exc}")
     except (ValueError, KeyError, TypeError, OSError) as exc:
         out = _fail(f"{exc.__class__.__name__}: {exc}")
+    except Exception as exc:
+        log.exception("tool %s failed", name)
+        out = _fail(f"{exc.__class__.__name__}: {exc}")
     finally:
         turn_var.reset(token)
     first = next((c.get("text", "") for c in out.get("content", []) if c.get("type") == "text"), "image")
@@ -805,10 +823,12 @@ async def mcp(request: Request) -> Response:
         return Response(content=json.dumps(_err(None, -32700, "Parse error")), media_type="application/json", status_code=400)
     if isinstance(msg, list):
         return Response(content=json.dumps(_err(None, -32600, "Batches are not supported")), media_type="application/json", status_code=400)
+    if not isinstance(msg, dict) or not isinstance(msg.get("params") or {}, dict):
+        return Response(content=json.dumps(_err(msg.get("id") if isinstance(msg, dict) else None, -32600, "Invalid request")), media_type="application/json", status_code=400)
     req_id, method, params = msg.get("id"), msg.get("method"), msg.get("params") or {}
     if req_id is None:
         return Response(status_code=202)
-    meta = params.get("_meta") or {}
+    meta = params.get("_meta") if isinstance(params.get("_meta"), dict) else {}
     client, new_sid = A.identify(request.headers, params, method or "")
     version = meta.get("io.modelcontextprotocol/protocolVersion") or request.headers.get("mcp-protocol-version") or "2025-11-25"
     modern = version == "2026-07-28"
@@ -841,7 +861,7 @@ async def mcp(request: Request) -> Response:
 
 @router.get("/api/mcp/status")
 def status() -> dict:
-    return {"endpoint": "http://127.0.0.1:8196/mcp", "tools": len(TOOLS), "enabled": agents_enabled(), **_status}
+    return {"endpoint": f"http://127.0.0.1:{config.PORT}/mcp", "tools": len(TOOLS), "enabled": agents_enabled(), **_status}
 
 
 @router.post("/api/mcp/settings")

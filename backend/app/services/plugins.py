@@ -98,7 +98,9 @@ def check_manifest(m) -> dict:
         raise PluginError("unknown permission: " + ", ".join(sorted(unknown)))
     out["permissions"] = clean
     con = m.get("contributes") or {}
-    cmds = [{"id": str(c["id"]), "label": str(c["label"])} for c in con.get("commands") or [] if isinstance(c, dict) and c.get("id") and c.get("label")]
+    if not isinstance(con, dict) or not isinstance(con.get("commands") or [], list) or not isinstance(con.get("menu") or [], list):
+        raise PluginError("contributes is an object, and its commands and menu are lists")
+    cmds =[{"id": str(c["id"]), "label": str(c["label"])} for c in con.get("commands") or [] if isinstance(c, dict) and c.get("id") and c.get("label")]
     if cmds and "commands" not in clean:
         raise PluginError("contributes.commands needs the commands permission")
     if con.get("panel") and "panel" not in clean:
@@ -109,7 +111,7 @@ def check_manifest(m) -> dict:
     for x in menu:
         if x not in {c["id"] for c in cmds}:
             raise PluginError(f"contributes.menu names {x}, which is not a command")
-    out["contributes"] = {"commands": cmds, "panel": {"title": str((con.get("panel") or {}).get("title") or out["name"])} if con.get("panel") else None, "menu": menu}
+    out["contributes"] = {"commands": cmds, "panel": {"title": str((con["panel"] if isinstance(con["panel"], dict) else {}).get("title") or out["name"])} if con.get("panel") else None, "menu": menu}
     return out
 
 
@@ -140,7 +142,16 @@ def _safe_extract(data: bytes, dest: Path) -> None:
         out.write_bytes(z.read(i))
 
 
-def _fetch(url: str, limit: int = MAX_ZIP) -> bytes:
+class _CheckedRedirects(urllib.request.HTTPRedirectHandler):
+    def __init__(self, check):
+        self.check = check
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        self.check(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _fetch(url: str, limit: int = MAX_ZIP, check=None) -> bytes:
     if url.startswith(LOCAL_PREFIX):
         rel = urllib.parse.unquote(url[len(LOCAL_PREFIX):].split("?")[0])
         path = (REPO_PLUGINS / rel).resolve()
@@ -150,7 +161,8 @@ def _fetch(url: str, limit: int = MAX_ZIP) -> bytes:
     if not url.startswith("https://"):
         raise PluginError("catalogue and download addresses are https or the bundled catalogue")
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "FormDesign"}), timeout=60) as r:
+        open_url = urllib.request.build_opener(_CheckedRedirects(check)).open if check else urllib.request.urlopen
+        with open_url(urllib.request.Request(url, headers={"User-Agent": "FormDesign"}), timeout=60) as r:
             data = r.read(limit + 1)
     except OSError as exc:
         raise PluginError(f"could not fetch {url}: {exc}") from exc
@@ -324,4 +336,4 @@ def allowed_fetch(pid: str, url: str) -> str:
 
 def fetch(pid: str, url: str) -> str:
     allowed_fetch(pid, url)
-    return _fetch(url, 2 * 1024 * 1024).decode("utf-8", "replace")
+    return _fetch(url, 2 * 1024 * 1024, lambda hop: allowed_fetch(pid, hop)).decode("utf-8", "replace")

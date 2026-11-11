@@ -1,5 +1,7 @@
+import hashlib
 import json
 import re
+from pathlib import Path
 
 from app.core import config
 
@@ -27,7 +29,19 @@ class QueryError(ValueError):
 
 
 def slug(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-") or "query"
+    base = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    key = (name or "").strip().lower()
+    return base or (f"query-{hashlib.sha1(key.encode()).hexdigest()[:8]}" if key else "query")
+
+
+def _file(name: str) -> Path:
+    path, old = config.QUERIES_DIR / f"{slug(name)}.json", config.QUERIES_DIR / "query.json"
+    try:
+        if not path.exists() and str(json.loads(old.read_text()).get("name") or "").strip().lower() == (name or "").strip().lower():
+            return old
+    except (OSError, ValueError, AttributeError):
+        pass
+    return path
 
 
 def clean(q: dict) -> dict:
@@ -63,14 +77,14 @@ def save(q: dict) -> dict:
     if any(b["name"].lower() == out["name"].lower() for b in BUILTIN):
         raise QueryError(f"\"{out['name']}\" is a built-in query; save under another name.")
     config.QUERIES_DIR.mkdir(parents=True, exist_ok=True)
-    (config.QUERIES_DIR / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=2, ensure_ascii=False))
+    _file(out["name"]).write_text(json.dumps(out, indent=2), encoding="utf-8")
     return out
 
 
 def delete(name: str) -> None:
     if any(b["name"].lower() == (name or "").lower() for b in BUILTIN):
         raise QueryError("Built-in queries cannot be deleted.")
-    path = config.QUERIES_DIR / f"{slug(name)}.json"
+    path = _file(name)
     if not path.is_file():
         raise QueryError(f"No saved query named \"{name}\".")
     path.unlink()

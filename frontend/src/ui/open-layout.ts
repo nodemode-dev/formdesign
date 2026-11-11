@@ -66,7 +66,7 @@ function chooseDialog(p: Probe): Promise<{ backdrop: string } | null> {
   d.foot.append(cancel, ok);
   return new Promise((resolve) => {
     cancel.addEventListener('click', () => { d.close(); resolve(null); });
-    ok.addEventListener('click', () => { const v = sel.value; d.close(); resolve({ backdrop: v }); });
+    ok.addEventListener('click', () => { const v = sel.value; resolve({ backdrop: v }); d.close(); });
     d.onClose = () => { d.scrim.remove(); resolve(null); };
     d.open(ok);
   });

@@ -16,8 +16,10 @@ const SLIDERS: Array<[keyof Adj, () => string, number, number, number]> = [
 
 /** The curve's shape as the engine draws it (pixedit::curve_lut, monotone cubic), for the editor only. */
 function curveAt(pts: Pt[], x: number): number {
-  const p = pts.slice().sort((a, b) => a[0] - b[0]);
+  const p: Pt[] = [];
+  for (const q2 of pts.slice().sort((a, b) => a[0] - b[0])) if (!p.length || Math.abs(q2[0] - p[p.length - 1][0]) >= 1e-6) p.push(q2);
   const n = p.length;
+  if (n < 2) return x;
   if (x <= p[0][0]) return p[0][1];
   if (x >= p[n - 1][0]) return p[n - 1][1];
   const d = p.slice(0, -1).map((a, i) => (p[i + 1][1] - a[1]) / (p[i + 1][0] - a[0]));
@@ -206,7 +208,10 @@ class Adjustments {
     const p = this.at(e), old = this.a.curve[this.drag];
     // The two ends keep their input and move only up and down, so the curve always covers 0 to 255.
     const end = old[0] === 0 || old[0] === 255;
-    this.a.curve = this.a.curve.map((q2, k) => (k === this.drag ? [end ? old[0] : p[0], p[1]] : q2));
+    const xs = this.a.curve.filter((_, k) => k !== this.drag).map((q2) => q2[0]);
+    const lo = Math.max(0, ...xs.filter((x) => x < old[0])), hi = Math.min(255, ...xs.filter((x) => x > old[0]));
+    const x = end ? old[0] : Math.min(hi - 1, Math.max(lo + 1, p[0]));
+    this.a.curve = this.a.curve.map((q2, k) => (k === this.drag ? [x, p[1]] : q2));
     this.drawCurve();
     this.kick();
   }

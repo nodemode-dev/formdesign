@@ -1,5 +1,7 @@
+import hashlib
 import json
 import re
+from pathlib import Path
 
 from app.core import config
 
@@ -24,7 +26,20 @@ class ProfileError(ValueError):
 
 
 def slug(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-") or "profile"
+    base = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    key = (name or "").strip().lower()
+    return base or (f"profile-{hashlib.sha1(key.encode()).hexdigest()[:8]}" if key else "profile")
+
+
+def _file(name: str) -> Path:
+    d = config.DATA_DIR / "Preflight"
+    path, old = d / f"{slug(name)}.json", d / "profile.json"
+    try:
+        if not path.exists() and str(json.loads(old.read_text()).get("name") or "").strip().lower() == (name or "").strip().lower():
+            return old
+    except (OSError, ValueError, AttributeError):
+        pass
+    return path
 
 
 def clean(p: dict) -> dict:
@@ -66,14 +81,14 @@ def save(p: dict) -> dict:
         raise ProfileError(f"\"{out['name']}\" is a built-in profile; save under another name.")
     d = config.DATA_DIR / "Preflight"
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=2, ensure_ascii=False))
+    _file(out["name"]).write_text(json.dumps(out, indent=2), encoding="utf-8")
     return out
 
 
 def delete(name: str) -> None:
     if any(b["name"].lower() == (name or "").lower() for b in BUILTIN):
         raise ProfileError("Built-in profiles cannot be deleted.")
-    path = config.DATA_DIR / "Preflight" / f"{slug(name)}.json"
+    path = _file(name)
     if not path.is_file():
         raise ProfileError(f"No preflight profile named \"{name}\".")
     path.unlink()

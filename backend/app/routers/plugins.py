@@ -1,8 +1,9 @@
 import asyncio
 
-from fastapi import APIRouter, Body, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
 
+from app.routers.agents import window_only
 from app.services import plugins as P
 
 router = APIRouter(prefix="/plugins")
@@ -34,7 +35,8 @@ async def catalogue():
 
 
 @router.post("/catalogue/url")
-async def catalogue_url(body: dict = Body(...)):
+async def catalogue_url(request: Request, body: dict = Body(...)):
+    window_only(request)
     try:
         return {"url": P.set_catalogue(str(body.get("url") or ""))}
     except P.PluginError as exc:
@@ -42,7 +44,8 @@ async def catalogue_url(body: dict = Body(...)):
 
 
 @router.post("/stage")
-async def stage(body: dict = Body(...)):
+async def stage(request: Request, body: dict = Body(...)):
+    window_only(request)
     try:
         if body.get("catalogue"):
             return await asyncio.to_thread(P.stage_catalogue, str(body["catalogue"]))
@@ -54,7 +57,8 @@ async def stage(body: dict = Body(...)):
 
 
 @router.post("/stage/upload")
-async def stage_upload(file: UploadFile = File(...)):
+async def stage_upload(request: Request, file: UploadFile = File(...)):
+    window_only(request)
     try:
         return await asyncio.to_thread(P.stage_bytes, await file.read(P.MAX_ZIP + 1), "file")
     except P.PluginError as exc:
@@ -62,7 +66,8 @@ async def stage_upload(file: UploadFile = File(...)):
 
 
 @router.post("/install")
-async def install(body: dict = Body(...)):
+async def install(request: Request, body: dict = Body(...)):
+    window_only(request)
     try:
         return P.install(str(body.get("stage") or ""), body.get("consent") is True)
     except P.PluginError as exc:
@@ -70,7 +75,8 @@ async def install(body: dict = Body(...)):
 
 
 @router.post("/{pid}/enabled")
-async def enabled(pid: str, body: dict = Body(...)):
+async def enabled(pid: str, request: Request, body: dict = Body(...)):
+    window_only(request)
     try:
         return P.set_enabled(pid, bool(body.get("enabled")))
     except P.PluginError as exc:
@@ -78,7 +84,8 @@ async def enabled(pid: str, body: dict = Body(...)):
 
 
 @router.post("/{pid}/uninstall")
-async def uninstall(pid: str):
+async def uninstall(pid: str, request: Request):
+    window_only(request)
     try:
         P.uninstall(pid)
     except P.PluginError as exc:

@@ -30,8 +30,10 @@ async def intake_upload(files: list[UploadFile] = File(default=[]), brief: str =
         total += len(data)
         if total > config.MAX_UPLOAD_BYTES:
             raise HTTPException(413, "the upload is larger than 512 MB")
-        rel = Path(f.filename or "file").parts
-        target = dest.joinpath(*[_safe_name(p) for p in rel]) if len(rel) > 1 else dest / _safe_name(f.filename or "file")
+        rel = [p for p in Path(f.filename or "file").parts if p not in ("", ".", "..")]
+        target = dest.joinpath(*[_safe_name(p) for p in rel]) if len(rel) > 1 else dest / _safe_name(rel[0] if rel else "file")
+        if dest.resolve() not in target.resolve().parents:
+            raise HTTPException(400, f"{f.filename}: the file name points outside the upload")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
         paths.append(target)
@@ -71,6 +73,13 @@ async def update_pack(pack_id: str, body: dict = Body(...)):
     pack = packs.get(pack_id)
     if not pack:
         raise HTTPException(404, f"no content pack {pack_id}")
+    if not isinstance(body.get("images") or {}, dict) or not isinstance(body.get("options") or {}, dict):
+        raise HTTPException(422, "images and options must be objects")
+    for edits in (body.get("images") or {}).values():
+        focal = edits.get("focal") if isinstance(edits, dict) else None
+        if focal is not None and not (isinstance(focal, list) and len(focal) == 2
+                                      and all(isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1 for v in focal)):
+            raise HTTPException(422, "focal must be two numbers from 0 to 1, or null")
     for key in ("title", "subtitle", "author", "date"):
         if key in body:
             pack[key] = str(body[key])

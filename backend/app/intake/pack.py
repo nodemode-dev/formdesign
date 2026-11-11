@@ -59,7 +59,7 @@ class Intake:
 
     def add_image_bytes(self, data: bytes, stem: str, source: str) -> str | None:
         try:
-            p = I.save_bytes(data, self.img_dir / stem)
+            p = I.save_bytes(data, self.img_dir / f"{stem}-{len(self.images) + 1}")
         except Exception:
             self.warnings.append(f"{stem}: an embedded image could not be read")
             return None
@@ -159,15 +159,19 @@ class Intake:
                 out.extend(self.expand(sorted(p.iterdir())))
             elif p.suffix.lower() == ".zip":
                 dest = self.files_dir / p.stem
-                with zipfile.ZipFile(p) as z:
-                    for member in z.infolist():
-                        target = (dest / member.filename).resolve()
-                        if member.is_dir() or dest.resolve() not in target.parents or member.file_size > 400_000_000:
-                            continue
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        with z.open(member) as src, open(target, "wb") as dst:
-                            shutil.copyfileobj(src, dst)
-                out.extend(self.expand(sorted(dest.iterdir())))
+                try:
+                    with zipfile.ZipFile(p) as z:
+                        for member in z.infolist():
+                            target = (dest / member.filename).resolve()
+                            if member.is_dir() or dest.resolve() not in target.parents or member.file_size > 400_000_000:
+                                continue
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            with z.open(member) as src, open(target, "wb") as dst:
+                                shutil.copyfileobj(src, dst)
+                except (zipfile.BadZipFile, OSError, RuntimeError) as exc:
+                    self.warnings.append(f"{p.name}: not a readable zip ({exc})")
+                if dest.is_dir():
+                    out.extend(self.expand(sorted(dest.iterdir())))
             elif p.is_file():
                 out.append(p)
         return out

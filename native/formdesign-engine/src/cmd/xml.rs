@@ -212,6 +212,11 @@ fn tag_items(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 fn tag_text(c: &mut Ctx, p: &Value) -> Result<Value> {
     let tag = p.get("tag").and_then(Value::as_str).map(str::to_string);
+    if let Some(t) = &tag
+        && !valid_name(t)
+    {
+        return Err(EngineError::new(format!("{t} is not a valid XML name")));
+    }
     let targets = text_targets(c)?;
     let doc = c.doc_mut()?;
     if let Some(t) = &tag {
@@ -233,6 +238,11 @@ fn tag_text(c: &mut Ctx, p: &Value) -> Result<Value> {
 fn map_style(c: &mut Ctx, p: &Value) -> Result<Value> {
     let style = style_key(args::str_(p, "style", "a paragraph style name")?);
     let tag = p.get("tag").and_then(Value::as_str).map(str::to_string);
+    if let Some(t) = &tag
+        && !valid_name(t)
+    {
+        return Err(EngineError::new(format!("{t} is not a valid XML name")));
+    }
     let doc = c.doc_mut()?;
     let mut m: Vec<(String, String)> = style_map(doc).into_iter().filter(|(s, _)| *s != style).collect();
     if let Some(t) = tag {
@@ -356,6 +366,10 @@ fn parse_children(text: &str) -> Result<(String, Vec<XmlEl>)> {
             }
             Ok(Event::GeneralRef(g)) if depth >= 2 => {
                 if let Some(cur) = out.last_mut() {
+                    if let Ok(Some(ch)) = g.resolve_char_ref() {
+                        cur.text.push(ch);
+                        continue;
+                    }
                     let n = g.decode().map(|c| c.into_owned()).unwrap_or_default();
                     let s = match n.as_str() {
                         "amp" => "&",
@@ -417,6 +431,9 @@ fn import_xml(c: &mut Ctx, p: &Value) -> Result<Value> {
     }
     if !root_name.is_empty() {
         put(doc, "root", json!(root_name));
+    }
+    if placed > 0 && c.selection().text.is_some() {
+        c.set_selection(crate::session::Selection::default());
     }
     c.label("Import XML");
     Ok(json!({"placed": placed, "unmatched": unmatched}))

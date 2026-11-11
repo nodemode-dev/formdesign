@@ -2,10 +2,370 @@
 
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
-Current build version: v0.85.3
-Last updated: 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Current build version: v0.85.5
+Last updated: 2026-11-10 · Claude chat keeps only the screenshots its messages still show; Claude chat history is found under a non-ASCII agent folder; a prompt that starts with "-" reaches Claude Code as a prompt; text with a non-ASCII style name is placed; bad input to open, pack edits, make, tabs and media answers 4xx; LibreOffice gets a well-formed profile URL; links found in contact and footer text keep their query strings; fixed-layout EPUB marks every animated page as scripted; images from different sources with the same name stay distinct; book operations run one at a time; malformed agent, plug-in, package and book input gets an error message; Edit Original opens only image, vector and PDF files; counts --check reads only the MCP tool count; Windows Node check and install --lite; clean.bat --all removes each folder on its own; build_frontend.bat restores its caller's folder; agents install codex writes valid TOML on Windows; the MCP stdio bridge runs under Python 3.9; every window socket request gets an answer; a Claude Code launch is quoted for the login shell that runs it; a failed thumbnail leaves no document open; a video's poster file is used only when it is a real image; only the window installs, enables and removes plug-ins; PDF, DXF and PDF comment imports run off the event loop; one-column CSV files are read; a bad or empty zip becomes an intake warning; a wrong-shaped template spec answers problems; phone photos are measured and placed upright; a long paste reaches the terminal whole; intake and PDF reading by agents no longer freeze the engine; review comments posted at the same time all stay; a failing tool or a malformed MCP request gets a JSON-RPC answer; names without Latin letters get their own file; downloads with non-Latin names arrive; an engine on a fallback port tells everyone its real port; non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · Claude chat keeps only the screenshots its messages still show (2026-11-10)
+
+- refers-to: app/services/claude_chat.py :: _prune_images, _run (after the trim), reset
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Every `preview` or `look` result in the Claude panel is saved by `_save_image` as `DATA_DIR/Chat/<uuid>.<ext>`, and nothing ever removed one: trimming to `MAX_MESSAGES` and `reset()` dropped messages but left their files, so the folder grew without bound. `_prune_images` deletes the files there that no message in `STATE["messages"]` refers to (a tool part's `images`). It runs after each turn's trim, under `_lock`, and in `reset()` only when no turn is running, so a running turn's images stay until that turn ends and prunes. Checked in a scratch data folder: of five saved images with two referenced, the prune keeps exactly those two; reset while busy keeps them, reset when idle removes them.
+
+## v0.85.5 · Claude chat history is found when the agent folder has non-ASCII letters (2026-11-10)
+
+- refers-to: app/services/claude_chat.py :: _project_dir
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Claude Code names a project's history folder after the working folder with every character outside `A-Za-z0-9` replaced by `-`; `_project_dir` used `str.isalnum`, which keeps letters such as `é`, so with an agent folder like `C:\Users\José\FormDesign\Agent` the sessions list and `adopt()` looked in a folder that does not exist ("No Claude Code conversation was found"). Only ASCII letters and digits are kept now. Checked: that folder maps to `C--Users-Jos--FormDesign-Agent`; the existing `~/.claude/projects/-home-claude` here shows the same rule for an ASCII path. A real non-ASCII agent folder with a signed-in Claude Code was not tried.
+
+## v0.85.5 · a prompt that starts with "-" reaches Claude Code as a prompt (2026-11-10)
+
+- refers-to: app/services/claude_chat.py :: _argv; app/services/claude_code.py :: argv
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The Claude panel (`_argv`, prompt right after `-p`) and the terminal launch (`argv`, prompt last) passed the prompt as a bare argument, so "- make the headline bigger" or "--help" was parsed by the claude CLI as an option: the turn failed with "unknown option" or ran with that flag. Both now put every option first and end with `--` and the prompt. Checked with the installed claude CLI and an empty HOME: `claude -p "- make the headline bigger"` stops with "unknown option", `claude -p -- "- make the headline bigger"` gets past option parsing (to "Not logged in").
+
+## v0.85.5 · text with a non-ASCII paragraph or character style name is placed (2026-11-10)
+
+- refers-to: app/autolayout/tagged.py :: tagged_b64
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`tagged_b64` encoded the tagged text as ASCII. Body text is escaped to `<0x....>` by `_esc`, but `<ParaStyle:{style}>` and `<CharStyle:{cs}>` carry the style name raw, so a template style named `Überschrift` raised UnicodeEncodeError and save, validate and make with it answered 500. The text is now encoded as UTF-8. The core's reader (`native/formdesign-interchange/src/text.rs` :: `import` and `tagged`) decodes placed .txt bytes as UTF-8 and takes the style name as everything after `ParaStyle:` or `CharStyle:` up to the next `>`, with no `<0x....>` decoding there, so the raw UTF-8 name is the form it reads correctly. Passing the name through `_esc` (the review's suggestion) would have cut it at the `>` of the first escape. A style name containing `>` still cannot be expressed in this format. Checked: `tagged_b64` with `Überschrift` and `Betonung™` encodes and decodes back with the names intact. Not run through the layout core (not built here).
+
+## v0.85.5 · bad input to open, pack edits, make, tabs and media answers 4xx, not 500 (2026-11-10)
+
+- refers-to: app/engine/documents.py :: Documents.open_bytes; app/routers/intake.py :: update_pack; app/routers/make.py :: make; app/routers/documents.py :: activate, close; app/routers/motion.py :: media_set
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Client values reached code that raised outside the routes' error handling. `open_bytes` read a .fdes with no handling, so a file that is not a zip (BadZipFile) or has bad meta JSON answered 500 on open and upload; it now raises CoreError "<name> is not a readable FormDesign file", also when the meta is valid JSON but not an object. `update_pack` stored `images`, `options` and a `focal` unchecked, and `"focal": [0.5]` crashed the next make in `fill.focal_align` (`fx, fy = focal`); it now answers 422 unless `images` and `options` are objects and each focal is two numbers from 0 to 1 or null (null keeps the centred default). `make` (`int(variations)`, and `options` used as an object), `activate` and `close` (`int(index)`) and `media_set` (`int(id)`, `float(time)`) now answer 422 for values that are not numbers. Checked: `open_bytes` on "not a zip" and on zips with meta `{bad` and `[1]` raises that CoreError; with TestClient each bad value above answers 422 and a good focal 200.
+
+## v0.85.5 · LibreOffice gets a well-formed profile URL on every system (2026-11-10)
+
+- refers-to: app/services/layoutimport.py :: soffice
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`soffice` built `-env:UserInstallation=file://<path>` by hand: on Windows that is `file://C:\Users\...\profile`, which LibreOffice reads as host "C:", so a .pub, .qxp or .pmd conversion failed or fell back to the person's own profile (and failed while LibreOffice was open); on macOS and Linux a space in the path was not percent-encoded. The URL now comes from `prof.resolve().as_uri()` (`file:///C:/...`, percent-encoded), and on timeout the killed process is awaited (`proc.wait()`) so it is reaped. Checked: `as_uri` gives `file:///tmp/a%20b/w/profile` for a POSIX path with a space and `file:///C:/Users/Jos%C3%A9/AppData/profile` for a Windows path. LibreOffice is not installed here; not run on Windows.
+
+## v0.85.5 · links found in contact and footer text keep their query strings (2026-11-10)
+
+- refers-to: app/services/website.py :: Builder.autolink
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`autolink` runs on text that is already HTML-escaped and escaped the matched address again for the href, so `https://shop.example/buy?a=1&b=2` in a contact or footer block was published as `href="...a=1&amp;amp;b=2"`, which the browser follows as `a=1&amp;b=2`. The href is now unescaped (`html.unescape`) and then escaped once. Checked: the escaped text gives `href="https://shop.example/buy?a=1&amp;b=2"`, and a URL carrying `"><script>` stays escaped in the href.
+
+## v0.85.5 · fixed-layout EPUB marks every animated page as scripted (2026-11-10)
+
+- refers-to: app/services/mediaexport.py :: _scripted
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`_scripted` added `properties="scripted"` to a page's manifest item only while that string appeared nowhere in the OPF, so once `page1.xhtml` was marked, every later animated page was left out (epubcheck error; reading systems may not run the script there). The test now looks at the matched item alone: an item already scripted is left as it is, an item with other properties gets ` scripted` added inside them, any other item gets `properties="scripted"`. Checked on a four-page OPF: page1 and page2 are each marked once (page2 passed twice), page11 with `properties="svg"` becomes `svg scripted`, page3 is untouched. epubcheck was not run.
+
+## v0.85.5 · images from different sources with the same name stay distinct (2026-11-10)
+
+- refers-to: app/intake/images.py :: normalize, save_bytes; app/intake/pack.py :: Intake.add_image_bytes
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`normalize` wrote every converted image to `images/<stem>.png` (and, since the orientation fix, `<stem>-upright.*`), and pictures embedded in a .docx were saved as `images/<doc stem>-image<n>`, so a/photo.tif and b/photo.tif (or photo.bmp and photo.tif), or two same-named .docx files in different folders, all pointed at the last file written and the first picture was silently replaced in the layout. `save_bytes` also used `with_suffix`, so a document named `my.report.docx` saved its pictures as `my.png`. `normalize` now adds the first 8 hex digits of the SHA-1 of the source path to the stem, `add_image_bytes` adds the pack's running image number, and `save_bytes` appends the extension. `by_name` (how Markdown and HTML find an image by file name) still keys on the source name, so references are unchanged. Checked: two photo.tif files and two my.report.docx files with different pictures give four distinct image files with the right sizes.
+
+## v0.85.5 · book operations run one at a time on the core's single book (2026-11-10)
+
+- refers-to: app/services/books.py :: _lock, run, _run
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`run` opens the core's one temporary book (`book.new`), adds the chapters, runs its steps and closes it in separate core calls with awaits between them, so two runs at once (the Books panel's `info` while an agent paginates or exports, or two windows) interleaved: the second `book.new` replaced the first run's book midway, steps acted on the other run's chapters, and the first run's `finally: book.close` closed the other's book ("no book"). `run` now holds a module `asyncio.Lock` for the whole sequence; the body moved unchanged to `_run`. Checked with the core calls replaced by a fake single-book core that fails on a missing book: info, an export and info again started together all succeed, and the core sees three whole new-to-close sequences one after another.
+
+## v0.85.5 · malformed agent, plug-in, package and book input gets an error message, not a 500 (2026-11-10)
+
+- refers-to: app/services/agents.py :: identify, gate_reason; plugins.py :: check_manifest; workflow.py :: read_package; books.py :: load
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`gate_reason` runs before `call_tool`'s error handling and called `.get` on a page-delete step's `params` when they were a list, `len()` on `pages` when it was a number, and let the ValueError of a path with a NUL byte through (only OSError was caught, and the book branch caught nothing): HTTP 500. `identify` called `.get` on `_meta`, its clientInfo or `params.clientInfo` when they were strings. `check_manifest` called `.get` on `contributes` as a list and on `contributes.panel` as `true`, and iterated a numeric `menu`. `read_package` and `books.load` read fields of JSON that was not an object, and `load` took `int()` of any `styleSource`. Now: `gate_reason` gives no reason for arguments that are not an object, treats a page delete whose `pages` is not a list as one to approve ("deletes pages"), and catches ValueError with OSError in both path checks; `identify` ignores `_meta`, clientInfo and params that are not objects; `check_manifest` refuses `contributes` that is not an object or whose `commands` or `menu` is not a list, and reads `panel: true` as a panel titled with the plug-in's name; `read_package` and `load` refuse JSON that is not an object or whose `format` is not text, and `load` refuses a non-numeric `styleSource`, each with the module's own error. Checked: each malformed case above answers without raising or with PluginError, CoreError or BookError, and good input is still accepted.
+
+## v0.85.5 · Edit Original opens only image, vector and PDF files (2026-11-10)
+
+- refers-to: app/routers/versions.py :: EDITABLE, edit_original
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`edit_original` handed the linked file to `_open_with_system` (`os.startfile`, `open` or `xdg-open`) whatever it was, so a received .fdes or .idml whose link path pointed at an .exe, .bat or .lnk (a UNC share works on Windows) ran that program when the person chose Edit Original. It now answers 422 "This link is not an image" unless the link's extension, lowercased, is in `EDITABLE` (.png .jpg .jpeg .tif .tiff .psd .svg .pdf .ai .eps .gif .webp .heic .heif .avif .bmp). A macOS `.app` is a folder and was already refused by the `is_file` check. Checked with TestClient, `links.list` stubbed and the opener replaced: a link to calc.exe answers 422 and opens nothing; pic.JPG opens.
+
+## v0.85.5 · counts --check reads only the MCP tool count (2026-11-10)
+
+- refers-to: setup/line_counts.py :: main
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`(\d+) tools` also matched the README's "41 tools" heading for the drawing tools, so `./formdesign counts --check` always reported a mismatch with the 38 MCP tools and exited 1. The pattern is now `(?:server with|exposes) (\d+) tools`, the two sentences that state the MCP count. Checked: `setup/counts --check` exits 0; the old pattern reports the 41.
+
+## v0.85.5 · Windows Node check and install --lite (2026-11-10)
+
+- refers-to: build_app.bat (the Node check); setup/install_all.bat
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+build_app.bat compared only the major version with 22, accepting 22.0 to 22.11 (Vite 8 needs `^20.19.0 || >=22.12.0` and failed later) and refusing 20.19+. It now runs `call node -e` with the expression build_app and doctor use (20.19+ on 20.x, 22.12+, or 23 and later). install_all.bat ignored the `--lite` that formdesign.bat passes and always rebuilt the core, so with no Rust the install stopped before the frontend; with `--lite` it now keeps a core already in `native\target\release` or `native\bin`, as setup/install_all does with fd_core. Checked: the expression on 20.18, 20.19, 21.5, 22.11, 22.12, 23.0. Not run on Windows.
+
+## v0.85.5 · clean.bat --all removes each folder on its own (2026-11-10)
+
+- refers-to: setup/clean.bat
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`if exist A rmdir A & if exist B rmdir B & ...` parses with everything after the first `if exist` as that if's command, so a missing `frontend\node_modules` skipped the venv and `native\target`; `native\bin`, removed by the bash clean, was never listed. The `--all` branch is now a block with one `if exist ... rmdir /s /q ...` line per folder, `native\bin` added. Not run on Windows.
+
+## v0.85.5 · build_frontend.bat restores its caller's folder (2026-11-10)
+
+- refers-to: setup/build_frontend.bat; setup/serve.bat
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+build_frontend.bat had no setlocal, so its `cd /d ...\frontend` stayed in force for the caller. serve.bat calls it when `frontend\dist\index.html` is missing and then built `FORMDESIGN_DIST` from `%cd%` (frontend\frontend\dist), failed `cd backend` and printed "engine venv missing". A `setlocal` on line 2 makes the implicit endlocal at the end of the file restore the directory; ERRORLEVEL is not part of what endlocal restores, so `call ... || exit /b 1` callers still see a failed build. Not run on Windows.
+
+## v0.85.5 · agents install codex writes valid TOML on Windows (2026-11-10)
+
+- refers-to: setup/agents.py :: install_codex
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The block wrote `command = "{LAUNCH}"`, a TOML basic string, so a Windows path such as `C:\Users\ana\...` began a `\U` unicode escape and the user's whole config.toml no longer parsed. The value is now `json.dumps(LAUNCH, ensure_ascii=False)`: JSON string escapes are valid TOML, and a path with no backslash or quote is written exactly as before, so existing blocks still compare equal. Checked: tomllib reads back a Windows path, a non-ASCII path and a path with a quote unchanged.
+
+## v0.85.5 · the MCP stdio bridge runs under Python 3.9 (2026-11-10)
+
+- refers-to: setup/mcp_stdio.py :: forward
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`./formdesign mcp` runs `python3 setup/mcp_stdio.py` with whatever `python3` the client's PATH finds; for GUI clients on macOS that is often /usr/bin/python3 (3.9), which evaluates the `-> str | None` annotation at definition time and raised TypeError before the first message. `from __future__ import annotations` postpones every annotation; the rest of the file already parses as 3.9. Checked: `ast.parse(..., feature_version=(3, 9))` passes; ruff check shows only the findings the file had before.
+
+## v0.85.5 · every window socket request gets an answer, also when it fails unexpectedly (2026-11-10)
+
+- refers-to: app/routers/core_api.py :: ws, handle and the receive loop
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`handle` answered only CoreError. An exec routed to `documents.save` or `open` with an unwritable path (PermissionError) or a corrupt .fdes (BadZipFile), a core reply slower than 300 s (TimeoutError), or `params` that was not an object (AttributeError) ended the task silently, and the window's promise for that id never settled. A message that parsed as JSON but was not an object failed on `msg.get` the same way. `handle` now logs any other exception (`formdesign.ws`) and answers `{"id", "ok": false, "error": "ExcName: message"}`; the receive loop skips messages that are not objects. Cancellation is a BaseException and still ends the task when the socket closes. Checked with TestClient and `core.call` raising PermissionError: a list message is skipped, a `state` request answers the PermissionError, an exec with `params: "x"` answers the AttributeError.
+
+## v0.85.5 · a Claude Code launch is quoted for the login shell that runs it (2026-11-10)
+
+- refers-to: app/services/claude_code.py :: wrap
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`wrap` quoted the launch with `shlex.join` (POSIX sh quoting) and handed it to the person's login shell, fish included; inside single quotes fish reads `\'` and `\\` as escapes, so a prompt or context with a backslash before a quote, or ending in a backslash, was altered, failed to launch, or closed the quoting early. tcsh and other non-POSIX shells got the same POSIX string. `wrap` now quotes for fish by fish's rule (each argument in single quotes with `\` and `'` escaped), keeps `shlex.join` for bash, zsh, sh, dash and ksh, and runs any other shell's launch through `/bin/sh -l -c`. Checked with SHELL set to bash, fish and tcsh on arguments holding a quote, backslashes, a trailing backslash, `$HOME` and a newline: bash and `/bin/sh` print each argument back unchanged; the fish line was read against fish's documented quoting (fish is not installed here).
+
+## v0.85.5 · a thumbnail that fails to build leaves no document open in the auxiliary core (2026-11-10)
+
+- refers-to: app/templates/registry.py :: thumbnail
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`thumbnail` called `build` before the `try` whose `finally` sends `docs.close`, so a user template that built partway (a sample image fill or a thread that failed with CoreError) left its document open in the aux core. Failed thumbnails are not cached, so every gallery request added another document: memory grew, and later preview and check calls ran with stale documents underneath. `build` now runs inside the `try`, and the close ignores a CoreError (as `check_spec`'s does, for a build that failed before any document existed) so the caller still gets the build's error. Checked with a stubbed core and a failing build, three calls: each raises the build error and each is followed by `docs.close`.
+
+## v0.85.5 · a video's poster file is used only when it is a real image (2026-11-10)
+
+- refers-to: app/services/motion.py :: poster_bytes
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`poster_bytes` copied whatever file the document's motion metadata named as a video's poster (`{"poster": "file", "file": ...}`) into HTML and EPUB exports and published sites (`mediaexport.gather`, `website.Builder.image`), so a .fdes from someone else naming `~/.ssh/id_rsa` put that file's bytes into the output as `<name>-poster.jpg`. The file is now used only when its suffix is .jpg, .jpeg, .png or .webp and Pillow opens and verifies it; otherwise the poster falls back to the frame taken from the video, as it already did for a missing file. Checked with the frame grab stubbed: a real PNG is used; a text file named `key` or `key.jpg` and a missing file give the video frame.
+
+## v0.85.5 · only the window installs, enables and removes plug-ins (2026-11-10)
+
+- refers-to: app/routers/plugins.py :: catalogue_url, stage, stage_upload, install, enabled, uninstall
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These routes had no origin check, so any local process (an outside agent's curl included) could `POST /api/plugins/stage {"path": ...}` and then `/api/plugins/install {"stage": id, "consent": true}` with no Origin: the plug-in was installed and enabled with the permissions its manifest asked for, and the person never saw the consent dialog; its tool calls then ran as `plugin:<id>` under Agent Connect. FB-045 closed the same hole for agent policy. The six routes now call `window_only` first. Only `frontend/src/features/plugins.ts` calls them, and a browser always sends Origin on a POST, so the window is unaffected; the listing, the entry script and a running plug-in's `call` and `fetch` routes stay as they were. Checked with TestClient: no Origin gives 403 on all six; the engine's own origin and the dev window get the route's usual answer.
+
+## v0.85.5 · PDF-as-layout, DXF and PDF comment imports and the Claude Code probe run off the event loop (2026-11-10)
+
+- refers-to: app/services/layoutimport.py :: import_pdf, its read helper; dxfimport.py :: import_dxf; pdfcomments.py :: import_comments, _quote_pdf; pty.py :: Terminals.create
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These async functions did CPU and subprocess work inline: `import_pdf` read and rendered every page with pdfium and built the backdrop copy, `import_dxf` ran the whole `build`, `import_comments` read every annotation with pypdf and quoted marked text with pdfium, and `Terminals.create` ran `claude_code.info` (login-shell and `--version` probes with 15 s and 10 s timeouts). While a 300-page PDF or a large DXF imported, or a probe waited, the window socket, MCP calls, approvals and terminal output stopped. That work now runs in `asyncio.to_thread`: `import_pdf`'s open, page loop, close and `strip_pdf` as one nested `read()`; `build`; `read_annotations` and each `_quote_pdf`; the probe in `create`. `read()` and `_quote_pdf` hold `pdfread._lock`, because pdfium must never run in two threads at once and pdfread already runs it in worker threads (MCP and intake); the other direct pdfium users (`pdfpost`, `layoutimport`'s page count at the LibreOffice route) do not take it yet. The core calls after the work (`emit`, `layout`, notes) stay on the loop. Checked with `emit` stubbed: a 30-page PDF and a 2,000-line DXF import while a 10 ms ticker runs, the longest loop gap 0.026 s, reports of 30 and 1 pages; `read_annotations` and `_quote_pdf` in threads read a highlight back. Left as they were: `claude_chat.send` (synchronous, called by its router) and the `/api/claude` and `GET /api/term` routes still probe on the loop.
+
+## v0.85.5 · one-column CSV files are read (2026-11-10)
+
+- refers-to: app/intake/office.py :: read_sheet
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`csv.Sniffer().sniff` cannot find a delimiter in a one-column file (a guest list, a price column) and raises csv.Error, so the whole table was lost and the pack warned "could not be read (Error: Could not determine delimiter)". `read_sheet` now falls back to `csv.excel` (comma) when sniffing fails, which reads one value per row. Checked: `name`, `Alice`, `Bob` as guests.csv gives the table `guests` with 3 rows and no warning.
+
+## v0.85.5 · a bad or empty zip becomes a warning, not a failed intake (2026-11-10)
+
+- refers-to: app/intake/pack.py :: Intake.expand
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`ingest` turns a file it cannot read into a warning, but `expand` runs before that loop and opened each .zip with no handling: a corrupt archive (BadZipFile), an encrypted member (RuntimeError) or a zip that holds only folders or skipped members (its folder is never made, so `iterdir` raised FileNotFoundError) made `/api/intake` and `/api/intake/paths` answer 500 and dropped every other file in the upload. The zip branch now catches `zipfile.BadZipFile`, OSError and RuntimeError into a "not a readable zip" warning and lists the extracted folder only when it exists; members already extracted before an error are still read. Checked: ingest of a corrupt zip, an empty zip, a folder-only zip, a .md and a CSV gives the article, the table and one warning.
+
+## v0.85.5 · a wrong-shaped template spec answers problems instead of a 500 (2026-11-10)
+
+- refers-to: app/templates/spec.py :: problems
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+FB-048 checked the shapes of `page`, `pages`, `parents` and `flow`, but not what they hold: `"parents": {"A": {"items": []}}` (a natural mistake, parents are lists), `"flow": {"body": "x"}`, `"pages": [{"items": "abc"}]` or `[{"items": [1]}]`, and `"styles": "x"` still raised AttributeError, so `POST /api/templates/validate` and save answered 500 and the MCP tools failed outside their handling. `problems` now also reports a parent that is not a list, a flow that is not an object (or whose `page` is not one), `styles` or `styles.paragraph` that is not an object, and then any `items` list (parents, pages, flow pages) that is not a list of objects, returning before it reads inside them. Checked: each of those specs returns one shape problem; the 71 shipped templates still return none.
+
+## v0.85.5 · phone photos are measured and placed upright (2026-11-10)
+
+- refers-to: app/intake/images.py :: normalize
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Phone cameras store portrait photos as landscape pixels with EXIF Orientation 6 or 8, and neither the backend nor the core read that tag: `describe` reported landscape width, height and orientation, `assign_images` matched the photo to landscape frames, and the core placed the raw pixels, turned 90 degrees in the layout and the export. `normalize` now reads tag 0x0112; when it asks for a turn (any value but 0 or 1) it writes `ImageOps.exif_transpose` of the image to `<stem>-upright.jpg` (quality 95) for a JPEG or `<stem>-upright.png` otherwise, and returns that path, so `describe` measures and the core places the upright copy (the tag is dropped from it, so nothing turns it twice). The `-upright` name keeps the copy from landing on the source when the source is already in the pack's images folder (images saved out of a .docx). Checked: a 400x300 JPEG with Orientation 6 and a PNG with Orientation 8 come back 300x400 portrait with no tag; a plain JPEG is returned unchanged.
+
+## v0.85.5 · a long paste reaches the terminal whole and the socket stays up (2026-11-10)
+
+- refers-to: app/services/pty.py :: Session.out, write, _flush, drop_pending; Terminals.restart, _exit, close
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`Session.write` did one `os.write` on the pty master, which `_start` makes non-blocking, and ignored the count: a paste past the pty buffer (about 12 KB on Linux; a 200,000-byte write returned 11,776) lost the rest silently, and the next keystroke raised BlockingIOError, which `routers/terminal.py` does not catch, so the socket handler died and the terminal disconnected. `Terminals.reuse` writes a long prompt the same way. `write` now appends to `out` and `_flush` writes what the pty takes; on BlockingIOError it registers `loop.add_writer(fd, _flush)` and removes the writer once `out` is empty, and any other OSError (the child is gone) drops the rest. `drop_pending` clears `out` and the writer before the fd is closed in `restart`, `_exit` and `close`, so no writer outlives its fd. The Windows path (winpty) is unchanged. Checked with a pty running `stty raw -echo; sleep 1; cat > file`: a 200,000-byte write and a 10-byte write right after it raise nothing and the file ends at 200,010 bytes. Not run on Windows.
+
+## v0.85.5 · intake and PDF reading by agents no longer freeze the engine (2026-11-10)
+
+- refers-to: app/routers/mcp.py :: _run, intake, read_pdf and pdf_page_image branches; app/routers/make.py :: make_quick
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The MCP `intake` tool (`P.ingest`, `R.rank`), `read_pdf` and `pdf_page_image` (`pdfread.info`, `search`, `page_text`, `structure`, `render`) and REST `/api/make/quick` (`pack_mod.ingest`) ran synchronous work (pdfium, python-docx, the per-pixel focal point loop) directly in async handlers, so a large intake stopped every other request for seconds to minutes: the window socket, other agents and the autosave timer. They now go through `asyncio.to_thread`, as REST `/api/intake` and `/api/intake/paths` already did. `pdfread` holds its own `threading.Lock` around every pdfium use, which is what makes the worker threads safe; `R.rank` only reads the template cache. Checked with TestClient: MCP intake of a .md file, `read_pdf` in all four modes and `pdf_page_image` on a one-page PDF answer as before. Not measured: `/api/health` latency during a large intake.
+
+## v0.85.5 · review comments posted at the same time all stay, each with its own id (2026-11-10)
+
+- refers-to: app/services/review.py :: _locks; Reviews.post, reply, resolve, remove (and _post, _reply, _resolve, _remove)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The router loads `Reviews/{token}.json` once per request and hands that copy to `post`, `reply`, `resolve` or `remove`, which change it and save it after awaiting note work in the document (several core calls). Two reviewers posting together, or a post during the owner's reply, each saved their own copy: the later save dropped the other comment, both took the same `rec["next"]` id, and the lost comment's Note stayed in the document. Each of the four now holds a per-token `asyncio.Lock` (`_locks`), reads the record fresh inside it (falling back to the caller's copy if the file is gone), and changes and saves that; the bodies moved unchanged to `_post`, `_reply`, `_resolve` and `_remove`. Checked with note placement replaced by a 50 ms sleep: two posts from stale copies run together keep both comments, ids 1 and 2; a reply and a resolve run together both land; remove still works.
+
+## v0.85.5 · a failing tool or a malformed MCP request gets a JSON-RPC answer (2026-11-10)
+
+- refers-to: app/routers/mcp.py :: log, call_tool, mcp
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`call_tool` caught only CoreError, ValueError, KeyError, TypeError and OSError, so `set_slots {"values": ["a"]}` (AttributeError in `slots.set_slots`), a template spec with wrong-shaped parents or items, or a corrupt zip in intake (BadZipFile) escaped the route: the client got a bare 500 with no `id`, which most MCP clients report as a transport failure, and `A.record` was skipped. A top-level JSON-RPC body that was a string or a number, or `params` that was not an object, failed on `msg.get` the same way. `call_tool` now ends with a catch-all that logs the traceback (`formdesign.mcp`) and returns `ExcName: message` as an isError result; `/mcp` answers 400 with -32600 "Invalid request" when the message or its `params` is not an object, and treats a `_meta` that is not an object as empty. `A.identify` (services, outside this fix) still reads `params["_meta"]` itself. Checked with TestClient: `"hi"`, `5` and `params: "x"` answer -32600; a tool whose `_run` raises AttributeError answers isError with the message.
+
+## v0.85.5 · names without Latin letters get their own file (2026-11-10)
+
+- refers-to: app/services/queries.py :: slug, _file; profiles.py :: slug, _file; userprefs.py :: slug, _file; libraries.py :: slug, _path
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Each `slug()` kept only `a-z` and `0-9`, so every name without Latin letters fell back to one file name (`query`, `profile`, `untitled`, `library`): a second Cyrillic, Greek or CJK query, profile or workspace silently replaced the first, `delete` removed whichever was there, and a second such library could not be created ("already exists") while `_load` of either opened the same file. When nothing Latin is left, `slug()` now appends the first 8 hex digits of the SHA-1 of the stripped, lower-cased name to the fallback word (`query-1a2b3c4d`); names with Latin letters or digits keep their old file names, so nothing saved before moves. A file an earlier version saved under the bare fallback name is still found for its own name: `_file` (and `_path` in libraries) returns it when the hashed file does not exist and the old file's stored name matches, so it can be saved over, deleted or opened. Checked in a scratch data folder that held an old `query.json` and `library.fdlib`: two Cyrillic queries, two CJK profiles, two Cyrillic workspaces and two Cyrillic libraries get separate files and list back, the old query is updated and deleted by its name, and the old library still opens.
+
+## v0.85.5 · downloads with non-Latin names arrive instead of answering 500 (2026-11-10)
+
+- refers-to: app/routers/documents.py :: attachment, export; app/routers/books.py :: export; app/routers/workflow.py :: export_assignment, return_assignment
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These four downloads put the file name raw into `Content-Disposition: attachment; filename="..."`, and Starlette encodes headers as Latin-1, so a document titled `東京メニュー` (or a book or assignment with such a name; the workflow names keep Unicode letters because `str.isalnum` is Unicode-aware) exported fully and then failed with UnicodeEncodeError: a 500 and no file. A `"` in a title also broke the quoting. `attachment(name)` builds the RFC 6266 form, an ASCII `filename` fallback (non-ASCII as `?`, quotes, backslashes and control characters as `_`) plus `filename*=UTF-8''` with the percent-encoded name, which browsers and WebView2 prefer. Checked: the header for `Café 東京.pdf`, a plain name, and one with a quote and a backslash builds a Response. Not run through the window.
+
+## v0.85.5 · an engine on a fallback port tells everyone its real port (2026-11-10)
+
+- refers-to: formdesign_engine.py :: spare, main; app/routers/system.py :: capabilities (mcp); app/routers/mcp.py :: status
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+When 8196 was busy at desktop launch (a dev engine or another copy running), `main` passed port 0 to uvicorn, which picked a port that the Tauri shell read from the log and loaded, but `FORMDESIGN_PORT` and `config.PORT` stayed 8196. `FORMDESIGN_ENGINE_URL` in the in-app terminal, the MCP endpoint written by Agent Connect installs and the review and publish links handed to agents all pointed at the other engine. `main` now picks the spare port itself (`spare` binds port 0 and reads the number back), sets `FORMDESIGN_PORT` before `app.main` (and so `config`) is imported, and passes the same port to uvicorn; the uvicorn startup line the shell reads is unchanged. Capabilities and `/api/mcp/status` report `config.PORT` in place of a literal 8196. Between `spare` closing its socket and uvicorn binding, another process could take the port; uvicorn would then fail to start, as it would for any bind failure. Checked with the wanted port held and `uvicorn.run` stubbed: the port passed, `FORMDESIGN_PORT`, `config.PORT` and the status endpoint agree. Not run in the desktop app.
+
+## v0.85.5 · libraries, profiles, queries, workspaces and review sites save non-Latin names on Windows (2026-11-10)
+
+- refers-to: app/services/libraries.py :: _save; profiles.py :: save; queries.py :: save; userprefs.py :: save; review.py :: Reviews.share, the five site files
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These saves wrote `json.dumps(..., ensure_ascii=False)` through `write_text` with no encoding, and Python on Windows (3.12 to 3.14, no `PYTHONUTF8` anywhere in the tree) writes text in the ANSI code page, so a Greek, Cyrillic or CJK name or snippet raised UnicodeEncodeError after `write_text` had already truncated the file: a library lost every item, and profiles, queries and workspaces answered 500. The review site's `index.html` declares utf-8 but was written in the code page (mojibake for accented titles, 500 for CJK). The saves now pass `encoding="utf-8"` and drop `ensure_ascii=False`, so the JSON is plain ASCII with `\u` escapes; that saves on any code page, and files earlier versions wrote in the Windows code page still load because the reads are left as they were (an explicit utf-8 read would refuse those). A library is written to `<name>.tmp` and moved into place with `os.replace`, as `Reviews.save` already did. The five review-site files are written as UTF-8. Checked under `LC_ALL=C` with `-X utf8=0` (default encoding ASCII): a library item in Greek, a Cyrillic query, a Japanese profile and an accented workspace name all save and list back intact. Not run on Windows.
+
+## v0.85.5 · save_document asks before overwriting the file it will really write (2026-11-10)
+
+- refers-to: app/engine/documents.py :: Documents.save_target, Documents.save; app/routers/mcp.py :: call_tool
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`gate_reason` checks whether the `path` argument exists, but `Documents.save` changed any extension other than `.fdoc` and `.idml` to `.fdes`, and with no path on a never-saved document wrote `PROJECTS_DIR/<title>.fdes`; both were decided after the gate. So `save_document {"path": "/x/Report"}` (or `Report.pdf`) with `/x/Report.fdes` present, or a `make_layout` document titled like an existing project, overwrote the file without asking a client set to Ask. `save_target` now makes that decision, `save` uses it, and `call_tool` passes the target to `gate_reason` (in place of the raw path) for `save_document` when a path is given or the document has no file yet; a plain save of an already-saved document stays ungated. If the target cannot be worked out (no core, a relative path) the gate sees the original arguments and the save itself fails as before. Checked with `documents` and `core.state` stubbed: the gate sees `Projects/Report.fdes`, `/x/Report.fdes` for `/x/Report` and `/x/Report.pdf`, and nothing for a saved document.
+
+## v0.85.5 · an uploaded file name cannot leave the pack folder (2026-11-10)
+
+- refers-to: app/routers/intake.py :: intake_upload
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`intake_upload` passed each part of a multipart file name through `_safe_name`, which keeps `.` and `..`, so a name like `../../../../home/u/.bashrc` (any local process can send one; folder uploads with relative paths take the same branch) resolved outside `INTAKE_DIR/<pack>/files` and the bytes overwrote that file. Empty, `.` and `..` parts are now dropped before joining, and the resolved target must have the pack's `files` folder among its parents, else 400. A part like ` .. ` still becomes `..` after `_safe_name` strips it; the containment check is what holds there. Checked with TestClient: uploads named `../../evil.txt`, `a/../b.md`, `..` and `sub/ .. /x.md` all land inside the pack folder.
+
+## v0.85.5 · a website export never deletes files it did not write (2026-11-10)
+
+- refers-to: app/services/website.py :: SITE_MARKER, write_dir, _only_export_files, export
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`export` refused a non-empty folder only when it had no `index.html`, taking "has index.html" to mean "an earlier FormDesign export", and `write_dir` replaces the whole target (rename to `.<name>.old`, then `rmtree`), so exporting into the person's own site folder deleted its `.git`, images and other pages. `write_dir` now also writes `.formdesign-site`, the list of paths it wrote (published sites get it too, harmlessly). `export` goes ahead in a non-empty folder only when that list is there and every entry in the folder is on it, or is a folder that holds listed files; otherwise it refuses and names the choices. A folder exported by an earlier version has no list, so a re-export there asks once for an empty folder. Checked with `write_dir` into a scratch folder: the check passes after an export and a re-export, and fails with an added notes.txt, an extra file in assets, an empty `.git`, or a hand-made folder with index.html and notes.txt. A full export through the layout core was not run.
+
+## v0.85.5 · published sites and placed assets run sandboxed, away from the engine (2026-11-10)
+
+- refers-to: app/routers/website.py :: SANDBOX, _SITE_HEADERS, serve; app/routers/core_api.py :: asset_bytes; app/core/local_guard.py :: LocalGuard._published_site
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Published sites (`/sites/<slug>/`) and placed files from `/api/core/asset` were served on the engine's own origin, which LocalGuard, `window_only` and the terminal guard trust as the window, so script in a published page (document text that broke out of a page's markup, see the JSON-LD entry) or an HTML or SVG asset opened directly could POST `/api/term`, set agent policy and write files. Both now send `Content-Security-Policy: sandbox` (sites add `allow-scripts allow-popups allow-forms`; assets get bare `sandbox`), so the page has an opaque origin and its fetches carry `Origin: null`, which LocalGuard refuses. A sandboxed page's own loads (its CSS, images, fonts, links between its pages) arrive as `Sec-Fetch-Site: cross-site` with no Origin or with `Origin: null`, which FB-046 refuses, so `_published_site` lets exactly those through for GET and HEAD under `/sites/` on a loopback Host; everything else is unchanged. Site responses carry `Access-Control-Allow-Origin: *` because `@font-face` loads are CORS requests from the opaque origin; a foreign Origin still gets 403 before it could read anything. The export writes only relative URLs (`assets/site.css`, `fonts/...`, page images, `index.html`), all under `/sites/<slug>/`. Checked with TestClient: the site page and its CSS answer 200 with the header under `Origin: null` and cross-site; `/api/term` and `/api/health` with `Origin: null`, a cross-site `/api/term`, a POST to `/sites/` and a foreign Origin on `/sites/` answer 403; `tests/test_f1_guard.py` passes. Not run in a real browser.
+
+## v0.85.5 · a plug-in's fetch checks every redirect hop against its network list (2026-11-10)
+
+- refers-to: app/services/plugins.py :: _CheckedRedirects, _fetch, fetch
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`fetch` checked only the first URL against the plug-in's declared `network` hosts, and `_fetch` opened it with urllib's default opener, which follows a redirect to any http or https host; an allowed host answering `302 Location: http://127.0.0.1:8196/api/...` (or a LAN address) let a plug-in read the engine's routes, the terminal token included, or other local services. `_fetch` now takes an optional `check`; with one it opens through `_CheckedRedirects`, which calls the check on each new URL before following it, and `fetch` passes `allowed_fetch` for the plug-in, so a hop to an undeclared host or to plain http raises PluginError (the route answers 502). Catalogue and download fetches pass no check and still follow redirects (release downloads usually redirect to a CDN). Checked with a local server answering 302 to another host: the hop is refused with PluginError, and followed when the check allows it. An https fetch through an installed plug-in was not run.
+
+## v0.85.5 · document text stays inside a published page's JSON-LD block (2026-11-10)
+
+- refers-to: app/services/website.py :: Builder.jsonld
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`jsonld` wrote headline, description and author with `json.dumps`, which leaves `</script>` as it is, so an article title, dek or byline holding `</script><script>...</script>` (an imported file, a template, a package from someone else) ended the `application/ld+json` block in a published page and the rest ran as script on the engine's own origin, with `/api` in reach. It now uses `motion.safe_json`, which escapes `<`, `>` and `&` as `\u` escapes and, since its output is ASCII, the line separators U+2028 and U+2029; JSON-LD readers get the same strings back. Checked: safe_json of a headline with `</script><script>`, `&`, U+2028 and an accented letter holds no `<`, `>` or `&`, and json.loads returns the original. A full publish was not run (no layout core here).
+
+## v0.85.5 · run_commands asks for approval wherever run_command does (2026-11-10)
+
+- refers-to: app/services/agents.py :: gate_reason, the run_commands branch
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The run_commands branch checked each step only against `GATED_COMMANDS` (package and print) and the several-pages delete, never against `commands.risky` or command_meta's `risky` flag, which the run_command branch uses. A client on Ask could send `file.saveAs` or `file.exportPdf` over an existing file, `file.revert`, `file.close`, `layer.delete` or `book.export` in a batch and run it with no approval. Each step now gets the same risky check as run_command; `layout.pages.delete` keeps its own rule (approval only for more than one page), as CLAUDE.md describes. Checked: gate_reason gives a reason for file.saveAs, file.exportPdf, layer.delete, file.print and a two-page delete, and none for text.insert or a one-page delete.
+
+## v0.85.5 · a template is saved only inside the template library (2026-11-10)
+
+- refers-to: app/routers/mcp.py :: _run, save_template branch; app/templates/registry.py :: user_path; app/routers/templates.py :: save_template
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The MCP `save_template` tool never checked the template id, and `user_path` joined it raw, so `{"id": "../../../.claude", ...}` wrote the spec (extra top-level keys kept) over `~/.claude.json`, and any `*.json` the user can write was reachable. Both the tool and REST `POST /api/templates` also took `_file` and `_user` from the posted spec, which point `user_path` at any path. The tool now refuses ids that fail the REST route's `ID` rule, and `user_path` resolves its target and raises ValueError unless `TEMPLATES_USER_DIR` is among its parents (a tool error over MCP, 422 over REST). Checked: `user_path` refuses `../../x` and a spec with `_user`/`_file` set to `/tmp/x.json`; `tools/call save_template` with id `../../x` answers isError.
+
+## v0.85.5 · only the in-app token makes a client the in-app Claude Code (2026-11-10)
+
+- refers-to: app/services/agents.py :: identify
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`identify` named a client from its own `clientInfo` or User-Agent, and `policy()` defaults "Claude Code in FormDesign" to Allow, so any MCP client that sent that name without the `x-formdesign-inapp` token skipped every approval; the names "assistant" and "plugin:<id>" let a client borrow the built-in assistant's or a plug-in's policy the same way. Without the token, such a name now gets " (unverified)" added, so the client has its own policy (Ask by default). Checked: identify with those names gives "... (unverified)" and policy ask; with the token header it gives the in-app name and allow.
 
 ## v0.85.2 · formdesign-core links the C runtime statically on Windows (2026-10-31)
 
@@ -51,7 +411,7 @@ Python's `mimetypes` takes file types from the Windows registry (`HKEY_CLASSES_R
 ```
 backend/
 ├── requirements.txt              pinned (Linux, Windows)
-├── requirements_macos.txt        unpinned twin (macOS)
+├── requirements_macos.txt        pinned twin (macOS)
 ├── requirements_desktop*.txt     PyInstaller for the frozen engine
 ├── .env.example                  every FORMDESIGN_ variable
 ├── oc_install(.bat)              venv and requirements

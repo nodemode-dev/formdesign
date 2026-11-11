@@ -29,5 +29,5 @@ async def capabilities():
         "paths": {"projects": str(config.PROJECTS_DIR), "exports": str(config.EXPORTS_DIR), "templates": str(config.TEMPLATES_USER_DIR),
                   "brands": str(config.BRANDS_DIR), "intake": str(config.INTAKE_DIR)},
         "fontDirs": [str(d) for d in config.font_dirs()],
-        "mcp": "http://127.0.0.1:8196/mcp",
+        "mcp": f"http://127.0.0.1:{config.PORT}/mcp",
     }

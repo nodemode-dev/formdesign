@@ -1,3 +1,4 @@
+import hashlib
 import io
 from pathlib import Path
 
@@ -85,10 +86,16 @@ def describe(path: Path, ref: str, source: str) -> dict:
 def normalize(path: Path, dest_dir: Path) -> Path:
     with Image.open(path) as im:
         fmt = im.format or ""
-        if fmt in CORE_FORMATS and fmt not in ("TIFF", "BMP"):
+        turned = im.getexif().get(0x0112, 1) not in (0, 1, None)
+        if fmt in CORE_FORMATS and fmt not in ("TIFF", "BMP") and not turned:
             return path
-        out = dest_dir / (path.stem + ".png")
-        frame = next(ImageSequence.Iterator(im)).copy()
+        stem = f"{path.stem}-{hashlib.sha1(str(path).encode()).hexdigest()[:8]}"
+        if turned and fmt == "JPEG":
+            out = dest_dir / (stem + "-upright.jpg")
+            ImageOps.exif_transpose(im).save(out, "JPEG", quality=95)
+            return out
+        out = dest_dir / (stem + ("-upright.png" if turned else ".png"))
+        frame = ImageOps.exif_transpose(im) if turned else next(ImageSequence.Iterator(im)).copy()
         frame.save(out, "PNG")
         return out
 
@@ -97,7 +104,7 @@ def save_bytes(data: bytes, dest: Path) -> Path:
     with Image.open(io.BytesIO(data)) as im:
         fmt = im.format or "PNG"
         ext = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp", "GIF": ".gif"}.get(fmt, ".png")
-        target = dest.with_suffix(ext)
+        target = dest.with_name(dest.name + ext)
         if fmt in ("JPEG", "PNG", "WEBP", "GIF"):
             target.write_bytes(data)
         else:

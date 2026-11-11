@@ -464,7 +464,7 @@ pub fn color_in(v: &Value) -> Option<formdesign_model::color::Color> {
         return Some(Color::Lab([l, a, b]));
     }
     if let Some(g) = n("gray") {
-        return Some(Color::Gray(if g > 1.0 { g / 100.0 } else { g }));
+        return Some(Color::Gray(if model == "gray" || g > 1.0 { g / 100.0 } else { g }));
     }
     Color::from_value(v)
 }

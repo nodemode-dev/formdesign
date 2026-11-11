@@ -327,6 +327,7 @@ fn file_place(c: &mut Ctx, p: &Value) -> Result<Value> {
     if timport::is_text_name(&name) {
         let imp = timport::import(&name, &data).map_err(EngineError::new)?;
         let sid = place_text(c.doc_mut()?, frame, imp)?;
+        c.set_selection(Selection::items(vec![frame]));
         c.label("Place");
         return Ok(json!({"frame": frame, "story": sid}));
     }
@@ -357,6 +358,10 @@ pub fn page_list(doc: &Doc, spec: Option<&str>) -> Result<Vec<usize>> {
     for part in spec.split(',') {
         let part = part.trim();
         if part.is_empty() {
+            continue;
+        }
+        if let Ok(i) = find(part) {
+            out.push(i);
             continue;
         }
         match part.split_once('-') {
@@ -927,6 +932,13 @@ fn recovery_save(c: &mut Ctx, p: &Value) -> Result<Value> {
             let _ = std::fs::remove_file(&meta);
         }
     }
+    for (path, _) in recovery_entries(&dir) {
+        let stale = path.file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<u64>().ok()).is_some_and(|uid| !c.session.docs.iter().any(|st| st.uid == uid && st.is_dirty()));
+        if stale {
+            let _ = std::fs::remove_file(&path);
+            let _ = std::fs::remove_file(path.with_extension("json"));
+        }
+    }
     Ok(json!({"saved": saved}))
 }
 
@@ -965,6 +977,14 @@ fn recovery_open(c: &mut Ctx, p: &Value) -> Result<Value> {
             doc.title = t.to_string();
         }
         let orig = meta.get("path").and_then(Value::as_str).map(PathBuf::from);
+        let modified = |f: &Path| std::fs::metadata(f).and_then(|m| m.modified()).ok();
+        if let (Some(on_disk), Some(snap)) = (orig.as_deref().and_then(modified), modified(&path))
+            && on_disk > snap
+        {
+            let _ = std::fs::remove_file(&path);
+            let _ = std::fs::remove_file(path.with_extension("json"));
+            continue;
+        }
         let i = c.session.open_doc(doc, orig);
         let st = &mut c.session.docs[i];
         st.saved = Arc::new((*st.doc).clone());

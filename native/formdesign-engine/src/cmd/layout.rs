@@ -275,22 +275,7 @@ fn delete_pages(doc: &mut Doc, set: &BTreeSet<usize>) {
         }
     });
     for id in doomed {
-        if let Some(it) = doc.items.get(&id).cloned() {
-            for k in it.all_children() {
-                doc.remove_item(k);
-            }
-            if let Some(sid) = it.story() {
-                let mut drop = false;
-                if let Some(st) = doc.story_mut(sid) {
-                    st.frames.retain(|f| *f != id);
-                    drop = st.frames.is_empty();
-                }
-                if drop {
-                    doc.stories.remove(&sid);
-                }
-            }
-            doc.items.remove(&id);
-        }
+        doc.remove_item(id);
     }
     let n = doc.page_count();
     doc.sections.retain(|s| s.start == 0 || !set.contains(&s.start));
@@ -553,13 +538,21 @@ fn pages_move(c: &mut Ctx, p: &Value) -> Result<Value> {
             if j >= to { j + 1 } else { j }
         }
     };
-    c.doc_mut()?.repaginate(|pages, carried, _| {
+    let doc = c.doc_mut()?;
+    doc.repaginate(|pages, carried, _| {
         let pg = pages.remove(from);
         pages.insert(to, pg);
         for c in carried.iter_mut() {
             c.1 = map(c.1);
         }
     });
+    for s in doc.sections.iter_mut() {
+        if s.start > 0 {
+            s.start = map(s.start);
+        }
+    }
+    doc.sections.sort_by_key(|s| s.start);
+    doc.sections.dedup_by_key(|s| s.start);
     c.label("Move Pages");
     ok()
 }
@@ -587,6 +580,11 @@ fn duplicate_spread(c: &mut Ctx, p: &Value) -> Result<Value> {
             }
         }
     });
+    for s in doc.sections.iter_mut() {
+        if s.start >= first + np && s.start > 0 {
+            s.start += np;
+        }
+    }
     ok()
 }
 

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -19,7 +20,19 @@ def folder(kind: str) -> Path:
 
 
 def slug(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-") or "untitled"
+    base = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    key = (name or "").strip().lower()
+    return base or (f"untitled-{hashlib.sha1(key.encode()).hexdigest()[:8]}" if key else "untitled")
+
+
+def _file(kind: str, name: str) -> Path:
+    path, old = folder(kind) / f"{slug(name)}.json", folder(kind) / "untitled.json"
+    try:
+        if not path.exists() and str(json.loads(old.read_text()).get("name") or "").strip().lower() == (name or "").strip().lower():
+            return old
+    except (OSError, ValueError, AttributeError):
+        pass
+    return path
 
 
 def _ids(v, limit: int = 64) -> list[str]:
@@ -80,7 +93,7 @@ def save(kind: str, body: dict, reserved: tuple[str, ...] = ()) -> dict:
         raise PrefsError(f"\"{out['name']}\" is built in; save under another name.")
     d = folder(kind)
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=1, ensure_ascii=False))
+    _file(kind, out["name"]).write_text(json.dumps(out, indent=1), encoding="utf-8")
     return out
 
 
@@ -121,7 +134,7 @@ async def load_profiles() -> int:
 
 
 def delete(kind: str, name: str) -> None:
-    path = folder(kind) / f"{slug(name)}.json"
+    path = _file(kind, name)
     if not path.is_file():
         raise PrefsError(f"Nothing saved as \"{name}\".")
     path.unlink()

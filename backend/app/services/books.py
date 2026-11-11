@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import re
@@ -48,9 +49,12 @@ def load(path: str) -> dict:
         b = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise BookError(f"cannot read the book {p.name}: {exc}") from exc
-    if b.get("format") not in BOOK_FORMATS or not isinstance(b.get("documents"), list):
+    if not isinstance(b, dict) or not isinstance(b.get("format"), str) or b["format"] not in BOOK_FORMATS or not isinstance(b.get("documents"), list):
         raise BookError(f"{p.name} is not a FormDesign book")
-    b["styleSource"] = int(b.get("styleSource") or 0)
+    try:
+        b["styleSource"] = int(b.get("styleSource") or 0)
+    except (TypeError, ValueError) as exc:
+        raise BookError(f"{p.name} has a styleSource that is not a number") from exc
     return b
 
 
@@ -147,7 +151,15 @@ async def _open_paths() -> dict[str, dict]:
     return {str(Path(d["path"]).resolve()): d for d in ov.get("docs", []) if d.get("path")}
 
 
+_lock = asyncio.Lock()
+
+
 async def run(path: str, steps: list[tuple[str, dict]], write_back: bool) -> dict:
+    async with _lock:
+        return await _run(path, steps, write_back)
+
+
+async def _run(path: str, steps: list[tuple[str, dict]], write_back: bool) -> dict:
     b = load(path)
     docs = [Path(d) for d in b["documents"]]
     missing = [d.name for d in docs if not d.is_file()]

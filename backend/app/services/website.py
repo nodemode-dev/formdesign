@@ -11,7 +11,7 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from email.utils import format_datetime
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 
 from PIL import Image
@@ -529,7 +529,7 @@ class Builder:
             v = m.group(1).rstrip(".,;:)")
             tail = m.group(1)[len(v):]
             href = f"mailto:{v}" if "@" in v and not v.startswith("http") else (v if v.startswith("http") else f"https://{v}")
-            return f'<a href="{escape(href)}">{v}</a>{tail}'
+            return f'<a href="{escape(unescape(href))}">{v}</a>{tail}'
         return URL_RE.sub(sub, html_text)
 
     def para_tag(self, style: str, role: str, first: bool, has_h1: bool) -> str:
@@ -1017,7 +1017,7 @@ class Builder:
             d["author"] = {"@type": "Person", "name": author}
         if image and base:
             d["image"] = f"{base}/{image}"
-        return f'<script type="application/ld+json">{json.dumps(d, ensure_ascii=False)}</script>\n'
+        return f'<script type="application/ld+json">{motion.safe_json(d)}</script>\n'
 
     async def edition(self) -> None:
         pages = self.c.get("pages", [])
@@ -1333,6 +1333,9 @@ def zip_bytes(site: Site) -> bytes:
     return buf.getvalue()
 
 
+SITE_MARKER = ".formdesign-site"
+
+
 def write_dir(site: Site, target: Path) -> None:
     target = target.expanduser()
     tmp = target.with_name(f".{target.name}.partial")
@@ -1342,6 +1345,8 @@ def write_dir(site: Site, target: Path) -> None:
         p = tmp / path
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(data)
+    tmp.mkdir(parents=True, exist_ok=True)
+    (tmp / SITE_MARKER).write_text("\n".join(sorted(site.files)), encoding="utf-8")
     if target.exists():
         old = target.with_name(f".{target.name}.old")
         if old.exists():
@@ -1354,6 +1359,19 @@ def write_dir(site: Site, target: Path) -> None:
         tmp.rename(target)
 
 
+def _only_export_files(p: Path) -> bool:
+    try:
+        listed = set((p / SITE_MARKER).read_text(encoding="utf-8").splitlines())
+    except (OSError, ValueError):
+        return False
+    for f in p.rglob("*"):
+        rel = f.relative_to(p).as_posix()
+        if rel == SITE_MARKER or rel in listed or (f.is_dir() and not f.is_symlink() and any(x.startswith(rel + "/") for x in listed)):
+            continue
+        return False
+    return True
+
+
 async def export(path: str | None, options: dict | None) -> tuple[dict, bytes | None, str]:
     site = await build_site(options)
     info = site.summary()
@@ -1364,8 +1382,8 @@ async def export(path: str | None, options: dict | None) -> tuple[dict, bytes | 
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(zip_bytes(site))
     else:
-        if p.exists() and p.is_dir() and any(p.iterdir()) and not (p / "index.html").is_file():
-            raise CoreError(f"{p} is a folder with other files in it; choose an empty folder or a .zip path")
+        if p.exists() and p.is_dir() and any(p.iterdir()) and not _only_export_files(p):
+            raise CoreError(f"{p} holds files a website export did not write; choose an empty folder, the folder of an earlier export, or a .zip path")
         write_dir(site, p)
     info["path"] = str(p)
     return info, None, "application/zip"

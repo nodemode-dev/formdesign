@@ -41,6 +41,7 @@ class ActionsPanel {
       this.steps.push({ command, params: JSON.parse(JSON.stringify(params ?? {})) });
       this.state();
     };
+    editor.on('docs', () => this.render());
   }
 
   onShow(): void { if (!this.loaded) { this.loaded = true; void this.load(); } }
@@ -89,8 +90,9 @@ class ActionsPanel {
   }
 
   async play(name: string): Promise<void> {
+    if (!this.loaded) { this.loaded = true; await this.load(); }
     const a = this.saved.find((s) => s.name === name);
-    if (!a) return;
+    if (!a) { toast(`No saved action named “${name}”`, 'error'); throw new Error(`No saved action named ${name}`); }
     const r = await editor.batch(a.steps);
     if (r !== undefined) toast(`Played “${name}” (${a.steps.length} steps)`);
   }

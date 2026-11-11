@@ -107,7 +107,7 @@ export class DocumentSetupDialog {
     if (!b || !!b.facingPages !== this.facing.value) p.facingPages = this.facing.value;
     if (!b || b.intent !== this.intent.value) p.intent = this.intent.value;
     const oldBleed = b ? (Array.isArray(b.bleed) ? b.bleed : [b.bleed, b.bleed, b.bleed, b.bleed]) : [];
-    if (!b || oldBleed.some((x) => !near(Number(x), this.bleed.value))) p.bleed = this.bleed.value;
+    if (!b || !near(Number(oldBleed[0] ?? 0), this.bleed.value)) p.bleed = this.bleed.value;
     if ((p.width !== undefined || p.height !== undefined) && this.adjust.value) p.adjustLayout = true;
     this.d.close();
     if (!Object.keys(p).length) return;

@@ -16,6 +16,7 @@ from app.services import versions
 router = APIRouter()
 log = logging.getLogger("formdesign.versions")
 WATCH_SECONDS = 3600
+EDITABLE = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".psd", ".svg", ".pdf", ".ai", ".eps", ".gif", ".webp", ".heic", ".heif", ".avif", ".bmp"}
 _watching: dict[tuple[int, int], asyncio.Task] = {}
 
 
@@ -150,6 +151,8 @@ async def edit_original(body: dict = Body(...)):
     path = link.get("path")
     if not path or not Path(path).is_file():
         raise HTTPException(422, "The original file is missing. Relink it first.")
+    if Path(path).suffix.lower() not in EDITABLE:
+        raise HTTPException(422, "This link is not an image, so it is not opened for editing.")
     uid = await documents.active_uid()
     try:
         await asyncio.to_thread(_open_with_system, path)

@@ -19,8 +19,6 @@ export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string
   btn.title = select.title;
   select.classList.add('cv-dd-native');
   select.after(btn);
-  const host = document.getElementById('overlay-root');
-  if (host) host.appendChild(pop); else document.body.appendChild(pop);
   let picked = 0;
   const label = (): void => { setText(btn.querySelector('.cv-dd-label') as HTMLElement, select.selectedOptions[0]?.textContent ?? ''); btn.disabled = select.disabled; };
   // Values set in code (not only by the user) show on the button.
@@ -53,10 +51,12 @@ export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string
     mark();
   };
   const mark = (): void => { list.querySelectorAll<HTMLElement>('.cv-dd-item').forEach((i, n) => i.classList.toggle('is-picked', n === picked)); };
-  const close = (): void => { setHidden(pop, true); btn.setAttribute('aria-expanded', 'false'); };
+  const close = (): void => { setHidden(pop, true); btn.setAttribute('aria-expanded', 'false'); pop.remove(); document.removeEventListener('pointerdown', outside, true); };
   const open = (): void => {
     if (search) search.value = '';
     fill();
+    (document.getElementById('overlay-root') ?? document.body).appendChild(pop);
+    document.addEventListener('pointerdown', outside, true);
     setHidden(pop, false);
     btn.setAttribute('aria-expanded', 'true');
     const r = btn.getBoundingClientRect(), h = pop.offsetHeight;
@@ -74,7 +74,7 @@ export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (items.length) { picked = (picked + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length; mark(); items[picked].scrollIntoView({ block: 'nearest' }); } return; }
     if (e.key === 'Enter') { e.preventDefault(); items[picked]?.click(); }
   });
-  document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !pop.contains(e.target as Node) && !btn.contains(e.target as Node)) close(); }, true);
+  const outside = (e: PointerEvent): void => { if (!pop.hidden && !pop.contains(e.target as Node) && !btn.contains(e.target as Node)) close(); };
   label();
 }
 

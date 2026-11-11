@@ -1,3 +1,4 @@
+import asyncio
 import math
 from collections import Counter
 from pathlib import Path
@@ -376,7 +377,7 @@ async def import_dxf(path: str, options: dict | None = None) -> dict:
         raise CoreError(f"no file at {src}")
     sheet = li.Sheet(src.stem)
     try:
-        build(src, sheet, options)
+        await asyncio.to_thread(build, src, sheet, options)
     except DxfError as exc:
         raise CoreError(str(exc)) from exc
     overview = await li.emit(sheet)

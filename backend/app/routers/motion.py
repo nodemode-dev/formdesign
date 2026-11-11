@@ -81,15 +81,19 @@ async def media_get(item: int):
 
 @router.post("/motion/media")
 async def media_set(body: dict = Body(...)):
+    try:
+        item = str(int(body["id"]))
+        when = max(0.0, min(3600.0, float(body["time"]))) if "time" in body else None
+    except (KeyError, ValueError, TypeError) as exc:
+        raise HTTPException(422, "id is a frame number and time a number of seconds") from exc
     meta = await _meta()
-    item = str(int(body["id"]))
     cur = M.store(meta)["media"].setdefault(item, {})
     if "poster" in body:
         if body["poster"] not in ("auto", "none", "file"):
             raise HTTPException(422, "poster is auto, none or file")
         cur["poster"] = body["poster"]
     if "time" in body:
-        cur["time"] = max(0.0, min(3600.0, float(body["time"])))
+        cur["time"] = when
     if "file" in body:
         cur["file"] = body["file"]
     M.notify("media")

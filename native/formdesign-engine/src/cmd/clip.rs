@@ -53,6 +53,18 @@ fn top_level(doc: &Doc, ids: &[ItemId]) -> Vec<ItemId> {
 fn take(c: &mut Ctx, p: &Value) -> Result<Clip> {
     let st = c.state()?;
     let sel = st.selection.clone();
+    if sel.text.is_none()
+        && let Some(ct) = sel.cell_text
+        && !ct.range().is_empty()
+        && p.get("ids").is_none()
+        && let Some(cell) = crate::celltext::paras(&st.doc, &ct)
+    {
+        let mut scratch = formdesign_model::story::Story::new(ct.story, formdesign_model::style::BASIC_PARA);
+        scratch.paras = cell;
+        let r = ct.range();
+        let paras = scratch.slice(r.start.min(scratch.len())..r.end.min(scratch.len()));
+        return Ok(Clip::Text { doc: st.doc.clone(), text: plain(&paras), paras });
+    }
     if let Some(t) = sel.text
         && !t.range().is_empty()
         && p.get("ids").is_none()
@@ -250,6 +262,11 @@ fn do_paste(c: &mut Ctx, p: &Value, formatted: bool, in_place: bool) -> Result<V
     let external_text = matches!(&clip, Clip::Text { .. }) && args::opt_str(p, "text").is_some_and(|t| t == clip.text()) && c.session.clipboard.as_ref().is_none_or(|k| k.text() != clip.text());
     let formatted = formatted && !external_text;
     let sel = c.selection();
+    if sel.text.is_none() && sel.cell_text.is_some() && matches!(clip, Clip::Text { .. }) {
+        let n = crate::cmd::text::insert_at_selection(c, clip.text(), true)?;
+        c.label(if formatted { "Paste" } else { "Paste without Formatting" });
+        return Ok(json!({"inserted": n}));
+    }
     if let Some(t) = sel.text {
         let n = paste_into_text(c, &clip, t, formatted || matches!(clip, Clip::Items { .. }))?;
         c.label(if formatted { "Paste" } else { "Paste without Formatting" });

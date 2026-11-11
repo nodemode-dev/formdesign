@@ -8,6 +8,7 @@ use crate::TILE;
 
 /// The share of memory the compositor may use.
 pub const SHARE: f64 = 0.6;
+pub const CEILING: u64 = 1536 * 1024 * 1024;
 /// Bytes one tile pixel costs.
 pub const BYTES_PER_PIXEL: u64 = 4;
 /// Bytes one tile costs on the GPU.
@@ -25,7 +26,7 @@ pub struct Budget {
 
 /// The budget for a machine with `ram` bytes of memory.
 pub fn budget_for(ram: u64) -> Budget {
-    let bytes = (ram as f64 * SHARE) as u64;
+    let bytes = ((ram as f64 * SHARE) as u64).min(CEILING);
     Budget { ram, bytes, max_tiles: bytes / TILE_BYTES }
 }
 

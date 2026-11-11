@@ -106,7 +106,56 @@ pub fn tagged(text: &str) -> Imported {
 }
 
 fn entity(s: &str) -> String {
-    s.replace("&nbsp;", "\u{a0}").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'").replace("&amp;", "&")
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(i) = rest.find('&') {
+        out.push_str(&rest[..i]);
+        let tail = &rest[i..];
+        let end = tail[1..].find(';').map(|e| e + 1).filter(|e| *e <= 12);
+        let decoded = end.and_then(|e| {
+            let name = &tail[1..e];
+            if let Some(h) = name.strip_prefix("#x").or_else(|| name.strip_prefix("#X")) {
+                u32::from_str_radix(h, 16).ok().and_then(char::from_u32)
+            } else if let Some(d) = name.strip_prefix('#') {
+                d.parse().ok().and_then(char::from_u32)
+            } else {
+                Some(match name {
+                    "nbsp" => '\u{a0}',
+                    "lt" => '<',
+                    "gt" => '>',
+                    "quot" => '"',
+                    "apos" => '\'',
+                    "amp" => '&',
+                    "lsquo" => '\u{2018}',
+                    "rsquo" => '\u{2019}',
+                    "ldquo" => '\u{201C}',
+                    "rdquo" => '\u{201D}',
+                    "ndash" => '\u{2013}',
+                    "mdash" => '\u{2014}',
+                    "hellip" => '\u{2026}',
+                    "bull" => '\u{2022}',
+                    "copy" => '\u{a9}',
+                    "reg" => '\u{ae}',
+                    "trade" => '\u{2122}',
+                    "euro" => '\u{20ac}',
+                    "shy" => '\u{ad}',
+                    _ => return None,
+                })
+            }
+        });
+        match (decoded, end) {
+            (Some(c), Some(e)) => {
+                out.push(c);
+                rest = &tail[e + 1..];
+            }
+            _ => {
+                out.push('&');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 pub fn html(text: &str) -> Imported {
@@ -245,8 +294,11 @@ pub fn markdown(text: &str) -> Imported {
             }
             segs.push(seg(std::mem::take(buf), None, over));
         };
+        let mut prev: Option<char> = None;
         while let Some(c) = chars.next() {
-            if (c == '*' || c == '_') && chars.peek() == Some(&c) {
+            if c == '_' && prev.is_some_and(char::is_alphanumeric) && chars.peek().is_some_and(|n| n.is_alphanumeric()) {
+                buf.push(c);
+            } else if (c == '*' || c == '_') && chars.peek() == Some(&c) {
                 chars.next();
                 emit(&mut segs, &mut buf, bold, italic);
                 bold = !bold;
@@ -256,6 +308,7 @@ pub fn markdown(text: &str) -> Imported {
             } else {
                 buf.push(c);
             }
+            prev = Some(c);
         }
         emit(&mut segs, &mut buf, bold, italic);
         if segs.is_empty() {
@@ -273,7 +326,8 @@ pub fn rtf(text: &str) -> Imported {
     let mut i = 0;
     let mut cur = String::new();
     let mut skip: Vec<bool> = vec![false];
-    let mut uc_skip = 0usize;
+    let mut uc_skip = 1usize;
+    let mut cp1252 = true;
     while i < chars.len() {
         let c = chars[i];
         let skipping = *skip.last().unwrap_or(&false);
@@ -307,7 +361,11 @@ pub fn rtf(text: &str) -> Imported {
                             if !skipping
                                 && let Ok(b) = u8::from_str_radix(&hex, 16)
                             {
-                                cur.push(b as char);
+                                const HIGH: [u32; 32] = [
+                                    0x20AC, 0x81, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x8D, 0x017D, 0x8F, 0x90, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x9D, 0x017E, 0x0178,
+                                ];
+                                let ch = if cp1252 && (0x80..0xA0).contains(&b) { char::from_u32(HIGH[(b - 0x80) as usize]).unwrap_or(b as char) } else { b as char };
+                                cur.push(ch);
                             }
                         }
                         '~' if !skipping => cur.push('\u{a0}'),
@@ -344,11 +402,34 @@ pub fn rtf(text: &str) -> Imported {
                     "rdblquote" => cur.push('\u{201D}'),
                     "bullet" => cur.push('\u{2022}'),
                     "uc" => uc_skip = num.parse().unwrap_or(1),
+                    "ansicpg" => cp1252 = num == "1252",
                     "u" => {
                         if let Some(ch) = num.parse::<i32>().ok().map(|v| if v < 0 { v + 65536 } else { v }).and_then(|v| char::from_u32(v as u32)) {
                             cur.push(ch);
                         }
-                        i += uc_skip.max(1).min(chars.len().saturating_sub(i));
+                        let mut left = uc_skip;
+                        while left > 0 && i < chars.len() && chars[i] != '{' && chars[i] != '}' {
+                            if chars[i] != '\\' {
+                                i += 1;
+                            } else if chars.get(i + 1) == Some(&'\'') {
+                                i += 4;
+                            } else if chars.get(i + 1).is_some_and(|c| c.is_ascii_alphabetic()) {
+                                i += 1;
+                                while chars.get(i).is_some_and(|c| c.is_ascii_alphabetic()) {
+                                    i += 1;
+                                }
+                                while chars.get(i).is_some_and(|c| c.is_ascii_digit() || *c == '-') {
+                                    i += 1;
+                                }
+                                if chars.get(i) == Some(&' ') {
+                                    i += 1;
+                                }
+                            } else {
+                                i += 2;
+                            }
+                            left -= 1;
+                        }
+                        i = i.min(chars.len());
                     }
                     "fonttbl" | "colortbl" | "stylesheet" | "info" | "pict" | "header" | "footer" => {
                         if let Some(l) = skip.last_mut() {
@@ -380,10 +461,11 @@ fn attr(e: &quick_xml::events::BytesStart, key: &[u8]) -> Option<String> {
 pub fn docx(bytes: &[u8]) -> Result<Imported, String> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("not a Word file: {e}"))?;
     let mut read = |name: &str| -> Option<String> {
-        let mut f = z.by_name(name).ok()?;
+        let cap: u64 = 64 << 20;
+        let mut f = z.by_name(name).ok().filter(|f| f.size() <= cap)?;
         let mut s = String::new();
-        f.read_to_string(&mut s).ok()?;
-        Some(s)
+        (&mut f).take(cap + 1).read_to_string(&mut s).ok()?;
+        Some(s).filter(|s| s.len() as u64 <= cap)
     };
     let doc = read("word/document.xml").ok_or("not a Word file: no word/document.xml")?;
     let styles_xml = read("word/styles.xml").unwrap_or_default();
@@ -503,13 +585,12 @@ pub fn docx(bytes: &[u8]) -> Result<Imported, String> {
 fn table_of(rows: Vec<Vec<String>>) -> Imported {
     let rows: Vec<Vec<String>> = rows.into_iter().filter(|r| r.iter().any(|c| !c.trim().is_empty())).collect();
     let cols = rows.iter().map(Vec::len).max().unwrap_or(1).max(1);
+    let rows = &rows[..rows.len().min((1_000_000 / cols).max(1))];
     let mut table = formdesign_model::story::Table::new(rows.len().max(1), cols, 432.0);
     table.header_rows = usize::from(rows.len() > 1);
     for (r, row) in rows.iter().enumerate() {
         for (k, text) in row.iter().enumerate() {
-            if let Some(cell) = table.cell_mut(r, k) {
-                cell.paras = vec![Para::from_text("", text.trim())];
-            }
+            table.cells[r * cols + k].paras = vec![Para::from_text("", text.trim())];
         }
     }
     let para = Para { style: String::new(), over: Attrs::new(), segs: vec![Seg::Inline { inline: formdesign_model::story::Inline::Table { table: Box::new(table) }, style: None, over: Attrs::new() }] };
@@ -552,10 +633,11 @@ fn csv_rows(text: &str) -> Vec<Vec<String>> {
 fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("spreadsheet: {e}"))?;
     let mut read = |name: &str| -> Option<String> {
-        let mut f = z.by_name(name).ok()?;
+        let cap: u64 = 64 << 20;
+        let mut f = z.by_name(name).ok().filter(|f| f.size() <= cap)?;
         let mut s = String::new();
-        f.read_to_string(&mut s).ok()?;
-        Some(s)
+        (&mut f).take(cap + 1).read_to_string(&mut s).ok()?;
+        Some(s).filter(|s| s.len() as u64 <= cap)
     };
     let shared_xml = read("xl/sharedStrings.xml").unwrap_or_default();
     let sheet = read("xl/worksheets/sheet1.xml").ok_or("spreadsheet: no first worksheet (xl/worksheets/sheet1.xml)")?;
@@ -585,7 +667,7 @@ fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
     }
     let col_of = |re: &str| -> usize {
         let letters: String = re.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
-        letters.chars().fold(0usize, |acc, c| acc * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize + 1)).saturating_sub(1)
+        letters.chars().fold(0usize, |acc, c| acc.saturating_mul(26).saturating_add(c.to_ascii_uppercase() as usize - 'A' as usize + 1)).saturating_sub(1)
     };
     let mut rows: Vec<Vec<String>> = Vec::new();
     let mut r = Reader::from_str(&sheet);
@@ -612,7 +694,9 @@ fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
             Ok(Event::GeneralRef(g)) if in_v => val.push_str(&entity(&format!("&{};", g.decode().map(|x| x.into_owned()).unwrap_or_default()))),
             Ok(Event::End(e)) if e.name().as_ref() == b"c" => {
                 let text = if kind == "s" { val.trim().parse::<usize>().ok().and_then(|i| shared.get(i).cloned()).unwrap_or_default() } else { val.clone() };
-                if let Some(row) = rows.last_mut() {
+                if let Some(row) = rows.last_mut()
+                    && col <= 16_383
+                {
                     if row.len() <= col {
                         row.resize(col + 1, String::new());
                     }

@@ -194,7 +194,10 @@ def read_sheet(path: Path) -> list[dict]:
     tables = []
     if ext in (".csv", ".tsv"):
         text = path.read_text(encoding="utf-8-sig", errors="replace")
-        dialect = csv.excel_tab if ext == ".tsv" else csv.Sniffer().sniff(text[:4096], delimiters=",;\t|") if text.strip() else csv.excel
+        try:
+            dialect = csv.excel_tab if ext == ".tsv" else csv.Sniffer().sniff(text[:4096], delimiters=",;\t|") if text.strip() else csv.excel
+        except csv.Error:
+            dialect = csv.excel
         rows = [r for r in csv.reader(io.StringIO(text), dialect)]
         tables.append({"name": path.stem, "rows": rows[:2000]})
     else:

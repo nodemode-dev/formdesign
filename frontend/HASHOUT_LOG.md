@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.18.0
-Last updated: 2026-10-10 · copy, cut and paste reach the system clipboard
+Current build version: v0.85.5
+Last updated: 2026-11-10 · Find/Change follows the caret into another story · Publish Online waits for the list · Generate Alt Text shows only the latest answer · the Plugins setup lines quote the folder · each glyph preview font gets its own name · the Adjustments curve keeps drawing when two points share an input · pica lengths with a minus sign or a lone point · z-index on the layer scale, colours on real tokens · ticked stories stay with their own document · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -622,3 +622,220 @@ Preferences is the formvis shell: a floating rail of section tabs (collapse stat
 - logged: v0.84.0 · 2026-10-22
 
 The footer is built once in the SHELL markup and StatusBar prepends the history and zoom tools, the page size, the click-to-cycle info readout (pages, slots, selection, history; Shift reverses; kept in `formdesign.statusInfo`) and adds the Working indicator after the hint. Existing slots (engine, page label, hint, version and the proof, renderer and draw mode chips that other modules insert by class) keep their classes. Every slot has a fixed width so cycling or a state change never reflows the bar; the zoom field is never written while focused. The hint shows whole " · " segments only, with the full text in the tooltip, and Working appears through pendingClass so quick jobs never flash. FormDesign's engine has no job list, so no jobs popup. The title bar keeps its own undo, redo and zoom tools.
+
+### features/cloud-fonts.ts · the Missing Fonts note takes the title as text
+- refers-to: frontend/src/features/cloud-fonts.ts :: watchMissing (check)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The Missing Fonts dialog built its note through `el()`, which parses HTML, with the document title placed in it raw; the title is the file name, so a shared file named like `a<img src=x onerror=...>.fdes` that uses an uninstalled Google Fonts family ran script in the window when the dialog opened. The note is now built empty and filled with `setText`. The dialog also gets `onClose` removing its scrim, as the other one-shot dialogs do; before, each one stayed in `#overlay-root`. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/shell.ts, ui/open-layout.ts · Save As, Save of an untitled document and Open as layout pass the answer on
+- refers-to: frontend/src/ui/shell.ts :: Shell.save, Shell.closeDoc; frontend/src/ui/open-layout.ts :: chooseDialog
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The path dialog of Save and Save As and the Open as layout dialog called `d.close()` before `resolve(...)` in their OK handlers. `close()` runs `onClose`, which resolves with null, so the promise was already settled and the answer was always "cancelled": Save As, Save of any document without a .fdes path (every new or imported one) and opening a PDF, .pub, .qxd/.qxp or .pmd from the window did nothing, with no message. Close on a changed document with "Save" then closed it anyway and the changes were lost. The OK handlers now resolve first and close after. `save()` returns whether the document was saved (false when the dialog is cancelled or the save fails) and `closeDoc` stops there when it was not. Cancel, Escape, the close button and a click on the scrim still settle once with null. Checked with `tsc --noEmit` and by reading every path of both dialogs; not run in a browser.
+
+### features/clipboard.ts · copied objects without text paste as themselves
+- refers-to: frontend/src/features/clipboard.ts :: writeSystem; native/formdesign-engine/src/cmd/clip.rs :: external
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Copy and Cut of objects with no text frame get `text: ""` back from the engine (only text frames' text is joined), and `writeSystem` skipped an empty string, so the system clipboard kept older text such as a URL copied elsewhere. Paste sent that text, `external()` took it as newer than the engine's own clip, and a text frame with the old text appeared instead of the copied or cut objects. `writeSystem` now skips only `undefined` and writes the empty string; `readSystem` already maps an empty clipboard to no text, so the engine pastes its own clip. If the browser refuses the clipboard write the old text can still win. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/panel-group.ts · a plug-in's panel title is set as text
+- refers-to: frontend/src/ui/panel-group.ts :: PanelGroup constructor; frontend/src/ui/shell.ts :: Shell.mountPanel; frontend/src/features/plugins.ts :: PluginHost.panelBody
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The group's label went into its `el()` template as `aria-label="${label}"`. Plug-in panels go to the `plugins` group, which no built-in panel uses, so the first one creates the group with the manifest's panel title (or the plug-in's name) as the label. A title like `x"><img src=x onerror=...>` was parsed into the main window and its handler ran with every engine route, outside the plug-in's sandbox and permission grants; a plain `"` broke the header. The template no longer has the attribute and the constructor sets it with `setAttribute`; tab buttons already used `setText`. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/properties/ctx.ts · the panels follow a new selection or caret
+- refers-to: frontend/src/features/properties/ctx.ts :: Ctx.build (the `attrs` and `xf` memos); native/formdesign-engine/src/session.rs :: set_selection
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`type.selectionAttrs` and `transform.info` were memoised under the key `${rev}`. `engine.rev` is the document revision; a new selection or caret only bumps `selRev` (`set_selection`), so clicking from an object rotated 30° to one at 0°, or from a 24 pt paragraph into a 10 pt one, left Properties, Character, Paragraph, the Control bar, the Styles highlight and the swatch chips on the old selection's values. Two documents at the same revision also shared the answer. Both keys are now `${uid}:${rev}:${engine.selRev}`. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/attr-editors.ts · a Text Options paragraph border draws, unset borders and lists stay unset
+- refers-to: frontend/src/features/attr-editors.ts :: fieldNode (number read), listEditor, objectEditor; native/formdesign-model/src/attrs.rs :: Border::from_value
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+An empty number field without a default read as 0, so Paragraph Border with only a Weight sent `top`, `bottom`, `left` and `right` as 0; `Border::from_value` takes each side over `weight` and returns None when the sides sum to 0, so the border never drew and OK on a paragraph whose border had only a weight removed it. Such a field now reads as `undefined` and `objectEditor` drops undefined keys. An unset border, rule or shading used to read back as `{on:false}` and an unset list as `[]`, so every OK sent them as explicit overrides; now an object editor whose value was null and stays off reads as null, and a list editor whose value was null and has no rows reads as null, matching the starting value. A tab row with an empty Position is now left out by the engine instead of becoming a tab at 0 pt. An existing border or rule still reads back with the fields' defaults filled in, so OK after other edits can write it as an equal override. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/shell.ts · a cancelled file picker no longer hands the next pick to the old action
+- refers-to: frontend/src/ui/shell.ts :: Shell.pickFiles, Shell.endPick
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`pickFiles` reuses one hidden file input and listened only for `change`. Cancelling the system picker fires no `change`, so the listener stayed and the promise never settled; the next pick (Open after a cancelled Place, Relink, Load Profile, a plug-in from file) also reached the old listener, and that file was uploaded and placed too. Each cancel added one more stale listener. The input's `cancel` event now settles the pick with no files, both listeners go whichever fires first, and a new pick first settles any pick still pending (kept in `endPick`) with no files, for browsers that send no `cancel`. Every caller already returns on an empty list. Checked with `tsc --noEmit` and by reading every caller; not run in a browser.
+
+### features/library.ts · a dropped Library item lands on the spread under the cursor
+- refers-to: frontend/src/features/library.ts :: LibraryPanel.place; native/formdesign-engine/src/canvas.rs :: SpreadRef; native/formdesign-engine/src/cmd/swatch.rs :: snippet_place
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A layout slot's `spread` is a serialized `SpreadRef` (`{"kind":"doc","index":N}`) and `place` sent that object as `spread`. `snippet_place` reads it with `opt_u64`, got None and fell back to `snippetSpread`, the spread the item was copied from, so a drop on another spread put the item on the source spread at the drop's coordinates. `place` now sends the doc index (or a plain number), and the slot lookup skips parent-page slots as `viewTarget` in clipboard.ts does. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/story.ts · the Story Editor sends whole characters when emoji are edited
+- refers-to: frontend/src/features/story.ts :: StoryEditor.flush
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`flush` finds the changed span by comparing the old and new text from both ends per UTF-16 unit. Next to a character outside the basic plane the cut could land between the halves of a surrogate pair (the letter x followed by U+1F600 becoming x, U+1F601, U+1F600, or U+1F600 replaced by U+1F601), so `story.replaceRange` got a byte offset inside a UTF-8 sequence and text with a lone half, which `TextEncoder` turns into U+FFFD; the engine refused the edit or damaged the story. After the two loops the prefix steps back one unit when it ends on a high surrogate and the suffix when it starts on a low surrogate; both only shrink, so the bounds still hold. Checked with `tsc --noEmit` and a scratch copy of the diff over nine cases (inserted, replaced and removed emoji, plain text): well-formed text, character-boundary offsets and the right result each time; not run in a browser.
+
+### features/animation.ts · a new animation starts from the preset's defaults
+- refers-to: frontend/src/features/animation.ts :: AnimationPanel.render, AnimationPanel.write
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+With an object without animation selected, `render()` hid `.fan-body` but left the previous object's values in its fields, and `write()` read them when a preset was picked, so the new animation took the previous object's duration, delay, play count, event, speed, loop and end state; only `hideBefore` followed the preset. `render()` now resets those fields when the first selected object has no animation (event `load`, numbers empty, speed `preset`, loop off), and `write()` maps the empty fields to its defaults; the stale event no longer trips the "no button" check either. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/document/setup.ts · Document Setup keeps a per-side bleed
+- refers-to: frontend/src/features/document/setup.ts :: DocumentSetupDialog.open, apply
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`layout.documentSetup` returns the bleed as `[top, bottom, inside, outside]` and the dialog shows `bleed[0]`. `apply` sent the field as one bleed whenever any side differed from it, so a document with bleed 9, 9, 0, 9 got 9 pt on every side after any OK, unseen. The bleed is now sent only when the field differs from the value it was filled with. Showing four fields would let the sides be edited apart; not done here. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/dropdown.ts · a closed dropdown leaves no popup or document listener behind
+- refers-to: frontend/src/ui/dropdown.ts :: enhanceSelect (open, close, outside)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`enhanceSelect` put each list's `.cv-dd-pop` into `#overlay-root` and added a capturing `pointerdown` listener on `document` when the select was enhanced, and never removed either. Dialogs that build their selects per open (Table Style Options with about 25, Text Options, Object Style Options, Type on a Path, Proof Setup, Workspaces, command forms, Style Options) added one node and one listener per select per open, for the whole session. The popup is now appended and the listener added in `open`, and both removed in `close`; a closed list holds nothing outside its select and button. The popup is also appended last at each open, so it sits above a dialog made after the select. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/make/slots.ts · a slot preview is never saved over the full story
+- refers-to: frontend/src/features/make/slots.ts :: SlotsView.beginEdit, SlotsView.commit, updateSlot (`dataset.partial`)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A long text or flow slot shows a preview ending in "…" (`partial`), and `beginEdit` loads the full text with `story.get` on focus. Typing before the answer set `dirty`, so the answer was dropped; a failed call was swallowed. On blur `commit` then saved the preview with its "…" and the edit as the whole slot, deleting the rest of the story. The textarea is now `readOnly` while the full text loads, and `commit` refuses a slot still marked partial: it puts the preview back, clears `dirty` and shows "The full text did not load; edit not saved". Checked with `tsc --noEmit`; not run in a browser.
+
+### editor/viewport.ts · tiles load for the new document when the tab changes during a tile request
+- refers-to: frontend/src/editor/viewport.ts :: Viewport.pump
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A `tiles` reply for a document no longer shown hit `if (uid !== this.uid) return;` inside the `try`; `finally` cleared `inflight` but the `requestDraw()` after the block was skipped. The draws the tab switch asked for had already run `pump()` while `inflight` was true and given up, so the new document stayed blank paper until a pan, zoom or edit. The stale reply now calls `requestDraw()` before it returns; the draw runs at the next frame, after `finally` has cleared `inflight`. Checked with `tsc --noEmit`; not run in a browser.
+
+### editor/viewport.ts · every change of the device pixel ratio resizes the canvases
+- refers-to: frontend/src/editor/viewport.ts :: Viewport constructor (watchDpr)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The constructor listened to `(resolution: Ndppx)` built once from the starting ratio. That query changes only when matching that one value toggles, so after a first change (1x to 2x) a second one (2x to 1.5x, or a second Ctrl+ zoom) was never seen and the tile, highlight and overlay canvases kept the old backing size. `watchDpr` now builds the query from the current raw ratio (not the value clamped to 1, which would miss a change from below 1 to above it), listens once, and builds it again after each change. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/actions.ts · Play Action works before the Actions panel is shown
+- refers-to: frontend/src/features/actions.ts :: ActionsPanel.play, ActionsPanel constructor, fill; installActions (actions.play)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`saved` was filled only by `onShow` → `load()`, so `actions.play` from an agent, a shortcut or the palette in a session where the panel had not been shown found nothing and returned quietly; a wrong name was quiet too. `play` now loads the list first when it is not loaded, and an unknown name shows an error toast and throws, so `commands.call` hands the error to the agent (the palette's `run` does not await, hence the toast). The Play buttons' disabled state came from `editor.docs.length` only when a row was drawn; the panel now draws again on `editor.on('docs')`. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/pages.ts, features/terminal.ts · Ctrl+J is shown only on Show Terminal
+- refers-to: frontend/src/features/pages.ts (pages.goTo); frontend/src/features/terminal.ts :: installTerminal; frontend/src/features/shortcuts.ts :: apply (resetKeys)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`pages.goTo` was registered with `free('Mod+J')`, which was still free when pages installed, and `installTerminal` then took Mod+J and filtered it out of `goTo.keys` directly. That edit did not change `Commands.defaults`, and `resetKeys()` runs on every `commands` event (each engine connect), so Go to Page got Mod+J back: its menu item showed Ctrl+J (Cmd+J) while the key opened the terminal, Keyboard Shortcuts listed it on two commands and the native macOS menus gave both a CmdOrCtrl+J accelerator. Go to Page now has no default key and the two stripping lines in terminal.ts are gone; the terminal is installed unconditionally, so nothing else wanted the key. A user's own shortcut set can still bind it. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/properties/props.ts, ctx.ts · margins and columns come from the page in view
+- refers-to: frontend/src/features/properties/props.ts :: PropertiesPanel.curPage; frontend/src/features/properties/ctx.ts :: PageInfo; native/formdesign-engine/src/cmd/layout.rs :: inspect
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`curPage` compared `p.index`, the page's index within its spread, with `viewport.currentPage()`, the absolute page number. On any page but the first it found another page or none, so with nothing selected the T/B/I/O and Columns fields showed that page's values, and editing one unlinked edge sent `layout.marginsAndColumns` with the other three edges of the wrong page. The inspect pages already carry `abs` (0-based, as `currentPage`); `PageInfo` now declares it and `curPage` compares it. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/make/make-view.ts · Make never reuses a removed file's content
+- refers-to: frontend/src/features/make/make-view.ts :: MakeView.analyse, MakeView.sync, MakeView.make
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+With no files left, `analyse` PATCHed the brief onto `this.source || this.pack`; after the analysed files were removed that was the old pack, which still held their articles and images, so Make layout filled the page with removed content. With no input at all, Make layout stayed enabled and used the old pack. `analyse` now PATCHes only a loaded content pack (`this.source`) and otherwise POSTs `/intake` with the brief alone; Make layout is enabled only while there is input, and `make` returns when the pack is not fresh and there is nothing to analyse. The pack is kept, not cleared, so its facts stay on screen marked stale. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/object-styles.ts · an empty stroke weight keeps the default
+- refers-to: frontend/src/features/object-styles.ts :: ObjectStylesPanel.options
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+For a style without a stroke the weight field starts empty. Choosing a Stroke swatch and saving read it with `Number('')`, which is 0 and passes `Number.isFinite(weight) && weight >= 0`, so the style got `stroke: { swatch, weight: 0 }` and its objects showed no stroke. The field is now read as text first and an empty one becomes NaN, so the weight key is left out and the engine default applies. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/assignments.ts · the Editor role hides its menus in every language
+- refers-to: frontend/src/features/assignments.ts :: installAssignments (applyRole), HIDE_MENUS; frontend/src/ui/i18n.ts :: translateText
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`applyRole` hid the Layout, Object and Table menus with `HIDE_MENUS.has(b.textContent)`, but `translateText` rewrites the menu buttons' text nodes, so in German or any other language the menus stayed visible in the Editor role. The test now uses a set of each English name and its `t()` translation and trims the button text. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/terminal.ts · the context sent to Claude Code names the open document
+- refers-to: frontend/src/features/terminal.ts :: documentContext
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`documentContext` read `doc.name` through a cast, but `DocInfo` (and the core's `docs` JSON) has `title`, so the prompt from the dock's "Ask Claude Code" box always carried `open document: untitled`. It now reads `doc.title`, falling back to untitled only when the title is empty. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/assignments.ts · ticked stories stay with their own document
+- refers-to: frontend/src/features/assignments.ts :: AssignmentsPanel.paint, picked, pickedDoc
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`picked` was cleared only after a successful Create or Set Stories, so stories ticked in document A and a Create in document B sent A's story ids, which can be unrelated stories in B. `paint` now clears the ticks when `docId` differs from the document they were ticked in (`pickedDoc`) and drops any id that is not in `d.stories`; the store repaints on every document switch. Checked with `tsc --noEmit`; not run in a browser.
+
+### styles/motion.css, panels.css, pages.css, formdesign.css · z-index on the layer scale, colours on real tokens
+- refers-to: frontend/src/styles/motion.css (.fan-layer, .fwf-layer); frontend/src/styles/panels.css (.cv-dock-split, .cv-props-col, .cv-props-resize); frontend/src/styles/pages.css (.pg-badge); frontend/src/styles/formdesign.css (.fd-report-h, .fd-link)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Six rules set `z-index` to bare numbers (1, 2, 4, 5, 6, 7) against tokens.css's rule that every z-index is a `var(--z-*)`. They now read `calc(var(--z-base) + n)` with the same n, so every computed value and the stacking order stay exactly as they were; moving them onto `--z-raised` would have lifted them past `--z-rail` and changed the order. `.fd-report-h` used `var(--text)` and `.fd-link` `var(--accent)`, neither defined, so both inherited their colour and the .indd dialog's link was not accent-coloured; they now use `--text-primary` and `--accent-ink` (the token the window's other accent text uses). `.fd-report-row`'s `var(--border)` is undefined too and was left alone (not in the finding). Checked with a grep for `z-index` without `var(--z` under `src/styles` (none); not run in a browser.
+
+### features/document/units.ts · pica lengths with a minus sign or a lone point
+- refers-to: frontend/src/features/document/units.ts :: parseLength (picas branch); frontend/src/features/document/form.ts :: LengthField.commit
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`Number(picas[1] || 0)` is NaN when the picas part is `-` or `.`, so `-p6` and `.p` came back as NaN, not null; `LengthField` stored NaN, showed "NaN" and passed it on, and the engine got null. `-1p6` gave -6 pt because the sign applied to the picas only. The branch now strips the sign, returns null when either part is not finite, and negates the whole length. Checked with `tsc --noEmit` and the file compiled to a scratch folder: `-p6` -6, `-1p6` -18, `.p` and `3p.` null, `3p6` 42, `12` 12, `1in` 72.
+
+### features/image-adjust.ts · the Adjustments curve keeps drawing when two points share an input
+- refers-to: frontend/src/features/image-adjust.ts :: curveAt, Adjustments.move; native/formdesign-render/src/pixedit.rs :: curve_lut
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Two curve points with the same input made `curveAt` divide by a zero width, so the drawn curve was NaN everywhere and vanished while the preview, from the engine's de-duplicated `curve_lut`, still changed; a middle point dragged to x 0 or 255 also became an unremovable end. `curveAt` now drops points within 1e-6 of the last kept input, keeping the first, as `curve_lut`'s `dedup_by` does (and returns x for fewer than two points, as the engine's identity table), and `move` holds a middle point's input one step inside its neighbours (and inside 0 to 255). A new point clicked exactly on an edge still starts as an end, as before. Checked with `tsc --noEmit` and `curveAt` taken from the file with types stripped: `[[0,0],[100,80],[100,140],[255,255]]` gives finite values (80 at 100); not run in a browser.
+
+### features/glyphs.ts, features/find.ts · each glyph preview font gets its own name
+- refers-to: frontend/src/features/glyphs.ts :: GlyphsPanel.load, seq; frontend/src/features/find.ts :: GlyphPick.face, GlyphPick.seq
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The FontFace family name was `fd-glyph-${loaded.size + 1}` (and `fd-ff-${faces.size + 1}` in the Find glyph pickers), computed before `await face.load()` while the map grew only after it, so two loads in flight (arrowing through the Glyphs font menu, a saved query setting both Find and Change glyph fonts) registered two fonts under one name and one grid drew in the other's font. Names now come from a counter that is bumped before the load. Two loads of the same font at once still load it twice under two names, which is harmless. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/document/prefs.ts · the Plugins setup lines quote the folder and use formdesign.bat on Windows
+- refers-to: frontend/src/features/document/prefs.ts :: PreferencesDialog.loadAgents; formdesign.bat (its `cd /d "%~dp0"`)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The Claude Code, Codex and Cursor lines joined the folder unquoted with `/formdesign`, so `/Users/a b/formdesign` split at the space, and on Windows `cd C:\Apps\formdesign && ./formdesign agents install` neither changed drive nor named `formdesign.bat`. The folder is now quoted; when it contains a backslash the lines use `cd /d "..." && formdesign.bat agents install` and `"...\formdesign.bat" mcp`. `formdesign.bat` changes to its own folder first, so `mcp` and `agents` find `setup\`. The Windows lines are for cmd.exe; in PowerShell `cd /d` fails. Checked with `tsc --noEmit`; not run on Windows.
+
+### features/ai-tools.ts · Generate Alt Text shows only the latest request's answer
+- refers-to: frontend/src/features/ai-tools.ts :: AltTextDialog.open, AltTextDialog.seq
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`open()` wrote whatever `/ai/alt-text/propose` answered. Cancel while "Reading the images...", switch documents and open again, and the first, slower answer could fill the list (`update` is a no-op, so rows with the same id kept the old text) and Write Alt Text could apply the first document's proposals to frames of the second. Each `open()` now takes a number from `seq` and drops an answer or error that is not the latest. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/document/publish.ts · Publish Online waits for the list before it can update a site
+- refers-to: frontend/src/features/document/publish.ts :: PublishDialog.open, PublishDialog.publish (`slug: this.current?.slug`)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`this.current` kept the previous document's site until `refresh()` answered, with the Publish button live, so opening the dialog for document B right after publishing A and pressing Enter or Update sent A's slug and B overwrote A's site. `open()` now sets `current` to null and disables the button before `refresh(true)`, and enables it after (unless a publish is running). If the list fails to load the button comes back with no current site, so a publish then makes a new site. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/find.ts · Find/Change follows the caret into another story
+- refers-to: frontend/src/features/find.ts :: FindWindow.withinFor, within, withinKey
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`within` (the To End of Story or Selection range) was reused while the settings JSON was unchanged and cleared only by an edit of the settings, a document switch or Change All, so Find Next in story A, a click into story B and Find Next again kept searching A. The cached range is now used only while there is no text caret or the caret's story is the range's story; otherwise it is built again from the caret. Left as found: a caret moved within the same story keeps the old range, and with Selection scope the cached `end` is not shortened after shorter replacements, so later Change/Find can reach past the original selection. Fixing that needs `findChange` to return the length change of each change op (or the window to rebuild the range without the replaced text selected); deferred. Checked with `tsc --noEmit`; not run in a browser.

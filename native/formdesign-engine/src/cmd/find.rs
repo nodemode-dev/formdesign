@@ -108,7 +108,7 @@ fn matches(doc: &Doc, sid: StoryId, scope: Option<Range<usize>>, q: &Query, re: 
                 while i < r.end && format_ok(doc, sid, i, &q.find_format) {
                     i += 1;
                 }
-                out.push((s..i, text.chars().skip(s).take(i - s).collect()));
+                out.push((s..i, q.change.clone().unwrap_or_else(|| text.chars().skip(s).take(i - s).collect())));
             }
             i += 1;
         }
@@ -154,6 +154,9 @@ fn scope_stories(c: &Ctx, p: &Value, q: &Query) -> Result<Vec<(StoryId, Option<R
 
 fn change(c: &mut Ctx, p: &Value) -> Result<Value> {
     let q = query(p)?;
+    if q.find.is_empty() && q.change.is_none() && q.change_format.is_empty() {
+        return Err(EngineError::new("a format-only find needs `change` (the new text) or `changeFormat`"));
+    }
     let re = regex(&q)?;
     let stories = scope_stories(c, p, &q)?;
     let mut work: Vec<(StoryId, Vec<Hit>)> = Vec::new();

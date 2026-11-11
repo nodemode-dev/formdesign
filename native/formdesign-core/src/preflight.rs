@@ -103,8 +103,11 @@ fn edges(d: &Doc, p: &Profile, out: &mut Vec<Value>) {
         let x1 = sp.page_x(sp.pages.len());
         let y1 = sp.pages.iter().map(|pg| pg.height).fold(0.0, f64::max);
         let first = d.first_page_of_spread(si);
-        for &id in &sp.items {
+        for id in d.walk(&sp.items) {
             let Some(it) = d.item(id) else { continue };
+            if matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }) {
+                continue;
+            }
             let Some(b) = d.bounds(id) else { continue };
             if let Some(need) = p.bleed
                 && painted(d, id)

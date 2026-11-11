@@ -417,9 +417,11 @@ export class PreferencesDialog {
     const c = await capabilities();
     const repo = repoDir(c) || 'path/to/formdesign';
     setText(this.endpoint, c.mcp ?? `${location.origin}/mcp`);
-    setText(this.lines.get('claude') ?? null, `claude mcp add formdesign -- ${repo}/formdesign mcp`);
-    setText(this.lines.get('codex') ?? null, `cd ${repo} && ./formdesign agents install`);
-    setText(this.lines.get('cursor') ?? null, `cd ${repo} && ./formdesign agents install`);
+    const win = repo.includes('\\');
+    const install = win ? `cd /d "${repo}" && formdesign.bat agents install` : `cd "${repo}" && ./formdesign agents install`;
+    setText(this.lines.get('claude') ?? null, `claude mcp add formdesign -- "${win ? `${repo}\\formdesign.bat` : `${repo}/formdesign`}" mcp`);
+    setText(this.lines.get('codex') ?? null, install);
+    setText(this.lines.get('cursor') ?? null, install);
     try {
       const s = await api<{ tools?: number; calls?: number; enabled?: boolean }>('/mcp/status');
       setChecked(this.agentsOn, s.enabled !== false);

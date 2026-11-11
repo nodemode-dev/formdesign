@@ -50,6 +50,10 @@ impl Images {
             Arc::new(vello_cpu::Pixmap::from_parts(px, d.width as u16, d.height as u16))
         });
         if let Ok(mut m) = self.pix.write() {
+            if key.1 != 0 {
+                let top = m.keys().filter(|k| k.0 == key.0).map(|k| k.1).max().unwrap_or(0);
+                m.retain(|k, _| k.0 != key.0 || k.1 == top);
+            }
             m.insert(key, made.clone());
         }
         made
@@ -71,6 +75,10 @@ impl Images {
         }
         let decoded = if is_pdf(asset) { render_pdf(asset, key.1 as f64 / 4.0) } else { decode(&asset.data) }.map(Arc::new);
         if let Ok(mut m) = self.cache.write() {
+            if key.1 != 0 {
+                let top = m.keys().filter(|k| k.0 == key.0).map(|k| k.1).max().unwrap_or(0);
+                m.retain(|k, _| k.0 != key.0 || k.1 == top);
+            }
             m.insert(key, decoded.clone());
         }
         decoded

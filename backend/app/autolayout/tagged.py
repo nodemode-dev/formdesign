@@ -41,4 +41,4 @@ def paragraphs_to_tagged(paras: list[dict]) -> str:
 
 
 def tagged_b64(paras: list[dict]) -> str:
-    return base64.b64encode(paragraphs_to_tagged(paras).encode("ascii")).decode()
+    return base64.b64encode(paragraphs_to_tagged(paras).encode("utf-8")).decode()

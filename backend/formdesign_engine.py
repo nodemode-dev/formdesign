@@ -17,6 +17,12 @@ def free(port: int) -> bool:
             return False
 
 
+def spare() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def selfcheck() -> int:
     info = {"python": sys.version.split()[0]}
     for name in ("PIL", "fastapi", "uvicorn", "pypdfium2", "docx", "openpyxl", "markdown_it"):
@@ -43,12 +49,13 @@ def main() -> int:
     if os.path.isdir(bundled):
         os.environ.setdefault("FORMDESIGN_DIST", bundled)
     os.environ.setdefault("FORMDESIGN_DESKTOP", "1")
+    wanted = int(os.environ.get("FORMDESIGN_PORT", "8196") or 0)
+    port = wanted if wanted and free(wanted) else spare()
+    os.environ["FORMDESIGN_PORT"] = str(port)
     import uvicorn
 
     from app.main import app as fastapi_app
 
-    wanted = int(os.environ.get("FORMDESIGN_PORT", "8196") or 0)
-    port = wanted if wanted and free(wanted) else 0
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
     return 0
 

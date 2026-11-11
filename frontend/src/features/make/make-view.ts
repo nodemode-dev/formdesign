@@ -220,7 +220,7 @@ export class MakeView {
     setClass(q(this.root, '.mk-pack'), 'is-stale', stale);
     setText(q(this.root, '.mk-analyse-label'), this.pack ? (stale ? 'Analyse again' : 'Analysed') : 'Analyse');
     setDisabled(q<HTMLButtonElement>(this.root, '.mk-analyse'), this.busy || !this.hasInput || this.fresh);
-    setDisabled(q<HTMLButtonElement>(this.root, '.mk-make'), this.busy || (!this.hasInput && !this.pack));
+    setDisabled(q<HTMLButtonElement>(this.root, '.mk-make'), this.busy || !this.hasInput);
     setText(q(this.root, '.mk-make-label'), this.variations > 1 ? `Make ${this.variations} layouts` : 'Make layout');
     setText(q(this.root, '.mk-step-v'), String(this.variations));
     setDisabled(q<HTMLButtonElement>(this.root, '.mk-dec'), this.variations <= 1);
@@ -253,8 +253,8 @@ export class MakeView {
     const sig = this.sig();
     try {
       let pack: Pack;
-      if (!this.files.length && (this.source || this.pack)) {
-        const id = this.source?.pack ?? this.pack?.pack ?? '';
+      if (!this.files.length && this.source) {
+        const id = this.source.pack;
         pack = await api<Pack>(`/intake/${encodeURIComponent(id)}`, { method: 'PATCH', json: { brief: this.brief.value } });
       } else {
         const fd = new FormData();
@@ -485,8 +485,8 @@ export class MakeView {
 
   async make(): Promise<void> {
     if (this.busy) return;
-    if (!this.fresh && this.hasInput) {
-      if (!(await this.analyse())) return;
+    if (!this.fresh) {
+      if (!this.hasInput || !(await this.analyse())) return;
     }
     const pack = this.pack;
     if (!pack) return;

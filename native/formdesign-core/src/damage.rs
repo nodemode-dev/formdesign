@@ -5,6 +5,7 @@ use formdesign_engine::canvas::{Canvas, SpreadRef};
 use formdesign_model::doc::Doc;
 use formdesign_model::geom::Rect;
 use formdesign_model::ids::{ItemId, StoryId};
+use formdesign_model::story::{Inline, Seg};
 
 struct Acc<'a> {
     cv: &'a Canvas,
@@ -100,6 +101,16 @@ pub fn damage(old: &Doc, new: &Doc, cv: &Canvas) -> Option<Vec<[f64; 4]>> {
     }
     if wrapped {
         acc.stories.extend(new.stories.keys().copied());
+    }
+    if !acc.stories.is_empty() || !acc.out.is_empty() {
+        let names: Vec<&str> = new.variables.iter().filter(|v| matches!(v.kind.as_str(), "runningHeader" | "liveCaption")).map(|v| v.name.as_str()).collect();
+        if !names.is_empty() {
+            for (sid, st) in &new.stories {
+                if st.paras.iter().any(|p| p.segs.iter().any(|g| matches!(g, Seg::Inline { inline: Inline::Variable { name }, .. } if names.contains(&name.as_str())))) {
+                    acc.stories.insert(*sid);
+                }
+            }
+        }
     }
     let stories: Vec<StoryId> = acc.stories.iter().copied().collect();
     for sid in stories {

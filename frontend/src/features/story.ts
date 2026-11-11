@@ -166,6 +166,8 @@ class StoryEditor {
     while (a < prev.length && a < next.length && prev[a] === next[a]) a++;
     let b = 0;
     while (b < prev.length - a && b < next.length - a && prev[prev.length - 1 - b] === next[next.length - 1 - b]) b++;
+    if (a > 0 && /[\uD800-\uDBFF]/.test(prev[a - 1])) a--;
+    if (b > 0 && /[\uDC00-\uDFFF]/.test(prev[prev.length - b])) b--;
     const start = bytes(prev.slice(0, a));
     const end = bytes(prev.slice(0, prev.length - b));
     this.saving = true;

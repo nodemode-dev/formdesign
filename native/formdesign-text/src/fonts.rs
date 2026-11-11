@@ -564,7 +564,12 @@ impl FontBook {
         if found.is_none() {
             let ids: Vec<fontdb::ID> = self.db.read().ok()?.faces().map(|f| f.id).collect();
             for id in ids.into_iter().take(4000) {
-                if let Some(f) = self.open(id)
+                let mut probe = false;
+                if let Ok(db) = self.db.read() {
+                    db.with_face_data(id, |d, i| probe = FontRef::from_index(d, i).ok().and_then(|f| f.charmap().map(c)).is_some());
+                }
+                if probe
+                    && let Some(f) = self.open(id)
                     && f.covers(c)
                 {
                     found = Some(f);

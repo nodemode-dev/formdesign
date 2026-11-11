@@ -43,6 +43,9 @@ impl Color {
 
     pub fn from_hex(s: &str) -> Option<Color> {
         let h = s.trim().trim_start_matches('#');
+        if !h.is_ascii() {
+            return None;
+        }
         let full: String = match h.len() {
             3 => h.chars().flat_map(|c| [c, c]).collect(),
             6 | 8 => h[..6].to_string(),
@@ -57,7 +60,10 @@ impl Color {
             Value::String(s) => Color::from_hex(s),
             Value::Object(o) => {
                 let arr = |k: &str| o.get(k).and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect::<Vec<_>>());
-                let scale = |v: Vec<f64>, max: f64| v.into_iter().map(|x| if max > 1.0 && x > 1.0 { x / max } else { x }).collect::<Vec<_>>();
+                let scale = |v: Vec<f64>, max: f64| {
+                    let big = v.iter().any(|x| *x > 1.0);
+                    v.into_iter().map(|x| if max > 1.0 && big { x / max } else { x }).collect::<Vec<_>>()
+                };
                 if let Some(c) = arr("cmyk").filter(|a| a.len() == 4) {
                     let c = scale(c, 100.0);
                     return Some(Color::Cmyk([c[0], c[1], c[2], c[3]]));

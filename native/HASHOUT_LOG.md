@@ -2,10 +2,194 @@
 
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
-Current build version: v0.85.3
-Last updated: 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Current build version: v0.85.5
+Last updated: 2026-11-10 · IDML stroke tint and image resolution; 2026-11-10 · HTML entities and intraword underscores on import; 2026-11-10 · IDML link paths decoded as UTF-8; 2026-11-10 · font names filtered in export CSS; 2026-11-10 · PSD formats and sizes checked before decoding; 2026-11-10 · raster scale from the determinant; 2026-11-10 · Separations preview leaves soft masks alone; 2026-11-10 · placed PDF renders bounded per asset; 2026-11-10 · font fallback probes the character map in place; 2026-11-10 · drop cap letters out of the first line's measure; 2026-11-10 · repaint of running headers and live captions; 2026-11-10 · No Break inside the run; 2026-11-10 · newer-format check before parsing; 2026-11-10 · Place reports unplaceable files; 2026-11-10 · thread cursor on groups and refused threads; 2026-11-10 · widow cut takes back its footnotes; 2026-11-10 · Sort Rows keeps exact heights; 2026-11-10 · small caps in website export; 2026-11-10 · Find index markers; 2026-11-10 · raster text brushes in the run's space; 2026-11-10 · unknown align edges refused; 2026-11-10 · hyphenated page names in ranges; 2026-11-10 · rows inserted in a table footer; 2026-11-10 · index order for accented topics; 2026-11-10 · XML tag names checked everywhere; 2026-11-10 · style based-on cycles refused; 2026-11-10 · Trace Image on a transparent picture; 2026-11-10 · Change Case per character; 2026-11-10 · grey percent read back; 2026-11-10 · colour arrays scaled as a whole; 2026-11-10 · RTF code page and Unicode fallback; 2026-11-10 · non-ASCII hex colours refused; 2026-11-10 · GPU tile budget ceiling and error handler; 2026-11-10 · overlapping row and column deletes; 2026-11-10 · page deletion cleans anchored objects and links; 2026-11-10 · native canvas shadows under every page; 2026-11-10 · preflight bleed inside groups; 2026-11-10 · numeric references in Import XML; 2026-11-10 · layer views of duplicated frames; 2026-11-10 · section starts follow duplicated and moved pages; 2026-11-10 · tool state left behind on a document change; 2026-11-10 · IDML OverrideList read back; 2026-11-10 · swatches carried with pasted text and styles; 2026-11-10 · table and cell style rename; 2026-11-10 · frame.thread target check; 2026-11-10 · IDML language names; 2026-11-10 · forced line breaks in IDML export; 2026-11-10 · Arrange on several objects; 2026-11-10 · bounded table import; 2026-11-10 · clipboard in table cells; 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · IDML stroke tint and image resolution (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` build_item; `formdesign-interchange/src/idml/write.rs` W::item (ItemKind::Graphic)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`common` writes `StrokeTint` from the same paint_ref as `FillTint`, but build_item only applied `FillTint`; a swatch stroke now takes `StrokeTint / 100` the same way. The `<Image>` element had no resolution, so the reader's `EffectivePpi`/`ActualPpi` lookup fell back to 72 and set `pixels` to the point size; the writer now adds `ActualPpi="px py"` from `asset.ppi` for images (not PDFs). Still open: a direct gradient that is not a swatch is written by `Colors::paint_ref` as `Swatch/None`, so the fill is lost; writing it needs an unnamed `<Gradient>` resource with its stops and a matching read. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · HTML entities and intraword underscores on import (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/text.rs` entity, markdown
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+entity was a chain of six `replace` calls, so `&rsquo;`, `&mdash;`, `&#8217;` and the like stayed literal in placed HTML (and in XLSX text, which also goes through it). It now scans once: `&#N;` and `&#xH;` become their code point, a short list of common named entities is mapped, and anything else (or an `&` with no `;` within 12 bytes) is kept as written; `&amp;lt;` still gives `&lt;`. markdown toggled italic at every `_`; a single `_` with a letter or digit on both sides is now text. Checked: `cargo check -p formdesign-interchange`; a scratch program outside the repo calling `text::html` and `text::markdown` on the reported cases.
+
+## v0.85.5 · IDML link paths decoded as UTF-8 (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` uri_path
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+uri_path pushed each percent-decoded byte as a `char`, so `caf%C3%A9.jpg` became `cafÃ©.jpg` (missing link, garbled asset name), and `&p[i + 1..i + 3]` panicked when a multi-byte character followed `%`, which failed the whole open. It now collects bytes, decodes `%` only before two ASCII hex digits (so the slice is always on a char boundary), and returns `String::from_utf8_lossy`. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · font names filtered in export CSS (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/publish.rs` css (used by html and epub)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+css formatted `cp.font` straight into `font-family:"{}"` inside the export's `<style>`, so a paragraph style font from an imported IDML could close the string and the element and add a live `<script>`. The name now drops `<`, `>`, `"`, backslash and control characters; without a quote or backslash it cannot leave its CSS string, and without `<` it cannot end the style element. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · PSD formats and sizes checked before decoding (2026-11-10)
+
+- refers-to: `formdesign-render/src/psd.rs` Psd::decode, decode
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Psd::decode read depth 32 (and 1) with one byte per sample, and the placing path showed indexed (2), multichannel (7) and Lab (9) files as grey or RGB noise. It also sized `counts` and `plane` from header and layer values before reading data, so a layer rect of 0..2^31 or 65,535 channels asked for multi-GB or overflowing capacity. Psd::decode now returns None unless depth is 8 or 16 and 1 to 56 channels, computes `row * h * chans` with checked multiplication, and for RLE refuses a size more than 64 times the body (PackBits never expands better than 128 bytes from 2); `counts` starts empty. The public `decode` used for placing refuses modes other than greyscale, RGB, CMYK and duotone. Checked: `cargo check -p formdesign-render`.
+
+## v0.85.5 · raster scale from the determinant (2026-11-10)
+
+- refers-to: `formdesign-render/src/raster.rs` paint (Brush::Radial), draw_ops Op::Glyphs stroke
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+paint scaled a radial gradient's radius by `|dev[0]|`, which is 0 under a 90 or 270 degree spread rotation (canvas.rs puts the rotation in the placed transform), so the radius became about 1e-6 of itself. Glyph strokes used `wgt * s`, the view scale only, while pdf.rs strokes inside `op.xf`, so a frame scaled 300% showed a thinner outline in raster. The radius now uses `sqrt(|a d - b c|)` of `dev`, and the stroke `wgt * px_size / size`, which is `wgt * s * sqrt(|det g.xf|)`. Checked: `cargo check -p formdesign-render`; [0, 1, -1, 0] gives 1 and a uniform scale of 2 gives 2.
+
+## v0.85.5 · Separations preview leaves soft masks alone (2026-11-10)
+
+- refers-to: `formdesign-render/src/raster.rs` draw_ops, Op::PushMask
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The mask's inner ops were drawn with the caller's `env`, so with `plate` set, plate_brush turned the mask's luminance greys into the plate's density (0 on C, M, Y and spot plates, so white): masks became opaque and feathers, drop shadow fades and opacity masks vanished on those plates. The PushMask arm now draws its content with a DrawEnv copied field by field with `plate: None`, matching sep.rs plate_ops, which leaves masks to the PDF. Checked: `cargo check -p formdesign-render`.
+
+## v0.85.5 · placed PDF renders bounded per asset (2026-11-10)
+
+- refers-to: `formdesign-render/src/images.rs` Images::get, Images::pixmap
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Both caches were keyed on (asset, quarter-step scale bucket up to 64) with no eviction, so every zoom step over a placed PDF kept a full-page render (up to 8,000 px on the long side) in `cache` and its premultiplied copy in `pix` until `forget`. Before inserting a PDF bucket, each cache now drops the asset's other buckets except the largest one present, so an asset holds at most two renders per cache (the largest, which export and deep zoom reuse, and the newest). Raster images keep their single bucket 0. Checked: `cargo check -p formdesign-render`; memory was not measured.
+
+## v0.85.5 · font fallback probes the character map in place (2026-11-10)
+
+- refers-to: `formdesign-text/src/fonts.rs` FontBook::fallback
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+For a character no fallback family covers, fallback called `open` on up to 4,000 database faces; `open` copies the face's whole source file (`d.to_vec()`, once per index of a collection) and keeps every opened face in `faces` for the life of the process. Each candidate is now probed under `db.with_face_data` with `FontRef::from_index(d, i)` and `charmap().map(c)`, without a copy, and only a face whose cmap has the character is opened and checked with `covers`. The negative result is still cached in `fallback_for`. Checked: `cargo check -p formdesign-text`; memory was not measured.
+
+## v0.85.5 · drop cap letters out of the first line's measure (2026-11-10)
+
+- refers-to: `formdesign-text/src/compose.rs` trim_front and its call in compose
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`geom` already takes the drop cap width off the first `drop_lines` lines, but trim_front only moved the first word's mark past the dropped letters and kept its Box width, so breaking and build_line's justification ratio counted those letters twice (first lines broke early; justified first lines ended short). A word cut by the drop cap now gets `Box { w: sh.width(upto..b) }`. Words and Space marks wholly between the drop cap's start (`input.prefix`) and its end become zero-width at `(upto, upto)`, so build_line's `start` (the minimum mark start, and after_drop's first word) is the drop cap end and a space inside the drop cap is not drawn again. List prefix marks before `input.prefix` keep their old handling. Checked: `cargo check -p formdesign-text`.
+
+## v0.85.5 · No Break inside the run (2026-11-10)
+
+- refers-to: `formdesign-text/src/compose.rs` prepare
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The retain test kept any opportunity whose previous character was a space, including a space inside the No Break run, so the break after "New " in a No Break "New York" survived; hyphenation points were added regardless of `no_break`. `inside_no_break(i)` is true when the segment at `i` and the segment at the previous character are both No Break; opportunities and hyphenation points for which it is true are dropped, so breaks at either edge of the run stay. Checked: `cargo check -p formdesign-text`.
+
+## v0.85.5 · widow cut takes back its footnotes (2026-11-10)
+
+- refers-to: `formdesign-text/src/flow.rs` Flower::place_para
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The widow branch truncated `out.lines` and `out.anchors` but left the cut lines' footnotes in `out.notes` and their height in `note_height`; the lines were composed again in the next column and `place_note` placed the same ordinal again, so it printed twice and the first column kept its space. place_para now keeps `note_added`, the heights each placed line added (pushed beside `anchor_marks`), and the widow cut pops those notes in reverse, restores `note_cols` tops and subtracts the heights from each line's own `note_key`, as the `has_note` overflow branch does. Checked: `cargo check -p formdesign-text`.
+
+## v0.85.5 · raster text brushes in the run's space (2026-11-10)
+
+- refers-to: `formdesign-render/src/raster.rs` draw_ops, Op::Glyphs
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+scene.rs run_fill makes a text gradient over `Rect(r.x0, -size, r.x1, 0)` in line space (the space of `GlyphOp.xf`), but raster painted it with `paint(brush, dev)` while the glyph paths go through `dev * glyph_xf`, so for any frame away from the page origin the ramp missed the text and it showed one end colour. When `per_glyph` is None the fill and stroke brushes are now painted with `dev * g.xf`; text on a path keeps `dev`. Still open: pdf.rs draw_glyphs uses the brush inside `op.xf * translate(x0) * scale(hscale, vscale) * skew`, so PDF gradients on text are shifted by the line's start x and scaled; underline, strike and kenten gradients are built in line space but drawn with page-space brushes. Both need the brush mapped through an affine that is not conformal under skew and non-uniform scale, which a point transform of the gradient ends does not give. Checked: `cargo check -p formdesign-render`.
+
+## v0.85.5 · RTF code page and Unicode fallback (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/text.rs` rtf
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`\'xx` was pushed as the Latin-1 character, so cp1252 quotes and dashes (0x80 to 0x9F) became C1 controls; `uc_skip.max(1)` overrode an explicit `\uc0` and ate the next character; the fallback after `\u` was skipped by raw characters, leaving the tail of a `\'80` in the text. Bytes 0x80 to 0x9F now go through the cp1252 table while `\ansicpg` is 1252 (the default; the five unassigned bytes stay as they are), `uc_skip` starts at 1 and is used as given, and the skip counts `\'xx`, a control word with its number and delimiter space, or a control symbol as one character and stops at `{` or `}`. Checked: a scratch program outside the repo calling `text::rtf` on the three reported cases, a two-character fallback that is a control word, and `\ansicpg1251` (unchanged).
+
+## v0.85.5 · IDML OverrideList read back (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` Ctx, build_item, read (spread pages)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+write.rs puts `page.detached` in each `<Page OverrideList>`, but the reader never read it, so pages overridden with Override All Parent Page Items reopened with an empty `detached` list and drew the parent item under its local copy. `Ctx.item_ids` now maps each item's IDML `Self` to its new ItemId as build_item inserts it (parent spreads are built before page spreads), and each page's `detached` is filled from the mapped OverrideList ids; unknown ids are skipped. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · IDML language names (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/write.rs` char_attrs; `formdesign-interchange/src/idml/read.rs` lang
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The model stores BCP-47 tags; char_attrs wrote them as `AppliedLanguage="$ID/de-DE"`, and `read::lang` maps only IDML names, defaulting to en-US, so a round trip reset every language and reflowed hyphenated text. char_attrs now writes the inverse of `read::lang` for the fifteen mapped tags (empty is `[No Language]`), and other tags as they are; `lang` returns a value of at most 16 characters with a hyphen and no space unchanged before the en-US default. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · forced line breaks in IDML export (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/write.rs` W::para
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+W::para split text segments on U+2028 and wrote `<Br/>` between the parts; `<Br/>` is a paragraph return in IDML and in read.rs, so every soft return became a new paragraph on reopening. The segment is now written whole in one `<Content>`; `esc` already keeps U+2028, and the reader keeps it (and turns a raw newline in `<Content>` into U+2028). Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · bounded table import (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` table_of; `formdesign-interchange/src/text.rs` table_of, xlsx col_of and cell write
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Table sizes came straight from the file and gaps were found with `Table::cell`, a linear scan: a 3,000 by 3,000 IDML table with no `<Cell>` never finished, `r="ZZZZZZ1"` in an .xlsx resized a row to about 321 million strings and aborted the core, and text tables wrote each cell through `cell_mut` (quadratic). IDML now keeps at most 1,000 `<Column>` and 100,000 cells' worth of `<Row>`, skips `<Cell>` elements outside the grid (they would also index `col_x` past its end in the flow), and pushes filler cells from a `rows * cols` coverage mask with saturating span ends. Text tables keep at most 1,000,000 cells and write `cells[r * cols + k]` (Table::new lays cells out row-major). XLSX skips cells past column XFD (16,383) and col_of saturates. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · size limit on zipped XML parts (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` read; `formdesign-interchange/src/text.rs` docx and xlsx `read` closures
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`read_to_string` inflated each entry with no limit, and the IDML reader read every `.xml` entry, referenced or not, so a 4 GB entry of zeros (about 4 MB deflated) made the core abort on a failed allocation. Each XML part is now refused when `size()` is over 64 MB and read through `take(cap + 1)`, refused if more than the cap arrives; IDML also stops past 512 MB of XML in total and names the part. In DOCX and XLSX an oversized part reads as missing. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · XML nesting depth limit (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/dom.rs` parse
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+parse builds the tree with an explicit stack, but `El` clone, drop, `find`, `find_all` and `text` recurse per level, so 100,000 nested elements (a few KB deflated) overflowed the core's stack and aborted the process (SIGABRT, not a panic, so proto.rs could not catch it). parse now returns `Err("XML nested too deeply")` when a start tag would open a 513th level; no real IDML, DOCX or XLSX part comes near that. Checked: `cargo check -p formdesign-interchange`.
+
+## v0.85.5 · IDML links read only as regular image files (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` build_item, read_link
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+build_item ran `std::fs::read` on any `LinkResourceURI` of a frame without `<Contents>`: `/dev/zero` grew the core until it was killed, a FIFO hung it, a private file became the asset's data (mime from the extension, so HTML, EPUB and IDML export embedded it), and a UNC path on Windows made the OS authenticate to that host. read_link refuses paths starting with `\\` or `//` before touching the file system, needs `metadata().is_file()` and at most 256 MB, reads the first 12 bytes and keeps the file only for a PNG, JPEG, GIF, TIFF, WebP, PDF, PSD or EPS signature, then reads the rest through `take`. Anything else is a missing link. Checked: `cargo check -p formdesign-interchange`; a crafted IDML was not opened.
+
+## v0.85.5 · table cell lines placed whole, with their paragraph (2026-11-10)
+
+- refers-to: `formdesign-text/src/flow.rs` Flower::table_row, continued_row, the compose_cell closure in the table placer
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+table_row and continued_row shifted only glyph runs and marks into the cell, so `carets`, `tabs`, `objects` and `left` stayed frame-relative at 0: celltext.rs hit-tests and draws the caret from `line.carets`, so clicks and the caret in every cell were wrong, and scene.rs drew tab leaders from x 0. compose_cell flattened all of a cell's paragraphs and every PlacedLine said `para: 0`, so a cell's later paragraphs had no caret line and borrowed paragraph 0's text ranges. Both now use `offset_line`, and compose_cell returns `(paragraph index, Line)` pairs that table_row writes into `PlacedLine.para`. Not changed: scene.rs still gives cell lines `Para::text()` rather than the built text, so a list prefix in a cell shifts that paragraph's text ranges. Checked: `cargo check -p formdesign-text -p formdesign-render`.
+
+## v0.85.5 · paragraph position map after markers, variables and footnote numbers (2026-11-10)
+
+- refers-to: `formdesign-text/src/para.rs` build_with; `formdesign-text/src/flow.rs` Flow::story_pos
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`Built::chars` is indexed by story character, and a marker, variable, cross-reference or footnote number is one story character however many characters it shows. build_with pushed one entry per shown character, so every later character mapped `count - 1` positions too far (page number 10 or later, any variable, a two-digit footnote): caret, clicks, selection and overset positions all drifted. The four extra-entry loops are gone. Hidden text and Note, Index and Anchor inlines still share a byte with the next character; story_pos now takes the last index of an equal run, so a click there lands after the zero-width inline. Checked: `cargo check -p formdesign-text`.
 
 ## v0.84.9 · layout core tests (2026-10-26)
 
@@ -151,6 +335,7 @@ native/
 - [formdesign-text](#text)
 - [formdesign-render](#render)
 - [formdesign-interchange](#interchange)
+- [formdesign-gpu](#gpu)
 - [formdesign-engine](#engine)
 
 ---
@@ -203,6 +388,13 @@ One request per line: `{"id", "method", "params"}`. One reply line per request: 
 
 After every method the core compares (active document uid, document Arc pointer, document revision) with what it saw last. A difference bumps `rev` and asks `damage.rs` for the rectangles to repaint, mapped from spread to canvas coordinates: a list the window repaints, or `null` for everything. `selRev` moves when the document, the tool, the selection or the engine's own selection counter changes, so the window refreshes overlays without re-rendering pixels. UI requests the engine queued (dialogs, file pickers, view changes) ride out in the reply's `requests`. The canvas methods (`layout`, `tiles`, `page.png`, `overlays`, `pointer`, `key`, `text`, `cursor`, `tool`, `tools`) are answered by formdesign-engine's `view` and `input` modules; the core adds only the protocol around them.
 
+### core.rs · call restores the document after a panic
+- refers-to: native/formdesign-core/src/core.rs :: Core::call
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The only panic boundary was `serve`'s `catch_unwind` around `call`, whose message promised a rollback that never happened: commands edit the live document, `Session::execute` restores it only on an `Err`, so a panic after the first edit left a half-applied document with no undo entry, and `call` skipped clearing the turn and `settle`, so that reply's `rev`, `changed` and `damage` were stale. `call` now keeps the active document and selection from before the request, catches a panic around `dispatch`, puts both back on the document with the same uid (bumping its revision), answers "`X` failed inside the layout core; the document was restored", and always clears the turn and settles. `serve`'s guard stays as a second line. Checked with `cargo check -p formdesign-core`; no panicking command was driven.
+
 ### core.rs · batch
 - refers-to: native/formdesign-core/src/core.rs :: Core::batch
 - kind: rationale
@@ -216,6 +408,13 @@ Batches run through formdesign-engine's `Session::batch`: one undo step, `$N` an
 - logged: v0.7.0 · 2026-10-08
 
 The Glyphs panel draws characters in the document's own fonts, which the window cannot otherwise reach. `fonts.styles` lists a family's styles; `fonts.face` answers the face's character map as JSON (every code point the cmap maps); `fonts.data` answers the font file as binary, served by the engine at `/api/core/font` with a private one-hour cache.
+
+### core.rs · fonts.add invalidates layouts
+- refers-to: native/formdesign-core/src/core.rs :: Core::dispatch ("fonts.add")
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The engine caches a document's layout and drawing operations by its revision (`DocState::layout`, `DocState::ops`), and `fonts.add` loaded faces into the shared font book without touching any revision, so a document drawn with a fallback face kept the fallback's metrics and glyphs on the canvas and in overset, preflight and export until an unrelated edit. When at least one face is added, every open document's revision now moves on and `prev_doc` is dropped, so the caches rebuild and the reply's damage is `null` (full repaint). Checked with `cargo check -p formdesign-core`; not driven with a missing font.
 
 ### core.rs · object_styles
 - refers-to: native/formdesign-core/src/core.rs :: Core::object_styles
@@ -242,6 +441,13 @@ With no target it lists the styles (fill, stroke and paragraph style read from t
 
 Items and stories sit behind `Arc`s that clone on write, so an unchanged one is the same pointer in the old and new document and the diff costs one pointer compare per object. A changed item damages its old and new bounds (inflated by its stroke, or by 48 points when it has effects such as a shadow); a changed story damages every frame of it in both documents, and its anchored objects; a change to an item with text wrap reflows every story, so all text frames are damaged. Changes the canvas cannot localise answer `null`: settings, styles, swatches, layers, sections, conditions, variables, document preferences, assets, parents (they show on many pages) and any change of pages or guides. A spread whose item list reordered damages those items.
 
+### damage.rs · frames with running headers and live captions
+- refers-to: native/formdesign-core/src/damage.rs :: damage
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A Running Header or Live Caption variable shows text from another story (the page's heading) or item (the nearest picture), but its own story and item keep their `Arc`, so editing a heading or moving a picture left the header or caption tiles stale. When a call changed any story or item, `damage` now also adds every story holding a variable whose kind is `runningHeader` or `liveCaption` (top-level paragraphs, not cells or footnotes), so their frames repaint; on a parent page that makes the repaint full, as parent items always do. The scan runs only when something changed and the document defines such a variable (every new document defines Running Header, so it is a scan of the story segments per edit). Cross-references are not tracked here. Checked with `cargo check -p formdesign-core`; not seen in a window.
+
 ---
 
 ## formdesign-core/src/textloc.rs {#textloc}
@@ -252,6 +458,13 @@ Items and stories sit behind `Arc`s that clone on write, so an unchanged one is 
 - logged: v0.17.0 · 2026-10-10
 
 Find and spelling see text as the window does: one character per model position, paragraphs joined by `\n`, and each inline object as the private-use marker the window's codes expect (page numbers U+E000, U+E007, U+E008, section U+E001, column, frame and page breaks U+E002 to U+E004, indent here U+E005, right tab U+E006, footnote U+E009, table U+E00A, anchored object U+E00E, note U+E00F, variable U+E010). Every marker is three bytes in UTF-8, as the model's own object character is, so byte offsets agree with the story text the window gets from `story.get`. A location is a story, or a table cell (addressed by the table's position in the story, row and column) or the n-th footnote of it; `view` copies that text into a standalone story so the model's editing methods work on cells and footnotes too, and `put` writes the paragraphs back. `spans` turns a character range into per-line segments in canvas space from the composed flow (line carets, baseline, ascent, descent), for match rects and spelling marks.
+
+### textloc.rs · index markers have their own character
+- refers-to: native/formdesign-core/src/textloc.rs :: marker_char; find.rs :: special
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`find.rs` searches `^I` / `~I` as U+E00D, but `marker_char` wrote index markers as U+E010 together with variables, anchors and cross-references, so an index-marker search never matched. Index markers are now U+E00D; the others keep U+E010. U+E00D is inside the structural range U+E009 to U+E010, so the replace and write guards still hold, and it is three bytes like every marker. Checked with `cargo check -p formdesign-core`; not driven.
 
 ---
 
@@ -277,6 +490,13 @@ Stories are taken in reading order (spread, then the first frame's top and left)
 - logged: v0.9.0 · 2026-10-08
 
 `next` starts after the selection when it lies in a target, goes to the end, then round once to just before where it started, and selects the hit without bumping the document revision (a selection is not an edit). `change` acts only when the selection is exactly a match, so a stale selection never rewrites the wrong text. Edits are applied back to front within each text location so earlier offsets stay valid, in one undo step (`Session::edit_now`); cell and footnote text is edited as a standalone story and written back into its table or footnote. A selection set by `next` or `select` on a cell or footnote hit covers the anchor character in the story, because the engine's text selection addresses stories only. Replacing text across a structural marker is refused and counted as skipped rather than deleting the footnote or table with it. The match rect for scrolling is the union of the line quads in canvas space, or the anchor character's for cells and footnotes.
+
+### find.rs · Change All edits a story's cells and footnotes before its main text
+- refers-to: native/formdesign-core/src/find.rs :: apply
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`apply` sorted a story's main text first. A cell is addressed by its table's character position in the main story, captured before any edit, so a replacement before the table that changed the text's length left the cell hits pointing at a position with no table: they were skipped silently and the count came out low, or the change went into another table that now sat there (trigger: "cat" in the body above a table and in a cell, Change All to "kitten"). The main text now ranks after the cells and footnotes (`(3, ..)` instead of `(0, ..)`), so those edits run while their addresses still hold and the main text, edited last from the end backwards, moves nothing still in use. Checked with `cargo check -p formdesign-core`; not driven.
 
 ---
 
@@ -328,6 +548,13 @@ formdesign-engine's `preflight.run` gives overset (the message ends with the num
 
 A read-only look at a type-on-path item's start, flip and align for the options dialog; calling `type.pathOptions` with no changes would have answered the same values but left an undo step.
 
+### preflight.rs · edges looks inside groups
+- refers-to: native/formdesign-core/src/preflight.rs :: edges
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`edges` iterated a spread's top-level items only, and a group (fill none, not a graphic) is not `painted`, so a grouped full-bleed image or colour block raised no `bleed` error and a grouped text frame no `trimSafety` warning. It now walks `d.walk(&sp.items)` and checks the members in spread coordinates (`Doc::bounds`), skipping the Group and States containers themselves; members of every state are checked, hidden ones too. Parent-page items are still not mapped onto the pages that use them (in `edges` or `on_pages`); that needs per-page placement and is left open. Checked with `cargo check -p formdesign-core`; not driven.
+
 ## formdesign-core/src/thumb.rs {#thumb}
 
 ### thumb.rs · snippet
@@ -346,6 +573,13 @@ A library item is a snippet (`snippet.export`, base64 of a `.fdoc` holding only 
 
 The core hands the engine data, not HTML: the site builder lives in Python where its rules can change without a core build. Placed items are walked through groups and kept when visible and on a page (the pasteboard is not content); a story appears once, where its first frame is, with the pages all its frames touch. Runs carry only what differs from their paragraph's resolved character properties (weight over 600, italic, underline, strike, caps, sup and sub, colour, family, a size ratio, the character style and a link), merged when equal, so a long story stays small. Text hyperlinks split runs at their character offsets; item hyperlinks become the item's `href` and page hotspots. Variables are written out with their values for the block's page, right tabs become tabs and then spaces, other inline objects (anchors, footnote, table and note marks) are dropped, forced line breaks become `\n`, deleted tracked changes and hidden conditional text are skipped. Styles are resolved through `basedOn` here because only the core can, and colours go out as hex from the document's paint resolution (tints applied). Style and swatch names go out in the window's spelling (`[Basic Paragraph]`, `[Black]`). Assets are fetched one at a time by `web.asset` so the `web` reply stays JSON.
 
+### web.rs · allSmallCaps exports as small caps
+- refers-to: native/formdesign-core/src/web.rs :: char_style_json
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The caps match listed `"allSmall"` but attribute validation stores `"allSmallCaps"`, so a character style in all small caps went out as `"caps": "none"`. `"allSmallCaps"` now maps to `"small"`. Checked with `cargo check -p formdesign-core`.
+
 ## formdesign-model {#model}
 
 ### formdesign-model · shape of the model
@@ -354,6 +588,27 @@ The core hands the engine data, not HTML: the site builder lives in Python where
 - logged: v0.13.0 · 2026-10-10
 
 The first piece of FormDesign's own engine, designed from the IDML and PDF specifications and published typesetting literature rather than from any other engine's source. Items live in one flat arena keyed by id, each behind an `Arc` so an undo snapshot of the whole document is a cheap clone and an edit copies only the item it touches (`item_mut` is `Arc::make_mut`). Spreads, parents and groups hold ordered id lists, which are the z-order. Stories are paragraph-major: a story is a list of paragraphs, each a style, its overrides and a list of segments that are either text runs or inline things (anchored items, footnotes, tables, variables, markers, breaks), so nothing hides in private-use characters and a paragraph's formatting is never inferred from a separator. Formatting is a key-value bag checked against one registry of keys (`KEYS`), resolved through a stack of default, style chain, paragraph and run into typed `CharProps` and `ParaProps`; a new attribute is one registry line and one field. The native file is a zip with an uncompressed `mimetype` first, `doc.json` and one `assets/<id>` per embedded file, and `load` also takes bare JSON so documents can be written by hand or by an agent.
+
+### color.rs · from_hex refuses non-ASCII
+- refers-to: native/formdesign-model/src/color.rs :: Color::from_hex
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The length check counted bytes and the 6 and 8 digit forms sliced `h[..6]` by byte, so a value of that byte length holding a multi-byte character panicked at a char boundary; a stored bad fill, stroke or kenten colour made every layout of its text panic. A string that is not all ASCII now returns `None` before slicing. Checked with `cargo check -p formdesign-model`.
+
+### color.rs · colour arrays scaled as a whole
+- refers-to: native/formdesign-model/src/color.rs :: Color::from_value
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The `scale` closure divided only the components above 1, so the 0-255 or percent form was guessed per component: `{"rgb": [255, 1, 0]}` became yellow and `{"cmyk": [100, 1, 0, 0]}` full cyan and magenta. It now divides every component when any is above 1, and reads the array as fractions otherwise. The `gray` guess just below (above 1 means percent) is unchanged here, because a bare `{"gray": n}` carries no model to say which it is; the engine's `wire::color_in` handles the `model: "gray"` form. Checked with `cargo check -p formdesign-model`.
+
+### format.rs · the newer-version check comes first
+- refers-to: native/formdesign-model/src/format.rs :: load, not_newer
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`load` read `format` from the fully deserialized `Doc`, so a later format whose fields changed failed first with a serde message ("missing field ...") and the newer-version message never showed; raw JSON documents had no check. Both paths now parse only `format` first (`Head`, missing reads as 0) and refuse with "this document was saved by a newer FormDesign (format N)" before deserializing the document. Checked with `cargo check -p formdesign-core`; no newer file was opened.
 
 ## formdesign-text {#text}
 
@@ -431,6 +686,22 @@ The package is read into a small element tree (`dom.rs`) and walked: Preferences
 
 Placed text arrives as paragraphs with style names; a paragraph with no style takes the frame's first paragraph style, and names the document lacks are created empty so the text keeps its structure. Tagged text follows the format the template compiler writes (`<ParaStyle:>`, `<CharStyle:>` runs, `<0xHHHH>` escapes, backslash escapes). Word files read `word/document.xml` with style ids resolved to names through `word/styles.xml`; bold and italic runs become font style overrides. HTML and EPUB take stories and images in reading order: articles when the document has them, otherwise first frames and images by page, then by row, then left to right. Paragraph styles become CSS classes from their resolved attributes and pick a heading element from their export tag or their name. The fixed-layout EPUB draws each page as an image and keeps the page's text, transparent, over it.
 
+## formdesign-gpu {#gpu}
+
+### composite.rs · plan draws all shadows, then all pages, then tiles
+- refers-to: native/formdesign-gpu/src/composite.rs :: Compositor::plan
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`plan` emitted shadow, paper and tiles page by page, and a page's shadow quad reaches twice the blur past its edge, so on a facing spread the right page's shadow was drawn over the left page's tiles: a grey band at every spine on the native canvas only. `plan` now stable-sorts its items by kind (shadows, pages, tiles) before returning, keeping each kind's order (and the order of reported missing tiles), as `frontend/src/gpu/webgl2.ts` and the Canvas 2D compositor already draw. Checked with `cargo check -p formdesign-gpu`; `examples/headless.rs` was not run (no GPU adapter here).
+
+### budget.rs, lib.rs · a fixed ceiling and a logging error handler
+- refers-to: native/formdesign-gpu/src/budget.rs :: CEILING, budget_for; lib.rs :: Gpu::build
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The tile budget was 60 percent of RAM with nothing bounding it by video memory (19 GB on a 32 GB machine with a 4 GB card), and no uncaptured-error handler was set, so a failed texture allocation reached wgpu's default handler, which panics, and the shell (release `panic = "abort"`) quit. `budget_for` now takes the smaller of that share and `CEILING` (1.5 GiB, about 6,100 tiles), and `Gpu::build` sets an uncaptured-error handler that writes the error to standard error. The module comment's "60 percent" is now the share below the ceiling. Not added: halving the budget and evicting when such an error arrives. Checked with `cargo check -p formdesign-gpu --examples`; no GPU here to exercise either.
+
 ## formdesign-engine {#engine}
 
 ### formdesign-engine · the session, undo and batches
@@ -439,6 +710,69 @@ Placed text arrives as paragraphs with style names; a paragraph with no style ta
 - logged: v0.15.0 · 2026-10-10
 
 Documents are immutable behind an `Arc`; a command that changes one calls `Ctx::doc_mut`, which clones on write, so the snapshot taken before the command is the undo step and costs only the parts that changed. A command that fails after changing the document is rolled back to that snapshot. Queries never call `doc_mut`, so they never bump the revision or add history, which the window's caches depend on. A batch runs its steps inside one group: every step's own history entries are replaced by one entry labelled with the steps' common label (or "Script"), and any failure restores the document and selection from before the batch, naming the step that failed. A string parameter that is exactly `$N` or `$N.field` is replaced by step N's result or that field of it, counting from 0, anywhere in the parameters.
+
+### session.rs · group keeps a batch's steps off the undo stack
+- refers-to: native/formdesign-engine/src/session.rs :: Session::group
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`group` used to remember the undo stack's length and cut the stack back to it after the steps. Once the stack holds `UNDO_LIMIT` (500) entries, each step's own entry evicts the oldest one, so the step entries slid below that length and stayed: after 500 edits and a 3-step batch, Undo went back to before the batch and the next Undos re-applied the batch's half-finished states, and older edits were lost; a failed batch left the same entries. Now the document's undo stack and agent-turn mark are taken out before the steps run and put back afterwards (on the document with the same uid, also when a step panics, which is caught and re-raised), so the steps never touch the real stack and the batch records its one entry as before. A batch step that is itself an Undo now finds an empty stack and fails the batch. Checked with `cargo check -p formdesign-engine`; the 500-edit case was not run.
+
+### session.rs · close_doc keeps the active document
+- refers-to: native/formdesign-engine/src/session.rs :: Session::close_doc
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The new active index came from the closed index, so closing a background tab switched documents (A active, close C: B became active; C active, close A: B again) and later commands acted on the wrong one. Now an active index after the closed one moves down by one, one before it stays, and only closing the active document itself takes the next (or last) document. Checked with `cargo check -p formdesign-engine`; not driven.
+
+### session.rs · `$$N` escapes a step reference
+- refers-to: native/formdesign-engine/src/session.rs :: reference, substitute
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Any string parameter exactly `$N` or `$N.field` was a step reference with no escape, so a price "$5" at step 0 failed the batch and at a later step it, or a GREP change "$1", became that step's whole result. Now `$$N` and `$$N.field` pass as the literal `$N` and `$N.field`, and a bare `$N` pointing past the steps run so far stays literal text; `$N.field` with no such step still fails. Non-atomic batches in core.rs share `substitute`. Checked with `cargo check -p formdesign-engine`; not driven.
+
+### ops.rs · arrange keeps a selection's own stacking
+- refers-to: native/formdesign-engine/src/ops.rs :: arrange
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`arrange` moved the ids one at a time in the order given and the command reversed them for front and forward, which suits only one of the two orders a selection can arrive in: with X, A, B, Y and A, B marquee-selected, Bring to Front gave X, Y, B, A and Send to Back B, A, X, Y, and with the other order Forward and Backward changed nothing. Now the ids are sorted by their index in their home list first: front moves the lowest first to the top, back the highest first to the bottom, forward the highest first and backward the lowest first by one place, with a per-home bound so an object never hops over a selected one that could not move. The input order (and the caller's `reverse` in cmd/object.rs) no longer matters. Checked with `cargo check -p formdesign-engine` and by tracing [X, A, B, Y] by hand (front and forward X, Y, A, B; back and backward A, B, X, Y).
+
+### transplant.rs · swatches named in text and styles travel along
+- refers-to: native/formdesign-engine/src/transplant.rs :: Mapper::attr_paints, Mapper::paras, Mapper::style
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`Mapper` copied the swatches of an item's own fill and stroke, never those named in its text or styles, so text coloured "Brand Red" (or a style with a swatch fill) pasted or imported into a document without that swatch lost its colour and the swatch never showed in the target. `attr_paints` reads the paint-valued attributes of an attribute map (`fill`, `stroke` or its `paint`, `underlineColor`, `strikeColor`, and `color` inside `ruleAbove`, `ruleBelow`, `shading`, `border`, `kenten`) and copies each missing swatch through `paint`; it runs on every paragraph's and segment's overrides in `paras` and on every style copied in `style`. Keys are listed rather than every value tried, because `Paint::from_value` reads any plain string as a swatch name. Checked with `cargo check -p formdesign-engine`; no paste was driven.
+
+### tools/mod.rs · reset_tools when the active document changes
+- refers-to: native/formdesign-engine/src/tools/mod.rs :: Session::reset_tools; session.rs :: open_doc, close_doc; formdesign-core/src/core.rs :: "docs.activate"
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`Session.tools` holds item ids and spread slots of the document that was active when they were set (pen anchors, the loaded thread cursor, the isolated group, collected content, artboard, mesh point, a gesture, the drawing mode's target object), and nothing reset it on a document change: pen points from A became a path in B, and a thread cursor loaded on frame 7 in A threaded B's item 7. `reset_tools` clears it, keeping the drawing mode without its target and the eyedropper sample (a look, not a reference); `open_doc` calls it, `close_doc` when the closing document is the active one, and `docs.activate` when the index really changes. An unfinished pen path is dropped, not drawn. Checked with `cargo check -p formdesign-core`; not driven.
+
+### wire.rs · color_in reads model gray as percent
+- refers-to: native/formdesign-engine/src/wire.rs :: color_in, color_out
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`color_out` always writes grey as a percentage, but `color_in` guessed percent or fraction from the number's size, so `{"model": "gray", "gray": 1.0}` (a 1 percent grey sent back by a swatch edit, a convert round trip or an agent) read as 100 percent black. With `model: "gray"` the value is now always a percentage; the size guess stays only when no model is given. Checked with `cargo check -p formdesign-engine`.
+
+### ops.rs, tools · thread target rule and edit_now_if
+- refers-to: native/formdesign-engine/src/ops.rs :: thread; tools/mod.rs :: Session::edit_now, Session::edit_now_if; tools/select.rs :: finish (G::Thread)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`ops::thread` turned any storyless second object into a text frame, and the loaded thread cursor reaches it with `hit_top`, which returns top-level groups: a group's children list was replaced, its members vanished from the page and stayed in the file, and a graphic frame lost its picture. The `frame.thread` command checks its target in cmd/object.rs; `ops::thread` now applies the same rule itself (an empty closed plain or graphic frame, else an error), so the tool path is covered too. `edit_now` always cloned the document, so a refused thread still recorded "Thread Text Frames" and set the dirty flag; `edit_now_if` takes a closure that returns whether it changed anything and drops the edit when not, `edit_now` calls it with "always", and the thread tool returns false when `ops::thread` fails (a frame it made for an empty-space click goes with it). The eyedropper's no-op case is not covered. Checked with `cargo check -p formdesign-core`; not driven.
+
+### tools/misc.rs · Place reports what cannot be placed
+- refers-to: native/formdesign-engine/src/tools/misc.rs :: finish (G::Place)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The Place tool discarded the error of `assets::make` (and of the text import) with `.ok()` and made the frame anyway, so a picked .svg or .eps (offered by the window's picker, unreadable by the asset maker) left an empty graphic frame and a "Place" undo step, used up the gun entry and said nothing. The error is now kept: with one, a toast "cannot place NAME: REASON" is queued and nothing is edited (the gun entry is still used up, as for an unreadable file); otherwise the placement runs through `edit_now_if` and returns whether `place_text` / `place_image` succeeded, so a failure there drops its frame and step. Checked with `cargo check -p formdesign-core`; not driven.
 
 ### formdesign-engine · the command catalogue and the window's wire format
 - refers-to: native/formdesign-engine/src/cmd/*.rs :: register; wire.rs :: char_in, char_out, para_in, para_out; target.rs :: items, text_targets, story_char
@@ -993,4 +1327,158 @@ The import is one `repaginate`: the closure splices copies of the picked pages (
 - logged: v0.76.0 · 2026-10-17
 
 Two designs were open: give `Op::Image` an adjustment field and teach every consumer (raster, PDF, separations, the GPU canvas, book and preflight passes) to apply it, or reuse the placed-layers precedent, where the frame keeps its settings plus a derived view picture and the scene draws that view instead of the file. The second was taken: one line in the scene makes every output show the adjustments, and the settings stay editable because the view is only ever rebuilt from them. The scene's order is adjust view, then layer view, then file, and the adjust view is built from the layer view when there is one, so the two stack. Each rebuild makes a new asset id rather than overwriting the old one, because the renderer caches decoded pictures by id and Undo brings the old document (and its old view) back; the old view is removed only when no other frame (a duplicate) still shows it. `refresh_adjust` runs after Edit Image, Retouch Image, a layer change and a link update, so the view always follows the picture underneath. The cost is document size: the view is embedded, as layer views are. The curve is monotone cubic (Fritsch-Carlson), so a curve that only rises never folds back; the dialog draws it with a TypeScript port of the same function, but its preview of the picture is the engine's (`image.adjustPreview`), since hue and the curve would otherwise need a second implementation kept in step.
+
+### file.recovery · stale snapshots never come back over a newer save
+- refers-to: native/formdesign-engine/src/cmd/file.rs :: recovery_save, recovery_open
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A snapshot was removed only by `file.recovery.save`, and only for a document still open and clean, so a document saved or closed after the 60 s autosave left its `<uid>.fdoc` behind and the next launch reopened it, dirty and holding the original path; saving it wrote the older content over the newer file. `recovery_save` now also removes every `<number>.fdoc` (and its `.json`) whose uid is not an open dirty document, and `recovery_open` skips and removes a snapshot whose source file was written after it. The backend calls `file.recovery.save` only while something is dirty, so a save of the last dirty document is cleaned up by the open-time check until the backend calls it on every tick. Checked with `cargo check -p formdesign-engine`; the relaunch sequence was not run.
+
+### art.rs · drop_text · a text frame made plain leaves its story
+- refers-to: native/formdesign-engine/src/cmd/art.rs :: drop_text, pathfinder, pathfinder_pieces, live_paint, shape_builder, knife, outline_stroke, offset_path; native/formdesign-engine/src/cmd/paths.rs :: compound, convert; native/formdesign-engine/src/cmd/draw.rs :: blend_into, expand_appearance
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These commands set a text frame, or a duplicate of one (which `ops::duplicate` gives a fresh story), to `ItemKind::Plain` without taking it out of its story. The story kept the shape as its frame, laid out overset with no text frame, and stayed visible to find, preflight, exports and IDML; Smart Text Reflow then picked it after typing and could thread new pages onto the shape until the page limit. `drop_text` removes the frame from `story.frames` and, when the list is empty, removes the story and its anchored items, the same steps as `Doc::remove_item`; each command calls it right before the kind change. Trace Image needs a placed image, so it never meets a text frame. Checked with `cargo check -p formdesign-engine`; not run through the app.
+
+### text caret · clamped before use, dropped after commands that rewrite a story
+- refers-to: native/formdesign-engine/src/cmd/text.rs :: insert_at_selection, text_delete; native/formdesign-engine/src/cmd/review.rs :: change_one, change_all, note_delete, note_to_text; native/formdesign-engine/src/cmd/xml.rs :: import_xml; native/formdesign-engine/src/cmd/file.rs :: file_place
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Accept or Reject Change (one or all), deleting a note or converting it to text, Import XML and placing a text file into a frame edited a story and left the caret where it was. After Reject All removed tracked insertions at the end of a story, the caret sat past the end; a word delete then read `chars[k - 1]` with `k` beyond the text and panicked, and typing went to the wrong place. Typing and `text.delete` now clamp the selection to `story.len()` first. The review commands drop a text selection in a story they changed (the two "All" commands drop any text selection once they changed something), Import XML drops it once it placed anything, and placing text selects the frame as placing an image does. Checked with `cargo check -p formdesign-engine`; not run through the app.
+
+### find.rs · Change All with a format-only find
+- refers-to: native/formdesign-engine/src/cmd/find.rs :: matches, change
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+With an empty `find` and a `findFormat`, `matches` gave each matched run its own text as the replacement, so Change All deleted the run and put the same text back: `change` was ignored and the reinserted text took the formatting before it, losing the matched format. The format branch now replaces with `change` and keeps the matched text only when `change` is absent; a format-only find with neither `change` nor `changeFormat` is refused, since it could only strip formatting. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### art.rs · anchored_release · markers deleted from the end
+- refers-to: native/formdesign-engine/src/cmd/art.rs :: anchored_release
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The release removed each object's one-character inline marker by position, in reverse selection order. When the selection listed the later object first, the earlier marker went first, the later one moved down by one, and the delete at its old position removed a real character while the object stayed anchored and was also put on the spread. The plan is now sorted by story and position and deleted from the end. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### clip.rs · the clipboard with a caret in a table cell
+- refers-to: native/formdesign-engine/src/cmd/clip.rs :: take, do_paste
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`take` and `do_paste` looked only at `selection.text`. With a cell caret (`selection.cell_text`), Paste made a new text frame on the first spread and moved the selection to it, and Copy and Cut answered "nothing to copy". A text clip pasted with a cell caret now goes through `insert_at_selection`, which already types into cells; Copy and Cut of a selected cell range slice the cell's paragraphs (through a scratch story, as `celltext` does) into a text clip, and Cut deletes it through `text.delete`, which handles cells. A clip of objects still pastes onto the spread. Checked with `cargo check -p formdesign-engine`; not run through the app.
+
+### object.rs · thread · only text frames and empty frames take a thread
+- refers-to: native/formdesign-engine/src/cmd/object.rs :: thread
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`ops::thread` turns `to` into a text frame, and the handler checked only that `to` existed. A group or multi-state object lost its kind while its children still named it as their group, so they were never drawn, selected or deleted; a graphic frame's picture was dropped silently. The handler now takes as `to` only a text frame, an empty closed plain frame or an empty closed graphic frame, and refuses anything else with a message. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### prod.rs · rename_table_refs · renaming a table or cell style
+- refers-to: native/formdesign-engine/src/cmd/prod.rs :: table_style_edit, rename_table_refs
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`table_style_edit` wrote `rename` straight into the style's name: no `style_key`, no duplicate check, and every table, cell and table style that named the old style kept the old name and lost its styling. The rename now goes through `Styles::rename` (which also moves based-on and next links), and `rename_table_refs` walks every paragraph with `walk::paras_where` (so tables in cells and footnotes too): a table style rename updates `Table.style`; a cell style rename updates `TableCell.style`, the five region keys (`headerCellStyle` and the rest) in each table's attrs, and the same keys in every table style. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### layout.rs · section starts after Duplicate Spread and Move Pages
+- refers-to: native/formdesign-engine/src/cmd/layout.rs :: duplicate_spread, pages_move
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Unlike `insert_pages` and `pages_import`, these two never touched `doc.sections`, so after inserting a spread's copy (or reordering pages) a section start stayed on its old page index and the numbering restarted on the wrong page. Duplicate Spread now moves every start at or after the insert point (never the first, at 0) on by the inserted page count. Move Pages sends every start other than 0 through the same index map as the pages, sorts the list and drops a start that lands on another. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### imaging.rs · layer views shared by duplicated frames
+- refers-to: native/formdesign-engine/src/cmd/imaging.rs :: drop_view, apply_layers
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A duplicate carries the original's `extra.layers.view` asset id. `apply_layers` rebuilt the view under that same id, so a layer change on the copy also changed the original, and `drop_view` removed the shared asset, leaving the original on the full file with its overrides still listed. A rebuilt view now gets a fresh id (as adjustment views do) and the old one goes through `drop_view`, which removes a view only when no other frame names it; the fresh id also keeps the renderer's decoded-picture cache, keyed by id, from showing the wrong version after Undo. Checked with `cargo check -p formdesign-engine`; not run with a layered file.
+
+### xml.rs · parse_children · numeric character references
+- refers-to: native/formdesign-engine/src/cmd/xml.rs :: parse_children
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+quick-xml 0.38 reports `&#233;` and `&#x2014;` as `Event::GeneralRef`, and the arm mapped only the five named entities and put "" in for the rest, so Import XML dropped every numerically escaped character. The arm now tries `BytesRef::resolve_char_ref` first and falls back to the named entities. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### layout.rs · delete_pages · deleted objects go through remove_item
+- refers-to: native/formdesign-engine/src/cmd/layout.rs :: delete_pages
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The objects of deleted pages were removed by hand (children, story frame, empty story, item), skipping the parts of `Doc::remove_item` that remove a dropped story's anchored objects and the object's hyperlinks and article entries. Anchored objects then stayed in `doc.items` with `anchored_in` naming a missing story and still showed in the button and form lists and in find. Each doomed object now goes through `remove_item`; it is already off every spread, so `detach_from_home` does nothing and the rest of the cleanup runs. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### table.rs · each_delete · overlapping row and column ranges
+- refers-to: native/formdesign-engine/src/cmd/table.rs :: each_delete, each
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Delete Row and Delete Column ran once per selected range, highest start first, and the selection keeps overlapping ranges (only identical ones are merged). After rows 3 to 4 went, the range "2 to 3" removed row 2 and the old row 5. `each_delete` merges overlapping and adjacent ranges on the deleted axis into disjoint ones, writes them back as the selection and then runs `each` as before. Checked with `cargo check -p formdesign-engine`; not run on a table.
+
+### prod.rs · change_case · one character at a time
+- refers-to: native/formdesign-engine/src/cmd/prod.rs :: change_case
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Story positions count characters, so a run was replaced only when its changed form kept the same count; one letter whose case form is longer (ß, the ﬁ ligature, a dotted capital I) left the whole run unchanged without an error. Each character now takes its mapped form when that form is one character and stays as it is otherwise, so the length holds and the other letters change. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### trace.rs · trace · colours mode on a transparent picture
+- refers-to: native/formdesign-engine/src/cmd/trace.rs :: trace, kmeans
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`kmeans` stops seeding when there is no opaque pixel to sample and returns one centre, but `trace` built its colour order from the requested count and indexed missing centres, a panic on a fully transparent picture. The order now uses the count `kmeans` returned, and such a picture ends in the existing "nothing to trace" error. Checked with `cargo check -p formdesign-engine`; not run on a picture.
+
+### text.rs · style_edit · based-on cycles through other styles
+- refers-to: native/formdesign-engine/src/cmd/text.rs :: style_edit
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The check refused `basedOn` only when it named the style itself or when the chain was already a loop, so with A based on B, basing B on A was accepted; resolution survived through its guard, but .fdoc and IDML carried a circular BasedOn. The check now follows `based_on` from the new base, up to 32 steps, and refuses when it meets the edited style or does not end. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### xml.rs · tag names checked in Tag Text and Map Styles to Tags
+- refers-to: native/formdesign-engine/src/cmd/xml.rs :: tag_text, map_style, valid_name
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Only `new_tag` and `tag_items` called `valid_name`; `tag_text` and `map_style` added any string to the tag list, and Export XML wrote it as an element name (`<body text>`), a file no parser reads. Both now refuse a name `valid_name` rejects, with the message Tag Frame gives. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### generate.rs · index_fold · index order and heads for accented topics
+- refers-to: native/formdesign-engine/src/cmd/generate.rs :: index_build, index_fold
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The index walked topics in byte order of the lower-case key and made the head letter with `to_ascii_uppercase`, so "Émile" came after "Zola" under a lower-case "é". `index_build` now orders topics on `index_fold` (lower case with common Latin accents folded, the table `formdesign-core/src/spell.rs::fold` uses plus a few letters; no normalization crate is linked), ties broken by the plain key, and takes the head from the folded first letter with full Unicode upper case. `index.list` keeps its order. Letters outside the table still sort by code point. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### table.rs · insert_rows · footer rows keep their place
+- refers-to: native/formdesign-engine/src/cmd/table.rs :: insert_rows
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Footer rows are the last `footer_rows` rows, and `insert_rows` adjusted only `header_rows`, so a row inserted below the last footer row became the footer and the real footer turned into a body row. The body end is taken before the insert, and `footer_rows` grows by the inserted count when the insert point is past it (inside the footer or after it); rows inserted right above the first footer row stay in the body. Checked with `cargo check -p formdesign-engine`; not run on a table.
+
+### file.rs · page_list · page names with a hyphen
+- refers-to: native/formdesign-engine/src/cmd/file.rs :: page_list
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Each part of a page range was split at its first hyphen before it was tried as a name, so with the section prefix "A-" the page "A-3" read as the range "A" to "3" and failed. A part is now first looked up whole as a page name and read as a range only when that fails. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### object.rs · align · unknown edges refused
+- refers-to: native/formdesign-engine/src/cmd/object.rs :: align
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The edge match ended in a catch-all vertical-centre arm, so "Left", "centre" or a typo centred the objects vertically. `align` now takes left, hcenter (or center), right, top, vcenter (or middle) and bottom, and refuses anything else with the list. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### table.rs · sort_rows · exact-height flags move with their rows
+- refers-to: native/formdesign-engine/src/cmd/table.rs :: sort_rows
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Sort Rows remapped cells and `heights` but not `exact`, so the "exactly" height mode stayed with the row position instead of the row's content. `exact` is filled out to one flag per row and remapped with the same map as `heights`. Checked with `cargo check -p formdesign-engine`; not run on a table.
 

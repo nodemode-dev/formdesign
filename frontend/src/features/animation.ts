@@ -222,6 +222,13 @@ export class AnimationPanel extends LivePanel {
       setChecked(q<HTMLInputElement>(this.root, '.fan-loop'), a.loop);
       setChecked(q<HTMLInputElement>(this.root, '.fan-hide'), a.hideBefore);
       setDisabled(q<HTMLInputElement>(this.root, '.fan-repeat'), a.loop);
+    } else {
+      setValue(sel('.fan-event'), 'load');
+      setHidden(q(this.root, '.fan-btnf'), true);
+      for (const c of ['.fan-dur', '.fan-delay', '.fan-repeat', '.fan-opacity', '.fan-scale', '.fan-rotate']) setValue(q<HTMLInputElement>(this.root, c), '');
+      setValue(sel('.fan-speed'), 'preset');
+      setChecked(q<HTMLInputElement>(this.root, '.fan-loop'), false);
+      setDisabled(q<HTMLInputElement>(this.root, '.fan-repeat'), false);
     }
     const total = Object.keys(d.anims).length;
     setText(q(this.root, '.frv-count'), total ? `${total} animated` : 'None yet');

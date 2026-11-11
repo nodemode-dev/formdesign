@@ -1,7 +1,7 @@
 {
   "name": "formdesign",
   "private": true,
-  "version": "0.85.4",
+  "version": "0.85.5",
   "description": "FormDesign · page layout and publishing in the NodeMode style",
   "license": "Apache-2.0",
   "type": "module",
