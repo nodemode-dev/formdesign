@@ -43,6 +43,9 @@ impl Color {
 
     pub fn from_hex(s: &str) -> Option<Color> {
         let h = s.trim().trim_start_matches('#');
+        if !h.is_ascii() {
+            return None;
+        }
         let full: String = match h.len() {
             3 => h.chars().flat_map(|c| [c, c]).collect(),
             6 | 8 => h[..6].to_string(),
