@@ -2,7 +2,7 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.18.0
+Current build version: v0.85.5
 Last updated: 2026-11-10 · Find/Change follows the caret into another story · Publish Online waits for the list · Generate Alt Text shows only the latest answer · the Plugins setup lines quote the folder · each glyph preview font gets its own name · the Adjustments curve keeps drawing when two points share an input · pica lengths with a minus sign or a lone point · z-index on the layer scale, colours on real tokens · ticked stories stay with their own document · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
