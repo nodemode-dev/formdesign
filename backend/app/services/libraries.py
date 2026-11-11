@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import os
 import re
@@ -20,11 +21,18 @@ def folder() -> Path:
 
 
 def slug(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-") or "library"
+    base = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    key = (name or "").strip().lower()
+    return base or (f"library-{hashlib.sha1(key.encode()).hexdigest()[:8]}" if key else "library")
 
 
 def _path(name: str) -> Path:
-    p = folder() / f"{slug(name)}{SUFFIX}"
+    p, old = folder() / f"{slug(name)}{SUFFIX}", folder() / f"library{SUFFIX}"
+    try:
+        if not p.exists() and str(json.loads(old.read_text()).get("name") or "").strip().lower() == (name or "").strip().lower():
+            p = old
+    except (OSError, ValueError, AttributeError):
+        pass
     if p.parent.resolve() != folder().resolve():
         raise LibraryError("bad library name")
     return p
