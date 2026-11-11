@@ -504,9 +504,13 @@ impl W<'_> {
                     let tag = if pdf { "PDF" } else { "Image" };
                     let uri = a.link.clone().unwrap_or_else(|| format!("file:{}", a.name));
                     let contents = if a.data.is_empty() { String::new() } else { format!("<Contents><![CDATA[{}]]></Contents>", b64(&a.data)) };
+                    let ppi = match a.ppi {
+                        Some((px, py)) if !pdf => format!(" ActualPpi=\"{} {}\"", num(px), num(py)),
+                        _ => String::new(),
+                    };
                     let _ = write!(
                         out,
-                        "<{tag} Self=\"{}i\" ItemTransform=\"{}\"><Properties><GraphicBounds Left=\"0\" Top=\"0\" Right=\"{}\" Bottom=\"{}\"/>{contents}</Properties><Link Self=\"{}l\" LinkResourceURI=\"{}\" StoredState=\"{}\"/></{tag}>",
+                        "<{tag} Self=\"{}i\" ItemTransform=\"{}\"{ppi}><Properties><GraphicBounds Left=\"0\" Top=\"0\" Right=\"{}\" Bottom=\"{}\"/>{contents}</Properties><Link Self=\"{}l\" LinkResourceURI=\"{}\" StoredState=\"{}\"/></{tag}>",
                         uid(id.0),
                         matrix(g.content),
                         num(w),

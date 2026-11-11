@@ -429,6 +429,9 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
         },
         ..Stroke::default()
     };
+    if let (Some(t), Paint::Swatch { tint, .. }) = (el.num("StrokeTint").filter(|t| *t >= 0.0), &mut it.stroke.paint) {
+        *tint = t / 100.0;
+    }
     it.hidden = el.flag("Visible") == Some(false);
     it.locked = el.flag("Locked") == Some(true);
     it.nonprinting = el.flag("Nonprinting") == Some(true);
