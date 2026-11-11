@@ -202,6 +202,7 @@ fn compound(c: &mut Ctx, p: &Value) -> Result<Value> {
         }
     }
     set_path(doc, keep, out, true);
+    crate::cmd::art::drop_text(doc, keep);
     if let Some(it) = doc.item_mut(keep) {
         it.extra.insert("fillRule".into(), json!("evenodd"));
         it.kind = match &it.kind {
@@ -263,6 +264,9 @@ fn convert(c: &mut Ctx, p: &Value) -> Result<Value> {
     let inset = args::opt_f64(p, "starInset").unwrap_or(0.0).clamp(0.0, 100.0) / 100.0;
     let doc = c.doc_mut()?;
     for id in &ids {
+        if matches!(to.as_str(), "line" | "orthogonalLine") {
+            crate::cmd::art::drop_text(doc, *id);
+        }
         let Some(it) = doc.item_mut(*id) else { continue };
         let b: Rect = it.shape.bbox();
         let (shape, corner) = match to.as_str() {

@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -1030,4 +1030,11 @@ Two designs were open: give `Op::Image` an adjustment field and teach every cons
 - logged: v0.85.5 · 2026-11-10
 
 A snapshot was removed only by `file.recovery.save`, and only for a document still open and clean, so a document saved or closed after the 60 s autosave left its `<uid>.fdoc` behind and the next launch reopened it, dirty and holding the original path; saving it wrote the older content over the newer file. `recovery_save` now also removes every `<number>.fdoc` (and its `.json`) whose uid is not an open dirty document, and `recovery_open` skips and removes a snapshot whose source file was written after it. The backend calls `file.recovery.save` only while something is dirty, so a save of the last dirty document is cleaned up by the open-time check until the backend calls it on every tick. Checked with `cargo check -p formdesign-engine`; the relaunch sequence was not run.
+
+### art.rs · drop_text · a text frame made plain leaves its story
+- refers-to: native/formdesign-engine/src/cmd/art.rs :: drop_text, pathfinder, pathfinder_pieces, live_paint, shape_builder, knife, outline_stroke, offset_path; native/formdesign-engine/src/cmd/paths.rs :: compound, convert; native/formdesign-engine/src/cmd/draw.rs :: blend_into, expand_appearance
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These commands set a text frame, or a duplicate of one (which `ops::duplicate` gives a fresh story), to `ItemKind::Plain` without taking it out of its story. The story kept the shape as its frame, laid out overset with no text frame, and stayed visible to find, preflight, exports and IDML; Smart Text Reflow then picked it after typing and could thread new pages onto the shape until the page limit. `drop_text` removes the frame from `story.frames` and, when the list is empty, removes the story and its anchored items, the same steps as `Doc::remove_item`; each command calls it right before the kind change. Trace Image needs a placed image, so it never meets a text frame. Checked with `cargo check -p formdesign-engine`; not run through the app.
 

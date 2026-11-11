@@ -20,6 +20,22 @@ type Contours = Vec<Vec<[f64; 2]>>;
 type Shapes = Vec<Contours>;
 type Outlined = (ItemId, usize, Vec<(Paint, BezPath)>);
 
+pub(crate) fn drop_text(doc: &mut Doc, id: ItemId) {
+    let Some(sid) = doc.item(id).and_then(|it| it.story()) else { return };
+    let mut drop_story = false;
+    if let Some(st) = doc.story_mut(sid) {
+        st.frames.retain(|f| *f != id);
+        drop_story = st.frames.is_empty();
+    }
+    if drop_story {
+        let anchored = doc.story(sid).map(|st| st.anchored_items()).unwrap_or_default();
+        for a in anchored {
+            doc.remove_item(a);
+        }
+        doc.stories.remove(&sid);
+    }
+}
+
 fn contours(path: &BezPath) -> Contours {
     let mut out: Contours = Vec::new();
     let mut cur: Vec<[f64; 2]> = Vec::new();
@@ -151,6 +167,7 @@ fn pathfinder(c: &mut Ctx, p: &Value) -> Result<Value> {
         return Ok(json!({"id": null, "empty": true}));
     }
     let local = doc.world_xf(keep).inverse() * path;
+    drop_text(doc, keep);
     if let Some(it) = doc.item_mut(keep) {
         it.shape = Shape::Path { path: local, closed: true };
         it.corner = Default::default();
@@ -521,6 +538,7 @@ fn pathfinder_pieces(c: &mut Ctx, p: &Value, op: &str) -> Result<Value> {
         let src = ids[*owner];
         let Some(nid) = ops::duplicate(doc, src, kurbo::Vec2::ZERO, None) else { continue };
         let local = doc.world_xf(nid).inverse() * to_path(s);
+        drop_text(doc, nid);
         if let Some(it) = doc.item_mut(nid) {
             it.shape = Shape::Path { path: local, closed: true };
             it.corner = Default::default();
@@ -649,6 +667,7 @@ fn live_paint(c: &mut Ctx, p: &Value) -> Result<Value> {
     for i in chosen {
         let Some(nid) = ops::duplicate(doc, bottom, kurbo::Vec2::ZERO, None) else { continue };
         let local = doc.world_xf(nid).inverse() * to_path(&faces[i].0);
+        drop_text(doc, nid);
         if let Some(it) = doc.item_mut(nid) {
             it.kind = ItemKind::Plain;
             it.shape = Shape::Path { path: local, closed: true };
@@ -918,6 +937,7 @@ fn shape_builder(c: &mut Ctx, p: &Value) -> Result<Value> {
     for (s, owner) in &out {
         let Some(nid) = ops::duplicate(doc, ids[*owner], kurbo::Vec2::ZERO, None) else { continue };
         let local = doc.world_xf(nid).inverse() * to_path(s);
+        drop_text(doc, nid);
         if let Some(it) = doc.item_mut(nid) {
             it.shape = Shape::Path { path: local, closed: true };
             it.corner = Default::default();
@@ -968,6 +988,7 @@ fn knife(c: &mut Ctx, p: &Value) -> Result<Value> {
         for piece in pieces {
             let Some(nid) = ops::duplicate(doc, *id, kurbo::Vec2::ZERO, None) else { continue };
             let local = doc.world_xf(nid).inverse() * to_path(&vec![piece.clone()]);
+            drop_text(doc, nid);
             if let Some(it) = doc.item_mut(nid) {
                 it.shape = Shape::Path { path: local, closed: true };
                 it.corner = Default::default();
@@ -1078,6 +1099,7 @@ fn outline_stroke(c: &mut Ctx, p: &Value) -> Result<Value> {
             orig.stroke.paint = Paint::None;
             orig.stroke.weight = 0.0;
         }
+        drop_text(doc, target);
         if let Some(it) = doc.item_mut(target) {
             it.shape = Shape::Path { path: outline, closed: true };
             it.corner = Default::default();
@@ -1135,6 +1157,7 @@ fn offset_path(c: &mut Ctx, p: &Value) -> Result<Value> {
             continue;
         }
         let target = if copy { ops::duplicate(doc, *id, kurbo::Vec2::ZERO, None).unwrap_or(*id) } else { *id };
+        drop_text(doc, target);
         if let Some(t) = doc.item_mut(target) {
             t.shape = Shape::Path { path: out, closed: true };
             t.corner = Default::default();
