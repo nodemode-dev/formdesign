@@ -6,6 +6,7 @@ import { api, engine } from '../engine/client';
 import { confirmAction } from '../ui/dialogs';
 import { enhanceSelect } from '../ui/dropdown';
 import { el, patchList, q, setChecked, setClass, setDisabled, setHidden, setStyleVar, setText, setTitle, setValue } from '../ui/dom';
+import { t } from '../ui/i18n';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
 import { LivePanel } from './review';
@@ -315,7 +316,8 @@ export function installAssignments(ws: Workspace): void {
       const group = editor.tools[Number(b.dataset.group)] ?? [];
       setClass(b, 'fwf-hide', on && !group.some((t) => KEEP_TOOLS.has(t.id)));
     }
-    for (const b of Array.from(document.querySelectorAll<HTMLElement>('.cv-menubar .cv-menu-btn'))) setClass(b, 'fwf-hide', on && HIDE_MENUS.has(b.textContent ?? ''));
+    const hide = new Set([...HIDE_MENUS].flatMap((m) => [m, t(m)]));
+    for (const b of Array.from(document.querySelectorAll<HTMLElement>('.cv-menubar .cv-menu-btn'))) setClass(b, 'fwf-hide', on && hide.has((b.textContent ?? '').trim()));
     if (on && editor.hasDoc && editor.tool !== 'type' && !KEEP_TOOLS.has(editor.tool)) void editor.setTool('type');
   };
 
