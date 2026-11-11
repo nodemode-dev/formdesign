@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -685,3 +685,10 @@ A layout slot's `spread` is a serialized `SpreadRef` (`{"kind":"doc","index":N}`
 - logged: v0.85.5 · 2026-11-10
 
 `flush` finds the changed span by comparing the old and new text from both ends per UTF-16 unit. Next to a character outside the basic plane the cut could land between the halves of a surrogate pair (`x😀` becoming `x😁😀`, or `😀` replaced by `😁`), so `story.replaceRange` got a byte offset inside a UTF-8 sequence and text with a lone half, which `TextEncoder` turns into U+FFFD; the engine refused the edit or damaged the story. After the two loops the prefix steps back one unit when it ends on a high surrogate and the suffix when it starts on a low surrogate; both only shrink, so the bounds still hold. Checked with `tsc --noEmit` and a scratch copy of the diff over nine cases (inserted, replaced and removed emoji, plain text): well-formed text, character-boundary offsets and the right result each time; not run in a browser.
+
+### features/animation.ts · a new animation starts from the preset's defaults
+- refers-to: frontend/src/features/animation.ts :: AnimationPanel.render, AnimationPanel.write
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+With an object without animation selected, `render()` hid `.fan-body` but left the previous object's values in its fields, and `write()` read them when a preset was picked, so the new animation took the previous object's duration, delay, play count, event, speed, loop and end state; only `hideBefore` followed the preset. `render()` now resets those fields when the first selected object has no animation (event `load`, numbers empty, speed `preset`, loop off), and `write()` maps the empty fields to its defaults; the stale event no longer trips the "no button" check either. Checked with `tsc --noEmit`; not run in a browser.
