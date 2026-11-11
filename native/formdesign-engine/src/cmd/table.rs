@@ -1042,6 +1042,11 @@ fn sort_rows(c: &mut Ctx, p: &Value) -> Result<Value> {
         for (old, new) in &map {
             t.heights[*new] = heights[*old];
         }
+        t.exact.resize(t.rows(), false);
+        let exact = t.exact.clone();
+        for (old, new) in &map {
+            t.exact[*new] = exact[*old];
+        }
         for x in t.cells.iter_mut() {
             if let Some(n) = map.get(&x.row) {
                 x.row = *n;
