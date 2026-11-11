@@ -418,28 +418,29 @@ impl Session {
     }
 
     pub fn group<F: FnOnce(&mut Session) -> Result<Value>>(&mut self, label: &str, f: F) -> Result<Value> {
-        let before = self.active().map(|s| (s.uid, s.doc.clone(), s.selection.clone(), s.history.undo.len()));
-        let out = f(self);
+        let before = self.active_mut().map(|s| (s.uid, s.doc.clone(), s.selection.clone(), std::mem::take(&mut s.history.undo), s.turn_mark.take()));
+        let out = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(self)));
         let turn = self.turn.clone();
-        if let Some((uid, doc, sel, depth)) = before
-            && let Some(st) = self.active_mut()
-            && st.uid == uid
+        let active = self.active().map(|s| s.uid);
+        if let Some((uid, doc, sel, undo, mark)) = before
+            && let Some(st) = self.docs.iter_mut().find(|s| s.uid == uid)
         {
+            st.history.undo = undo;
+            st.turn_mark = mark;
             match &out {
-                Ok(_) if !Arc::ptr_eq(&st.doc, &doc) => {
-                    st.history.undo.truncate(depth);
+                _ if active != Some(uid) => {}
+                Ok(Ok(_)) if !Arc::ptr_eq(&st.doc, &doc) => {
                     st.record(label.to_string(), doc, sel, turn.as_deref());
                 }
-                Ok(_) => {}
-                Err(_) => {
-                    st.history.undo.truncate(depth);
+                Ok(Ok(_)) => {}
+                _ => {
                     st.doc = doc;
                     st.selection = sel;
                     st.revision += 1;
                 }
             }
         }
-        out
+        out.unwrap_or_else(|p| std::panic::resume_unwind(p))
     }
 
     pub fn batch(&mut self, cmds: &[Value], label: Option<&str>) -> Result<Value> {

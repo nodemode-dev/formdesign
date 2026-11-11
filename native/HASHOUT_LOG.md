@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -455,6 +455,13 @@ Placed text arrives as paragraphs with style names; a paragraph with no style ta
 - logged: v0.15.0 · 2026-10-10
 
 Documents are immutable behind an `Arc`; a command that changes one calls `Ctx::doc_mut`, which clones on write, so the snapshot taken before the command is the undo step and costs only the parts that changed. A command that fails after changing the document is rolled back to that snapshot. Queries never call `doc_mut`, so they never bump the revision or add history, which the window's caches depend on. A batch runs its steps inside one group: every step's own history entries are replaced by one entry labelled with the steps' common label (or "Script"), and any failure restores the document and selection from before the batch, naming the step that failed. A string parameter that is exactly `$N` or `$N.field` is replaced by step N's result or that field of it, counting from 0, anywhere in the parameters.
+
+### session.rs · group keeps a batch's steps off the undo stack
+- refers-to: native/formdesign-engine/src/session.rs :: Session::group
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`group` used to remember the undo stack's length and cut the stack back to it after the steps. Once the stack holds `UNDO_LIMIT` (500) entries, each step's own entry evicts the oldest one, so the step entries slid below that length and stayed: after 500 edits and a 3-step batch, Undo went back to before the batch and the next Undos re-applied the batch's half-finished states, and older edits were lost; a failed batch left the same entries. Now the document's undo stack and agent-turn mark are taken out before the steps run and put back afterwards (on the document with the same uid, also when a step panics, which is caught and re-raised), so the steps never touch the real stack and the batch records its one entry as before. A batch step that is itself an Undo now finds an empty stack and fails the batch. Checked with `cargo check -p formdesign-engine`; the 500-edit case was not run.
 
 ### formdesign-engine · the command catalogue and the window's wire format
 - refers-to: native/formdesign-engine/src/cmd/*.rs :: register; wire.rs :: char_in, char_out, para_in, para_out; target.rs :: items, text_targets, story_char
