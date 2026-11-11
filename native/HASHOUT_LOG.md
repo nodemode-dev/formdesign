@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -300,6 +300,13 @@ Stories are taken in reading order (spread, then the first frame's top and left)
 - logged: v0.9.0 · 2026-10-08
 
 `next` starts after the selection when it lies in a target, goes to the end, then round once to just before where it started, and selects the hit without bumping the document revision (a selection is not an edit). `change` acts only when the selection is exactly a match, so a stale selection never rewrites the wrong text. Edits are applied back to front within each text location so earlier offsets stay valid, in one undo step (`Session::edit_now`); cell and footnote text is edited as a standalone story and written back into its table or footnote. A selection set by `next` or `select` on a cell or footnote hit covers the anchor character in the story, because the engine's text selection addresses stories only. Replacing text across a structural marker is refused and counted as skipped rather than deleting the footnote or table with it. The match rect for scrolling is the union of the line quads in canvas space, or the anchor character's for cells and footnotes.
+
+### find.rs · Change All edits a story's cells and footnotes before its main text
+- refers-to: native/formdesign-core/src/find.rs :: apply
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`apply` sorted a story's main text first. A cell is addressed by its table's character position in the main story, captured before any edit, so a replacement before the table that changed the text's length left the cell hits pointing at a position with no table: they were skipped silently and the count came out low, or the change went into another table that now sat there (trigger: "cat" in the body above a table and in a cell, Change All to "kitten"). The main text now ranks after the cells and footnotes (`(3, ..)` instead of `(0, ..)`), so those edits run while their addresses still hold and the main text, edited last from the end backwards, moves nothing still in use. Checked with `cargo check -p formdesign-core`; not driven.
 
 ---
 
