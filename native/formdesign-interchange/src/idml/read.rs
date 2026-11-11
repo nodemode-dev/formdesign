@@ -315,6 +315,7 @@ fn lang(l: &str) -> String {
         "Finnish" => "fi-FI",
         "Polish" => "pl-PL",
         "[No Language]" => "",
+        _ if l.len() <= 16 && l.contains('-') && !l.contains(' ') => l,
         _ => "en-US",
     }
     .to_string()

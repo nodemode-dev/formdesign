@@ -252,7 +252,26 @@ fn char_attrs(doc: &Doc, a: &Attrs, colors: &mut Colors) -> (String, String) {
         }
     }
     if let Some(v) = a.get("language").and_then(Value::as_str) {
-        let _ = write!(at, " AppliedLanguage=\"$ID/{}\"", esc(v).replace(':', "%3a"));
+        let name = match v {
+            "en-US" => "English: USA",
+            "en-GB" => "English: UK",
+            "en-CA" => "English: Canadian",
+            "de-DE" => "German: 2006 Reform",
+            "fr-FR" => "French",
+            "es-ES" => "Spanish",
+            "it-IT" => "Italian",
+            "nl-NL" => "Dutch: 2005 Reform",
+            "pt-PT" => "Portuguese",
+            "pt-BR" => "Portuguese: Brazilian",
+            "sv-SE" => "Swedish",
+            "da-DK" => "Danish",
+            "nb-NO" => "Norwegian: Bokmal",
+            "fi-FI" => "Finnish",
+            "pl-PL" => "Polish",
+            "" => "[No Language]",
+            other => other,
+        };
+        let _ = write!(at, " AppliedLanguage=\"$ID/{}\"", esc(name).replace(':', "%3a"));
     }
     if let Some(v) = a.get("font").and_then(Value::as_str) {
         let _ = write!(props, "<AppliedFont type=\"string\">{}</AppliedFont>", esc(v));
