@@ -27,6 +27,7 @@ struct Ctx {
     stories: HashMap<String, StoryId>,
     frames: Vec<(String, ItemId, String, String, String)>,
     pending_anchors: Vec<(ItemId, StoryId)>,
+    item_ids: HashMap<String, ItemId>,
 }
 
 fn matrix(s: Option<&str>) -> Affine {
@@ -532,6 +533,9 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
     }
     let media = el.child("Image").or_else(|| el.child("PDF")).or_else(|| el.child("EPS"));
     let id = doc.insert_item(it, home);
+    if let Some(s) = el.attr("Self") {
+        c.item_ids.insert(s.to_string(), id);
+    }
     if el.name == "TextFrame" {
         c.frames.push((el.attr("ParentStory").unwrap_or("").to_string(), id, el.attr("Self").unwrap_or("").to_string(), el.attr("PreviousTextFrame").unwrap_or("n").to_string(), el.attr("NextTextFrame").unwrap_or("n").to_string()));
     }
@@ -932,7 +936,7 @@ pub fn read(bytes: &[u8]) -> Result<Doc, String> {
             files.insert(f.name().to_string(), s);
         }
     }
-    let mut c = Ctx { files, paints: HashMap::new(), pstyles: HashMap::new(), cstyles: HashMap::new(), ostyles: HashMap::new(), layers: HashMap::new(), masters: HashMap::new(), stories: HashMap::new(), frames: Vec::new(), pending_anchors: Vec::new() };
+    let mut c = Ctx { files, paints: HashMap::new(), pstyles: HashMap::new(), cstyles: HashMap::new(), ostyles: HashMap::new(), layers: HashMap::new(), masters: HashMap::new(), stories: HashMap::new(), frames: Vec::new(), pending_anchors: Vec::new(), item_ids: HashMap::new() };
     let dm = c.file("designmap.xml").ok_or("not an IDML package: no designmap.xml")?;
     let dm = dm.child("Document").cloned().ok_or("designmap.xml has no Document")?;
     let prefs = c.file("Resources/Preferences.xml");
@@ -1012,6 +1016,7 @@ pub fn read(bytes: &[u8]) -> Result<Doc, String> {
             .map(|(w, h, _, p)| {
                 let mut pg = make_page(&mut doc, *w, *h, p);
                 pg.parent = p.attr("AppliedMaster").and_then(|m| c.masters.get(m)).copied();
+                pg.detached = p.attr("OverrideList").unwrap_or("").split_whitespace().filter_map(|s| c.item_ids.get(s).copied()).collect();
                 page_selfs.push(p.attr("Self").unwrap_or("").to_string());
                 pg
             })
