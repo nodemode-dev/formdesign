@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -629,3 +629,10 @@ The footer is built once in the SHELL markup and StatusBar prepends the history 
 - logged: v0.85.5 · 2026-11-10
 
 The Missing Fonts dialog built its note through `el()`, which parses HTML, with the document title placed in it raw; the title is the file name, so a shared file named like `a<img src=x onerror=...>.fdes` that uses an uninstalled Google Fonts family ran script in the window when the dialog opened. The note is now built empty and filled with `setText`. The dialog also gets `onClose` removing its scrim, as the other one-shot dialogs do; before, each one stayed in `#overlay-root`. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/shell.ts, ui/open-layout.ts · Save As, Save of an untitled document and Open as layout pass the answer on
+- refers-to: frontend/src/ui/shell.ts :: Shell.save, Shell.closeDoc; frontend/src/ui/open-layout.ts :: chooseDialog
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The path dialog of Save and Save As and the Open as layout dialog called `d.close()` before `resolve(...)` in their OK handlers. `close()` runs `onClose`, which resolves with null, so the promise was already settled and the answer was always "cancelled": Save As, Save of any document without a .fdes path (every new or imported one) and opening a PDF, .pub, .qxd/.qxp or .pmd from the window did nothing, with no message. Close on a changed document with "Save" then closed it anyway and the changes were lost. The OK handlers now resolve first and close after. `save()` returns whether the document was saved (false when the dialog is cancelled or the save fails) and `closeDoc` stops there when it was not. Cancel, Escape, the close button and a click on the scrim still settle once with null. Checked with `tsc --noEmit` and by reading every path of both dialogs; not run in a browser.

@@ -561,9 +561,9 @@ export class Shell implements Workspace {
     for (const f of files) await this.openFile(f);
   }
 
-  private async save(as: boolean): Promise<void> {
+  private async save(as: boolean): Promise<boolean> {
     const doc = editor.doc;
-    if (!doc) return;
+    if (!doc) return false;
     let path: string | undefined;
     if (as || !doc.path || !/\.fdes$/i.test(doc.path)) {
       const d = new Dialog(as ? 'Save As' : 'Save', 460);
@@ -578,19 +578,20 @@ export class Shell implements Workspace {
       d.foot.append(cancel, ok);
       const answer = await new Promise<string | null>((resolve) => {
         cancel.addEventListener('click', () => { d.close(); resolve(null); });
-        ok.addEventListener('click', () => { const v = inp.value.trim(); d.close(); resolve(v || null); });
+        ok.addEventListener('click', () => { const v = inp.value.trim(); resolve(v || null); d.close(); });
         inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok.click(); });
         d.onClose = () => { d.scrim.remove(); resolve(null); };
         d.open(inp);
       });
-      if (!answer) return;
+      if (!answer) return false;
       path = answer;
     }
     try {
       const r = await api<{ path: string }>('/documents/save', { json: path ? { path } : {} });
       toast(`Saved ${r.path}`);
       editor.refreshMeta();
-    } catch (err) { toast(friendly((err as Error).message), 'error'); }
+      return true;
+    } catch (err) { toast(friendly((err as Error).message), 'error'); return false; }
   }
 
   private async closeDoc(index: number): Promise<void> {
@@ -600,7 +601,7 @@ export class Shell implements Workspace {
       if (editor.active !== index) await editor.activate(index);
       const a = await askSaveChanges(d.title);
       if (a === 'cancel') return;
-      if (a === 'save') await this.save(false);
+      if (a === 'save' && !(await this.save(false))) return;
     }
     try { await api('/documents/close', { json: { index } }); } catch (err) { toast(friendly((err as Error).message), 'error'); }
     editor.refreshMeta();
