@@ -170,7 +170,7 @@ export class PropertiesPanel {
   private curPage() {
     const s = ctx.snap;
     const abs = this.ws.viewport.currentPage();
-    return s.allPages.find((p) => p.index === abs) ?? s.page;
+    return s.allPages.find((p) => p.abs === abs) ?? s.page;
   }
 
   private buildObj(): void {

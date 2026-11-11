@@ -9,7 +9,7 @@ export interface ItemInfo {
   id: number; name: string; kind: string; bounds: Rect; fill: string; stroke: { swatch: string; weight: number };
   story?: number; columns?: number; asset?: number; children?: ItemInfo[]; locked: boolean; hidden: boolean; layer: number;
 }
-export interface PageInfo { index: number; name: string; bounds: Rect; margins: { top: number; bottom: number; inside: number; outside: number }; columns: number; side: string }
+export interface PageInfo { index: number; abs: number; name: string; bounds: Rect; margins: { top: number; bottom: number; inside: number; outside: number }; columns: number; side: string }
 export interface SwatchInfo { name: string; css: string; model: 'cmyk' | 'rgb' | 'lab' | 'gray' | 'special' | 'other'; spot: boolean; values: number[]; locked: boolean }
 export interface TextSel { story: number; frame: number | null; anchor: number; focus: number }
 export interface Attrs {
