@@ -526,8 +526,14 @@ fn style_edit(c: &mut Ctx, p: &Value, id: &str) -> Result<Value> {
             if !doc.styles.exists(kind, bn) {
                 return Err(EngineError::new(format!("no {} style named {bn} to base it on", formdesign_model::style::kind_word(kind))));
             }
-            if doc.styles.chain(kind, bn).len() > 30 || *bn == name {
-                return Err(EngineError::new("a style cannot be based on itself"));
+            let mut cur = Some(bn.clone());
+            let mut steps = 0;
+            while let Some(n) = cur {
+                steps += 1;
+                if n == name || steps > 32 {
+                    return Err(EngineError::new("a style cannot be based on itself, directly or through the styles it is based on"));
+                }
+                cur = doc.styles.find(kind, &n).and_then(|s| s.based_on.clone());
             }
         }
         if let Some(st) = doc.styles.find_mut(kind, &name) {
