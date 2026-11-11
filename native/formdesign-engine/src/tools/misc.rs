@@ -798,7 +798,9 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
             let doc = ses.active().map(|s| s.doc.clone()).expect("checked");
             let text = formdesign_interchange::text::is_text_name(&name);
             let target = if g.moved { None } else { geo::hit_top(&doc, g.slot, p, view.tol(4.0)).filter(|i| doc.item(*i).is_some_and(|it| !matches!(it.kind, ItemKind::Group { .. } | ItemKind::States { .. }))) };
-            let asset = if text { None } else { assets::make(&name, data.clone(), path.clone(), page).ok() };
+            let made = if text { None } else { Some(assets::make(&name, data.clone(), path.clone(), page)) };
+            let mut why = made.as_ref().and_then(|m| m.as_ref().err()).map(|e| e.0.clone());
+            let asset = made.and_then(Result::ok);
             let rect = if g.moved {
                 Rect::from_points(g.start_sp, p)
             } else if let Some(a) = &asset {
@@ -808,21 +810,36 @@ pub fn finish(ses: &mut Session, ev: &Ev, view: View) {
                 let cols: Vec<Rect> = geo::pages_of(&doc, g.slot).into_iter().flat_map(|(r, pg, right)| geo::column_rects(r, &pg, right)).collect();
                 cols.into_iter().find(|c| p.x >= c.x0 && p.x <= c.x1).map(|c| Rect::new(c.x0, p.y.max(c.y0), c.x1, c.y1.max(p.y + 36.0))).unwrap_or(Rect::new(p.x, p.y, p.x + 200.0, p.y + 200.0))
             };
-            let imported = if text { formdesign_interchange::text::import(&name, &data).ok() } else { None };
+            let imported = if text {
+                match formdesign_interchange::text::import(&name, &data) {
+                    Ok(i) => Some(i),
+                    Err(e) => {
+                        why = Some(e);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
             let layer = layer_of(ses);
             let slot = g.slot;
             let mode = super::draw::draw_mode(ses, slot);
-            ses.edit_now("Place", |d, sel| {
-                let frame = target.unwrap_or_else(|| make_item(d, layer, if text { "type" } else { "rectangleFrame" }, Shape::Rect { rect }, slot, mode).0);
-                let ok = match (imported, asset) {
-                    (Some(imp), _) => crate::cmd::file::place_text(d, frame, imp).is_ok(),
-                    (_, Some(a)) => crate::cmd::file::place_image(d, frame, a).is_ok(),
-                    _ => false,
-                };
-                if ok {
-                    *sel = Selection::items(vec![frame]);
-                }
-            });
+            if let Some(why) = why {
+                ses.requests.push(json!({"kind": "toast", "text": format!("cannot place {name}: {why}")}));
+            } else {
+                ses.edit_now_if("Place", |d, sel| {
+                    let frame = target.unwrap_or_else(|| make_item(d, layer, if text { "type" } else { "rectangleFrame" }, Shape::Rect { rect }, slot, mode).0);
+                    let ok = match (imported, asset) {
+                        (Some(imp), _) => crate::cmd::file::place_text(d, frame, imp).is_ok(),
+                        (_, Some(a)) => crate::cmd::file::place_image(d, frame, a).is_ok(),
+                        _ => false,
+                    };
+                    if ok {
+                        *sel = Selection::items(vec![frame]);
+                    }
+                    ok
+                });
+            }
             ses.place_gun.remove(0);
             if ses.place_gun.is_empty() {
                 ses.tool = "selection".into();
