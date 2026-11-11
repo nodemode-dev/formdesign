@@ -4,7 +4,7 @@ import type { Workspace } from '../ui/workspace';
 interface ClipResult { text?: string }
 
 function writeSystem(text: string | undefined): void {
-  if (!text) return;
+  if (text === undefined) return;
   try { void navigator.clipboard?.writeText(text).catch(() => undefined); } catch { }
 }
 

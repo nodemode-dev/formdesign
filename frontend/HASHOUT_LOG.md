@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -636,3 +636,10 @@ The Missing Fonts dialog built its note through `el()`, which parses HTML, with 
 - logged: v0.85.5 · 2026-11-10
 
 The path dialog of Save and Save As and the Open as layout dialog called `d.close()` before `resolve(...)` in their OK handlers. `close()` runs `onClose`, which resolves with null, so the promise was already settled and the answer was always "cancelled": Save As, Save of any document without a .fdes path (every new or imported one) and opening a PDF, .pub, .qxd/.qxp or .pmd from the window did nothing, with no message. Close on a changed document with "Save" then closed it anyway and the changes were lost. The OK handlers now resolve first and close after. `save()` returns whether the document was saved (false when the dialog is cancelled or the save fails) and `closeDoc` stops there when it was not. Cancel, Escape, the close button and a click on the scrim still settle once with null. Checked with `tsc --noEmit` and by reading every path of both dialogs; not run in a browser.
+
+### features/clipboard.ts · copied objects without text paste as themselves
+- refers-to: frontend/src/features/clipboard.ts :: writeSystem; native/formdesign-engine/src/cmd/clip.rs :: external
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Copy and Cut of objects with no text frame get `text: ""` back from the engine (only text frames' text is joined), and `writeSystem` skipped an empty string, so the system clipboard kept older text such as a URL copied elsewhere. Paste sent that text, `external()` took it as newer than the engine's own clip, and a text frame with the old text appeared instead of the copied or cut objects. `writeSystem` now skips only `undefined` and writes the empty string; `readSystem` already maps an empty clipboard to no text, so the engine pastes its own clip. If the browser refuses the clipboard write the old text can still win. Checked with `tsc --noEmit`; not run in a browser.
