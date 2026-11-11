@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · names without Latin letters get their own file; downloads with non-Latin names arrive; an engine on a fallback port tells everyone its real port; non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · a failing tool or a malformed MCP request gets a JSON-RPC answer; names without Latin letters get their own file; downloads with non-Latin names arrive; an engine on a fallback port tells everyone its real port; non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · a failing tool or a malformed MCP request gets a JSON-RPC answer (2026-11-10)
+
+- refers-to: app/routers/mcp.py :: log, call_tool, mcp
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`call_tool` caught only CoreError, ValueError, KeyError, TypeError and OSError, so `set_slots {"values": ["a"]}` (AttributeError in `slots.set_slots`), a template spec with wrong-shaped parents or items, or a corrupt zip in intake (BadZipFile) escaped the route: the client got a bare 500 with no `id`, which most MCP clients report as a transport failure, and `A.record` was skipped. A top-level JSON-RPC body that was a string or a number, or `params` that was not an object, failed on `msg.get` the same way. `call_tool` now ends with a catch-all that logs the traceback (`formdesign.mcp`) and returns `ExcName: message` as an isError result; `/mcp` answers 400 with -32600 "Invalid request" when the message or its `params` is not an object, and treats a `_meta` that is not an object as empty. `A.identify` (services, outside this fix) still reads `params["_meta"]` itself. Checked with TestClient: `"hi"`, `5` and `params: "x"` answer -32600; a tool whose `_run` raises AttributeError answers isError with the message.
 
 ## v0.85.5 · names without Latin letters get their own file (2026-11-10)
 

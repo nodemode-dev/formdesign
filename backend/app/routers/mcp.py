@@ -1,6 +1,7 @@
 import base64
 import difflib
 import json
+import logging
 import re
 import time
 import urllib.parse
@@ -24,7 +25,8 @@ from app.services import books, libraries, pdfread, profiles, queries
 from app.templates import brands, registry, spec
 
 router = APIRouter()
-VERSIONS = ["2026-07-28", "2025-11-25"]
+log = logging.getLogger("formdesign.mcp")
+VERSIONS =["2026-07-28", "2025-11-25"]
 INSTRUCTIONS = ("FormDesign (the formdesign server) is a professional page-layout application, running on this computer; these tools lay out and edit the "
                 "documents open in its engine, and the FormDesign window shows every change live. The fast path: intake (files and a brief become a content pack), "
                 "make_layout (a template filled with that content, about 80 percent of the way there), preview to look, set_slots to fix what the report "
@@ -800,6 +802,9 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
         out = _fail(f"{exc}")
     except (ValueError, KeyError, TypeError, OSError) as exc:
         out = _fail(f"{exc.__class__.__name__}: {exc}")
+    except Exception as exc:
+        log.exception("tool %s failed", name)
+        out = _fail(f"{exc.__class__.__name__}: {exc}")
     finally:
         turn_var.reset(token)
     first = next((c.get("text", "") for c in out.get("content", []) if c.get("type") == "text"), "image")
@@ -817,10 +822,12 @@ async def mcp(request: Request) -> Response:
         return Response(content=json.dumps(_err(None, -32700, "Parse error")), media_type="application/json", status_code=400)
     if isinstance(msg, list):
         return Response(content=json.dumps(_err(None, -32600, "Batches are not supported")), media_type="application/json", status_code=400)
+    if not isinstance(msg, dict) or not isinstance(msg.get("params") or {}, dict):
+        return Response(content=json.dumps(_err(msg.get("id") if isinstance(msg, dict) else None, -32600, "Invalid request")), media_type="application/json", status_code=400)
     req_id, method, params = msg.get("id"), msg.get("method"), msg.get("params") or {}
     if req_id is None:
         return Response(status_code=202)
-    meta = params.get("_meta") or {}
+    meta = params.get("_meta") if isinstance(params.get("_meta"), dict) else {}
     client, new_sid = A.identify(request.headers, params, method or "")
     version = meta.get("io.modelcontextprotocol/protocolVersion") or request.headers.get("mcp-protocol-version") or "2025-11-25"
     modern = version == "2026-07-28"
