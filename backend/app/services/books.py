@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import re
@@ -150,7 +151,15 @@ async def _open_paths() -> dict[str, dict]:
     return {str(Path(d["path"]).resolve()): d for d in ov.get("docs", []) if d.get("path")}
 
 
+_lock = asyncio.Lock()
+
+
 async def run(path: str, steps: list[tuple[str, dict]], write_back: bool) -> dict:
+    async with _lock:
+        return await _run(path, steps, write_back)
+
+
+async def _run(path: str, steps: list[tuple[str, dict]], write_back: bool) -> dict:
     b = load(path)
     docs = [Path(d) for d in b["documents"]]
     missing = [d.name for d in docs if not d.is_file()]
