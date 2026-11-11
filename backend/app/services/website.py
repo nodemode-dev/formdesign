@@ -11,7 +11,7 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from email.utils import format_datetime
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 
 from PIL import Image
@@ -529,7 +529,7 @@ class Builder:
             v = m.group(1).rstrip(".,;:)")
             tail = m.group(1)[len(v):]
             href = f"mailto:{v}" if "@" in v and not v.startswith("http") else (v if v.startswith("http") else f"https://{v}")
-            return f'<a href="{escape(href)}">{v}</a>{tail}'
+            return f'<a href="{escape(unescape(href))}">{v}</a>{tail}'
         return URL_RE.sub(sub, html_text)
 
     def para_tag(self, style: str, role: str, first: bool, has_h1: bool) -> str:
