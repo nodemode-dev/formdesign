@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -514,6 +514,13 @@ Documents are immutable behind an `Arc`; a command that changes one calls `Ctx::
 - logged: v0.85.5 · 2026-11-10
 
 The new active index came from the closed index, so closing a background tab switched documents (A active, close C: B became active; C active, close A: B again) and later commands acted on the wrong one. Now an active index after the closed one moves down by one, one before it stays, and only closing the active document itself takes the next (or last) document. Checked with `cargo check -p formdesign-engine`; not driven.
+
+### session.rs · `$$N` escapes a step reference
+- refers-to: native/formdesign-engine/src/session.rs :: reference, substitute
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Any string parameter exactly `$N` or `$N.field` was a step reference with no escape, so a price "$5" at step 0 failed the batch and at a later step it, or a GREP change "$1", became that step's whole result. Now `$$N` and `$$N.field` pass as the literal `$N` and `$N.field`, and a bare `$N` pointing past the steps run so far stays literal text; `$N.field` with no such step still fails. Non-atomic batches in core.rs share `substitute`. Checked with `cargo check -p formdesign-engine`; not driven.
 
 ### formdesign-engine · the command catalogue and the window's wire format
 - refers-to: native/formdesign-engine/src/cmd/*.rs :: register; wire.rs :: char_in, char_out, para_in, para_out; target.rs :: items, text_targets, story_char

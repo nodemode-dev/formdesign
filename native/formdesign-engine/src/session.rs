@@ -547,6 +547,10 @@ impl Session {
 
 fn reference(s: &str, results: &[Value]) -> Option<Result<Value>> {
     let rest = s.strip_prefix('$')?;
+    let (escaped, rest) = match rest.strip_prefix('$') {
+        Some(r) => (true, r),
+        None => (false, rest),
+    };
     let (n, field) = match rest.split_once('.') {
         Some((n, f)) => (n, Some(f)),
         None => (rest, None),
@@ -555,8 +559,11 @@ fn reference(s: &str, results: &[Value]) -> Option<Result<Value>> {
     if field.is_some_and(|f| f.is_empty() || !f.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')) {
         return None;
     }
+    if escaped {
+        return Some(Ok(Value::String(s[1..].to_string())));
+    }
     let Some(r) = results.get(n) else {
-        return Some(Err(EngineError::new(format!("`{s}` refers to step {n}, which has not run yet (steps count from 0)"))));
+        return field.map(|_| Err(EngineError::new(format!("`{s}` refers to step {n}, which has not run yet (steps count from 0)"))));
     };
     Some(match field {
         None => Ok(r.clone()),
