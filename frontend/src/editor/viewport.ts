@@ -76,7 +76,8 @@ export class Viewport {
     editor.on('layout', (p: { switched?: boolean } = {}) => this.onLayout(!!p.switched));
     editor.on('selection', () => this.refreshOverlays());
     editor.on('tool', () => this.refreshOverlays());
-    matchMedia(`(resolution: ${this.dpr}dppx)`).addEventListener?.('change', () => { this.dpr = Math.max(1, window.devicePixelRatio || 1); this.resize(); });
+    const watchDpr = (): void => { matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`).addEventListener?.('change', () => { this.dpr = Math.max(1, window.devicePixelRatio || 1); this.resize(); watchDpr(); }, { once: true }); };
+    watchDpr();
     try { const p = localStorage.getItem(RENDERER_KEY); if (p === 'auto' || p === 'webgpu' || p === 'webgl2' || p === 'canvas2d' || (p === 'native' && inTauri())) this.rendererPref = p; } catch { }
     // The desktop shell can start the page on the native canvas (FORMDESIGN_RENDERER=native), ahead of the remembered choice.
     if (inTauri() && (window as unknown as { __FORMDESIGN_RENDERER__?: string }).__FORMDESIGN_RENDERER__ === 'native') this.rendererPref = 'native';

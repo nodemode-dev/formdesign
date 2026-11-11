@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -720,3 +720,10 @@ A long text or flow slot shows a preview ending in "…" (`partial`), and `begin
 - logged: v0.85.5 · 2026-11-10
 
 A `tiles` reply for a document no longer shown hit `if (uid !== this.uid) return;` inside the `try`; `finally` cleared `inflight` but the `requestDraw()` after the block was skipped. The draws the tab switch asked for had already run `pump()` while `inflight` was true and given up, so the new document stayed blank paper until a pan, zoom or edit. The stale reply now calls `requestDraw()` before it returns; the draw runs at the next frame, after `finally` has cleared `inflight`. Checked with `tsc --noEmit`; not run in a browser.
+
+### editor/viewport.ts · every change of the device pixel ratio resizes the canvases
+- refers-to: frontend/src/editor/viewport.ts :: Viewport constructor (watchDpr)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The constructor listened to `(resolution: Ndppx)` built once from the starting ratio. That query changes only when matching that one value toggles, so after a first change (1x to 2x) a second one (2x to 1.5x, or a second Ctrl+ zoom) was never seen and the tile, highlight and overlay canvases kept the old backing size. `watchDpr` now builds the query from the current raw ratio (not the value clamped to 1, which would miss a change from below 1 to above it), listens once, and builds it again after each change. Checked with `tsc --noEmit`; not run in a browser.
