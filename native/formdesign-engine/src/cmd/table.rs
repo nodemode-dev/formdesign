@@ -118,6 +118,35 @@ fn each(c: &mut Ctx, p: &Value, f: crate::registry::Handler, key: fn(&CellSel) -
     Ok(json!({"ranges": done.len(), "results": done}))
 }
 
+fn each_delete(c: &mut Ctx, p: &Value, f: crate::registry::Handler, rows: bool) -> Result<Value> {
+    let cs = current(c)?;
+    let span = |r: &CellSel| if rows { (r.r0.min(r.r1), r.r0.max(r.r1)) } else { (r.c0.min(r.c1), r.c0.max(r.c1)) };
+    let mut list = ranges(c, &cs);
+    list.sort_by_key(|r| span(r).0);
+    let mut merged: Vec<CellSel> = Vec::new();
+    for r in list {
+        let (a, b) = span(&r);
+        if let Some(last) = merged.last_mut()
+            && a <= span(last).1 + 1
+        {
+            let (lo, hi) = (span(last).0, b.max(span(last).1));
+            if rows {
+                (last.r0, last.r1) = (lo, hi);
+            } else {
+                (last.c0, last.c1) = (lo, hi);
+            }
+        } else {
+            merged.push(r);
+        }
+    }
+    let mut sel = c.selection();
+    sel.cells = merged.first().copied();
+    sel.more_cells = merged.iter().skip(1).copied().collect();
+    c.set_selection(sel);
+    let key: fn(&CellSel) -> usize = if rows { |s| s.r0.min(s.r1) } else { |s| s.c0.min(s.c1) };
+    each(c, p, f, key, false)
+}
+
 fn cell_value(c: &TableCell) -> Value {
     let ins = formdesign_text::flow::cell_insets(c);
     json!({
@@ -1123,8 +1152,8 @@ pub fn register(r: &mut Registry) {
     cmd("table.insertRowBelow", "Insert Row Below").menu(&["Table", "Insert", "Row Below"]).key("Mod+9").needs(Needs::Text).sig("{count?}").reg(r, row_below);
     cmd("table.insertColumnLeft", "Insert Column Left").menu(&["Table", "Insert", "Column Left"]).needs(Needs::Text).sig("{count?}").reg(r, col_left);
     cmd("table.insertColumnRight", "Insert Column Right").menu(&["Table", "Insert", "Column Right"]).key("Mod+Alt+9").needs(Needs::Text).sig("{count?}").reg(r, col_right);
-    cmd("table.deleteRow", "Delete Row").menu(&["Table", "Delete", "Row"]).needs(Needs::Text).sig("{}").reg(r, |c, p| each(c, p, delete_rows, |s| s.r0.min(s.r1), false));
-    cmd("table.deleteColumn", "Delete Column").menu(&["Table", "Delete", "Column"]).needs(Needs::Text).sig("{}").reg(r, |c, p| each(c, p, delete_cols, |s| s.c0.min(s.c1), false));
+    cmd("table.deleteRow", "Delete Row").menu(&["Table", "Delete", "Row"]).needs(Needs::Text).sig("{}").reg(r, |c, p| each_delete(c, p, delete_rows, true));
+    cmd("table.deleteColumn", "Delete Column").menu(&["Table", "Delete", "Column"]).needs(Needs::Text).sig("{}").reg(r, |c, p| each_delete(c, p, delete_cols, false));
     cmd("table.merge", "Merge Cells").menu(&["Table", "Merge Cells"]).needs(Needs::Text).sig("{}").reg(r, merge);
     cmd("table.unmerge", "Unmerge Cells").menu(&["Table", "Unmerge Cells"]).needs(Needs::Text).sig("{}").reg(r, unmerge);
     cmd("table.splitCell", "Split Cell").menu(&["Table", "Split Cell"]).needs(Needs::Text).sig("{direction?: horizontal|vertical}").reg(r, split_cell);
