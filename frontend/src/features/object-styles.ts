@@ -93,7 +93,8 @@ export class ObjectStylesPanel {
     ok.addEventListener('click', async () => {
       const fill = q<HTMLSelectElement>(body, '.fo-fill').value;
       const stroke = q<HTMLSelectElement>(body, '.fo-stroke').value;
-      const weight = Number(q<HTMLInputElement>(body, '.fo-weight').value);
+      const wtxt = q<HTMLInputElement>(body, '.fo-weight').value.trim();
+      const weight = wtxt === '' ? NaN : Number(wtxt);
       const para = q<HTMLSelectElement>(body, '.fo-para').value;
       const to = q<HTMLInputElement>(body, '.fo-name').value.trim();
       d.close();

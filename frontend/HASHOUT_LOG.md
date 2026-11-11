@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -755,3 +755,10 @@ The constructor listened to `(resolution: Ndppx)` built once from the starting r
 - logged: v0.85.5 · 2026-11-10
 
 With no files left, `analyse` PATCHed the brief onto `this.source || this.pack`; after the analysed files were removed that was the old pack, which still held their articles and images, so Make layout filled the page with removed content. With no input at all, Make layout stayed enabled and used the old pack. `analyse` now PATCHes only a loaded content pack (`this.source`) and otherwise POSTs `/intake` with the brief alone; Make layout is enabled only while there is input, and `make` returns when the pack is not fresh and there is nothing to analyse. The pack is kept, not cleared, so its facts stay on screen marked stale. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/object-styles.ts · an empty stroke weight keeps the default
+- refers-to: frontend/src/features/object-styles.ts :: ObjectStylesPanel.options
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+For a style without a stroke the weight field starts empty. Choosing a Stroke swatch and saving read it with `Number('')`, which is 0 and passes `Number.isFinite(weight) && weight >= 0`, so the style got `stroke: { swatch, weight: 0 }` and its objects showed no stroke. The field is now read as text first and an empty one becomes NaN, so the weight key is left out and the engine default applies. Checked with `tsc --noEmit`; not run in a browser.
