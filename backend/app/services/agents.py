@@ -166,10 +166,13 @@ def gate_reason(name: str, args: dict) -> str | None:
         if C.risky(cid) or (C.meta().get(cid) or {}).get("risky"):
             return f"runs {cid}, which Undo cannot reverse"
     if name == "run_commands":
+        from app.services import commands as C
         for c in args.get("commands") or []:
             cid = c.get("command") if isinstance(c, dict) else None
             if cid in GATED_COMMANDS:
                 return GATED_COMMANDS[cid]
+            if isinstance(cid, str) and cid != "layout.pages.delete" and (C.risky(cid) or (C.meta().get(cid) or {}).get("risky")):
+                return f"runs {cid}, which Undo cannot reverse"
             if cid == "layout.pages.delete" and len((c.get("params") or {}).get("pages") or []) > 1:
                 return f"deletes {len(c['params']['pages'])} pages"
     return None

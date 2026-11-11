@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · run_commands asks for approval wherever run_command does (2026-11-10)
+
+- refers-to: app/services/agents.py :: gate_reason, the run_commands branch
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The run_commands branch checked each step only against `GATED_COMMANDS` (package and print) and the several-pages delete, never against `commands.risky` or command_meta's `risky` flag, which the run_command branch uses. A client on Ask could send `file.saveAs` or `file.exportPdf` over an existing file, `file.revert`, `file.close`, `layer.delete` or `book.export` in a batch and run it with no approval. Each step now gets the same risky check as run_command; `layout.pages.delete` keeps its own rule (approval only for more than one page), as CLAUDE.md describes. Checked: gate_reason gives a reason for file.saveAs, file.exportPdf, layer.delete, file.print and a two-page delete, and none for text.insert or a one-page delete.
 
 ## v0.85.5 · a template is saved only inside the template library (2026-11-10)
 
