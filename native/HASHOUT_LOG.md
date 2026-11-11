@@ -3,9 +3,17 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · table cell lines placed whole, with their paragraph (2026-11-10)
+
+- refers-to: `formdesign-text/src/flow.rs` Flower::table_row, continued_row, the compose_cell closure in the table placer
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+table_row and continued_row shifted only glyph runs and marks into the cell, so `carets`, `tabs`, `objects` and `left` stayed frame-relative at 0: celltext.rs hit-tests and draws the caret from `line.carets`, so clicks and the caret in every cell were wrong, and scene.rs drew tab leaders from x 0. compose_cell flattened all of a cell's paragraphs and every PlacedLine said `para: 0`, so a cell's later paragraphs had no caret line and borrowed paragraph 0's text ranges. Both now use `offset_line`, and compose_cell returns `(paragraph index, Line)` pairs that table_row writes into `PlacedLine.para`. Not changed: scene.rs still gives cell lines `Para::text()` rather than the built text, so a list prefix in a cell shifts that paragraph's text ranges. Checked: `cargo check -p formdesign-text -p formdesign-render`.
 
 ## v0.85.5 · paragraph position map after markers, variables and footnote numbers (2026-11-10)
 

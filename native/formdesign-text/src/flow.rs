@@ -1029,12 +1029,12 @@ impl<'a> Flower<'a> {
         for w in &widths {
             col_x.push(col_x.last().copied().unwrap_or(0.0) + w);
         }
-        let mut cell_lines: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
+        let mut cell_lines: HashMap<(usize, usize), (Vec<(usize, Line)>, f64)> = HashMap::new();
         let mut need: HashMap<(usize, usize), f64> = HashMap::new();
-        let compose_cell = |cell: &formdesign_model::story::TableCell, attrs: &formdesign_model::attrs::Attrs, w: f64| -> Vec<Line> {
+        let compose_cell = |cell: &formdesign_model::story::TableCell, attrs: &formdesign_model::attrs::Attrs, w: f64| -> Vec<(usize, Line)> {
             let para_style = attrs.get("paraStyle").and_then(|v| v.as_str()).map(formdesign_model::style::style_key).filter(|s| self.styles.exists(formdesign_model::style::StyleKind::Paragraph, s));
             let mut lines = Vec::new();
-            for p in &cell.paras {
+            for (pn, p) in cell.paras.iter().enumerate() {
                 let styled;
                 let p = match &para_style {
                     Some(ps) if p.style == formdesign_model::style::BASIC_PARA || p.style == "No Paragraph Style" => {
@@ -1047,7 +1047,7 @@ impl<'a> Flower<'a> {
                 };
                 let b = para::build(self.styles, p, None, 0, self.ctx, cur.frame);
                 let c = composer.compose(&b.input, &|_| Slot { left: 0.0, width: w }, 1, self.frames[cur.frame].right_page);
-                lines.extend(c.lines);
+                lines.extend(c.lines.into_iter().map(|l| (pn, l)));
             }
             lines
         };
@@ -1058,19 +1058,19 @@ impl<'a> Flower<'a> {
             let rot = cell_rotation(&attrs);
             let w = (col_x[(cell.col + cell.cols).min(t.cols())] - col_x[cell.col] - ins[1] - ins[3]).max(4.0);
             if rot == 90 || rot == 270 {
-                let nat = compose_cell(cell, &attrs, 1.0e5).iter().map(|l| l.width).fold(0.0, f64::max);
+                let nat = compose_cell(cell, &attrs, 1.0e5).iter().map(|(_, l)| l.width).fold(0.0, f64::max);
                 need.insert((cell.row, cell.col), (nat + ins[1] + ins[3]).min(600.0));
             } else if rot >= 1000 {
                 let a = ((rot - 1000) as f64).to_radians();
                 let lines = compose_cell(cell, &attrs, 1.0e5);
-                let long = lines.iter().map(|l| l.width).fold(0.0, f64::max);
-                let h: f64 = lines.iter().map(|l| l.leading).sum();
+                let long = lines.iter().map(|(_, l)| l.width).fold(0.0, f64::max);
+                let h: f64 = lines.iter().map(|(_, l)| l.leading).sum();
                 let lean = h * a.tan();
                 let total = ((long + lean) * a.sin() + h * a.cos() + ins[0] + ins[2] + 4.0).min(600.0);
                 cell_lines.insert((cell.row, cell.col), (lines, total));
             } else {
                 let lines = compose_cell(cell, &attrs, w);
-                let h: f64 = lines.iter().map(|l| l.leading).sum();
+                let h: f64 = lines.iter().map(|(_, l)| l.leading).sum();
                 cell_lines.insert((cell.row, cell.col), (lines, h + ins[0] + ins[2]));
             }
             eff.insert((cell.row, cell.col), attrs);
@@ -1101,7 +1101,7 @@ impl<'a> Flower<'a> {
                 let ins = cell_insets_of(attrs);
                 let span: f64 = (cell.row..(cell.row + cell.rows).min(rows)).map(|r| heights[r]).sum();
                 let lines = compose_cell(cell, attrs, (span - ins[1] - ins[3]).max(4.0));
-                let h: f64 = lines.iter().map(|l| l.leading).sum();
+                let h: f64 = lines.iter().map(|(_, l)| l.leading).sum();
                 cell_lines.insert((cell.row, cell.col), (lines, h + ins[0] + ins[2]));
             }
         }
@@ -1125,8 +1125,8 @@ impl<'a> Flower<'a> {
                 && !t.cells.iter().any(|cl| cl.rows > 1 && cl.row <= r && r < cl.row + cl.rows)
                 && !t.cells.iter().any(|cl| cl.row == r && need.contains_key(&(cl.row, cl.col)))
             {
-                let mut first: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
-                let mut rest: HashMap<(usize, usize), (Vec<Line>, f64)> = HashMap::new();
+                let mut first: HashMap<(usize, usize), (Vec<(usize, Line)>, f64)> = HashMap::new();
+                let mut rest: HashMap<(usize, usize), (Vec<(usize, Line)>, f64)> = HashMap::new();
                 let mut moved = false;
                 let mut kept = false;
                 for cell in t.cells.iter().filter(|cl| cl.row == r) {
@@ -1134,14 +1134,14 @@ impl<'a> Flower<'a> {
                     let lines = cell_lines.get(&(cell.row, cell.col)).map(|(ls, _)| ls.clone()).unwrap_or_default();
                     let mut used = ins[0];
                     let mut k = 0;
-                    while k < lines.len() && used + lines[k].leading + lines[k].descent + ins[2] <= room {
-                        used += lines[k].leading;
+                    while k < lines.len() && used + lines[k].1.leading + lines[k].1.descent + ins[2] <= room {
+                        used += lines[k].1.leading;
                         k += 1;
                     }
                     let (a, b) = lines.split_at(k);
                     kept |= k > 0;
                     moved |= !b.is_empty();
-                    let sum = |ls: &[Line]| ls.iter().map(|l| l.leading).sum::<f64>() + ins[0] + ins[2];
+                    let sum = |ls: &[(usize, Line)]| ls.iter().map(|(_, l)| l.leading).sum::<f64>() + ins[0] + ins[2];
                     first.insert((cell.row, cell.col), (a.to_vec(), sum(a)));
                     rest.insert((cell.row, cell.col), (b.to_vec(), sum(b)));
                 }
@@ -1211,13 +1211,7 @@ impl<'a> Flower<'a> {
         for l in composed.lines {
             base += l.leading;
             let mut l = l;
-            for run in l.runs.iter_mut().chain(l.adorn.iter_mut()) {
-                for g in &mut run.glyphs {
-                    g.x += x0 + ins;
-                }
-                run.x0 += x0 + ins;
-                run.x1 += x0 + ins;
-            }
+            offset_line(&mut l, x0 + ins);
             lines.push(PlacedLine { para: 0, frame: c.frame, column: c.column, baseline: base, line: l });
         }
         frag.rows.push((usize::MAX, rect));
@@ -1226,7 +1220,7 @@ impl<'a> Flower<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn table_row(&self, t: &Table, eff: &[f64], r: usize, y: f64, h: f64, col_x: &[f64], cells: &HashMap<(usize, usize), (Vec<Line>, f64)>, c: Cursor, frag: &mut TableFrag) {
+    fn table_row(&self, t: &Table, eff: &[f64], r: usize, y: f64, h: f64, col_x: &[f64], cells: &HashMap<(usize, usize), (Vec<(usize, Line)>, f64)>, c: Cursor, frag: &mut TableFrag) {
         let (x0, _) = self.column_x(c.frame, c.column);
         frag.rows.push((r, Rect::new(x0, y, x0 + col_x.last().copied().unwrap_or(0.0), y + h)));
         for cell in t.cells.iter().filter(|cl| cl.row == r) {
@@ -1239,7 +1233,7 @@ impl<'a> Flower<'a> {
             let boxr = match rotate {
                 90 | 270 => Rect::new(rect.y0, rect.x0, rect.y1, rect.x1),
                 r if r >= 1000 => {
-                    let h: f64 = cells.get(&(cell.row, cell.col)).map(|(ls, _)| ls.iter().map(|l| l.leading).sum()).unwrap_or(0.0);
+                    let h: f64 = cells.get(&(cell.row, cell.col)).map(|(ls, _)| ls.iter().map(|(_, l)| l.leading).sum()).unwrap_or(0.0);
                     let lean = (h * ((r - 1000) as f64).to_radians().tan()).min(rect.width() / 2.0);
                     Rect::new(rect.x0 + 2.0 + lean - ins[1], rect.y0 - h - 2.0 - ins[0], rect.x1, rect.y0 - 2.0)
                 }
@@ -1253,20 +1247,11 @@ impl<'a> Flower<'a> {
                     _ => 0.0,
                 };
                 let mut b = boxr.y0 + ins[0] + shift;
-                for l in ls {
+                for (pn, l) in ls {
                     b += l.leading;
                     let mut l = l.clone();
-                    for run in l.runs.iter_mut().chain(l.adorn.iter_mut()) {
-                        for g in &mut run.glyphs {
-                            g.x += boxr.x0 + ins[1];
-                        }
-                        run.x0 += boxr.x0 + ins[1];
-                        run.x1 += boxr.x0 + ins[1];
-                    }
-                    for m in &mut l.marks {
-                        m.x += boxr.x0 + ins[1];
-                    }
-                    lines.push(PlacedLine { para: 0, frame: c.frame, column: c.column, baseline: b, line: l });
+                    offset_line(&mut l, boxr.x0 + ins[1]);
+                    lines.push(PlacedLine { para: *pn, frame: c.frame, column: c.column, baseline: b, line: l });
                 }
             }
             frag.cells.push(CellOut { row: cell.row, col: cell.col, rect, lines, rotate });
