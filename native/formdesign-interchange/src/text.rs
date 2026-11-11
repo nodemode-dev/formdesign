@@ -273,7 +273,8 @@ pub fn rtf(text: &str) -> Imported {
     let mut i = 0;
     let mut cur = String::new();
     let mut skip: Vec<bool> = vec![false];
-    let mut uc_skip = 0usize;
+    let mut uc_skip = 1usize;
+    let mut cp1252 = true;
     while i < chars.len() {
         let c = chars[i];
         let skipping = *skip.last().unwrap_or(&false);
@@ -307,7 +308,11 @@ pub fn rtf(text: &str) -> Imported {
                             if !skipping
                                 && let Ok(b) = u8::from_str_radix(&hex, 16)
                             {
-                                cur.push(b as char);
+                                const HIGH: [u32; 32] = [
+                                    0x20AC, 0x81, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x8D, 0x017D, 0x8F, 0x90, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x9D, 0x017E, 0x0178,
+                                ];
+                                let ch = if cp1252 && (0x80..0xA0).contains(&b) { char::from_u32(HIGH[(b - 0x80) as usize]).unwrap_or(b as char) } else { b as char };
+                                cur.push(ch);
                             }
                         }
                         '~' if !skipping => cur.push('\u{a0}'),
@@ -344,11 +349,34 @@ pub fn rtf(text: &str) -> Imported {
                     "rdblquote" => cur.push('\u{201D}'),
                     "bullet" => cur.push('\u{2022}'),
                     "uc" => uc_skip = num.parse().unwrap_or(1),
+                    "ansicpg" => cp1252 = num == "1252",
                     "u" => {
                         if let Some(ch) = num.parse::<i32>().ok().map(|v| if v < 0 { v + 65536 } else { v }).and_then(|v| char::from_u32(v as u32)) {
                             cur.push(ch);
                         }
-                        i += uc_skip.max(1).min(chars.len().saturating_sub(i));
+                        let mut left = uc_skip;
+                        while left > 0 && i < chars.len() && chars[i] != '{' && chars[i] != '}' {
+                            if chars[i] != '\\' {
+                                i += 1;
+                            } else if chars.get(i + 1) == Some(&'\'') {
+                                i += 4;
+                            } else if chars.get(i + 1).is_some_and(|c| c.is_ascii_alphabetic()) {
+                                i += 1;
+                                while chars.get(i).is_some_and(|c| c.is_ascii_alphabetic()) {
+                                    i += 1;
+                                }
+                                while chars.get(i).is_some_and(|c| c.is_ascii_digit() || *c == '-') {
+                                    i += 1;
+                                }
+                                if chars.get(i) == Some(&' ') {
+                                    i += 1;
+                                }
+                            } else {
+                                i += 2;
+                            }
+                            left -= 1;
+                        }
+                        i = i.min(chars.len());
                     }
                     "fonttbl" | "colortbl" | "stylesheet" | "info" | "pict" | "header" | "footer" => {
                         if let Some(l) = skip.last_mut() {
