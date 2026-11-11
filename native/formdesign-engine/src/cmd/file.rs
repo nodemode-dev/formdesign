@@ -360,6 +360,10 @@ pub fn page_list(doc: &Doc, spec: Option<&str>) -> Result<Vec<usize>> {
         if part.is_empty() {
             continue;
         }
+        if let Ok(i) = find(part) {
+            out.push(i);
+            continue;
+        }
         match part.split_once('-') {
             Some((a, b)) if !a.trim().is_empty() => {
                 let (a, b) = (find(a)?, if b.trim().is_empty() { n - 1 } else { find(b)? });
