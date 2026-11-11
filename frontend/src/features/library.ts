@@ -167,14 +167,16 @@ export class LibraryPanel {
     const body: Record<string, unknown> = { name: this.name, index };
     if (at) {
       const slots = editor.layout?.slots ?? [];
-      const inside = slots.find((s) => at[0] >= s.bounds[0] && at[0] <= s.bounds[2] && at[1] >= s.bounds[1] && at[1] <= s.bounds[3]) ?? slots[0];
+      const inside = slots.find((s) => (s.spread as unknown as { kind?: string })?.kind !== 'parent' && at[0] >= s.bounds[0] && at[0] <= s.bounds[2] && at[1] >= s.bounds[1] && at[1] <= s.bounds[3]) ?? slots[0];
       if (inside) {
         const [a, b, c, d, e, f] = inside.xf as unknown as number[];
         const det = a * d - b * c || 1;
         const X = at[0] - e, Y = at[1] - f;
         body.x = (d * X - c * Y) / det;
         body.y = (-b * X + a * Y) / det;
-        body.spread = (inside as unknown as { spread: unknown }).spread;
+        const sp = (inside as unknown as { spread: number | { kind?: string; index?: number } }).spread;
+        const si = typeof sp === 'number' ? sp : sp?.kind === 'doc' ? sp.index : undefined;
+        if (si !== undefined) body.spread = si;
       }
     }
     try {

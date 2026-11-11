@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -671,3 +671,10 @@ An empty number field without a default read as 0, so Paragraph Border with only
 - logged: v0.85.5 · 2026-11-10
 
 `pickFiles` reuses one hidden file input and listened only for `change`. Cancelling the system picker fires no `change`, so the listener stayed and the promise never settled; the next pick (Open after a cancelled Place, Relink, Load Profile, a plug-in from file) also reached the old listener, and that file was uploaded and placed too. Each cancel added one more stale listener. The input's `cancel` event now settles the pick with no files, both listeners go whichever fires first, and a new pick first settles any pick still pending (kept in `endPick`) with no files, for browsers that send no `cancel`. Every caller already returns on an empty list. Checked with `tsc --noEmit` and by reading every caller; not run in a browser.
+
+### features/library.ts · a dropped Library item lands on the spread under the cursor
+- refers-to: frontend/src/features/library.ts :: LibraryPanel.place; native/formdesign-engine/src/canvas.rs :: SpreadRef; native/formdesign-engine/src/cmd/swatch.rs :: snippet_place
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A layout slot's `spread` is a serialized `SpreadRef` (`{"kind":"doc","index":N}`) and `place` sent that object as `spread`. `snippet_place` reads it with `opt_u64`, got None and fell back to `snippetSpread`, the spread the item was copied from, so a drop on another spread put the item on the source spread at the drop's coordinates. `place` now sends the doc index (or a plain number), and the slot lookup skips parent-page slots as `viewTarget` in clipboard.ts does. Checked with `tsc --noEmit`; not run in a browser.
