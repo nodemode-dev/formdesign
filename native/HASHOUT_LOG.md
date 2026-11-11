@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -1096,4 +1096,11 @@ These commands set a text frame, or a duplicate of one (which `ops::duplicate` g
 - logged: v0.85.5 · 2026-11-10
 
 Accept or Reject Change (one or all), deleting a note or converting it to text, Import XML and placing a text file into a frame edited a story and left the caret where it was. After Reject All removed tracked insertions at the end of a story, the caret sat past the end; a word delete then read `chars[k - 1]` with `k` beyond the text and panicked, and typing went to the wrong place. Typing and `text.delete` now clamp the selection to `story.len()` first. The review commands drop a text selection in a story they changed (the two "All" commands drop any text selection once they changed something), Import XML drops it once it placed anything, and placing text selects the frame as placing an image does. Checked with `cargo check -p formdesign-engine`; not run through the app.
+
+### find.rs · Change All with a format-only find
+- refers-to: native/formdesign-engine/src/cmd/find.rs :: matches, change
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+With an empty `find` and a `findFormat`, `matches` gave each matched run its own text as the replacement, so Change All deleted the run and put the same text back: `change` was ignored and the reinserted text took the formatting before it, losing the matched format. The format branch now replaces with `change` and keeps the matched text only when `change` is absent; a format-only find with neither `change` nor `changeFormat` is refused, since it could only strip formatting. Checked with `cargo check -p formdesign-engine`; not run on a document.
 
