@@ -553,13 +553,21 @@ fn pages_move(c: &mut Ctx, p: &Value) -> Result<Value> {
             if j >= to { j + 1 } else { j }
         }
     };
-    c.doc_mut()?.repaginate(|pages, carried, _| {
+    let doc = c.doc_mut()?;
+    doc.repaginate(|pages, carried, _| {
         let pg = pages.remove(from);
         pages.insert(to, pg);
         for c in carried.iter_mut() {
             c.1 = map(c.1);
         }
     });
+    for s in doc.sections.iter_mut() {
+        if s.start > 0 {
+            s.start = map(s.start);
+        }
+    }
+    doc.sections.sort_by_key(|s| s.start);
+    doc.sections.dedup_by_key(|s| s.start);
     c.label("Move Pages");
     ok()
 }
@@ -587,6 +595,11 @@ fn duplicate_spread(c: &mut Ctx, p: &Value) -> Result<Value> {
             }
         }
     });
+    for s in doc.sections.iter_mut() {
+        if s.start >= first + np && s.start > 0 {
+            s.start += np;
+        }
+    }
     ok()
 }
 
