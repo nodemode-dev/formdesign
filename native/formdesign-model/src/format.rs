@@ -33,8 +33,22 @@ pub fn save(doc: &Doc) -> Result<Vec<u8>> {
     Ok(buf.into_inner())
 }
 
+#[derive(serde::Deserialize)]
+struct Head {
+    #[serde(default)]
+    format: u32,
+}
+
+fn not_newer(json: &[u8]) -> Result<()> {
+    match serde_json::from_slice::<Head>(json) {
+        Ok(h) if h.format > FORMAT_VERSION => err(format!("this document was saved by a newer FormDesign (format {})", h.format)),
+        _ => Ok(()),
+    }
+}
+
 pub fn load(bytes: &[u8]) -> Result<Doc> {
     if bytes.first() == Some(&b'{') {
+        not_newer(bytes)?;
         let mut d: Doc = serde_json::from_slice(bytes).map_err(zerr)?;
         d.bump_ids();
         d.check()?;
@@ -48,10 +62,8 @@ pub fn load(bytes: &[u8]) -> Result<Doc> {
         }
         Err(_) => return err("not a FormDesign document (no doc.json)"),
     }
+    not_newer(&json)?;
     let mut d: Doc = serde_json::from_slice(&json).map_err(zerr)?;
-    if d.format > FORMAT_VERSION {
-        return err(format!("this document was saved by a newer FormDesign (format {})", d.format));
-    }
     let ids: Vec<_> = d.assets.keys().copied().collect();
     for id in ids {
         if let Ok(mut f) = z.by_name(&format!("assets/{id}")) {
