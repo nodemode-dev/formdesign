@@ -504,13 +504,12 @@ pub fn docx(bytes: &[u8]) -> Result<Imported, String> {
 fn table_of(rows: Vec<Vec<String>>) -> Imported {
     let rows: Vec<Vec<String>> = rows.into_iter().filter(|r| r.iter().any(|c| !c.trim().is_empty())).collect();
     let cols = rows.iter().map(Vec::len).max().unwrap_or(1).max(1);
+    let rows = &rows[..rows.len().min((1_000_000 / cols).max(1))];
     let mut table = formdesign_model::story::Table::new(rows.len().max(1), cols, 432.0);
     table.header_rows = usize::from(rows.len() > 1);
     for (r, row) in rows.iter().enumerate() {
         for (k, text) in row.iter().enumerate() {
-            if let Some(cell) = table.cell_mut(r, k) {
-                cell.paras = vec![Para::from_text("", text.trim())];
-            }
+            table.cells[r * cols + k].paras = vec![Para::from_text("", text.trim())];
         }
     }
     let para = Para { style: String::new(), over: Attrs::new(), segs: vec![Seg::Inline { inline: formdesign_model::story::Inline::Table { table: Box::new(table) }, style: None, over: Attrs::new() }] };
@@ -587,7 +586,7 @@ fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
     }
     let col_of = |re: &str| -> usize {
         let letters: String = re.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
-        letters.chars().fold(0usize, |acc, c| acc * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize + 1)).saturating_sub(1)
+        letters.chars().fold(0usize, |acc, c| acc.saturating_mul(26).saturating_add(c.to_ascii_uppercase() as usize - 'A' as usize + 1)).saturating_sub(1)
     };
     let mut rows: Vec<Vec<String>> = Vec::new();
     let mut r = Reader::from_str(&sheet);
@@ -614,7 +613,9 @@ fn xlsx(bytes: &[u8]) -> Result<Imported, String> {
             Ok(Event::GeneralRef(g)) if in_v => val.push_str(&entity(&format!("&{};", g.decode().map(|x| x.into_owned()).unwrap_or_default()))),
             Ok(Event::End(e)) if e.name().as_ref() == b"c" => {
                 let text = if kind == "s" { val.trim().parse::<usize>().ok().and_then(|i| shared.get(i).cloned()).unwrap_or_default() } else { val.clone() };
-                if let Some(row) = rows.last_mut() {
+                if let Some(row) = rows.last_mut()
+                    && col <= 16_383
+                {
                     if row.len() <= col {
                         row.resize(col + 1, String::new());
                     }

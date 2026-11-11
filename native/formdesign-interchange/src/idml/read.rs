@@ -720,8 +720,10 @@ fn paragraph_range(c: &mut Ctx, doc: &mut Doc, sid: StoryId, psr: &El, paras: &m
 }
 
 fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
-    let rows = e.all("Row");
-    let cols = e.all("Column");
+    let mut rows = e.all("Row");
+    let mut cols = e.all("Column");
+    cols.truncate(1000);
+    rows.truncate((100_000 / cols.len().max(1)).max(1));
     let mut t = Table::new(rows.len().max(1), cols.len().max(1), 100.0 * cols.len().max(1) as f64);
     t.cells.clear();
     t.heights = rows.iter().map(|r| r.num("SingleRowHeight").unwrap_or(18.0)).collect();
@@ -739,6 +741,9 @@ fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
     t.style = e.attr("AppliedTableStyle").map(style_name).filter(|s| s != "No Table Style");
     for cell in e.all("Cell") {
         let (col, row) = cell.attr("Name").and_then(|n| n.split_once(':')).map(|(a, b)| (a.parse().unwrap_or(0), b.parse().unwrap_or(0))).unwrap_or((0, 0));
+        if row >= t.rows() || col >= t.cols() {
+            continue;
+        }
         let mut paras = Vec::new();
         story_content(c, doc, sid, cell, &mut paras);
         for p in paras.iter_mut() {
@@ -778,9 +783,18 @@ fn table_of(c: &mut Ctx, doc: &mut Doc, sid: StoryId, e: &El) -> Table {
         }
         t.cells.push(TableCell { row, col, rows: cell.num("RowSpan").unwrap_or(1.0).max(1.0) as usize, cols: cell.num("ColumnSpan").unwrap_or(1.0).max(1.0) as usize, paras, attrs, style: cell.attr("AppliedCellStyle").map(style_name).filter(|s| s != "None") });
     }
-    for r in 0..t.rows() {
-        for col in 0..t.cols() {
-            if t.cell(r, col).is_none() {
+    let (nr, nc) = (t.rows(), t.cols());
+    let mut covered = vec![false; nr * nc];
+    for cl in &t.cells {
+        for r in cl.row..cl.row.saturating_add(cl.rows).min(nr) {
+            for col in cl.col..cl.col.saturating_add(cl.cols).min(nc) {
+                covered[r * nc + col] = true;
+            }
+        }
+    }
+    for r in 0..nr {
+        for col in 0..nc {
+            if !covered[r * nc + col] {
                 t.cells.push(TableCell { row: r, col, rows: 1, cols: 1, paras: vec![Para::empty(BASIC_PARA)], attrs: Attrs::new(), style: None });
             }
         }
