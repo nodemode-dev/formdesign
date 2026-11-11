@@ -71,6 +71,7 @@ export class AssignmentsPanel extends LivePanel {
     <div class="frv-foot"><span class="frv-count"></span><button class="cv-btn frv-btn fwf-open" type="button" title="Open an assignment package sent to you">Open Package</button><button class="cv-btn frv-btn fwf-return fwf-editor" type="button" title="Save your edited stories as a package to send back">Return Package</button><button class="cv-btn frv-btn fwf-update fwf-designer" type="button" title="Bring the stories of an edited package back into the layout">Update Content</button></div>
   </div>`);
   private readonly picked = new Set<number>();
+  private pickedDoc: string | null = null;
   private colour = '#4b8fe5';
 
   constructor(ws: Workspace, private readonly store: WorkflowStore, private readonly setRole: (name: string, role: 'designer' | 'editor') => Promise<void>) {
@@ -169,6 +170,8 @@ export class AssignmentsPanel extends LivePanel {
 
   private paint(): void {
     const d = this.store.data;
+    if (d.docId !== this.pickedDoc) { this.picked.clear(); this.pickedDoc = d.docId; }
+    for (const id of [...this.picked]) if (!d.stories.some((s) => s.id === id)) this.picked.delete(id);
     const me = d.user;
     const editorRole = me.role === 'editor';
     setValue(q<HTMLInputElement>(this.root, '.fwf-name'), me.name);
