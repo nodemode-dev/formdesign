@@ -308,6 +308,11 @@ pub fn thread(doc: &mut Doc, from: ItemId, to: ItemId) -> Result<()> {
         }
         doc.stories.remove(&b);
     } else {
+        match &to_item.kind {
+            ItemKind::Plain if to_item.shape.closed() => {}
+            ItemKind::Graphic(g) if g.asset.is_none() && to_item.shape.closed() => {}
+            _ => return Err(EngineError::new("the second object must be a text frame or an empty frame, not a group, a line or a frame holding a picture")),
+        }
         if let Some(it) = doc.item_mut(to) {
             it.kind = ItemKind::Text(TextFrame::new(a));
         }

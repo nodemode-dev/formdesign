@@ -288,11 +288,20 @@ impl Session {
     }
 
     pub fn edit_now(&mut self, label: &str, f: impl FnOnce(&mut Doc, &mut Selection)) {
+        self.edit_now_if(label, |d, sel| {
+            f(d, sel);
+            true
+        });
+    }
+
+    pub fn edit_now_if(&mut self, label: &str, f: impl FnOnce(&mut Doc, &mut Selection) -> bool) {
         let Some(before) = self.begin_edit() else { return };
         if let Some(st) = self.active_mut() {
             let mut doc = st.doc.clone();
             let mut sel = st.selection.clone();
-            f(Arc::make_mut(&mut doc), &mut sel);
+            if !f(Arc::make_mut(&mut doc), &mut sel) {
+                return;
+            }
             st.doc = doc;
             st.selection = sel;
             st.revision += 1;
