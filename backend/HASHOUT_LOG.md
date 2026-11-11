@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · a website export never deletes files it did not write (2026-11-10)
+
+- refers-to: app/services/website.py :: SITE_MARKER, write_dir, _only_export_files, export
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`export` refused a non-empty folder only when it had no `index.html`, taking "has index.html" to mean "an earlier FormDesign export", and `write_dir` replaces the whole target (rename to `.<name>.old`, then `rmtree`), so exporting into the person's own site folder deleted its `.git`, images and other pages. `write_dir` now also writes `.formdesign-site`, the list of paths it wrote (published sites get it too, harmlessly). `export` goes ahead in a non-empty folder only when that list is there and every entry in the folder is on it, or is a folder that holds listed files; otherwise it refuses and names the choices. A folder exported by an earlier version has no list, so a re-export there asks once for an empty folder. Checked with `write_dir` into a scratch folder: the check passes after an export and a re-export, and fails with an added notes.txt, an extra file in assets, an empty `.git`, or a hand-made folder with index.html and notes.txt. A full export through the layout core was not run.
 
 ## v0.85.5 · published sites and placed assets run sandboxed, away from the engine (2026-11-10)
 
