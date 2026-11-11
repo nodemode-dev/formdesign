@@ -73,7 +73,7 @@ async def asset_bytes(asset: int):
         r = await core.call("web.asset", {"asset": asset}, source="rest")
     except CoreError as exc:
         raise HTTPException(404, str(exc)) from exc
-    return Response(r.bin or b"", media_type=r.result.get("mime", "application/octet-stream"), headers={"Cache-Control": "no-store"})
+    return Response(r.bin or b"", media_type=r.result.get("mime", "application/octet-stream"), headers={"Cache-Control": "no-store", "Content-Security-Policy": "sandbox"})
 
 
 @router.get("/core/font")

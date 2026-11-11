@@ -13,6 +13,8 @@ from app.services.website import PUBLISHED_DIR, published, slugify
 
 router = APIRouter()
 sites = APIRouter()
+SANDBOX = "sandbox allow-scripts allow-popups allow-forms"
+_SITE_HEADERS = {"Cache-Control": "no-cache", "Content-Security-Policy": SANDBOX, "Access-Control-Allow-Origin": "*"}
 
 
 def _url(request: Request, slug: str) -> str:
@@ -82,9 +84,9 @@ async def serve(slug: str, path: str = ""):
     if root not in target.parents or not target.is_file():
         missing = root / "404.html"
         if missing.is_file():
-            return FileResponse(missing, status_code=404, headers={"Cache-Control": "no-cache"})
+            return FileResponse(missing, status_code=404, headers=_SITE_HEADERS)
         raise HTTPException(404, "not found")
-    return FileResponse(target, headers={"Cache-Control": "no-cache"})
+    return FileResponse(target, headers=_SITE_HEADERS)
 
 
 @sites.get("/sites/{slug}", include_in_schema=False)

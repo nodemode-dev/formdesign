@@ -52,12 +52,17 @@ class LocalGuard:
         own = _origin_key(f"{key[0]}://{host}")
         return key[0] == "http" and own is not None and own == key
 
+    @staticmethod
+    def _published_site(scope, headers: dict[str, str]) -> bool:
+        return (scope["type"] == "http" and scope.get("method") in ("GET", "HEAD") and scope.get("path", "").startswith("/sites/")
+                and _host_of(headers.get("host", "")) in LOOPBACK and headers.get("origin", "null").strip().lower() == "null")
+
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] not in ("http", "websocket"):
             await self.app(scope, receive, send)
             return
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
-        if self._permitted(headers):
+        if self._permitted(headers) or self._published_site(scope, headers):
             await self.app(scope, receive, send)
             return
         if scope["type"] == "websocket":

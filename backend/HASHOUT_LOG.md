@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · published sites and placed assets run sandboxed, away from the engine (2026-11-10)
+
+- refers-to: app/routers/website.py :: SANDBOX, _SITE_HEADERS, serve; app/routers/core_api.py :: asset_bytes; app/core/local_guard.py :: LocalGuard._published_site
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+Published sites (`/sites/<slug>/`) and placed files from `/api/core/asset` were served on the engine's own origin, which LocalGuard, `window_only` and the terminal guard trust as the window, so script in a published page (document text that broke out of a page's markup, see the JSON-LD entry) or an HTML or SVG asset opened directly could POST `/api/term`, set agent policy and write files. Both now send `Content-Security-Policy: sandbox` (sites add `allow-scripts allow-popups allow-forms`; assets get bare `sandbox`), so the page has an opaque origin and its fetches carry `Origin: null`, which LocalGuard refuses. A sandboxed page's own loads (its CSS, images, fonts, links between its pages) arrive as `Sec-Fetch-Site: cross-site` with no Origin or with `Origin: null`, which FB-046 refuses, so `_published_site` lets exactly those through for GET and HEAD under `/sites/` on a loopback Host; everything else is unchanged. Site responses carry `Access-Control-Allow-Origin: *` because `@font-face` loads are CORS requests from the opaque origin; a foreign Origin still gets 403 before it could read anything. The export writes only relative URLs (`assets/site.css`, `fonts/...`, page images, `index.html`), all under `/sites/<slug>/`. Checked with TestClient: the site page and its CSS answer 200 with the header under `Origin: null` and cross-site; `/api/term` and `/api/health` with `Origin: null`, a cross-site `/api/term`, a POST to `/sites/` and a foreign Origin on `/sites/` answer 403; `tests/test_f1_guard.py` passes. Not run in a real browser.
 
 ## v0.85.5 · a plug-in's fetch checks every redirect hop against its network list (2026-11-10)
 
