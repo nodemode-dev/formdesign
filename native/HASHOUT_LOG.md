@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · clipboard in table cells; 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -1110,4 +1110,11 @@ With an empty `find` and a `findFormat`, `matches` gave each matched run its own
 - logged: v0.85.5 · 2026-11-10
 
 The release removed each object's one-character inline marker by position, in reverse selection order. When the selection listed the later object first, the earlier marker went first, the later one moved down by one, and the delete at its old position removed a real character while the object stayed anchored and was also put on the spread. The plan is now sorted by story and position and deleted from the end. Checked with `cargo check -p formdesign-engine`; not run on a document.
+
+### clip.rs · the clipboard with a caret in a table cell
+- refers-to: native/formdesign-engine/src/cmd/clip.rs :: take, do_paste
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`take` and `do_paste` looked only at `selection.text`. With a cell caret (`selection.cell_text`), Paste made a new text frame on the first spread and moved the selection to it, and Copy and Cut answered "nothing to copy". A text clip pasted with a cell caret now goes through `insert_at_selection`, which already types into cells; Copy and Cut of a selected cell range slice the cell's paragraphs (through a scratch story, as `celltext` does) into a text clip, and Cut deletes it through `text.delete`, which handles cells. A clip of objects still pastes onto the spread. Checked with `cargo check -p formdesign-engine`; not run through the app.
 
