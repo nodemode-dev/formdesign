@@ -61,6 +61,7 @@ impl<'a> Mapper<'a> {
                 return;
             }
             let Some(s) = family_ref(self.src, f).iter().find(|s| s.name == n).cloned() else { return };
+            self.attr_paints(dst, &s.attrs);
             name = s.based_on.clone();
             family(dst, f).push(s);
         }
@@ -72,6 +73,20 @@ impl<'a> Mapper<'a> {
             && let Some(s) = self.src.swatch(name).cloned()
         {
             dst.swatches.push(s);
+        }
+    }
+
+    fn attr_paints(&self, dst: &mut Doc, attrs: &formdesign_model::attrs::Attrs) {
+        for (k, v) in attrs {
+            let v = match k.as_str() {
+                "fill" | "underlineColor" | "strikeColor" => Some(v),
+                "stroke" => Some(v.get("paint").unwrap_or(v)),
+                "ruleAbove" | "ruleBelow" | "shading" | "border" | "kenten" => v.get("color"),
+                _ => None,
+            };
+            if let Some(p) = v.and_then(Paint::from_value) {
+                self.paint(dst, &p);
+            }
         }
     }
 
@@ -109,10 +124,12 @@ impl<'a> Mapper<'a> {
         let mut out = paras.to_vec();
         for p in out.iter_mut() {
             self.style(dst, Family::Paragraph, &p.style.clone());
+            self.attr_paints(dst, &p.over);
             for seg in p.segs.iter_mut() {
                 if let Some(s) = seg.style().map(str::to_string) {
                     self.style(dst, Family::Character, &s);
                 }
+                self.attr_paints(dst, seg.over());
                 let Seg::Inline { inline, .. } = seg else { continue };
                 match inline {
                     Inline::Anchored { item, .. } => {
