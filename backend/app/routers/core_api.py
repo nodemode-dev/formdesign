@@ -25,7 +25,9 @@ async def routed_exec(params: dict, source: str):
         return await documents.save(p.get("path"), source=source)
     if command == "file.open":
         return await documents.open_path(str(p.get("path", "")), source=source)
-    return await documents.new(p, source=source)
+    if command == "file.new":
+        return await documents.new(p, source=source)
+    return await core.exec(str(command), p, source=source)
 
 
 @router.post("/core/{method}")

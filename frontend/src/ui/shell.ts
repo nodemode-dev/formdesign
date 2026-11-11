@@ -629,6 +629,11 @@ export class Shell implements Workspace {
 
   private onRequest(r: any): void {
     const kind = r?.kind ?? Object.keys(r ?? {})[0];
+    if (kind === 'toast') {
+      const text = typeof r.text === 'string' ? friendly(r.text).trim() : '';
+      if (text) toast(text, 'error');
+      return;
+    }
     if (kind === 'pick' && (r.purpose ?? r.pick?.purpose) === 'place') { void this.place(); return; }
     if (kind === 'view') {
       const p = r.params ?? {};

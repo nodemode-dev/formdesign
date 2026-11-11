@@ -190,7 +190,10 @@ class Documents:
         if m is None or p is None:
             raise CoreError("no document open")
         ext = p.suffix.lower()
-        p.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise CoreError(f"cannot save to {p}: the folder {p.parent} cannot be made ({exc.strerror or exc})") from exc
         if ext == ".fdoc":
             await core.call("exec", {"command": "file.saveAs", "params": {"path": str(p)}}, source=source)
         elif ext == ".idml":
@@ -199,7 +202,10 @@ class Documents:
             from app.intake.store import packs
             pack = packs.get(m.pack_id) if m.pack_id else None
             data = await self.serialize_fdes(pack)
-            p.write_bytes(data)
+            try:
+                p.write_bytes(data)
+            except OSError as exc:
+                raise CoreError(f"cannot save to {p}: {exc.strerror or exc}") from exc
             m.path = str(p)
             await core.call("docs.saved", {"path": str(p)}, source=source)
             try:
@@ -213,7 +219,7 @@ class Documents:
     async def export(self, fmt: str, path: str | None = None, options: dict | None = None, *, source: str = "engine") -> tuple[dict, bytes | None, str]:
         options = dict(options or {})
         if fmt in ("png", "jpg", "jpeg"):
-            page = int(options.get("page", 0))
+            page = _page_index(options.get("page", 1))
             params = {"page": page, "scale": float(options.get("scale", 2.0)), "bleed": bool(options.get("bleed", False)), "format": "jpeg" if fmt != "png" else "png"}
             r = await core.call("page.png", params, source=source)
             mime = r.result.get("mime", "image/png")
@@ -288,6 +294,16 @@ class Documents:
                     await core.call("exec", {"command": "file.recovery.save", "params": {"dir": str(recovery)}}, source="autosave")
             except CoreError as exc:
                 log.warning("recovery save failed: %s", exc)
+
+
+def _page_index(value: object) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        raise CoreError(f"`page` is a page number counting from 1, not {value!r}") from None
+    if n < 1:
+        raise CoreError("`page` is 1-based: the first page is 1")
+    return n - 1
 
 
 def _meta_member(names: list[str]) -> str | None:

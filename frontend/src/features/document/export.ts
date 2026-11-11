@@ -316,7 +316,7 @@ export class ExportDialog {
       case 'html': meta(); delete o.author; return { format: 'html', options: o };
       case 'web': return { format: 'web', options: this.web.values() };
       case 'png': case 'jpg':
-        o.page = Number(this.imgPage.value); o.scale = Number(this.imgScale.value); o.bleed = this.imgBleed.value;
+        o.page = Number(this.imgPage.value) + 1; o.scale = Number(this.imgScale.value); o.bleed = this.imgBleed.value;
         return { format: fmt, options: o };
       case 'svg':
         o.page = Number(this.imgPage.value) + 1;
