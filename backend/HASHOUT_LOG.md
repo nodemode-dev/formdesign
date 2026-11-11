@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · save_document asks before overwriting the file it will really write (2026-11-10)
+
+- refers-to: app/engine/documents.py :: Documents.save_target, Documents.save; app/routers/mcp.py :: call_tool
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`gate_reason` checks whether the `path` argument exists, but `Documents.save` changed any extension other than `.fdoc` and `.idml` to `.fdes`, and with no path on a never-saved document wrote `PROJECTS_DIR/<title>.fdes`; both were decided after the gate. So `save_document {"path": "/x/Report"}` (or `Report.pdf`) with `/x/Report.fdes` present, or a `make_layout` document titled like an existing project, overwrote the file without asking a client set to Ask. `save_target` now makes that decision, `save` uses it, and `call_tool` passes the target to `gate_reason` (in place of the raw path) for `save_document` when a path is given or the document has no file yet; a plain save of an already-saved document stays ungated. If the target cannot be worked out (no core, a relative path) the gate sees the original arguments and the save itself fails as before. Checked with `documents` and `core.state` stubbed: the gate sees `Projects/Report.fdes`, `/x/Report.fdes` for `/x/Report` and `/x/Report.pdf`, and nothing for a saved document.
 
 ## v0.85.5 · an uploaded file name cannot leave the pack folder (2026-11-10)
 

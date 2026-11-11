@@ -167,16 +167,23 @@ class Documents:
                 z.writestr("thumbs/page-1.png", thumb, compress_type=zipfile.ZIP_STORED)
         return buf.getvalue()
 
-    async def save(self, path: str | None = None, *, source: str = "engine", comment: str = "") -> dict:
+    async def save_target(self, path: str | None = None) -> Path | None:
         m = await self.meta_for_active()
         if m is None:
-            raise CoreError("no document open")
+            return None
         target = path or m.path
         if not target:
             st = await core.state()
             title = st["docs"][st["active"]]["title"] if st.get("active") is not None else "Untitled"
             target = str(config.PROJECTS_DIR / f"{Path(title).stem}{config.FDES_EXT}")
         p = Path(target).expanduser()
+        return p if p.suffix.lower() in (".fdoc", ".idml", config.FDES_EXT) else p.with_suffix(config.FDES_EXT)
+
+    async def save(self, path: str | None = None, *, source: str = "engine", comment: str = "") -> dict:
+        m = await self.meta_for_active()
+        p = await self.save_target(path)
+        if m is None or p is None:
+            raise CoreError("no document open")
         ext = p.suffix.lower()
         p.parent.mkdir(parents=True, exist_ok=True)
         if ext == ".fdoc":
@@ -184,8 +191,6 @@ class Documents:
         elif ext == ".idml":
             await core.call("exec", {"command": "file.exportIdml", "params": {"path": str(p)}}, source=source)
         else:
-            if ext != config.FDES_EXT:
-                p = p.with_suffix(config.FDES_EXT)
             from app.intake.store import packs
             pack = packs.get(m.pack_id) if m.pack_id else None
             data = await self.serialize_fdes(pack)

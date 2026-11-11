@@ -771,7 +771,16 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
     if pol == "deny":
         A.record(client, name, args, False, 0, "refused: this client is set to Deny in Agent Connect", core.rev)
         return _fail(f"{client} is set to Deny in FormDesign's Agent Connect panel; the person can change that there.")
-    reason = A.gate_reason(name, args)
+    gate_args = args
+    if name == "save_document":
+        try:
+            m = await documents.meta_for_active()
+            if args.get("path") or (m is not None and not m.path):
+                target = await documents.save_target(str(_abs(args["path"])) if args.get("path") else None)
+                gate_args = {**args, "path": str(target)} if target is not None else args
+        except (CoreError, ValueError, OSError):
+            gate_args = args
+    reason = A.gate_reason(name, gate_args)
     if reason and pol == "ask":
         if not core.listeners:
             A.record(client, name, args, False, 0, f"refused: {reason}, and no window is open to ask", core.rev)
