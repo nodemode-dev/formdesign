@@ -29,9 +29,10 @@ def get(template_id: str) -> dict | None:
 
 def user_path(t: dict):
     cat = "".join(c for c in str(t.get("category", "other")).lower() if c.isalpha()) or "other"
-    if t.get("_file") and t.get("_user"):
-        return Path(t["_file"])
-    return config.TEMPLATES_USER_DIR / cat / f"{t['id']}.json"
+    f = Path(t["_file"]) if t.get("_file") and t.get("_user") else config.TEMPLATES_USER_DIR / cat / f"{t['id']}.json"
+    if config.TEMPLATES_USER_DIR.resolve() not in f.resolve().parents:
+        raise ValueError(f"{t.get('id')}: a template is saved only inside the template library")
+    return f
 
 
 def cards(category: str | None = None, kind: str | None = None, query: str | None = None, medium: str | None = None) -> list[dict]:

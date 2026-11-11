@@ -18,6 +18,7 @@ from app.engine.documents import documents
 from app.intake import pack as P
 from app.intake.store import packs
 from app.routers.agents import window_only
+from app.routers.templates import ID as TEMPLATE_ID
 from app.services import agents as A
 from app.services import books, libraries, pdfread, profiles, queries
 from app.templates import brands, registry, spec
@@ -591,6 +592,8 @@ async def _run(name: str, a: dict) -> dict:
         return {"content": content}
     if name == "save_template":
         t = a.get("spec") or {}
+        if not isinstance(t, dict) or not TEMPLATE_ID.match(str(t.get("id", ""))):
+            return _fail("id must be kebab-case letters, digits and hyphens")
         existing = registry.get(t.get("id", ""))
         if existing is not None and not existing.get("_user"):
             return _fail(f"{t.get('id')} is a built-in template id; choose another")

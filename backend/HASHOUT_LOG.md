@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · a template is saved only inside the template library (2026-11-10)
+
+- refers-to: app/routers/mcp.py :: _run, save_template branch; app/templates/registry.py :: user_path; app/routers/templates.py :: save_template
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The MCP `save_template` tool never checked the template id, and `user_path` joined it raw, so `{"id": "../../../.claude", ...}` wrote the spec (extra top-level keys kept) over `~/.claude.json`, and any `*.json` the user can write was reachable. Both the tool and REST `POST /api/templates` also took `_file` and `_user` from the posted spec, which point `user_path` at any path. The tool now refuses ids that fail the REST route's `ID` rule, and `user_path` resolves its target and raises ValueError unless `TEMPLATES_USER_DIR` is among its parents (a tool error over MCP, 422 over REST). Checked: `user_path` refuses `../../x` and a spec with `_user`/`_file` set to `/tmp/x.json`; `tools/call save_template` with id `../../x` answers isError.
 
 ## v0.85.5 · only the in-app token makes a client the in-app Claude Code (2026-11-10)
 
