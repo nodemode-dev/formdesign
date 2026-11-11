@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · only the in-app token makes a client the in-app Claude Code (2026-11-10)
+
+- refers-to: app/services/agents.py :: identify
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`identify` named a client from its own `clientInfo` or User-Agent, and `policy()` defaults "Claude Code in FormDesign" to Allow, so any MCP client that sent that name without the `x-formdesign-inapp` token skipped every approval; the names "assistant" and "plugin:<id>" let a client borrow the built-in assistant's or a plug-in's policy the same way. Without the token, such a name now gets " (unverified)" added, so the client has its own policy (Ask by default). Checked: identify with those names gives "... (unverified)" and policy ask; with the token header it gives the in-app name and allow.
 
 ## v0.85.2 · formdesign-core links the C runtime statically on Windows (2026-10-31)
 

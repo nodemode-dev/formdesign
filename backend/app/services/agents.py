@@ -131,6 +131,8 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
         transport = sessions[sid]["transport"]
     ua = (headers.get("user-agent") or "").split("/")[0].strip()
     name = INAPP_CLIENT if inapp(headers) else display(info, ua or "Unknown client")
+    if not inapp(headers) and (name.strip().lower() in (INAPP_CLIENT.lower(), "assistant") or name.strip().lower().startswith("plugin:")):
+        name = f"{name} (unverified)"
     c = clients.setdefault(name, {"name": name, "version": None, "transport": transport, "firstSeen": time.time(), "lastSeen": 0.0, "calls": 0})
     c["lastSeen"] = time.time()
     c["transport"] = transport
