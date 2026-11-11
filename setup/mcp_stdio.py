@@ -5,6 +5,8 @@ Notifications get no reply. Only protocol messages go to stdout; anything else g
 The engine's address: FORMDESIGN_MCP_URL, or http://127.0.0.1:8196/mcp. With the default address an engine that is not
 running is started once (FORMDESIGN_MCP_AUTOSTART=0 turns that off)."""
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess
