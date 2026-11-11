@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · a plug-in's fetch checks every redirect hop against its network list (2026-11-10)
+
+- refers-to: app/services/plugins.py :: _CheckedRedirects, _fetch, fetch
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`fetch` checked only the first URL against the plug-in's declared `network` hosts, and `_fetch` opened it with urllib's default opener, which follows a redirect to any http or https host; an allowed host answering `302 Location: http://127.0.0.1:8196/api/...` (or a LAN address) let a plug-in read the engine's routes, the terminal token included, or other local services. `_fetch` now takes an optional `check`; with one it opens through `_CheckedRedirects`, which calls the check on each new URL before following it, and `fetch` passes `allowed_fetch` for the plug-in, so a hop to an undeclared host or to plain http raises PluginError (the route answers 502). Catalogue and download fetches pass no check and still follow redirects (release downloads usually redirect to a CDN). Checked with a local server answering 302 to another host: the hop is refused with PluginError, and followed when the check allows it. An https fetch through an installed plug-in was not run.
 
 ## v0.85.5 · document text stays inside a published page's JSON-LD block (2026-11-10)
 
