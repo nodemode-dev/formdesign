@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · document text stays inside a published page's JSON-LD block (2026-11-10)
+
+- refers-to: app/services/website.py :: Builder.jsonld
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`jsonld` wrote headline, description and author with `json.dumps`, which leaves `</script>` as it is, so an article title, dek or byline holding `</script><script>...</script>` (an imported file, a template, a package from someone else) ended the `application/ld+json` block in a published page and the rest ran as script on the engine's own origin, with `/api` in reach. It now uses `motion.safe_json`, which escapes `<`, `>` and `&` as `\u` escapes and, since its output is ASCII, the line separators U+2028 and U+2029; JSON-LD readers get the same strings back. Checked: safe_json of a headline with `</script><script>`, `&`, U+2028 and an accented letter holds no `<`, `>` or `&`, and json.loads returns the original. A full publish was not run (no layout core here).
 
 ## v0.85.5 · run_commands asks for approval wherever run_command does (2026-11-10)
 

@@ -1017,7 +1017,7 @@ class Builder:
             d["author"] = {"@type": "Person", "name": author}
         if image and base:
             d["image"] = f"{base}/{image}"
-        return f'<script type="application/ld+json">{json.dumps(d, ensure_ascii=False)}</script>\n'
+        return f'<script type="application/ld+json">{motion.safe_json(d)}</script>\n'
 
     async def edition(self) -> None:
         pages = self.c.get("pages", [])
