@@ -48,9 +48,12 @@ def load(path: str) -> dict:
         b = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise BookError(f"cannot read the book {p.name}: {exc}") from exc
-    if b.get("format") not in BOOK_FORMATS or not isinstance(b.get("documents"), list):
+    if not isinstance(b, dict) or not isinstance(b.get("format"), str) or b["format"] not in BOOK_FORMATS or not isinstance(b.get("documents"), list):
         raise BookError(f"{p.name} is not a FormDesign book")
-    b["styleSource"] = int(b.get("styleSource") or 0)
+    try:
+        b["styleSource"] = int(b.get("styleSource") or 0)
+    except (TypeError, ValueError) as exc:
+        raise BookError(f"{p.name} has a styleSource that is not a number") from exc
     return b
 
 

@@ -98,7 +98,9 @@ def check_manifest(m) -> dict:
         raise PluginError("unknown permission: " + ", ".join(sorted(unknown)))
     out["permissions"] = clean
     con = m.get("contributes") or {}
-    cmds = [{"id": str(c["id"]), "label": str(c["label"])} for c in con.get("commands") or [] if isinstance(c, dict) and c.get("id") and c.get("label")]
+    if not isinstance(con, dict) or not isinstance(con.get("commands") or [], list) or not isinstance(con.get("menu") or [], list):
+        raise PluginError("contributes is an object, and its commands and menu are lists")
+    cmds =[{"id": str(c["id"]), "label": str(c["label"])} for c in con.get("commands") or [] if isinstance(c, dict) and c.get("id") and c.get("label")]
     if cmds and "commands" not in clean:
         raise PluginError("contributes.commands needs the commands permission")
     if con.get("panel") and "panel" not in clean:
@@ -109,7 +111,7 @@ def check_manifest(m) -> dict:
     for x in menu:
         if x not in {c["id"] for c in cmds}:
             raise PluginError(f"contributes.menu names {x}, which is not a command")
-    out["contributes"] = {"commands": cmds, "panel": {"title": str((con.get("panel") or {}).get("title") or out["name"])} if con.get("panel") else None, "menu": menu}
+    out["contributes"] = {"commands": cmds, "panel": {"title": str((con["panel"] if isinstance(con["panel"], dict) else {}).get("title") or out["name"])} if con.get("panel") else None, "menu": menu}
     return out
 
 

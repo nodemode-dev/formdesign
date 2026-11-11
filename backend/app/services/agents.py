@@ -117,13 +117,15 @@ def display(info: dict | None, fallback: str) -> str:
 
 def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
     """The client making this request, and a new session id when it is initializing."""
-    meta = params.get("_meta") or {}
+    params = params if isinstance(params, dict) else {}
+    meta = params.get("_meta") if isinstance(params.get("_meta"), dict) else {}
     info = meta.get("io.modelcontextprotocol/clientInfo")
+    info = info if isinstance(info, dict) else None
     transport = headers.get("x-formdesign-transport") or "http"
     sid = headers.get("mcp-session-id")
     new_sid = None
     if method == "initialize":
-        info = params.get("clientInfo") or info
+        info = (params.get("clientInfo") if isinstance(params.get("clientInfo"), dict) else None) or info
         new_sid = secrets.token_hex(12)
         sessions[new_sid] = {"info": info or {}, "transport": transport}
     elif sid and sid in sessions:
@@ -147,6 +149,8 @@ def inapp(headers) -> bool:
 
 
 def gate_reason(name: str, args: dict) -> str | None:
+    if not isinstance(args, dict):
+        return None
     if name == "publish_website" and args.get("action", "publish") != "list":
         return "publishes a website" if args.get("action", "publish") == "publish" else "takes a published website down"
     if name == "review" and args.get("action") in ("share", "stop"):
@@ -155,11 +159,14 @@ def gate_reason(name: str, args: dict) -> str | None:
         try:
             if Path(str(args["path"])).expanduser().exists():
                 return f"overwrites {args['path']}"
-        except OSError:
+        except (OSError, ValueError):
             return None
     if name == "book" and args.get("action") == "export" and args.get("path"):
-        if Path(str(args["path"])).expanduser().exists():
-            return f"overwrites {args['path']}"
+        try:
+            if Path(str(args["path"])).expanduser().exists():
+                return f"overwrites {args['path']}"
+        except (OSError, ValueError):
+            return None
     if name == "run_command":
         from app.services import commands as C
         cid = str(args.get("id") or "")
@@ -173,8 +180,12 @@ def gate_reason(name: str, args: dict) -> str | None:
                 return GATED_COMMANDS[cid]
             if isinstance(cid, str) and cid != "layout.pages.delete" and (C.risky(cid) or (C.meta().get(cid) or {}).get("risky")):
                 return f"runs {cid}, which Undo cannot reverse"
-            if cid == "layout.pages.delete" and len((c.get("params") or {}).get("pages") or []) > 1:
-                return f"deletes {len(c['params']['pages'])} pages"
+            if cid == "layout.pages.delete":
+                pages = c["params"].get("pages") if isinstance(c.get("params"), dict) else None
+                if not isinstance(pages, list) and pages is not None:
+                    return "deletes pages"
+                if pages and len(pages) > 1:
+                    return f"deletes {len(pages)} pages"
     return None
 
 

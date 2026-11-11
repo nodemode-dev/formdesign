@@ -355,7 +355,7 @@ def read_package(data: bytes) -> tuple[dict, zipfile.ZipFile]:
         manifest = json.loads(z.read("manifest.json"))
     except (zipfile.BadZipFile, KeyError, ValueError) as exc:
         raise CoreError("this is not a FormDesign assignment package") from exc
-    if manifest.get("format") not in FORMATS:
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("format"), str) or manifest["format"] not in FORMATS:
         raise CoreError("this is not a FormDesign assignment package")
     return manifest, z
 
