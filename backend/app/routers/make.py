@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 
@@ -59,7 +60,7 @@ async def make_quick(files: list[UploadFile] = File(default=[]), brief: str = Fo
         opts = json.loads(options or "{}")
     except ValueError:
         opts = {}
-    pack = pack_mod.ingest(paths, brief, opts, pack_id=pack_id)
+    pack = await asyncio.to_thread(pack_mod.ingest, paths, brief, opts, pack_id=pack_id)
     try:
         rep = await make_one(pack, template or None, brand or None, None, opts)
     except CoreError as exc:

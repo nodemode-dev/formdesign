@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import difflib
 import json
@@ -444,9 +445,9 @@ async def _run(name: str, a: dict) -> dict:
         missing = [str(p) for p in paths if not p.exists()]
         if missing:
             return _fail(f"not found: {', '.join(missing[:5])}")
-        pack = P.ingest(paths, a.get("brief") or "", {"kind": a["kind"]} if a.get("kind") else {})
+        pack = await asyncio.to_thread(P.ingest, paths, a.get("brief") or "", {"kind": a["kind"]} if a.get("kind") else {})
         s = P.summary(pack)
-        s["ranked"] = [{"id": r["id"], "score": r["score"], "why": r["why"]} for r in R.rank(pack, limit=5)]
+        s["ranked"] = [{"id": r["id"], "score": r["score"], "why": r["why"]} for r in await asyncio.to_thread(R.rank, pack, limit=5)]
         return _text(s)
     if name == "list_templates":
         cards = registry.cards(a.get("category"), a.get("kind"), a.get("query"))
@@ -568,16 +569,16 @@ async def _run(name: str, a: dict) -> dict:
         p = str(_abs(a["path"]))
         mode = a.get("mode", "structure")
         if mode == "info":
-            return _text(pdfread.info(p))
+            return _text(await asyncio.to_thread(pdfread.info, p))
         if mode == "search":
-            return _text(pdfread.search(p, a.get("query") or "")[:60])
+            return _text((await asyncio.to_thread(pdfread.search, p, a.get("query") or ""))[:60])
         if mode == "text":
             pages = a.get("pages") or [1]
-            return _text({str(n): pdfread.page_text(p, n - 1) for n in pages[:20]})
-        st = pdfread.structure(p)
+            return _text({str(n): await asyncio.to_thread(pdfread.page_text, p, n - 1) for n in pages[:20]})
+        st = await asyncio.to_thread(pdfread.structure, p)
         return _text({k: v for k, v in st.items() if k != "spans"})
     if name == "pdf_page_image":
-        png = pdfread.render(str(_abs(a["path"])), max(0, int(a.get("page", 1)) - 1), max_side=float(a.get("max_size", 1100)))
+        png = await asyncio.to_thread(pdfread.render, str(_abs(a["path"])), max(0, int(a.get("page", 1)) - 1), max_side=float(a.get("max_size", 1100)))
         return _image(png)
     if name == "list_brands":
         return _text(brands.listing())
