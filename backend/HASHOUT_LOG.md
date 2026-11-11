@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · an engine on a fallback port tells everyone its real port; non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · an engine on a fallback port tells everyone its real port (2026-11-10)
+
+- refers-to: formdesign_engine.py :: spare, main; app/routers/system.py :: capabilities (mcp); app/routers/mcp.py :: status
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+When 8196 was busy at desktop launch (a dev engine or another copy running), `main` passed port 0 to uvicorn, which picked a port that the Tauri shell read from the log and loaded, but `FORMDESIGN_PORT` and `config.PORT` stayed 8196. `FORMDESIGN_ENGINE_URL` in the in-app terminal, the MCP endpoint written by Agent Connect installs and the review and publish links handed to agents all pointed at the other engine. `main` now picks the spare port itself (`spare` binds port 0 and reads the number back), sets `FORMDESIGN_PORT` before `app.main` (and so `config`) is imported, and passes the same port to uvicorn; the uvicorn startup line the shell reads is unchanged. Capabilities and `/api/mcp/status` report `config.PORT` in place of a literal 8196. Between `spare` closing its socket and uvicorn binding, another process could take the port; uvicorn would then fail to start, as it would for any bind failure. Checked with the wanted port held and `uvicorn.run` stubbed: the port passed, `FORMDESIGN_PORT`, `config.PORT` and the status endpoint agree. Not run in the desktop app.
 
 ## v0.85.5 · libraries, profiles, queries, workspaces and review sites save non-Latin names on Windows (2026-11-10)
 

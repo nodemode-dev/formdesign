@@ -853,7 +853,7 @@ async def mcp(request: Request) -> Response:
 
 @router.get("/api/mcp/status")
 def status() -> dict:
-    return {"endpoint": "http://127.0.0.1:8196/mcp", "tools": len(TOOLS), "enabled": agents_enabled(), **_status}
+    return {"endpoint": f"http://127.0.0.1:{config.PORT}/mcp", "tools": len(TOOLS), "enabled": agents_enabled(), **_status}
 
 
 @router.post("/api/mcp/settings")
