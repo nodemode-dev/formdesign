@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -708,7 +708,7 @@ With an object without animation selected, `render()` hid `.fan-body` but left t
 `enhanceSelect` put each list's `.cv-dd-pop` into `#overlay-root` and added a capturing `pointerdown` listener on `document` when the select was enhanced, and never removed either. Dialogs that build their selects per open (Table Style Options with about 25, Text Options, Object Style Options, Type on a Path, Proof Setup, Workspaces, command forms, Style Options) added one node and one listener per select per open, for the whole session. The popup is now appended and the listener added in `open`, and both removed in `close`; a closed list holds nothing outside its select and button. The popup is also appended last at each open, so it sits above a dialog made after the select. Checked with `tsc --noEmit`; not run in a browser.
 
 ### features/make/slots.ts · a slot preview is never saved over the full story
-- refers-to: frontend/src/features/make/slots.ts :: SlotsPanel.beginEdit, SlotsPanel.commit, updateSlot (`dataset.partial`)
+- refers-to: frontend/src/features/make/slots.ts :: SlotsView.beginEdit, SlotsView.commit, updateSlot (`dataset.partial`)
 - kind: fix
 - logged: v0.85.5 · 2026-11-10
 
@@ -727,3 +727,10 @@ A `tiles` reply for a document no longer shown hit `if (uid !== this.uid) return
 - logged: v0.85.5 · 2026-11-10
 
 The constructor listened to `(resolution: Ndppx)` built once from the starting ratio. That query changes only when matching that one value toggles, so after a first change (1x to 2x) a second one (2x to 1.5x, or a second Ctrl+ zoom) was never seen and the tile, highlight and overlay canvases kept the old backing size. `watchDpr` now builds the query from the current raw ratio (not the value clamped to 1, which would miss a change from below 1 to above it), listens once, and builds it again after each change. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/actions.ts · Play Action works before the Actions panel is shown
+- refers-to: frontend/src/features/actions.ts :: ActionsPanel.play, ActionsPanel constructor, fill; installActions (actions.play)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`saved` was filled only by `onShow` → `load()`, so `actions.play` from an agent, a shortcut or the palette in a session where the panel had not been shown found nothing and returned quietly; a wrong name was quiet too. `play` now loads the list first when it is not loaded, and an unknown name shows an error toast and throws, so `commands.call` hands the error to the agent (the palette's `run` does not await, hence the toast). The Play buttons' disabled state came from `editor.docs.length` only when a row was drawn; the panel now draws again on `editor.on('docs')`. Checked with `tsc --noEmit`; not run in a browser.
