@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · preflight bleed inside groups; 2026-11-10 · numeric references in Import XML; 2026-11-10 · layer views of duplicated frames; 2026-11-10 · section starts follow duplicated and moved pages; 2026-11-10 · tool state left behind on a document change; 2026-11-10 · IDML OverrideList read back; 2026-11-10 · swatches carried with pasted text and styles; 2026-11-10 · table and cell style rename; 2026-11-10 · frame.thread target check; 2026-11-10 · IDML language names; 2026-11-10 · forced line breaks in IDML export; 2026-11-10 · Arrange on several objects; 2026-11-10 · bounded table import; 2026-11-10 · clipboard in table cells; 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · native canvas shadows under every page; 2026-11-10 · preflight bleed inside groups; 2026-11-10 · numeric references in Import XML; 2026-11-10 · layer views of duplicated frames; 2026-11-10 · section starts follow duplicated and moved pages; 2026-11-10 · tool state left behind on a document change; 2026-11-10 · IDML OverrideList read back; 2026-11-10 · swatches carried with pasted text and styles; 2026-11-10 · table and cell style rename; 2026-11-10 · frame.thread target check; 2026-11-10 · IDML language names; 2026-11-10 · forced line breaks in IDML export; 2026-11-10 · Arrange on several objects; 2026-11-10 · bounded table import; 2026-11-10 · clipboard in table cells; 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -223,6 +223,7 @@ native/
 - [formdesign-text](#text)
 - [formdesign-render](#render)
 - [formdesign-interchange](#interchange)
+- [formdesign-gpu](#gpu)
 - [formdesign-engine](#engine)
 
 ---
@@ -530,6 +531,15 @@ The package is read into a small element tree (`dom.rs`) and walked: Preferences
 - logged: v0.15.0 · 2026-10-10
 
 Placed text arrives as paragraphs with style names; a paragraph with no style takes the frame's first paragraph style, and names the document lacks are created empty so the text keeps its structure. Tagged text follows the format the template compiler writes (`<ParaStyle:>`, `<CharStyle:>` runs, `<0xHHHH>` escapes, backslash escapes). Word files read `word/document.xml` with style ids resolved to names through `word/styles.xml`; bold and italic runs become font style overrides. HTML and EPUB take stories and images in reading order: articles when the document has them, otherwise first frames and images by page, then by row, then left to right. Paragraph styles become CSS classes from their resolved attributes and pick a heading element from their export tag or their name. The fixed-layout EPUB draws each page as an image and keeps the page's text, transparent, over it.
+
+## formdesign-gpu {#gpu}
+
+### composite.rs · plan draws all shadows, then all pages, then tiles
+- refers-to: native/formdesign-gpu/src/composite.rs :: Compositor::plan
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`plan` emitted shadow, paper and tiles page by page, and a page's shadow quad reaches twice the blur past its edge, so on a facing spread the right page's shadow was drawn over the left page's tiles: a grey band at every spine on the native canvas only. `plan` now stable-sorts its items by kind (shadows, pages, tiles) before returning, keeping each kind's order (and the order of reported missing tiles), as `frontend/src/gpu/webgl2.ts` and the Canvas 2D compositor already draw. Checked with `cargo check -p formdesign-gpu`; `examples/headless.rs` was not run (no GPU adapter here).
 
 ## formdesign-engine {#engine}
 

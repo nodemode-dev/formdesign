@@ -235,6 +235,11 @@ impl Compositor {
                 }
             }
         }
+        items.sort_by_key(|it| match it {
+            Item::Shadow(_) => 0,
+            Item::Page(_) => 1,
+            Item::Tile(..) => 2,
+        });
         items
     }
 
