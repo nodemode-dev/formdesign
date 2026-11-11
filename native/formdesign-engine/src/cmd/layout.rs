@@ -275,22 +275,7 @@ fn delete_pages(doc: &mut Doc, set: &BTreeSet<usize>) {
         }
     });
     for id in doomed {
-        if let Some(it) = doc.items.get(&id).cloned() {
-            for k in it.all_children() {
-                doc.remove_item(k);
-            }
-            if let Some(sid) = it.story() {
-                let mut drop = false;
-                if let Some(st) = doc.story_mut(sid) {
-                    st.frames.retain(|f| *f != id);
-                    drop = st.frames.is_empty();
-                }
-                if drop {
-                    doc.stories.remove(&sid);
-                }
-            }
-            doc.items.remove(&id);
-        }
+        doc.remove_item(id);
     }
     let n = doc.page_count();
     doc.sections.retain(|s| s.start == 0 || !set.contains(&s.start));
