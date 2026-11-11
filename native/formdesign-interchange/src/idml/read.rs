@@ -338,22 +338,24 @@ fn mime(name: &str) -> String {
 
 fn uri_path(u: &str) -> String {
     let p = u.strip_prefix("file://").or_else(|| u.strip_prefix("file:")).unwrap_or(u);
-    let mut out = String::new();
+    let mut out: Vec<u8> = Vec::new();
     let b = p.as_bytes();
     let mut i = 0;
     while i < b.len() {
         if b[i] == b'%'
             && i + 2 < b.len()
+            && b[i + 1].is_ascii_hexdigit()
+            && b[i + 2].is_ascii_hexdigit()
             && let Ok(v) = u8::from_str_radix(&p[i + 1..i + 3], 16)
         {
-            out.push(v as char);
+            out.push(v);
             i += 3;
             continue;
         }
-        out.push(b[i] as char);
+        out.push(b[i]);
         i += 1;
     }
-    out
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 fn read_link(path: &str) -> Vec<u8> {
