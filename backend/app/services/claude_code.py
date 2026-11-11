@@ -145,7 +145,7 @@ def argv(path: str, prompt: str | None = None, resume: str | None = None) -> lis
     if resume:
         cmd += ["--resume", resume]
     if prompt:
-        cmd.append(prompt)
+        cmd += ["--", prompt]
     return wrap(cmd)
 
 
