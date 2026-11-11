@@ -603,9 +603,8 @@ pub fn prepare(sh: &Shaped, props: &ParaProps) -> Prepared {
     let mut items = Vec::new();
     let mut marks = Vec::new();
     let mut opps: Vec<(usize, BreakOpportunity)> = linebreaks(text).collect();
-    opps.retain(|(i, _)| {
-        *i >= text.len() || sh.seg_at(*i).map(|s| !s.props.no_break).unwrap_or(true) || text[..*i].chars().next_back().map(is_space).unwrap_or(false)
-    });
+    let inside_no_break = |i: usize| sh.seg_at(i).is_some_and(|s| s.props.no_break) && text[..i].char_indices().next_back().and_then(|(p, _)| sh.seg_at(p)).is_some_and(|s| s.props.no_break);
+    opps.retain(|(i, _)| *i >= text.len() || !inside_no_break(*i));
     if text.chars().any(is_cjk) {
         opps = cjk_opportunities(text, opps, props.kinsoku);
     }
@@ -624,7 +623,7 @@ pub fn prepare(sh: &Shaped, props: &ParaProps) -> Prepared {
         let ws_end = start + piece.trim_end_matches([LINE_SEP, '\n']).len();
         if word_end > start {
             let word = &text[start..word_end];
-            let points = if props.hyphenate { hyph_points(word, start, sh, props) } else { Vec::new() };
+            let points = if props.hyphenate { hyph_points(word, start, sh, props).into_iter().filter(|p| !inside_no_break(*p)).collect() } else { Vec::new() };
             let mut s = start;
             for p in points {
                 items.push(Item::Box { w: sh.width(s..p) });
