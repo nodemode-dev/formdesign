@@ -148,11 +148,14 @@ async def thumbnail(template_id: str, brand: dict | None = None, page: int = 0, 
         return out.read_bytes()
     core = await aux_core()
     async with _aux_lock:
-        await build(core, template_id, brand=brand, sample=True, source="thumbs")
         try:
+            await build(core, template_id, brand=brand, sample=True, source="thumbs")
             r = await core.call("page.png", {"page": page, "maxSide": size}, source="thumbs")
         finally:
-            await core.call("docs.close", {}, source="thumbs")
+            try:
+                await core.call("docs.close", {}, source="thumbs")
+            except CoreError:
+                pass
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(r.bin or b"")
     return r.bin or b""
