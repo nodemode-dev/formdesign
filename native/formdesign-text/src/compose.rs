@@ -822,7 +822,7 @@ impl Composer<'_> {
         };
         let mut prepared = prepare(&sh, props);
         if skip > 0 {
-            trim_front(&mut prepared, skip);
+            trim_front(&mut prepared, &sh, input.prefix, skip);
         }
         let em = sh.base_size;
         let justified = props.align.justified();
@@ -1437,16 +1437,25 @@ pub fn shift_line(line: &mut Line, by: usize) {
     }
 }
 
-fn trim_front(pr: &mut Prepared, upto: usize) {
+fn trim_front(pr: &mut Prepared, sh: &Shaped, from: usize, upto: usize) {
     for (k, m) in pr.marks.iter_mut().enumerate() {
         if let Mark::Word(a, b) = m {
             if *b <= upto {
                 pr.items[k] = Item::Box { w: 0.0 };
-                *a = upto.min(*b);
-                *b = upto.min(*b);
+                let p = if *a >= from { upto } else { *b };
+                *a = p;
+                *b = p;
             } else if *a < upto {
                 *a = upto;
+                pr.items[k] = Item::Box { w: sh.width(upto..*b) };
             }
+        } else if let Mark::Space(a, b) = m
+            && *a >= from
+            && *b <= upto
+        {
+            pr.items[k] = Item::Glue { w: 0.0, stretch: 0.0, shrink: 0.0 };
+            *a = upto;
+            *b = upto;
         }
     }
 }
