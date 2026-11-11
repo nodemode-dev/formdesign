@@ -212,6 +212,11 @@ fn tag_items(c: &mut Ctx, p: &Value) -> Result<Value> {
 
 fn tag_text(c: &mut Ctx, p: &Value) -> Result<Value> {
     let tag = p.get("tag").and_then(Value::as_str).map(str::to_string);
+    if let Some(t) = &tag
+        && !valid_name(t)
+    {
+        return Err(EngineError::new(format!("{t} is not a valid XML name")));
+    }
     let targets = text_targets(c)?;
     let doc = c.doc_mut()?;
     if let Some(t) = &tag {
@@ -233,6 +238,11 @@ fn tag_text(c: &mut Ctx, p: &Value) -> Result<Value> {
 fn map_style(c: &mut Ctx, p: &Value) -> Result<Value> {
     let style = style_key(args::str_(p, "style", "a paragraph style name")?);
     let tag = p.get("tag").and_then(Value::as_str).map(str::to_string);
+    if let Some(t) = &tag
+        && !valid_name(t)
+    {
+        return Err(EngineError::new(format!("{t} is not a valid XML name")));
+    }
     let doc = c.doc_mut()?;
     let mut m: Vec<(String, String)> = style_map(doc).into_iter().filter(|(s, _)| *s != style).collect();
     if let Some(t) = tag {
