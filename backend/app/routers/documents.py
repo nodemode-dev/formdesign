@@ -125,7 +125,7 @@ async def activate(body: dict = Body(...)):
     try:
         await core.call("docs.activate", {"index": int(body.get("index", 0))}, source="window")
         return await documents.overview()
-    except CoreError as exc:
+    except (CoreError, ValueError, TypeError) as exc:
         raise _fail(exc) from exc
 
 
@@ -135,5 +135,5 @@ async def close(body: dict = Body(default={})):
         params = {"index": int(body["index"])} if "index" in body else {}
         await core.call("docs.close", params, source="window")
         return await documents.overview()
-    except CoreError as exc:
+    except (CoreError, ValueError, TypeError) as exc:
         raise _fail(exc) from exc

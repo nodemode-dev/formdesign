@@ -108,13 +108,18 @@ class Documents:
         ext = Path(name).suffix.lower()
         meta_json: dict = {}
         if ext == ".fdes" or (data[:2] == b"PK" and _is_fdes(data)):
-            with zipfile.ZipFile(io.BytesIO(data)) as z:
-                if INNER not in z.namelist():
-                    raise CoreError(f"{name} was saved by a FormDesign older than 0.17.0, whose layout engine is gone; open its IDML export instead")
-                inner = z.read(INNER)
-                member = _meta_member(z.namelist())
-                if member:
-                    meta_json = json.loads(z.read(member))
+            try:
+                with zipfile.ZipFile(io.BytesIO(data)) as z:
+                    if INNER not in z.namelist():
+                        raise CoreError(f"{name} was saved by a FormDesign older than 0.17.0, whose layout engine is gone; open its IDML export instead")
+                    inner = z.read(INNER)
+                    member = _meta_member(z.namelist())
+                    if member:
+                        meta_json = json.loads(z.read(member))
+            except (zipfile.BadZipFile, ValueError) as exc:
+                raise CoreError(f"{name} is not a readable FormDesign file") from exc
+            if not isinstance(meta_json, dict):
+                raise CoreError(f"{name} is not a readable FormDesign file")
             await core.call("exec", {"command": "file.openBytes", "params": {"name": Path(name).stem + ".fdoc", "base64": base64.b64encode(inner).decode()}}, source=source)
         elif ext == ".idml":
             await core.call("exec", {"command": "file.openIdml", "params": {"base64": base64.b64encode(data).decode(), "name": name}}, source=source)

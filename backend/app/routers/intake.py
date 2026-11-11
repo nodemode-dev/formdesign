@@ -73,6 +73,13 @@ async def update_pack(pack_id: str, body: dict = Body(...)):
     pack = packs.get(pack_id)
     if not pack:
         raise HTTPException(404, f"no content pack {pack_id}")
+    if not isinstance(body.get("images") or {}, dict) or not isinstance(body.get("options") or {}, dict):
+        raise HTTPException(422, "images and options must be objects")
+    for edits in (body.get("images") or {}).values():
+        focal = edits.get("focal") if isinstance(edits, dict) else None
+        if focal is not None and not (isinstance(focal, list) and len(focal) == 2
+                                      and all(isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1 for v in focal)):
+            raise HTTPException(422, "focal must be two numbers from 0 to 1, or null")
     for key in ("title", "subtitle", "author", "date"):
         if key in body:
             pack[key] = str(body[key])

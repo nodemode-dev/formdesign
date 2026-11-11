@@ -33,7 +33,12 @@ async def make(body: dict = Body(...)):
     if pack is None:
         raise HTTPException(404, f"no content pack {body.get('pack')}: run intake first")
     options = body.get("options") or {}
-    n = max(1, min(int(body.get("variations", 1)), 4))
+    try:
+        n = max(1, min(int(body.get("variations", 1)), 4))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, "variations is a number from 1 to 4") from exc
+    if not isinstance(options, dict):
+        raise HTTPException(422, "options must be an object")
     try:
         if n == 1:
             return await make_one(pack, body.get("template"), body.get("brand"), body.get("fills"), options)
