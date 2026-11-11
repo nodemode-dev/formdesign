@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · libraries, profiles, queries, workspaces and review sites save non-Latin names on Windows (2026-11-10)
+
+- refers-to: app/services/libraries.py :: _save; profiles.py :: save; queries.py :: save; userprefs.py :: save; review.py :: Reviews.share, the five site files
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+These saves wrote `json.dumps(..., ensure_ascii=False)` through `write_text` with no encoding, and Python on Windows (3.12 to 3.14, no `PYTHONUTF8` anywhere in the tree) writes text in the ANSI code page, so a Greek, Cyrillic or CJK name or snippet raised UnicodeEncodeError after `write_text` had already truncated the file: a library lost every item, and profiles, queries and workspaces answered 500. The review site's `index.html` declares utf-8 but was written in the code page (mojibake for accented titles, 500 for CJK). The saves now pass `encoding="utf-8"` and drop `ensure_ascii=False`, so the JSON is plain ASCII with `\u` escapes; that saves on any code page, and files earlier versions wrote in the Windows code page still load because the reads are left as they were (an explicit utf-8 read would refuse those). A library is written to `<name>.tmp` and moved into place with `os.replace`, as `Reviews.save` already did. The five review-site files are written as UTF-8. Checked under `LC_ALL=C` with `-X utf8=0` (default encoding ASCII): a library item in Greek, a Cyrillic query, a Japanese profile and an accented workspace name all save and list back intact. Not run on Windows.
 
 ## v0.85.5 · save_document asks before overwriting the file it will really write (2026-11-10)
 

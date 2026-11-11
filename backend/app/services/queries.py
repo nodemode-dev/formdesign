@@ -63,7 +63,7 @@ def save(q: dict) -> dict:
     if any(b["name"].lower() == out["name"].lower() for b in BUILTIN):
         raise QueryError(f"\"{out['name']}\" is a built-in query; save under another name.")
     config.QUERIES_DIR.mkdir(parents=True, exist_ok=True)
-    (config.QUERIES_DIR / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=2, ensure_ascii=False))
+    (config.QUERIES_DIR / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
     return out
 
 

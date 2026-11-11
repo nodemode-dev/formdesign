@@ -80,7 +80,7 @@ def save(kind: str, body: dict, reserved: tuple[str, ...] = ()) -> dict:
         raise PrefsError(f"\"{out['name']}\" is built in; save under another name.")
     d = folder(kind)
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=1, ensure_ascii=False))
+    (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     return out
 
 

@@ -128,11 +128,11 @@ class Reviews:
             (tmp / "pages" / f"p{p['abs'] + 1}.jpg").write_bytes(r.bin or b"")
             sizes.append({"w": r.result.get("width"), "h": r.result.get("height"), "name": p.get("name"), "pt": [p["rect"][2] - p["rect"][0], p["rect"][3] - p["rect"][1]]})
         cfg = {"token": rec["token"], "title": title, "pages": sizes, "built": time.time()}
-        (tmp / "review.json").write_text(json.dumps(cfg))
-        (tmp / "index.html").write_text(SITE_HTML.replace("{{title}}", escape(title)))
-        (tmp / "review.css").write_text(SITE_CSS)
-        (tmp / "review.js").write_text(SITE_JS)
-        (tmp / "404.html").write_text("<!doctype html><meta charset=utf-8><title>Not found</title><p>This review link is not available.</p>")
+        (tmp / "review.json").write_text(json.dumps(cfg), encoding="utf-8")
+        (tmp / "index.html").write_text(SITE_HTML.replace("{{title}}", escape(title)), encoding="utf-8")
+        (tmp / "review.css").write_text(SITE_CSS, encoding="utf-8")
+        (tmp / "review.js").write_text(SITE_JS, encoding="utf-8")
+        (tmp / "404.html").write_text("<!doctype html><meta charset=utf-8><title>Not found</title><p>This review link is not available.</p>", encoding="utf-8")
         old = PUBLISHED_DIR / f"{rec['slug']}.old"
         shutil.rmtree(old, ignore_errors=True)
         if target.exists():

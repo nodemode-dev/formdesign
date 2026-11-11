@@ -66,7 +66,7 @@ def save(p: dict) -> dict:
         raise ProfileError(f"\"{out['name']}\" is a built-in profile; save under another name.")
     d = config.DATA_DIR / "Preflight"
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=2, ensure_ascii=False))
+    (d / f"{slug(out['name'])}.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
     return out
 
 

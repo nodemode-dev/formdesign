@@ -45,7 +45,10 @@ def _load(name: str) -> dict:
 
 def _save(name: str, data: dict) -> None:
     folder().mkdir(parents=True, exist_ok=True)
-    _path(name).write_text(json.dumps(data, ensure_ascii=False))
+    p = _path(name)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data), encoding="utf-8")
+    os.replace(tmp, p)
 
 
 def listing() -> dict:
