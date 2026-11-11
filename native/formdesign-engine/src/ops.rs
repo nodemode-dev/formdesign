@@ -176,17 +176,42 @@ pub fn home_list<'a>(doc: &'a mut Doc, home: &Home) -> Option<&'a mut Vec<ItemId
 }
 
 pub fn arrange(doc: &mut Doc, ids: &[ItemId], op: &str) {
-    for id in ids {
-        let Some(home) = doc.home(*id) else { continue };
+    let up = matches!(op, "front" | "bringToFront" | "forward" | "bringForward");
+    let step = matches!(op, "forward" | "bringForward" | "backward" | "sendBackward");
+    let mut order: Vec<(usize, ItemId)> = ids
+        .iter()
+        .filter_map(|id| {
+            let home = doc.home(*id)?;
+            let list = home_list(doc, &home)?;
+            Some((list.iter().position(|x| x == id)?, *id))
+        })
+        .collect();
+    order.sort_by_key(|(i, _)| *i);
+    if up == step {
+        order.reverse();
+    }
+    let mut bounds: Vec<(Home, isize)> = Vec::new();
+    for (_, id) in order {
+        let Some(home) = doc.home(id) else { continue };
         let Some(list) = home_list(doc, &home) else { continue };
-        let Some(i) = list.iter().position(|x| x == id) else { continue };
-        let it = list.remove(i);
-        let j = match op {
-            "front" | "bringToFront" => list.len(),
-            "forward" | "bringForward" => (i + 1).min(list.len()),
-            "backward" | "sendBackward" => i.saturating_sub(1),
-            _ => 0,
+        let Some(i) = list.iter().position(|x| *x == id) else { continue };
+        let n = list.len();
+        let bound = bounds.iter().rev().find(|(h, _)| *h == home).map(|(_, b)| *b);
+        let j = match (up, step) {
+            (true, false) => n - 1,
+            (false, false) => 0,
+            (true, true) => {
+                let j = if (i as isize) < bound.unwrap_or(n as isize - 1) { i + 1 } else { i };
+                bounds.push((home, j as isize - 1));
+                j
+            }
+            (false, true) => {
+                let j = if (i as isize) > bound.unwrap_or(0) { i - 1 } else { i };
+                bounds.push((home, j as isize + 1));
+                j
+            }
         };
+        let it = list.remove(i);
         list.insert(j, it);
     }
 }
