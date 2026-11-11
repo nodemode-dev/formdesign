@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import Response
 
+from app.routers.documents import attachment
 from app.services import books
 
 router = APIRouter()
@@ -74,4 +75,4 @@ async def export(path: str = Query(...)):
     except books.BookError as exc:
         raise _fail(exc) from exc
     return Response(out.read_bytes(), media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="{Path(out).name}"', "Cache-Control": "no-store"})
+                    headers={"Content-Disposition": attachment(Path(out).name), "Cache-Control": "no-store"})

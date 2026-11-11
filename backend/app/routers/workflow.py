@@ -6,6 +6,7 @@ from fastapi.responses import Response
 
 from app.engine.core import CoreError
 from app.engine.documents import documents
+from app.routers.documents import attachment
 from app.services import workflow as W
 
 router = APIRouter()
@@ -78,7 +79,7 @@ async def export_assignment(body: dict = Body(...)):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(data)
         return {"path": str(p), "bytes": len(data), "stories": len(manifest["stories"]), "pages": len(manifest["pages"])}
-    return Response(data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}{W.EXT}"', "Cache-Control": "no-store"})
+    return Response(data, media_type="application/zip", headers={"Content-Disposition": attachment(f"{name}{W.EXT}"), "Cache-Control": "no-store"})
 
 
 @router.post("/workflow/assignment/return")
@@ -93,7 +94,7 @@ async def return_assignment(body: dict = Body(default={})):
         p.write_bytes(data)
         return {"path": str(p), "bytes": len(data)}
     name = "".join(c if c.isalnum() or c in "-_ " else "_" for c in manifest["assignment"]["name"]).strip() or "assignment"
-    return Response(data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}-edited{W.EXT}"', "Cache-Control": "no-store"})
+    return Response(data, media_type="application/zip", headers={"Content-Disposition": attachment(f"{name}-edited{W.EXT}"), "Cache-Control": "no-store"})
 
 
 async def _bytes(file: UploadFile | None, path: str | None) -> bytes:
