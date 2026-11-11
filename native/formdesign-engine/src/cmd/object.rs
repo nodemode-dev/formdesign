@@ -1102,8 +1102,14 @@ fn line_create(c: &mut Ctx, p: &Value) -> Result<Value> {
 fn thread(c: &mut Ctx, p: &Value) -> Result<Value> {
     let from = one_id(p, "from").ok_or_else(|| EngineError::new("missing `from` (a text frame id)"))?;
     let to = one_id(p, "to").ok_or_else(|| EngineError::new("missing `to` (a text or empty frame id)"))?;
-    if c.doc()?.item(to).is_none() {
+    let Some(it) = c.doc()?.item(to) else {
         return Err(EngineError::new(format!("no object with id {to}")));
+    };
+    match &it.kind {
+        ItemKind::Text(_) => {}
+        ItemKind::Plain if it.shape.closed() => {}
+        ItemKind::Graphic(g) if g.asset.is_none() && it.shape.closed() => {}
+        _ => return Err(EngineError::new("`to` must be a text frame or an empty frame, not a group, a line or a frame holding a picture")),
     }
     ops::thread(c.doc_mut()?, from, to)?;
     c.set_selection(Selection::items(vec![to]));
