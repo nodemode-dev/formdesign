@@ -788,12 +788,13 @@ async def soffice(path: Path, fmt: str, out: Path) -> Path:
     if not exe:
         raise CoreError("LibreOffice is not installed, so this format cannot be converted; install LibreOffice or export a PDF from the original application")
     prof = out / "profile"
-    cmd = [exe, f"-env:UserInstallation=file://{prof}", "--headless", "--convert-to", fmt, "--outdir", str(out), str(path)]
+    cmd = [exe, f"-env:UserInstallation={prof.resolve().as_uri()}", "--headless", "--convert-to", fmt, "--outdir", str(out), str(path)]
     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     try:
         so, _ = await asyncio.wait_for(proc.communicate(), 180)
     except asyncio.TimeoutError:
         proc.kill()
+        await proc.wait()
         raise CoreError("LibreOffice took more than three minutes to read this file")
     ext = fmt.split(":")[0]
     target = out / (path.stem + "." + ext)
