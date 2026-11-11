@@ -195,6 +195,9 @@ impl Core {
                 if i >= self.ses.docs.len() {
                     return Err(format!("no document {i}"));
                 }
+                if self.ses.active != Some(i) {
+                    self.ses.reset_tools();
+                }
                 self.ses.active = Some(i);
                 self.ses.sel_rev += 1;
                 Ok(self.state().into())

@@ -313,10 +313,14 @@ impl Session {
         self.docs.push(DocState::new(uid, doc, path));
         let i = self.docs.len() - 1;
         self.active = Some(i);
+        self.reset_tools();
         i
     }
 
     pub fn close_doc(&mut self, i: usize) {
+        if self.active == Some(i) {
+            self.reset_tools();
+        }
         if i < self.docs.len() {
             self.docs.remove(i);
         }

@@ -262,6 +262,15 @@ impl Session {
         }
     }
 
+    pub fn reset_tools(&mut self) {
+        let draw = match self.tools.draw {
+            DrawMode::Inside(_) => DrawMode::Normal,
+            DrawMode::Behind(_) => DrawMode::Behind(None),
+            d => d,
+        };
+        self.tools = ToolState { draw, sample: self.tools.sample.take(), ..ToolState::default() };
+    }
+
     pub fn begin_edit(&mut self) -> Option<Before> {
         let st = self.active()?;
         Some(Before { uid: st.uid, doc: st.doc.clone(), sel: st.selection.clone() })
