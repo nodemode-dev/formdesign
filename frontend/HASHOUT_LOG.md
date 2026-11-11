@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -650,3 +650,10 @@ Copy and Cut of objects with no text frame get `text: ""` back from the engine (
 - logged: v0.85.5 · 2026-11-10
 
 The group's label went into its `el()` template as `aria-label="${label}"`. Plug-in panels go to the `plugins` group, which no built-in panel uses, so the first one creates the group with the manifest's panel title (or the plug-in's name) as the label. A title like `x"><img src=x onerror=...>` was parsed into the main window and its handler ran with every engine route, outside the plug-in's sandbox and permission grants; a plain `"` broke the header. The template no longer has the attribute and the constructor sets it with `setAttribute`; tab buttons already used `setText`. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/properties/ctx.ts · the panels follow a new selection or caret
+- refers-to: frontend/src/features/properties/ctx.ts :: Ctx.build (the `attrs` and `xf` memos); native/formdesign-engine/src/session.rs :: set_selection
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`type.selectionAttrs` and `transform.info` were memoised under the key `${rev}`. `engine.rev` is the document revision; a new selection or caret only bumps `selRev` (`set_selection`), so clicking from an object rotated 30° to one at 0°, or from a 24 pt paragraph into a 10 pt one, left Properties, Character, Paragraph, the Control bar, the Styles highlight and the swatch chips on the old selection's values. Two documents at the same revision also shared the answer. Both keys are now `${uid}:${rev}:${engine.selRev}`. Checked with `tsc --noEmit`; not run in a browser.

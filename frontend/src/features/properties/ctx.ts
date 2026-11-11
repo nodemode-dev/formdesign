@@ -200,8 +200,8 @@ class Ctx {
     const kinds = new Set<Kind>(items.map(kindOf));
     const wantAttrs = mode === 'text' || kinds.has('text');
     const [attrs, xf, opaque, setup] = await Promise.all([
-      wantAttrs ? this.memo('attrs', `${rev}`, () => query<Attrs>('type.selectionAttrs')) : Promise.resolve(null),
-      mode === 'objects' ? this.memo('xf', `${rev}`, () => query('transform.info')) : Promise.resolve(null),
+      wantAttrs ? this.memo('attrs', `${uid}:${rev}:${engine.selRev}`,() => query<Attrs>('type.selectionAttrs')) : Promise.resolve(null),
+      mode === 'objects' ? this.memo('xf', `${uid}:${rev}:${engine.selRev}`,() => query('transform.info')) : Promise.resolve(null),
       mode === 'objects' ? this.memo('opaque', gen, () => query<{ ids: number[] }>('find.objects', { opacity: 1, select: false })) : Promise.resolve(null),
       mode === 'none' ? this.memo('setup', gen, () => query<DocSetup>('layout.documentSetup')) : Promise.resolve(null),
     ]);
