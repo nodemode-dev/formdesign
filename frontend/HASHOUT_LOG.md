@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-10-10 · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -622,3 +622,10 @@ Preferences is the formvis shell: a floating rail of section tabs (collapse stat
 - logged: v0.84.0 · 2026-10-22
 
 The footer is built once in the SHELL markup and StatusBar prepends the history and zoom tools, the page size, the click-to-cycle info readout (pages, slots, selection, history; Shift reverses; kept in `formdesign.statusInfo`) and adds the Working indicator after the hint. Existing slots (engine, page label, hint, version and the proof, renderer and draw mode chips that other modules insert by class) keep their classes. Every slot has a fixed width so cycling or a state change never reflows the bar; the zoom field is never written while focused. The hint shows whole " · " segments only, with the full text in the tooltip, and Working appears through pendingClass so quick jobs never flash. FormDesign's engine has no job list, so no jobs popup. The title bar keeps its own undo, redo and zoom tools.
+
+### features/cloud-fonts.ts · the Missing Fonts note takes the title as text
+- refers-to: frontend/src/features/cloud-fonts.ts :: watchMissing (check)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The Missing Fonts dialog built its note through `el()`, which parses HTML, with the document title placed in it raw; the title is the file name, so a shared file named like `a<img src=x onerror=...>.fdes` that uses an uninstalled Google Fonts family ran script in the window when the dialog opened. The note is now built empty and filled with `setText`. The dialog also gets `onClose` removing its scrim, as the other one-shot dialogs do; before, each one stayed in `#overlay-root`. Checked with `tsc --noEmit`; not run in a browser.

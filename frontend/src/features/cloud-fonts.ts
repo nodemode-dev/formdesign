@@ -245,7 +245,9 @@ function watchMissing(): void {
     try { r = await api<Missing>('/cloudfonts/missing', { json: { doc: docKey() } }); } catch { return; }
     if (!r.missing.length) return;
     const dlg = new Dialog('Missing Fonts', 460);
-    const body = el(`<div class="cf-miss"><p class="cv-note">${editor.doc?.title ?? 'This document'} uses fonts that are not on this computer, and Google Fonts has them. Activating downloads the files into your Cloud Fonts folder; each family keeps its own licence.</p><div class="cf-miss-list"></div><p class="cf-miss-st" role="status"></p></div>`);
+    dlg.onClose = () => dlg.scrim.remove();
+    const body = el(`<div class="cf-miss"><p class="cv-note"></p><div class="cf-miss-list"></div><p class="cf-miss-st" role="status"></p></div>`);
+    setText(q(body, '.cv-note'), `${editor.doc?.title ?? 'This document'} uses fonts that are not on this computer, and Google Fonts has them. Activating downloads the files into your Cloud Fonts folder; each family keeps its own licence.`);
     const list = q(body, '.cf-miss-list');
     r.missing.forEach(() => list.appendChild(el(`<label class="cf-miss-row"><input type="checkbox" checked data-fam=""><span></span><em></em></label>`)));
     Array.from(list.children).forEach((row, i) => {
