@@ -320,7 +320,12 @@ impl Session {
         if i < self.docs.len() {
             self.docs.remove(i);
         }
-        self.active = if self.docs.is_empty() { None } else { Some(i.min(self.docs.len() - 1)) };
+        self.active = match self.active {
+            _ if self.docs.is_empty() => None,
+            Some(a) if a > i => Some(a - 1),
+            Some(a) if a < i => Some(a),
+            _ => Some(i.min(self.docs.len() - 1)),
+        };
     }
 
     pub fn active(&self) -> Option<&DocState> {

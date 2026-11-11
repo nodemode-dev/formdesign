@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -484,6 +484,13 @@ Documents are immutable behind an `Arc`; a command that changes one calls `Ctx::
 - logged: v0.85.5 · 2026-11-10
 
 `group` used to remember the undo stack's length and cut the stack back to it after the steps. Once the stack holds `UNDO_LIMIT` (500) entries, each step's own entry evicts the oldest one, so the step entries slid below that length and stayed: after 500 edits and a 3-step batch, Undo went back to before the batch and the next Undos re-applied the batch's half-finished states, and older edits were lost; a failed batch left the same entries. Now the document's undo stack and agent-turn mark are taken out before the steps run and put back afterwards (on the document with the same uid, also when a step panics, which is caught and re-raised), so the steps never touch the real stack and the batch records its one entry as before. A batch step that is itself an Undo now finds an empty stack and fails the batch. Checked with `cargo check -p formdesign-engine`; the 500-edit case was not run.
+
+### session.rs · close_doc keeps the active document
+- refers-to: native/formdesign-engine/src/session.rs :: Session::close_doc
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The new active index came from the closed index, so closing a background tab switched documents (A active, close C: B became active; C active, close A: B again) and later commands acted on the wrong one. Now an active index after the closed one moves down by one, one before it stays, and only closing the active document itself takes the next (or last) document. Checked with `cargo check -p formdesign-engine`; not driven.
 
 ### formdesign-engine · the command catalogue and the window's wire format
 - refers-to: native/formdesign-engine/src/cmd/*.rs :: register; wire.rs :: char_in, char_out, para_in, para_out; target.rs :: items, text_targets, story_char
