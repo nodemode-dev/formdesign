@@ -356,6 +356,10 @@ fn parse_children(text: &str) -> Result<(String, Vec<XmlEl>)> {
             }
             Ok(Event::GeneralRef(g)) if depth >= 2 => {
                 if let Some(cur) = out.last_mut() {
+                    if let Ok(Some(ch)) = g.resolve_char_ref() {
+                        cur.text.push(ch);
+                        continue;
+                    }
                     let n = g.decode().map(|c| c.into_owned()).unwrap_or_default();
                     let s = match n.as_str() {
                         "amp" => "&",
