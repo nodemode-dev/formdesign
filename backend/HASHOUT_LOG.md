@@ -395,7 +395,7 @@ Python's `mimetypes` takes file types from the Windows registry (`HKEY_CLASSES_R
 ```
 backend/
 ├── requirements.txt              pinned (Linux, Windows)
-├── requirements_macos.txt        unpinned twin (macOS)
+├── requirements_macos.txt        pinned twin (macOS)
 ├── requirements_desktop*.txt     PyInstaller for the frozen engine
 ├── .env.example                  every FORMDESIGN_ variable
 ├── oc_install(.bat)              venv and requirements
