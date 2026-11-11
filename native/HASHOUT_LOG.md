@@ -3,9 +3,17 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · IDML links read only as regular image files (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/read.rs` build_item, read_link
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+build_item ran `std::fs::read` on any `LinkResourceURI` of a frame without `<Contents>`: `/dev/zero` grew the core until it was killed, a FIFO hung it, a private file became the asset's data (mime from the extension, so HTML, EPUB and IDML export embedded it), and a UNC path on Windows made the OS authenticate to that host. read_link refuses paths starting with `\\` or `//` before touching the file system, needs `metadata().is_file()` and at most 256 MB, reads the first 12 bytes and keeps the file only for a PNG, JPEG, GIF, TIFF, WebP, PDF, PSD or EPS signature, then reads the rest through `take`. Anything else is a missing link. Checked: `cargo check -p formdesign-interchange`; a crafted IDML was not opened.
 
 ## v0.85.5 · table cell lines placed whole, with their paragraph (2026-11-10)
 

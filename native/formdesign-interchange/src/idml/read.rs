@@ -354,6 +354,41 @@ fn uri_path(u: &str) -> String {
     out
 }
 
+fn read_link(path: &str) -> Vec<u8> {
+    use std::io::Read;
+    const CAP: u64 = 256 << 20;
+    if path.starts_with("\\\\") || path.starts_with("//") {
+        return Vec::new();
+    }
+    let Ok(meta) = std::fs::metadata(path) else { return Vec::new() };
+    if !meta.is_file() || meta.len() > CAP {
+        return Vec::new();
+    }
+    let Ok(mut f) = std::fs::File::open(path) else { return Vec::new() };
+    let mut head = [0u8; 12];
+    if f.read_exact(&mut head).is_err() {
+        return Vec::new();
+    }
+    let known = head.starts_with(b"\x89PNG")
+        || head.starts_with(&[0xFF, 0xD8, 0xFF])
+        || head.starts_with(b"GIF8")
+        || head.starts_with(b"II*\0")
+        || head.starts_with(b"MM\0*")
+        || (head.starts_with(b"RIFF") && &head[8..12] == b"WEBP")
+        || head.starts_with(b"%PDF")
+        || head.starts_with(b"8BPS")
+        || head.starts_with(b"%!PS")
+        || head.starts_with(&[0xC5, 0xD0, 0xD3, 0xC6]);
+    if !known {
+        return Vec::new();
+    }
+    let mut data = head.to_vec();
+    if f.take(CAP).read_to_end(&mut data).is_err() {
+        return Vec::new();
+    }
+    data
+}
+
 const ITEM_TAGS: &[&str] = &["TextFrame", "Rectangle", "Oval", "Polygon", "GraphicLine", "Group"];
 
 fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Option<ItemId> {
@@ -515,7 +550,7 @@ fn build_item(c: &mut Ctx, doc: &mut Doc, el: &El, xf: Affine, home: Home) -> Op
         if data.is_empty()
             && let Some(l) = &link
         {
-            data = std::fs::read(l).unwrap_or_default();
+            data = read_link(l);
         }
         let (px, py) = if ppi.len() == 2 && m.name == "Image" { (ppi[0], ppi[1]) } else { (72.0, 72.0) };
         let mut mt = mime(&name);
