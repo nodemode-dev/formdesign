@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -643,3 +643,10 @@ The path dialog of Save and Save As and the Open as layout dialog called `d.clos
 - logged: v0.85.5 · 2026-11-10
 
 Copy and Cut of objects with no text frame get `text: ""` back from the engine (only text frames' text is joined), and `writeSystem` skipped an empty string, so the system clipboard kept older text such as a URL copied elsewhere. Paste sent that text, `external()` took it as newer than the engine's own clip, and a text frame with the old text appeared instead of the copied or cut objects. `writeSystem` now skips only `undefined` and writes the empty string; `readSystem` already maps an empty clipboard to no text, so the engine pastes its own clip. If the browser refuses the clipboard write the old text can still win. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/panel-group.ts · a plug-in's panel title is set as text
+- refers-to: frontend/src/ui/panel-group.ts :: PanelGroup constructor; frontend/src/ui/shell.ts :: Shell.mountPanel; frontend/src/features/plugins.ts :: PluginHost.panelBody
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The group's label went into its `el()` template as `aria-label="${label}"`. Plug-in panels go to the `plugins` group, which no built-in panel uses, so the first one creates the group with the manifest's panel title (or the plug-in's name) as the label. A title like `x"><img src=x onerror=...>` was parsed into the main window and its handler ran with every engine route, outside the plug-in's sandbox and permission grants; a plain `"` broke the header. The template no longer has the attribute and the constructor sets it with `setAttribute`; tab buttons already used `setText`. Checked with `tsc --noEmit`; not run in a browser.
