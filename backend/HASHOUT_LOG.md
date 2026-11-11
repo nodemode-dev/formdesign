@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · a bad or empty zip becomes an intake warning; a wrong-shaped template spec answers problems; phone photos are measured and placed upright; a long paste reaches the terminal whole; intake and PDF reading by agents no longer freeze the engine; review comments posted at the same time all stay; a failing tool or a malformed MCP request gets a JSON-RPC answer; names without Latin letters get their own file; downloads with non-Latin names arrive; an engine on a fallback port tells everyone its real port; non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · one-column CSV files are read; a bad or empty zip becomes an intake warning; a wrong-shaped template spec answers problems; phone photos are measured and placed upright; a long paste reaches the terminal whole; intake and PDF reading by agents no longer freeze the engine; review comments posted at the same time all stay; a failing tool or a malformed MCP request gets a JSON-RPC answer; names without Latin letters get their own file; downloads with non-Latin names arrive; an engine on a fallback port tells everyone its real port; non-Latin names save on Windows; save_document asks before overwriting the file it will really write; an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · one-column CSV files are read (2026-11-10)
+
+- refers-to: app/intake/office.py :: read_sheet
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`csv.Sniffer().sniff` cannot find a delimiter in a one-column file (a guest list, a price column) and raises csv.Error, so the whole table was lost and the pack warned "could not be read (Error: Could not determine delimiter)". `read_sheet` now falls back to `csv.excel` (comma) when sniffing fails, which reads one value per row. Checked: `name`, `Alice`, `Bob` as guests.csv gives the table `guests` with 3 rows and no warning.
 
 ## v0.85.5 · a bad or empty zip becomes a warning, not a failed intake (2026-11-10)
 
