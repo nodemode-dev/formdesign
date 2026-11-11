@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -218,6 +218,13 @@ One request per line: `{"id", "method", "params"}`. One reply line per request: 
 - logged: v0.1.0 · 2026-10-07
 
 After every method the core compares (active document uid, document Arc pointer, document revision) with what it saw last. A difference bumps `rev` and asks `damage.rs` for the rectangles to repaint, mapped from spread to canvas coordinates: a list the window repaints, or `null` for everything. `selRev` moves when the document, the tool, the selection or the engine's own selection counter changes, so the window refreshes overlays without re-rendering pixels. UI requests the engine queued (dialogs, file pickers, view changes) ride out in the reply's `requests`. The canvas methods (`layout`, `tiles`, `page.png`, `overlays`, `pointer`, `key`, `text`, `cursor`, `tool`, `tools`) are answered by formdesign-engine's `view` and `input` modules; the core adds only the protocol around them.
+
+### core.rs · call restores the document after a panic
+- refers-to: native/formdesign-core/src/core.rs :: Core::call
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+The only panic boundary was `serve`'s `catch_unwind` around `call`, whose message promised a rollback that never happened: commands edit the live document, `Session::execute` restores it only on an `Err`, so a panic after the first edit left a half-applied document with no undo entry, and `call` skipped clearing the turn and `settle`, so that reply's `rev`, `changed` and `damage` were stale. `call` now keeps the active document and selection from before the request, catches a panic around `dispatch`, puts both back on the document with the same uid (bumping its revision), answers "`X` failed inside the layout core; the document was restored", and always clears the turn and settles. `serve`'s guard stays as a second line. Checked with `cargo check -p formdesign-core`; no panicking command was driven.
 
 ### core.rs · batch
 - refers-to: native/formdesign-core/src/core.rs :: Core::batch
