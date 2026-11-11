@@ -450,6 +450,7 @@ fn anchored_release(c: &mut Ctx, p: &Value) -> Result<Value> {
     if plan.is_empty() {
         return Err(EngineError::new("needs an anchored object selected"));
     }
+    plan.sort_by_key(|e| (e.1, e.2));
     let doc = c.doc_mut()?;
     let mut out = Vec::new();
     for (id, sid, at, si, xf) in plan.into_iter().rev() {
