@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -706,3 +706,10 @@ With an object without animation selected, `render()` hid `.fan-body` but left t
 - logged: v0.85.5 · 2026-11-10
 
 `enhanceSelect` put each list's `.cv-dd-pop` into `#overlay-root` and added a capturing `pointerdown` listener on `document` when the select was enhanced, and never removed either. Dialogs that build their selects per open (Table Style Options with about 25, Text Options, Object Style Options, Type on a Path, Proof Setup, Workspaces, command forms, Style Options) added one node and one listener per select per open, for the whole session. The popup is now appended and the listener added in `open`, and both removed in `close`; a closed list holds nothing outside its select and button. The popup is also appended last at each open, so it sits above a dialog made after the select. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/make/slots.ts · a slot preview is never saved over the full story
+- refers-to: frontend/src/features/make/slots.ts :: SlotsPanel.beginEdit, SlotsPanel.commit, updateSlot (`dataset.partial`)
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A long text or flow slot shows a preview ending in "…" (`partial`), and `beginEdit` loads the full text with `story.get` on focus. Typing before the answer set `dirty`, so the answer was dropped; a failed call was swallowed. On blur `commit` then saved the preview with its "…" and the edit as the whole slot, deleting the rest of the story. The textarea is now `readOnly` while the full text loads, and `commit` refuses a slot still marked partial: it puts the preview back, clears `dirty` and shows "The full text did not load; edit not saved". Checked with `tsc --noEmit`; not run in a browser.
