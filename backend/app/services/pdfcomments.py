@@ -3,6 +3,7 @@
 The PDF is one this document exported, so page n is page n and a point of the PDF is a point of the page (scaled when the
 export changed the size, flipped because PDF counts up from the bottom). The notes are placed by services.notes.
 """
+import asyncio
 import re
 from pathlib import Path
 
@@ -92,12 +93,15 @@ def _to_page(box: tuple[float, float, float, float], page_pt: tuple[float, float
 def _quote_pdf(path: str, page: int, rect: list[float]) -> str:
     try:
         import pypdfium2 as pdfium
-        pdf = pdfium.PdfDocument(path)
-        try:
-            tp = pdf[page].get_textpage()
-            return " ".join(tp.get_text_bounded(left=rect[0], bottom=rect[1], right=rect[2], top=rect[3]).split())
-        finally:
-            pdf.close()
+
+        from app.services.pdfread import _lock as pdfium_lock
+        with pdfium_lock:
+            pdf = pdfium.PdfDocument(path)
+            try:
+                tp = pdf[page].get_textpage()
+                return " ".join(tp.get_text_bounded(left=rect[0], bottom=rect[1], right=rect[2], top=rect[3]).split())
+            finally:
+                pdf.close()
     except Exception:
         return ""
 
@@ -141,7 +145,7 @@ async def import_comments(path: str) -> dict:
     if not p.is_file():
         raise CoreError(f"no file at {p}")
     try:
-        annots, boxes = read_annotations(str(p))
+        annots, boxes = await asyncio.to_thread(read_annotations, str(p))
     except CoreError:
         raise
     except Exception as exc:
@@ -193,7 +197,7 @@ async def import_comments(path: str) -> dict:
             b = _to_page(box, page_pt, last[2] - 0.8, (last[1] + last[3]) / 2)
             span = (a[0], a[1], b[0], b[1])
             at_x, at_y = a
-            pdf_quote = _quote_pdf(str(p), r["page"], whole)
+            pdf_quote = await asyncio.to_thread(_quote_pdf, str(p), r["page"], whole)
         else:
             if not r["contents"] and not replies and sub not in ("Caret",):
                 skip(r, "it has no comment text")

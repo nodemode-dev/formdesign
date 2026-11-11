@@ -171,7 +171,7 @@ class Terminals:
         elif preset == "claude":
             title = "Claude Code (from Chat)" if resume else "Claude Code"
             from app.services import claude_code
-            found = claude_code.info(fresh=True)
+            found = await asyncio.to_thread(claude_code.info, True)
             if not found["installed"]:
                 raise ValueError(claude_code.INSTALL)
             try:

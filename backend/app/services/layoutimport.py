@@ -739,28 +739,34 @@ async def import_pdf(path: str, options: dict | None = None) -> dict:
         raise CoreError(f"no file at {src}")
     work = new_work("pdf")
     sheet = Sheet(src.stem)
-    pdf = pdfium.PdfDocument(str(src))
-    taken: dict[int, list[int]] = {}
-    try:
-        n = len(pdf)
-        limit = int(options.get("maxPages", 300))
-        if n > limit:
-            sheet.note(f"only the first {limit} of {n} pages were imported")
-        for i in range(min(n, limit)):
-            w, h = pdf[i].get_size()
-            page = sheet.page(w, h)
-            taken[i] = read_pdf_page(pdf, i, sheet, work, page, mode)
-    finally:
-        pdf.close()
-    if mode != "never":
-        stripped = work / "backdrop.pdf"
-        try:
-            left = strip_pdf(str(src), stripped, taken)
-            for i, pg in enumerate(sheet.pages):
-                if left.get(i, 0) > 0:
-                    pg["backdrop"] = {"path": str(stripped), "page": i}
-        except Exception as exc:
-            sheet.note(f"backdrop could not be built: {type(exc).__name__}: {exc}")
+
+    def read() -> None:
+        from app.services.pdfread import _lock as pdfium_lock
+        with pdfium_lock:
+            pdf = pdfium.PdfDocument(str(src))
+            taken: dict[int, list[int]] = {}
+            try:
+                n = len(pdf)
+                limit = int(options.get("maxPages", 300))
+                if n > limit:
+                    sheet.note(f"only the first {limit} of {n} pages were imported")
+                for i in range(min(n, limit)):
+                    w, h = pdf[i].get_size()
+                    page = sheet.page(w, h)
+                    taken[i] = read_pdf_page(pdf, i, sheet, work, page, mode)
+            finally:
+                pdf.close()
+            if mode != "never":
+                stripped = work / "backdrop.pdf"
+                try:
+                    left = strip_pdf(str(src), stripped, taken)
+                    for i, pg in enumerate(sheet.pages):
+                        if left.get(i, 0) > 0:
+                            pg["backdrop"] = {"path": str(stripped), "page": i}
+                except Exception as exc:
+                    sheet.note(f"backdrop could not be built: {type(exc).__name__}: {exc}")
+
+    await asyncio.to_thread(read)
     overview = await emit(sheet)
     uid = await documents.active_uid()
     rep = finish_report(sheet, "pdf", src.name)
