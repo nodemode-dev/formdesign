@@ -36,7 +36,13 @@ export function parseLength(text: string, u: Unit): number | null {
   const s = text.trim().toLowerCase().replace(',', '.');
   if (!s) return null;
   const picas = s.match(/^(-?\d*\.?\d*)p(\d*\.?\d*)$/);
-  if (picas && (picas[1] || picas[2])) return toPt(Number(picas[1] || 0) * 12 + Number(picas[2] || 0), 'pt');
+  if (picas && (picas[1] || picas[2])) {
+    const neg = picas[1].startsWith('-');
+    const p = Number(picas[1].replace('-', '') || 0), pt = Number(picas[2] || 0);
+    if (!Number.isFinite(p) || !Number.isFinite(pt)) return null;
+    const v = p * 12 + pt;
+    return neg ? -v : v;
+  }
   const m = s.match(/^(-?\d*\.?\d+)\s*(pt|pc|in|"|mm|cm|px)?$/);
   if (!m) return null;
   const n = Number(m[1]);
