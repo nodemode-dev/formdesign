@@ -305,6 +305,29 @@ fn index_list(c: &mut Ctx, _: &Value) -> Result<Value> {
     Ok(json!({"topics": topics}))
 }
 
+fn index_fold(s: &str) -> String {
+    s.to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ā' | 'ą' => 'a',
+            'ç' | 'č' | 'ć' => 'c',
+            'ď' => 'd',
+            'è' | 'é' | 'ê' | 'ë' | 'ē' | 'ě' | 'ę' => 'e',
+            'ì' | 'í' | 'î' | 'ï' | 'ī' => 'i',
+            'ñ' | 'ń' | 'ň' => 'n',
+            'ò' | 'ó' | 'ô' | 'õ' | 'ö' | 'ø' | 'ő' | 'ō' => 'o',
+            'ù' | 'ú' | 'û' | 'ü' | 'ű' | 'ů' | 'ū' => 'u',
+            'ý' | 'ÿ' => 'y',
+            'ž' | 'ź' | 'ż' => 'z',
+            'š' | 'ś' => 's',
+            'ř' => 'r',
+            'ť' => 't',
+            'ł' => 'l',
+            other => other,
+        })
+        .collect()
+}
+
 fn index_build(c: &mut Ctx, settings: &Value) -> Result<usize> {
     let lay = c.layout()?;
     let doc = c.doc()?;
@@ -313,8 +336,10 @@ fn index_build(c: &mut Ctx, settings: &Value) -> Result<usize> {
     let heads = settings.get("headings").and_then(Value::as_bool).unwrap_or(true);
     let mut lines: Vec<(&str, String)> = Vec::new();
     let mut letter = None;
-    for (key, (name, t)) in &topics {
-        let first = key.chars().next().map(|ch| if ch.is_alphabetic() { ch.to_ascii_uppercase() } else { '#' });
+    let mut order: Vec<(String, &String, &(String, Topic))> = topics.iter().map(|(k, v)| (index_fold(k), k, v)).collect();
+    order.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(b.1)));
+    for (key, _, (name, t)) in order {
+        let first = key.chars().next().map(|ch| if ch.is_alphabetic() { ch.to_uppercase().next().unwrap_or(ch) } else { '#' });
         if heads && first != letter {
             letter = first;
             lines.push(("Index Section Head", first.map(String::from).unwrap_or_default()));
