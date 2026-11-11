@@ -3,9 +3,17 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · paragraph position map after markers, variables and footnote numbers (2026-11-10)
+
+- refers-to: `formdesign-text/src/para.rs` build_with; `formdesign-text/src/flow.rs` Flow::story_pos
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`Built::chars` is indexed by story character, and a marker, variable, cross-reference or footnote number is one story character however many characters it shows. build_with pushed one entry per shown character, so every later character mapped `count - 1` positions too far (page number 10 or later, any variable, a two-digit footnote): caret, clicks, selection and overset positions all drifted. The four extra-entry loops are gone. Hidden text and Note, Index and Anchor inlines still share a byte with the next character; story_pos now takes the last index of an equal run, so a click there lands after the zero-width inline. Checked: `cargo check -p formdesign-text`.
 
 ## v0.84.9 · layout core tests (2026-10-26)
 

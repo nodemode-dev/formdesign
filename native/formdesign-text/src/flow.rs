@@ -257,10 +257,8 @@ impl Flow {
     pub fn story_pos(&self, para: usize, byte: usize) -> usize {
         let base = self.para_offsets.get(para).copied().unwrap_or(0);
         let map = self.para_maps.get(para).map(Vec::as_slice).unwrap_or(&[]);
-        let ch = match map.binary_search(&byte) {
-            Ok(i) => i,
-            Err(i) => i,
-        };
+        let after = map.partition_point(|b| *b <= byte);
+        let ch = if after > 0 && map[after - 1] == byte { after - 1 } else { after };
         base + ch
     }
 
