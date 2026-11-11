@@ -3,9 +3,17 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · Arrange on several objects; 2026-11-10 · bounded table import; 2026-11-10 · clipboard in table cells; 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · forced line breaks in IDML export; 2026-11-10 · Arrange on several objects; 2026-11-10 · bounded table import; 2026-11-10 · clipboard in table cells; 2026-11-10 · anchored release in text order; 2026-11-10 · format-only Change All; 2026-11-10 · `$$N` escape in batches; 2026-11-10 · size limit on zipped XML parts; 2026-11-10 · added fonts reach open documents; 2026-11-10 · stale text caret clamped and dropped; 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · forced line breaks in IDML export (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/write.rs` W::para
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+W::para split text segments on U+2028 and wrote `<Br/>` between the parts; `<Br/>` is a paragraph return in IDML and in read.rs, so every soft return became a new paragraph on reopening. The segment is now written whole in one `<Content>`; `esc` already keeps U+2028, and the reader keeps it (and turns a raw newline in `<Content>` into U+2028). Checked: `cargo check -p formdesign-interchange`.
 
 ## v0.85.5 · bounded table import (2026-11-10)
 

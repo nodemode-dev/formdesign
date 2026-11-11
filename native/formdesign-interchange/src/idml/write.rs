@@ -608,13 +608,8 @@ impl W<'_> {
             let _ = write!(out, "<CharacterStyleRange AppliedCharacterStyle=\"{}\"{ca}>{}", esc(&style_ref(StyleKind::Character, cs)), props_wrap(&cp));
             match seg {
                 Seg::Text { text, .. } => {
-                    for (k, part) in text.split('\u{2028}').enumerate() {
-                        if k > 0 {
-                            out.push_str("<Br/>");
-                        }
-                        if !part.is_empty() {
-                            let _ = write!(out, "<Content>{}</Content>", esc(part));
-                        }
+                    if !text.is_empty() {
+                        let _ = write!(out, "<Content>{}</Content>", esc(text));
                     }
                 }
                 Seg::Inline { inline, .. } => self.inline(inline, out),
