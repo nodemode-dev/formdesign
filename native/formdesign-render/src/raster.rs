@@ -153,12 +153,13 @@ pub fn draw_ops(ctx: &mut RenderContext, ops: &[Op], env: &DrawEnv) {
                         continue;
                     }
                     let p: BezPath = (dev * glyph_xf(g, i)) * outline.as_ref().clone();
+                    let brush_xf = if g.per_glyph.is_none() { dev * g.xf } else { dev };
                     if let Some(f) = &g.fill {
-                        ctx.set_paint(paint(&plate_brush(f, env), dev));
+                        ctx.set_paint(paint(&plate_brush(f, env), brush_xf));
                         ctx.fill_path(&p);
                     }
                     if let Some((b, wgt)) = &g.stroke {
-                        ctx.set_paint(paint(&plate_brush(b, env), dev));
+                        ctx.set_paint(paint(&plate_brush(b, env), brush_xf));
                         ctx.set_stroke(Stroke::new(wgt * s));
                         ctx.stroke_path(&p);
                     }
