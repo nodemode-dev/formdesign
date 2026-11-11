@@ -48,6 +48,7 @@ pub fn insert_at_selection(c: &mut Ctx, text: &str, raw: bool) -> Result<usize> 
     let pending = st.pending.clone();
     let story = st.doc.story(sel.story).ok_or_else(|| EngineError::new(format!("no story {}", sel.story)))?;
     let range = sel.range();
+    let range = range.start.min(story.len())..range.end.min(story.len());
     let prev = if range.start > 0 { story.text().chars().nth(range.start - 1) } else { None };
     let text: String = if !raw && (text == "\"" || text == "'") { smart_quote(prev, text.chars().next().unwrap_or('"')).to_string() } else { text.to_string() };
     let doc = c.doc_mut()?;
@@ -108,6 +109,7 @@ pub fn text_delete(c: &mut Ctx, p: &Value) -> Result<Value> {
     let forward = args::opt_bool(p, "forward").unwrap_or(false);
     let word = args::opt_bool(p, "word").unwrap_or(false);
     let mut range = sel.range();
+    range = range.start.min(len)..range.end.min(len);
     if range.is_empty() {
         let at = range.start;
         if word {

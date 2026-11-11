@@ -418,6 +418,9 @@ fn import_xml(c: &mut Ctx, p: &Value) -> Result<Value> {
     if !root_name.is_empty() {
         put(doc, "root", json!(root_name));
     }
+    if placed > 0 && c.selection().text.is_some() {
+        c.set_selection(crate::session::Selection::default());
+    }
     c.label("Import XML");
     Ok(json!({"placed": placed, "unmatched": unmatched}))
 }

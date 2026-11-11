@@ -64,6 +64,9 @@ fn change_one(c: &mut Ctx, p: &Value, accept: bool) -> Result<Value> {
     let doc = c.doc_mut()?;
     let st = doc.story_mut(sid).ok_or_else(|| EngineError::new("no such story"))?;
     resolve(st, run.0, run.1, &run.2, accept)?;
+    if c.selection().text.is_some_and(|t| t.story == sid) {
+        c.set_selection(Selection::default());
+    }
     c.label(if accept { "Accept Change" } else { "Reject Change" });
     ok()
 }
@@ -90,6 +93,9 @@ fn change_all(c: &mut Ctx, accept: bool) -> Result<Value> {
             resolve(st, a, b, &k, accept)?;
             n += 1;
         }
+    }
+    if n > 0 && c.selection().text.is_some() {
+        c.set_selection(Selection::default());
     }
     c.label(if accept { "Accept All Changes" } else { "Reject All Changes" });
     Ok(json!({"changed": n}))
@@ -295,6 +301,9 @@ fn note_delete(c: &mut Ctx, p: &Value) -> Result<Value> {
     if let Some(st) = c.doc_mut()?.story_mut(sid) {
         st.delete(at..at + 1);
     }
+    if c.selection().text.is_some_and(|t| t.story == sid) {
+        c.set_selection(Selection::default());
+    }
     ok()
 }
 
@@ -304,6 +313,9 @@ fn note_to_text(c: &mut Ctx, p: &Value) -> Result<Value> {
     if let Some(st) = c.doc_mut()?.story_mut(sid) {
         st.delete(at..at + 1);
         st.insert_text(at, &text);
+    }
+    if c.selection().text.is_some_and(|t| t.story == sid) {
+        c.set_selection(Selection::default());
     }
     c.label("Convert Note to Text");
     ok()

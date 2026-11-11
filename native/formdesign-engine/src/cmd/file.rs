@@ -327,6 +327,7 @@ fn file_place(c: &mut Ctx, p: &Value) -> Result<Value> {
     if timport::is_text_name(&name) {
         let imp = timport::import(&name, &data).map_err(EngineError::new)?;
         let sid = place_text(c.doc_mut()?, frame, imp)?;
+        c.set_selection(Selection::items(vec![frame]));
         c.label("Place");
         return Ok(json!({"frame": frame, "story": sid}));
     }
