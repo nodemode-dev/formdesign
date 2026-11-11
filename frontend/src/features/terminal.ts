@@ -53,7 +53,7 @@ const setLabel = (node: HTMLElement, text: string): void => {
 export function documentContext(ws: Workspace): string {
   const parts: string[] = [];
   const doc = editor.active === null ? null : editor.docs[editor.active];
-  if (doc) parts.push(`open document: ${(doc as { name?: string }).name ?? 'untitled'}`);
+  if (doc) parts.push(`open document: ${doc.title || 'untitled'}`);
   parts.push(`page ${ws.viewport.currentPage() + 1} is in view`);
   const sel = editor.selection?.items ?? [];
   if (sel.length) parts.push(`selected item ids: ${sel.slice(0, 40).join(', ')}`);

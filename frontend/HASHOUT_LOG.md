@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -769,3 +769,10 @@ For a style without a stroke the weight field starts empty. Choosing a Stroke sw
 - logged: v0.85.5 · 2026-11-10
 
 `applyRole` hid the Layout, Object and Table menus with `HIDE_MENUS.has(b.textContent)`, but `translateText` rewrites the menu buttons' text nodes, so in German or any other language the menus stayed visible in the Editor role. The test now uses a set of each English name and its `t()` translation and trims the button text. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/terminal.ts · the context sent to Claude Code names the open document
+- refers-to: frontend/src/features/terminal.ts :: documentContext
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`documentContext` read `doc.name` through a cast, but `DocInfo` (and the core's `docs` JSON) has `title`, so the prompt from the dock's "Ask Claude Code" box always carried `open document: untitled`. It now reads `doc.title`, falling back to untitled only when the title is empty. Checked with `tsc --noEmit`; not run in a browser.
