@@ -513,6 +513,7 @@ fn blank(row: usize, col: usize) -> TableCell {
 }
 
 fn insert_rows(t: &mut Table, at: usize, count: usize) {
+    let body_end = t.rows().saturating_sub(t.footer_rows);
     let h = t.heights.get(at.saturating_sub(1)).copied().unwrap_or(18.0);
     for _ in 0..count {
         t.heights.insert(at, h);
@@ -534,6 +535,9 @@ fn insert_rows(t: &mut Table, at: usize, count: usize) {
     }
     if at < t.header_rows {
         t.header_rows += count;
+    }
+    if t.footer_rows > 0 && at > body_end {
+        t.footer_rows += count;
     }
 }
 
