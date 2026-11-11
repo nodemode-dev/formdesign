@@ -72,6 +72,16 @@ def image_path(name: str) -> Path | None:
     return p if p.is_file() else None
 
 
+def _prune_images() -> None:
+    keep = {img for m in STATE["messages"] for p in m.get("parts") or [] if isinstance(p, dict) for img in p.get("images") or []}
+    try:
+        for f in (config.DATA_DIR / "Chat").iterdir():
+            if f.is_file() and f.name not in keep:
+                f.unlink()
+    except OSError:
+        pass
+
+
 def _usage_of(u: dict) -> tuple[int, int]:
     context = int(u.get("input_tokens") or 0) + int(u.get("cache_creation_input_tokens") or 0) + int(u.get("cache_read_input_tokens") or 0)
     return context, int(u.get("output_tokens") or 0)
@@ -177,6 +187,7 @@ def _run(text: str, path: str, folder: str) -> None:
     with _lock:
         STATE["messages"].append(reply)
         del STATE["messages"][:-MAX_MESSAGES]
+        _prune_images()
         STATE["busy"] = False
         STATE["cancelled"] = False
     publish("done", error=reply["error"], meta=reply["meta"], usage=dict(usage))
@@ -228,6 +239,8 @@ def reset() -> dict:
         STATE["messages"] = []
         STATE["turn"] += 1
         STATE["usage"] = _blank_usage()
+        if not STATE["busy"]:
+            _prune_images()
     publish("reset")
     return {"reset": True}
 
