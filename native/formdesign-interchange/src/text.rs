@@ -106,7 +106,56 @@ pub fn tagged(text: &str) -> Imported {
 }
 
 fn entity(s: &str) -> String {
-    s.replace("&nbsp;", "\u{a0}").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'").replace("&amp;", "&")
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(i) = rest.find('&') {
+        out.push_str(&rest[..i]);
+        let tail = &rest[i..];
+        let end = tail[1..].find(';').map(|e| e + 1).filter(|e| *e <= 12);
+        let decoded = end.and_then(|e| {
+            let name = &tail[1..e];
+            if let Some(h) = name.strip_prefix("#x").or_else(|| name.strip_prefix("#X")) {
+                u32::from_str_radix(h, 16).ok().and_then(char::from_u32)
+            } else if let Some(d) = name.strip_prefix('#') {
+                d.parse().ok().and_then(char::from_u32)
+            } else {
+                Some(match name {
+                    "nbsp" => '\u{a0}',
+                    "lt" => '<',
+                    "gt" => '>',
+                    "quot" => '"',
+                    "apos" => '\'',
+                    "amp" => '&',
+                    "lsquo" => '\u{2018}',
+                    "rsquo" => '\u{2019}',
+                    "ldquo" => '\u{201C}',
+                    "rdquo" => '\u{201D}',
+                    "ndash" => '\u{2013}',
+                    "mdash" => '\u{2014}',
+                    "hellip" => '\u{2026}',
+                    "bull" => '\u{2022}',
+                    "copy" => '\u{a9}',
+                    "reg" => '\u{ae}',
+                    "trade" => '\u{2122}',
+                    "euro" => '\u{20ac}',
+                    "shy" => '\u{ad}',
+                    _ => return None,
+                })
+            }
+        });
+        match (decoded, end) {
+            (Some(c), Some(e)) => {
+                out.push(c);
+                rest = &tail[e + 1..];
+            }
+            _ => {
+                out.push('&');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 pub fn html(text: &str) -> Imported {
@@ -245,8 +294,11 @@ pub fn markdown(text: &str) -> Imported {
             }
             segs.push(seg(std::mem::take(buf), None, over));
         };
+        let mut prev: Option<char> = None;
         while let Some(c) = chars.next() {
-            if (c == '*' || c == '_') && chars.peek() == Some(&c) {
+            if c == '_' && prev.is_some_and(char::is_alphanumeric) && chars.peek().is_some_and(|n| n.is_alphanumeric()) {
+                buf.push(c);
+            } else if (c == '*' || c == '_') && chars.peek() == Some(&c) {
                 chars.next();
                 emit(&mut segs, &mut buf, bold, italic);
                 bold = !bold;
@@ -256,6 +308,7 @@ pub fn markdown(text: &str) -> Imported {
             } else {
                 buf.push(c);
             }
+            prev = Some(c);
         }
         emit(&mut segs, &mut buf, bold, italic);
         if segs.is_empty() {
