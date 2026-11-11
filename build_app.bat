@@ -11,7 +11,7 @@ echo [formdesign] == checking the tools
 where python >nul 2>nul || ( echo [formdesign] Python 3.12 or newer is needed: https://www.python.org/downloads/ & exit /b 1 )
 where node >nul 2>nul || ( echo [formdesign] Node 22 or newer is needed: https://nodejs.org & exit /b 1 )
 where cargo >nul 2>nul || ( echo [formdesign] Rust is needed: https://rustup.rs & exit /b 1 )
-for /f "tokens=1 delims=." %%V in ('node -p "process.versions.node"') do if %%V LSS 22 ( echo [formdesign] Node 22 or newer is needed, this is Node %%V: https://nodejs.org & exit /b 1 )
+call node -e "const [a,b]=process.versions.node.split('.').map(Number);process.exit(a>22||(a===22&&b>=12)||(a===20&&b>=19)?0:1)" || ( echo [formdesign] Node 20.19 or 22.12 or newer is needed: https://nodejs.org & exit /b 1 )
 where claude >nul 2>nul && ( echo [formdesign] Claude Code found; the app's Claude Code panel and terminal can start it ) || ( echo [formdesign] Claude Code is not installed; the app builds without it: https://claude.com/claude-code )
 
 echo.
