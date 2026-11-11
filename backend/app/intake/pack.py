@@ -59,7 +59,7 @@ class Intake:
 
     def add_image_bytes(self, data: bytes, stem: str, source: str) -> str | None:
         try:
-            p = I.save_bytes(data, self.img_dir / stem)
+            p = I.save_bytes(data, self.img_dir / f"{stem}-{len(self.images) + 1}")
         except Exception:
             self.warnings.append(f"{stem}: an embedded image could not be read")
             return None
