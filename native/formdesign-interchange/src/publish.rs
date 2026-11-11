@@ -183,7 +183,7 @@ fn css(doc: &Doc) -> String {
             s,
             ".{}{{font-family:\"{}\",serif;font-size:{:.2}pt;line-height:{:.2}pt;font-weight:{};font-style:{};text-align:{align};margin:{:.2}pt {:.2}pt {:.2}pt {:.2}pt;text-indent:{:.2}pt;color:{color}}}",
             slug(&st.name),
-            cp.font,
+            cp.font.chars().filter(|c| !matches!(c, '<' | '>' | '"' | '\\') && !c.is_control()).collect::<String>(),
             cp.size,
             cp.line_height(pp.auto_leading),
             cp.weight(),
