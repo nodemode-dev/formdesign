@@ -164,6 +164,9 @@ fn sel_bounds(c: &Ctx, ids: &[ItemId]) -> Result<Rect> {
 fn align(c: &mut Ctx, p: &Value) -> Result<Value> {
     let ids = items(c, p)?;
     let edge = args::str_(p, "edge", "left, hcenter, right, top, vcenter or bottom")?.to_string();
+    if !matches!(edge.as_str(), "left" | "hcenter" | "center" | "right" | "top" | "vcenter" | "middle" | "bottom") {
+        return Err(EngineError::new(format!("`edge` expected left, hcenter, right, top, vcenter or bottom, not {edge}")));
+    }
     let to = args::opt_str(p, "to").unwrap_or("selection").to_string();
     let doc = c.doc()?;
     let first_page = item_page(doc, ids[0]).unwrap_or(0);
