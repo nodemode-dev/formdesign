@@ -112,7 +112,12 @@ pub fn parse(xml: &str) -> Result<El, String> {
     let mut stack: Vec<El> = vec![El { name: "#doc".into(), ..Default::default() }];
     loop {
         match r.read_event() {
-            Ok(Event::Start(e)) => stack.push(start(&e)),
+            Ok(Event::Start(e)) => {
+                if stack.len() > 512 {
+                    return Err("XML nested too deeply".into());
+                }
+                stack.push(start(&e));
+            }
             Ok(Event::Empty(e)) => {
                 let el = start(&e);
                 if let Some(top) = stack.last_mut() {

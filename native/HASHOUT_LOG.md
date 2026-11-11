@@ -3,9 +3,17 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · XML nesting depth limit; 2026-11-10 · closing a background document; 2026-11-10 · IDML links read only as image files; 2026-11-10 · Change All reaches table cells after body edits; 2026-11-10 · text frames made plain drop their story; 2026-11-10 · a panicking request restores the document; 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
+
+## v0.85.5 · XML nesting depth limit (2026-11-10)
+
+- refers-to: `formdesign-interchange/src/idml/dom.rs` parse
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+parse builds the tree with an explicit stack, but `El` clone, drop, `find`, `find_all` and `text` recurse per level, so 100,000 nested elements (a few KB deflated) overflowed the core's stack and aborted the process (SIGABRT, not a panic, so proto.rs could not catch it). parse now returns `Err("XML nested too deeply")` when a start tag would open a 513th level; no real IDML, DOCX or XLSX part comes near that. Checked: `cargo check -p formdesign-interchange`.
 
 ## v0.85.5 · IDML links read only as regular image files (2026-11-10)
 
