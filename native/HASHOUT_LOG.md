@@ -3,7 +3,7 @@
 Living log for the layout core. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `native/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
+Last updated: 2026-11-10 · stale recovery snapshots; 2026-11-10 · batch undo entries past the 500-entry limit; 2026-11-10 · table cell lines placed whole; 2026-11-10 · text position map after markers and variables; 2026-10-31 · no core change in 0.85.2 (version string only; the Windows build links the C runtime statically, see the backend log); 2026-10-26 · layout core tests; 2026-10-23 · hyphenation without the GPL Slovak patterns
 
 ---
 
@@ -1016,4 +1016,11 @@ The import is one `repaginate`: the closure splices copies of the picked pages (
 - logged: v0.76.0 · 2026-10-17
 
 Two designs were open: give `Op::Image` an adjustment field and teach every consumer (raster, PDF, separations, the GPU canvas, book and preflight passes) to apply it, or reuse the placed-layers precedent, where the frame keeps its settings plus a derived view picture and the scene draws that view instead of the file. The second was taken: one line in the scene makes every output show the adjustments, and the settings stay editable because the view is only ever rebuilt from them. The scene's order is adjust view, then layer view, then file, and the adjust view is built from the layer view when there is one, so the two stack. Each rebuild makes a new asset id rather than overwriting the old one, because the renderer caches decoded pictures by id and Undo brings the old document (and its old view) back; the old view is removed only when no other frame (a duplicate) still shows it. `refresh_adjust` runs after Edit Image, Retouch Image, a layer change and a link update, so the view always follows the picture underneath. The cost is document size: the view is embedded, as layer views are. The curve is monotone cubic (Fritsch-Carlson), so a curve that only rises never folds back; the dialog draws it with a TypeScript port of the same function, but its preview of the picture is the engine's (`image.adjustPreview`), since hue and the curve would otherwise need a second implementation kept in step.
+
+### file.recovery · stale snapshots never come back over a newer save
+- refers-to: native/formdesign-engine/src/cmd/file.rs :: recovery_save, recovery_open
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+A snapshot was removed only by `file.recovery.save`, and only for a document still open and clean, so a document saved or closed after the 60 s autosave left its `<uid>.fdoc` behind and the next launch reopened it, dirty and holding the original path; saving it wrote the older content over the newer file. `recovery_save` now also removes every `<number>.fdoc` (and its `.json`) whose uid is not an open dirty document, and `recovery_open` skips and removes a snapshot whose source file was written after it. The backend calls `file.recovery.save` only while something is dirty, so a save of the last dirty document is cleaned up by the open-time check until the backend calls it on every tick. Checked with `cargo check -p formdesign-engine`; the relaunch sequence was not run.
 
