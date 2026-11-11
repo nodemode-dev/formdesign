@@ -574,8 +574,8 @@ export class FindWindow {
     const scope = p.scope;
     if (scope !== 'toEnd' && scope !== 'selection') return undefined;
     const key = JSON.stringify(p);
-    if (this.within && this.withinKey === key) return this.within;
     const t = editor.selection?.text as { story: number; anchor: number; focus: number; cell?: Cell } | undefined;
+    if (this.within && this.withinKey === key && (!t || t.story === this.within.story)) return this.within;
     if (!t) { this.status(scope === 'toEnd' ? 'Click in a story to search to its end.' : 'Select some text to search within it.', true); return null; }
     const a = Math.min(t.anchor, t.focus), b = Math.max(t.anchor, t.focus);
     if (scope === 'selection' && a === b) { this.status('Select some text to search within it.', true); return null; }
