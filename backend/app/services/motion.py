@@ -301,8 +301,14 @@ async def poster_bytes(opts: dict, data: bytes, ext: str) -> tuple[bytes, str] |
         return None
     if mode == "file" and opts.get("posterFile"):
         p = Path(str(opts["posterFile"])).expanduser()
-        if p.is_file():
-            return p.read_bytes(), (p.suffix.lower() or ".jpg")
+        if p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+            from PIL import Image
+            try:
+                with Image.open(p) as im:
+                    im.verify()
+                return p.read_bytes(), p.suffix.lower()
+            except (OSError, ValueError, SyntaxError):
+                pass
     got = await poster_frame(data, ext, float(opts.get("posterTime") or 1.0))
     return (got, ".jpg") if got else None
 
