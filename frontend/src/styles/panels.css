@@ -332,7 +332,7 @@
 
 /* Resizable dock groups (the target's): a splitter between groups; a sized group lays out as a column whose body scrolls;
    a sized Navigator's preview fills it. */
-.cv-dock-split { flex: none; position: relative; z-index: 2; height: 6px; margin: -3px 0; cursor: row-resize; touch-action: none; }
+.cv-dock-split { flex: none; position: relative; z-index: calc(var(--z-base) + 2); height: 6px; margin: -3px 0; cursor: row-resize; touch-action: none; }
 .cv-dock-split::after { content: ''; position: absolute; left: 42%; right: 42%; top: 2px; height: 2px; border-radius: 1px; background: transparent; }
 .cv-dock-split:hover::after { background: var(--line-3); }
 .cv-layers > section.is-sized { display: flex; flex-direction: column; overflow: hidden; }
@@ -367,7 +367,7 @@
    it widens leftward over the canvas, above it, so collapsing or expanding never resizes the canvas. */
 /* (--cv-props-open-w is set on the root: the width handle changes it.) */
 .cv-props-col:not(.is-collapsed) {
-  justify-self: end; width: var(--cv-props-open-w); position: relative; z-index: 4;
+  justify-self: end; width: var(--cv-props-open-w); position: relative; z-index: calc(var(--z-base) + 4);
   box-shadow: -16px 0 36px rgba(0, 0, 0, 0.32); border-left: 1px solid var(--line-0);
 }
 
@@ -393,7 +393,7 @@
 .cv-hb-source.is-on { opacity: 1; color: var(--accent-ink); background: var(--accent-soft); }
 /* The side column's width handle (its left edge), and the drop marker inside it while a panel is dragged over. */
 .cv-props-col { position: relative; }
-.cv-props-resize { position: absolute; top: 0; bottom: 0; left: -3px; width: 6px; cursor: col-resize; z-index: 5; touch-action: none; }
+.cv-props-resize { position: absolute; top: 0; bottom: 0; left: -3px; width: 6px; cursor: col-resize; z-index: calc(var(--z-base) + 5); touch-action: none; }
 .cv-props-col.is-collapsed .cv-props-resize { display: none; }
 .cv-props-resize:hover { background: color-mix(in srgb, var(--accent-color) 40%, transparent); }
 /* Tabs moving between groups: the dragged tab's ghost, the group it would join, and a group left without tabs. */

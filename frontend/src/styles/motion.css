@@ -1,4 +1,4 @@
-.fan-layer { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; }
+.fan-layer { position: absolute; inset: 0; z-index: calc(var(--z-base) + 6); overflow: hidden; pointer-events: none; }
 .fan-ghost { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform, opacity; }
 .fan-ghost[hidden] { display: none; }
 .fan-mask { position: absolute; inset: 0; background: var(--paper-color, #fff); }
@@ -32,7 +32,7 @@
 .fwf-pick label { display: flex; gap: 6px; align-items: center; color: var(--text-secondary); font-size: var(--fs-11); }
 .fwf-pick label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.fwf-layer { position: absolute; inset: 0; z-index: 7; overflow: hidden; pointer-events: none; }
+.fwf-layer { position: absolute; inset: 0; z-index: calc(var(--z-base) + 7); overflow: hidden; pointer-events: none; }
 .fwf-badge { position: absolute; left: 0; top: 0; display: inline-flex; align-items: center; gap: 4px; max-width: 220px; padding: 2px 7px 2px 5px; border-radius: 4px; background: var(--fwf-color, var(--accent-color)); color: #fff; font-size: 10.5px; line-height: 1.3; white-space: nowrap; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
 .fwf-badge[hidden] { display: none; }
 .fwf-badge svg { flex: none; }
