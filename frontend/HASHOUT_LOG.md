@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -664,3 +664,10 @@ The group's label went into its `el()` template as `aria-label="${label}"`. Plug
 - logged: v0.85.5 · 2026-11-10
 
 An empty number field without a default read as 0, so Paragraph Border with only a Weight sent `top`, `bottom`, `left` and `right` as 0; `Border::from_value` takes each side over `weight` and returns None when the sides sum to 0, so the border never drew and OK on a paragraph whose border had only a weight removed it. Such a field now reads as `undefined` and `objectEditor` drops undefined keys. An unset border, rule or shading used to read back as `{on:false}` and an unset list as `[]`, so every OK sent them as explicit overrides; now an object editor whose value was null and stays off reads as null, and a list editor whose value was null and has no rows reads as null, matching the starting value. A tab row with an empty Position is now left out by the engine instead of becoming a tab at 0 pt. An existing border or rule still reads back with the fields' defaults filled in, so OK after other edits can write it as an equal override. Checked with `tsc --noEmit`; not run in a browser.
+
+### ui/shell.ts · a cancelled file picker no longer hands the next pick to the old action
+- refers-to: frontend/src/ui/shell.ts :: Shell.pickFiles, Shell.endPick
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`pickFiles` reuses one hidden file input and listened only for `change`. Cancelling the system picker fires no `change`, so the listener stayed and the promise never settled; the next pick (Open after a cancelled Place, Relink, Load Profile, a plug-in from file) also reached the old listener, and that file was uploaded and placed too. Each cancel added one more stale listener. The input's `cancel` event now settles the pick with no files, both listeners go whichever fires first, and a new pick first settles any pick still pending (kept in `endPick`) with no files, for browsers that send no `cancel`. Every caller already returns on an empty list. Checked with `tsc --noEmit` and by reading every caller; not run in a browser.

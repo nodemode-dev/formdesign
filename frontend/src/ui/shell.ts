@@ -58,6 +58,7 @@ export class Shell implements Workspace {
   private flyout: HTMLElement | null = null;
   private coreLoaded = false;
   private readonly fileInput = el<HTMLInputElement>('<input type="file" hidden>');
+  private endPick: (() => void) | null = null;
   private readonly stage: HTMLElement;
   private dock: Dock | null = null;
   private groupMenu: PopupMenu | null = null;
@@ -185,11 +186,16 @@ export class Shell implements Workspace {
   pickFiles(accept: string, multiple = false): Promise<File[]> {
     return new Promise((resolve) => {
       const inp = this.fileInput;
+      this.endPick?.();
       inp.value = '';
       inp.accept = accept;
       inp.multiple = multiple;
-      const done = () => { inp.removeEventListener('change', done); resolve(Array.from(inp.files ?? [])); };
+      const finish = (files: File[]) => { inp.removeEventListener('change', done); inp.removeEventListener('cancel', cancelled); if (this.endPick === cancelled) this.endPick = null; resolve(files); };
+      const done = () => finish(Array.from(inp.files ?? []));
+      const cancelled = () => finish([]);
+      this.endPick = cancelled;
       inp.addEventListener('change', done);
+      inp.addEventListener('cancel', cancelled);
       inp.click();
     });
   }
