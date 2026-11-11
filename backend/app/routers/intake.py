@@ -30,8 +30,10 @@ async def intake_upload(files: list[UploadFile] = File(default=[]), brief: str =
         total += len(data)
         if total > config.MAX_UPLOAD_BYTES:
             raise HTTPException(413, "the upload is larger than 512 MB")
-        rel = Path(f.filename or "file").parts
-        target = dest.joinpath(*[_safe_name(p) for p in rel]) if len(rel) > 1 else dest / _safe_name(f.filename or "file")
+        rel = [p for p in Path(f.filename or "file").parts if p not in ("", ".", "..")]
+        target = dest.joinpath(*[_safe_name(p) for p in rel]) if len(rel) > 1 else dest / _safe_name(rel[0] if rel else "file")
+        if dest.resolve() not in target.resolve().parents:
+            raise HTTPException(400, f"{f.filename}: the file name points outside the upload")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
         paths.append(target)

@@ -3,9 +3,17 @@
 Living log for the engine service. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `backend/`.
 
 Current build version: v0.85.3
-Last updated: 2026-11-10 · a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
+Last updated: 2026-11-10 · an uploaded file name cannot leave the pack folder; a website export never deletes files it did not write; published sites and placed assets run sandboxed; a plug-in's fetch checks every redirect hop; document text stays inside a published page's JSON-LD block; run_commands asks for approval wherever run_command does; a template is saved only inside the template library; only the in-app token makes a client the in-app Claude Code; 2026-10-31 · .js, .mjs and .css keep their types on Windows; formdesign-core links the C runtime statically on Windows; 2026-10-30 · the Windows desktop build stops on a failed bundle step; 2026-10-26 · fixes the test suite found (FB-045 to FB-049); 2026-10-25 · LocalGuard; 2026-10-23 · full fonts for the Reserved Font Name families; the ICC profile in the frozen engine
 
 ---
+
+## v0.85.5 · an uploaded file name cannot leave the pack folder (2026-11-10)
+
+- refers-to: app/routers/intake.py :: intake_upload
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+`intake_upload` passed each part of a multipart file name through `_safe_name`, which keeps `.` and `..`, so a name like `../../../../home/u/.bashrc` (any local process can send one; folder uploads with relative paths take the same branch) resolved outside `INTAKE_DIR/<pack>/files` and the bytes overwrote that file. Empty, `.` and `..` parts are now dropped before joining, and the resolved target must have the pack's `files` folder among its parents, else 400. A part like ` .. ` still becomes `..` after `_safe_name` strips it; the containment check is what holds there. Checked with TestClient: uploads named `../../evil.txt`, `a/../b.md`, `..` and `sub/ .. /x.md` all land inside the pack folder.
 
 ## v0.85.5 · a website export never deletes files it did not write (2026-11-10)
 
