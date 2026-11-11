@@ -18,6 +18,7 @@ class AltTextDialog {
   private readonly list = el('<div class="fa-alts"></div>');
   private readonly write: HTMLButtonElement;
   private rows: AltRow[] = [];
+  private seq = 0;
 
   constructor() {
     this.d.body.append(this.note, this.list);
@@ -26,12 +27,14 @@ class AltTextDialog {
   }
 
   async open(): Promise<void> {
+    const mine = ++this.seq;
     setText(this.note, 'Reading the images...');
     setDisabled(this.write, true);
     this.list.replaceChildren();
     this.d.open();
     try {
       const plan = await api<AltPlan>('/ai/alt-text/propose', { json: {} });
+      if (mine !== this.seq) return;
       this.rows = plan.items;
       if (!plan.items.length) {
         setText(this.note, plan.total ? 'Every image already has alt text. Select images to write it again.' : 'There are no images in this document.');
@@ -53,7 +56,7 @@ class AltTextDialog {
         update: () => undefined,
       });
       setDisabled(this.write, false);
-    } catch (e) { setText(this.note, nice((e as Error).message)); }
+    } catch (e) { if (mine === this.seq) setText(this.note, nice((e as Error).message)); }
   }
 
   private async apply(): Promise<void> {
