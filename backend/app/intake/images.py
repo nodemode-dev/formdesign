@@ -85,10 +85,15 @@ def describe(path: Path, ref: str, source: str) -> dict:
 def normalize(path: Path, dest_dir: Path) -> Path:
     with Image.open(path) as im:
         fmt = im.format or ""
-        if fmt in CORE_FORMATS and fmt not in ("TIFF", "BMP"):
+        turned = im.getexif().get(0x0112, 1) not in (0, 1, None)
+        if fmt in CORE_FORMATS and fmt not in ("TIFF", "BMP") and not turned:
             return path
-        out = dest_dir / (path.stem + ".png")
-        frame = next(ImageSequence.Iterator(im)).copy()
+        if turned and fmt == "JPEG":
+            out = dest_dir / (path.stem + "-upright.jpg")
+            ImageOps.exif_transpose(im).save(out, "JPEG", quality=95)
+            return out
+        out = dest_dir / (path.stem + ("-upright.png" if turned else ".png"))
+        frame = ImageOps.exif_transpose(im) if turned else next(ImageSequence.Iterator(im)).copy()
         frame.save(out, "PNG")
         return out
 
