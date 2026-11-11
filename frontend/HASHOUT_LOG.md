@@ -3,7 +3,7 @@
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
 Current build version: v0.18.0
-Last updated: 2026-11-10 · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Last updated: 2026-11-10 · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -657,3 +657,10 @@ The group's label went into its `el()` template as `aria-label="${label}"`. Plug
 - logged: v0.85.5 · 2026-11-10
 
 `type.selectionAttrs` and `transform.info` were memoised under the key `${rev}`. `engine.rev` is the document revision; a new selection or caret only bumps `selRev` (`set_selection`), so clicking from an object rotated 30° to one at 0°, or from a 24 pt paragraph into a 10 pt one, left Properties, Character, Paragraph, the Control bar, the Styles highlight and the swatch chips on the old selection's values. Two documents at the same revision also shared the answer. Both keys are now `${uid}:${rev}:${engine.selRev}`. Checked with `tsc --noEmit`; not run in a browser.
+
+### features/attr-editors.ts · a Text Options paragraph border draws, unset borders and lists stay unset
+- refers-to: frontend/src/features/attr-editors.ts :: fieldNode (number read), listEditor, objectEditor; native/formdesign-model/src/attrs.rs :: Border::from_value
+- kind: fix
+- logged: v0.85.5 · 2026-11-10
+
+An empty number field without a default read as 0, so Paragraph Border with only a Weight sent `top`, `bottom`, `left` and `right` as 0; `Border::from_value` takes each side over `weight` and returns None when the sides sum to 0, so the border never drew and OK on a paragraph whose border had only a weight removed it. Such a field now reads as `undefined` and `objectEditor` drops undefined keys. An unset border, rule or shading used to read back as `{on:false}` and an unset list as `[]`, so every OK sent them as explicit overrides; now an object editor whose value was null and stays off reads as null, and a list editor whose value was null and has no rows reads as null, matching the starting value. A tab row with an empty Position is now left out by the engine instead of becoming a tab at 0 pt. An existing border or rule still reads back with the fields' defaults filled in, so OK after other edits can write it as an equal override. Checked with `tsc --noEmit`; not run in a browser.

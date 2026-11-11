@@ -35,7 +35,7 @@ function fieldNode(f: Field, v: unknown): { node: HTMLElement; read: () => unkno
   const sc = f.type === 'number' ? f.scale ?? 1 : 1;
   const raw = v ?? f.def;
   i.value = raw == null ? '' : f.type === 'number' ? String(Math.round(Number(raw) * sc * 1000) / 1000) : String(raw);
-  return { node: i, read: () => (f.type === 'number' ? (i.value.trim() === '' ? (f.def ?? 0) : Number(i.value) / sc) : i.value) };
+  return { node: i, read: () => (f.type === 'number' ? (i.value.trim() === '' ? f.def : Number(i.value) / sc) : i.value) };
 }
 
 function listEditor(fields: Field[], value: unknown, addLabel: string): { node: HTMLElement; read: () => unknown } {
@@ -57,7 +57,7 @@ function listEditor(fields: Field[], value: unknown, addLabel: string): { node: 
   q(b, '.fae-add-label').textContent = addLabel;
   b.addEventListener('click', () => add({}));
   root.appendChild(b);
-  return { node: root, read: () => readers.map((r) => r()) };
+  return { node: root, read: () => (value == null && !readers.length ? null : readers.map((r) => r())) };
 }
 
 function objectEditor(fields: Field[], value: unknown): { node: HTMLElement; read: () => unknown } {
@@ -70,7 +70,7 @@ function objectEditor(fields: Field[], value: unknown): { node: HTMLElement; rea
     root.appendChild(wrap);
     return [f.key, n.read] as const;
   });
-  return { node: root, read: () => { const o = Object.fromEntries(rs.map(([k, r]) => [k, r()])); return o.on === false ? { on: false } : o; } };
+  return { node: root, read: () => { const o = Object.fromEntries(rs.map(([k, r]) => [k, r()]).filter(([, x]) => x !== undefined)); if (o.on === false) return value == null ? null : { on: false }; return o; } };
 }
 
 function triple(value: unknown, scale: number, unit: string, defs: [number, number, number]): { node: HTMLElement; read: () => unknown } {
