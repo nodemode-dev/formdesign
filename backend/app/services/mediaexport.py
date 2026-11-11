@@ -235,7 +235,16 @@ def _manifest_add(opf: str, entries: list[str]) -> str:
 
 def _scripted(opf: str, href: str) -> str:
     pat = re.compile(r'(<item\b[^>]*href="' + re.escape(href) + r'"[^>]*?)(/>)')
-    return pat.sub(lambda m: m.group(1) + ' properties="scripted"' + m.group(2), opf, count=1) if 'href="' + href + '"' in opf and 'properties="scripted"' not in opf else opf
+
+    def add(m: re.Match) -> str:
+        item = m.group(1)
+        if re.search(r'\bproperties="[^"]*\bscripted\b', item):
+            return m.group(0)
+        if 'properties="' in item:
+            return re.sub(r'properties="([^"]*)"', lambda p: f'properties="{p.group(1)} scripted"', item, count=1) + m.group(2)
+        return item + ' properties="scripted"' + m.group(2)
+
+    return pat.sub(add, opf, count=1)
 
 
 async def epub_export(meta, native: dict, fmt: str, path: str | None, options: dict) -> tuple[dict, bytes | None, str]:
