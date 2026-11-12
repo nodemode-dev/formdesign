@@ -127,6 +127,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Apt mirror fallback
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
+            grep -q mirrors.edge.kernel.org /etc/apt/apt-mirrors.txt || printf 'http://mirrors.edge.kernel.org/ubuntu/\tpriority:1\n' | sudo tee -a /etc/apt/apt-mirrors.txt >/dev/null
+            grep -q '//archive.ubuntu.com' /etc/apt/apt-mirrors.txt || printf 'http://archive.ubuntu.com/ubuntu/\tpriority:2\n' | sudo tee -a /etc/apt/apt-mirrors.txt >/dev/null
+          fi
+          printf 'Acquire::Retries "3";\n' | sudo tee /etc/apt/apt.conf.d/80-ci-retries >/dev/null
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
