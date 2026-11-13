@@ -76,6 +76,7 @@ class TerminalDock {
   private fitQueued = false;
   private starting = false;
   private makeChat: (() => ChatView) | null = null;
+  private readonly lights: [string, HTMLElement | null][];
 
   constructor(private readonly ws: Workspace, private readonly root: HTMLElement) {
     this.tabsEl = q(root, '.fd-dock-tabs');
@@ -84,6 +85,7 @@ class TerminalDock {
     this.ask = q<HTMLInputElement>(root, '.fd-dock-ask-input');
     this.askSend = q(root, '.fd-dock-ask-send');
     this.restartBtn = q<HTMLButtonElement>(root, '.fd-dock-restart');
+    this.lights = [['claude', ws.root.querySelector<HTMLElement>('.cv-titlebar [data-cmd="claude"]')], ['shell', ws.root.querySelector<HTMLElement>('.cv-titlebar [data-cmd="terminal"]')]];
     q(root, '.fd-dock-new').addEventListener('click', () => void this.open());
     q(root, '.fd-dock-chat').addEventListener('click', () => void this.showChat());
     q(root, '.fd-dock-claude').addEventListener('click', () => void this.claude());
@@ -121,6 +123,17 @@ class TerminalDock {
     setHidden(this.root, !open);
     setClass(this.ws.root, 'is-dock-open', open);
     window.dispatchEvent(new CustomEvent('fd-dock', { detail: { open } }));
+    this.syncLights();
+  }
+
+  private syncLights(): void {
+    const kind = this.isOpen() ? this.tabs.find((t) => t.id === this.active)?.preset : undefined;
+    for (const [k, b] of this.lights) {
+      if (!b) continue;
+      const on = kind === k;
+      setClass(b, 'is-active', on);
+      if (b.getAttribute('aria-pressed') !== String(on)) b.setAttribute('aria-pressed', String(on));
+    }
   }
 
   private sizer(): void {
@@ -302,6 +315,7 @@ class TerminalDock {
       if (this.chatTab.getAttribute('aria-selected') !== sel) this.chatTab.setAttribute('aria-selected', sel);
     }
     this.syncAsk();
+    this.syncLights();
     setDisabled(this.restartBtn, id === CHAT || !id);
     this.queueFit();
     if (this.isOpen()) this.focus();

@@ -24,6 +24,7 @@ export class Input {
   private hoverQueued: PEvent | null = null;
   private zoomTool = false;
   onKeyCommand: ((e: KeyboardEvent) => boolean) | null = null;
+  keysOff: ((e: KeyboardEvent) => boolean) | null = null;
 
   constructor(private readonly vp: Viewport, private readonly target: HTMLElement) {
     target.addEventListener('pointerdown', (e) => this.onDown(e));
@@ -157,7 +158,7 @@ export class Input {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (anyDialogOpen() || this.typingTarget(e)) return;
+    if (anyDialogOpen() || this.typingTarget(e) || this.keysOff?.(e)) return;
     if (e.code === 'Space' && !editor.wantsText) {
       if (!this.space) { this.space = true; this.setCursor('grab'); }
       e.preventDefault();

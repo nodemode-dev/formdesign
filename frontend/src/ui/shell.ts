@@ -72,17 +72,13 @@ export class Shell implements Workspace {
     this.input = new Input(this.viewport, this.stage);
     this.status = new StatusBar(q(root, '.fd-status'), this.viewport);
     this.input.onKeyCommand = (e) => this.onKeyCommand(e);
+    this.input.keysOff = (e) => this.home.isShown && !e.ctrlKey && !e.metaKey && !e.altKey && !/^F\d{1,2}$/.test(e.key);
     root.appendChild(this.fileInput);
     this.home = new HomeScreen(this.stage.parentElement as HTMLElement, {
       run: (cmd, params) => this.commands.run(cmd, params),
       recent: () => this.recent,
       openRecent: (path) => void this.openPath(path),
-    }, [
-      { label: 'Make a layout…', command: 'ui.make', icon: 'makeLayout', key: 'M' },
-      { label: 'New from template…', command: 'ui.templates', icon: 'newFile' },
-      { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
-      { label: 'Ask Claude', command: 'ui.claude', icon: 'agentChat', hint: 'Describe what you want and Claude lays it out' },
-    ]);
+    });
     this.captionButtons = new CaptionButtons(q(root, '.cv-titlebar'), () => { try { return localStorage.getItem('formdesign.customTitleBar') === '1'; } catch { return false; } });
     this.uiCommands();
     this.wire();
@@ -217,7 +213,7 @@ export class Shell implements Workspace {
     const has = () => editor.hasDoc;
     const toggle = (key: 'guides' | 'frames' | 'baseline' | 'preview' | 'threads') => { vp.opts[key] = !vp.opts[key]; if (key === 'preview') vp.invalidateAll(); vp.drawOverlays(); vp.refreshOverlays(); };
     this.commands.add(
-      { id: 'ui.home', label: 'Home', run: () => this.home.show() },
+      { id: 'ui.home', label: 'Home', run: () => { this.home.show(); void this.loadRecent(); } },
       { id: 'ui.open', label: 'Open…', keys: ['Mod+O'], run: () => void this.openDialog() },
       { id: 'ui.save', label: 'Save', keys: ['Mod+S'], enabled: has, run: () => void this.save(false) },
       { id: 'ui.saveAs', label: 'Save As…', keys: ['Shift+Mod+S'], enabled: has, run: () => void this.save(true) },

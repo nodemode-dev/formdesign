@@ -1,7 +1,7 @@
 {
   "name": "formdesign",
   "private": true,
-  "version": "0.85.6",
+  "version": "0.87.0",
   "description": "FormDesign · page layout and publishing in the NodeMode style",
   "license": "Apache-2.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "demo": "vite build --config vite.demo.config.ts --mode magazine && vite build --config vite.demo.config.ts --mode event && vite build --config vite.demo.config.ts --mode report",
     "tauri": "tauri"
   },
   "dependencies": {

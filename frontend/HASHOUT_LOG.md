@@ -2,8 +2,8 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.85.6
-Last updated: 2026-11-11 · core toast requests reach the screen · PNG and JPEG export pages count from 1 · 2026-11-10 · Find/Change follows the caret into another story · Publish Online waits for the list · Generate Alt Text shows only the latest answer · the Plugins setup lines quote the folder · each glyph preview font gets its own name · the Adjustments curve keeps drawing when two points share an input · pica lengths with a minus sign or a lone point · z-index on the layer scale, colours on real tokens · ticked stories stay with their own document · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Current build version: v0.87.0
+Last updated: 2026-11-13 · keys on Home stay on Home · the window is revealed once the first document state is known · Back in the narrow row, the drop card lights, real demo covers, translated Home · the demos as browser pages that replay the engine · the family Home with a side panel that resizes and collapses · three demos open as new documents · the title bar Claude Code and Terminal buttons light with the dock · the unused two-star make glyph is gone · 2026-11-11 · core toast requests reach the screen · PNG and JPEG export pages count from 1 · 2026-11-10 · Find/Change follows the caret into another story · Publish Online waits for the list · Generate Alt Text shows only the latest answer · the Plugins setup lines quote the folder · each glyph preview font gets its own name · the Adjustments curve keeps drawing when two points share an input · pica lengths with a minus sign or a lone point · z-index on the layer scale, colours on real tokens · ticked stories stay with their own document · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
 
@@ -853,3 +853,59 @@ The core queues `{kind: "toast", text}` when a tool fails where no command can a
 - logged: v0.85.6 · 2026-11-11
 
 The engine's `/api/documents/export` now counts `options.page` from 1 for PNG and JPEG as it does for SVG (backend log). The dialog's page picker holds the 0-based page index, so png and jpg send it plus one, as svg already did. Checked with `npm run build` (tsc and vite); export from the dialog was not clicked through in a browser.
+
+### ui/home.ts, styles/shell.css, ui/shell.ts · the family Home with a side panel that resizes and collapses
+- refers-to: frontend/src/ui/home.ts :: HomeScreen (constructor, show, sync, paint, fill, card, thumb, templates, sidePanel, followDock), NAV_KEY, HIDDEN_KEY; frontend/src/styles/shell.css :: .cv-home*; frontend/src/ui/shell.ts :: Shell
+- kind: rationale
+- logged: v0.86.0 · 2026-11-13
+
+The centred start screen was replaced whole by the family Home, ported from formvis `ui/home.ts` (structure and sizes) and formdeck 0.26.1 `sidePanel()` (resizer and tabs). The side panel holds the brand block (the mark, then formdesign and by nodemode.ai in `.cv-home-brand-text`, which puts the credit under the name when the panel is too narrow for one line), the pages Start, Recent and Templates with counts, a Create group, an Agents group that runs `ui.terminal.claude`, `ui.claude` and `ui.terminal.toggle`, and a foot with Back to document, Preferences and Help. The panel drags between 180 and 420 px and collapses under 120 px or from its chevron tab; width and hidden state live in `formdesign.homeNav` and `formdesign.homeNavHidden` and are applied in the constructor while Home is still hidden, so first paint already has the saved size. Pages are built once and switched with `hidden`; the recent grids are patched by key (`listKey`), never rebuilt. `followDock` raises Home's bottom edge above the terminal dock while the dock is open so the Agents items stay reachable. Recent cards read the first-page thumbnail from `GET /api/home/thumb` (backend log); the picture is absolutely placed in a reserved 4:3 box with `object-fit: contain`, so a portrait page shows whole and nothing shifts when it loads. Known gap: the new Home strings are English only, they have no rows in the 25 language tables yet. Checked with tsc, a vite build and a headless Chrome run at 1440 and 760 px (hide, show, resize kept over a reload, Home above the dock); not run in the desktop shell or on Windows.
+
+### features/demos.ts, ui/demos.ts, ui/home.ts · three demos open as new documents
+- refers-to: frontend/src/features/demos.ts :: installDemos; frontend/src/ui/demos.ts :: DEMOS, DemoId; frontend/src/ui/home.ts :: HomeScreen (Demos section)
+- kind: rationale
+- logged: v0.86.0 · 2026-11-13
+
+`installDemos` adds the commands `ui.demo.magazine`, `ui.demo.event`, `ui.demo.report` and `ui.demo.open` (its `id` is an enum of the three), a Demos submenu at the end of Help, and drives the three cards on Home > Start. A demo is built by the engine (`POST /api/demos/{id}`, backend log) and adopted as a new unsaved document; nothing open is changed. One demo opens at a time: `busy` holds the id, a second request gets a toast, and the card being built carries `aria-busy`. Each card has a reserved 16:9 picture box whose cover is the template's own rendered thumbnail, loaded the first time Home shows, so the cover is a template sample and not a picture of the finished demo. Ported from formdeck `ui/demos.ts` and `openDemo` and formvis Home cards.
+
+### features/terminal.ts · the title bar Claude Code and Terminal buttons light with the dock
+- refers-to: frontend/src/features/terminal.ts :: TerminalDock.syncLights
+- kind: rationale
+- logged: v0.86.0 · 2026-11-13
+
+`syncLights` runs from `setOpen` and `select` and writes only two nodes: the title bar button with `data-cmd` claude gets `.is-active` and `aria-pressed` while the dock is open on a Claude Code tab, the one with `data-cmd` terminal while it is open on a shell tab. Ported from formvis `ui/titlebar-tools.ts` syncDock.
+
+### ui/tool-icons.ts · the unused two-star make glyph is gone
+- refers-to: frontend/src/ui/tool-icons.ts :: (removed) make
+- kind: hashed-out
+- logged: v0.86.0 · 2026-11-13
+
+The `make` entry drew two four-point stars. No tool or panel used it (the Make strip draws `makeLayout`), and the family bans sparkle icons, so the entry is removed. `./formdesign counts --check` now fails if one returns (backend log, `setup/line_counts.py`).
+
+### editor/input.ts, ui/shell.ts · keys on Home stay on Home
+- refers-to: frontend/src/editor/input.ts :: Input.keysOff, onKey; frontend/src/ui/shell.ts :: Shell constructor (input.keysOff), ui.home run
+- kind: fix
+- logged: v0.87.0 · 2026-11-13
+
+While Home was up, plain keys went to the editor behind it: Tab ran Hide Panels so focus never moved, Enter and Space were sent to the layout core so a focused Home button could not be pressed, and tool letters and Delete acted on the hidden document. The old start screen did the same. `Input.keysOff` is a hook the shell sets: it skips the editor while Home is shown and the key has no Ctrl, Cmd or Alt and is not a function key, so shortcuts such as Mod+O and Mod+J still run. The changed line in `onKey` was `if (anyDialogOpen() || this.typingTarget(e)) return;`. `ui.home` was `() => this.home.show()` and now also calls `void this.loadRecent()`, because the recent list was only read at start and when the last document closed.
+
+### app.ts · the window is revealed once the first document state is known
+- refers-to: frontend/src/app.ts :: startApp
+- kind: fix
+- logged: v0.87.0 · 2026-11-13
+
+The reveal waited only for fonts, `Promise.race([document.fonts.ready, …2500])`. Two of six cold starts showed the empty workspace for 60 to 125 ms before Home, and a reload with documents open in the engine showed Home and then removed it. The reveal now also waits for the editor's first `ready` event, still capped at 2.5 s, so with the engine stopped the window reveals at the cap with Home shown. The browser demo pages' shim must send the engine's `hello` or they fall back to the cap.
+
+### ui/home.ts, styles/shell.css, ui/demos.ts · Back in the narrow row, the drop card lights, real demo covers, translated Home
+- refers-to: frontend/src/ui/home.ts :: sync, the narrow row `[data-back]`, TILES, HomeTile, paint, templates, onLanguage; frontend/src/styles/shell.css :: `.fd-app:has(.cv-drop:not([hidden])) .cv-home-hero`; frontend/src/ui/demos.ts :: demoCover, DemoDef.description; frontend/src/features/demos.ts :: installDemos.open; frontend/public/demos/*.png
+- kind: fix
+- logged: v0.87.0 · 2026-11-13
+
+Below 900 px the side panel is hidden, so with a document open Esc was the only way back; the narrow tab row now has a `[data-back]` item and `sync()` updates every `[data-back]` (it was `setHidden(this.root.querySelector('[data-back]') as HTMLElement, docs === 0);`). Dragging files over Home showed nothing because the drop overlay sits under Home; one `:has()` rule gives the drop card the accent border and tint. `demoCover` was `` `/api/templates/${encodeURIComponent(d.template)}/thumb.png?size=640` `` (the template's sample) and is now `` `${import.meta.env.BASE_URL}demos/${d.id}.png` ``: each demo was built once with the real core and its first spread saved as a 400 px high PNG (256 KB for the three), inside the same reserved 16:9 box. For translation, tile lines became `note` and each tile has a literal `title` (the tooltip was built as `Show ${t.label.toLowerCase()} templates`, which no table could match), the greeting and the count go through `t()` (`t('{n} templates')`), `DemoDef.blurb` was renamed `description` so the harvester reads it, and `onLanguage` repaints them on a live switch. 65 keys were added through `i18n keys` and `i18n import`; the earlier note that the new Home strings are English only no longer holds. Still English: the demo commands' descriptions for agents. Open: the Event demo document has an empty second page, and the Report demo's blurb mentions a table and lists that do not appear in the two pages Make lays out.
+
+### vite.demo.config.ts, ../demo · the demos as browser pages that replay the engine
+- refers-to: frontend/vite.demo.config.ts; demo/src/shim/api.ts :: ReplaySocket, lookup, srcOf, tileWork; demo/src/shim/tiles.ts :: drawTiles; demo/src/session.ts :: openSession; demo/record.py :: Recorder, pictures, bake, Scrub
+- kind: rationale
+- logged: v0.87.0 · 2026-11-13
+
+The layout core is native and cannot run in a page, so `demo/`, `demos/event` and `demos/report` replay a recorded session. `demo/record.py` drives the real window against the real engine: it opens the demo from its Home card, opens every panel tab in every workspace, keeps each `/api` request and socket call with its answer, and has the engine draw each spread at 100% and 200% once on black and once on white, which gives a transparent background so the pasteboard follows the page's theme. It replaces absolute paths, the user name and the port, and fails if a path remains. The shim answers `fetch`, image sources and the engine socket from the recording and cuts each 512 px tile the viewport asks for from the recorded spreads; zoom past 200% enlarges the 200% picture. Anything not recorded shows the needs-the-engine message in the window's own toast. The window script, stylesheet, fonts and covers are stored once in `demo/assets`. The recordings go stale when the engine, core, templates or demo material change; the steps to redo them are in `demo/README.md`. The cover plugin matches the exact `demoCover` text and stops the build if it changes. About 8 MB committed.

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-demo="building" data-demo-id="magazine">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>FormDesign demo: A magazine feature</title>
+  <style>html,body{background:#0a0a0a;height:100%;margin:0;padding:0;overflow:hidden}#app{visibility:hidden}body.app-ready #app{visibility:visible}.hidden{display:none!important}</style>
+  <script>
+    if (/Mac/.test(navigator.platform) && '__TAURI_INTERNALS__' in window) document.documentElement.classList.add('has-overlay-titlebar');
+  </script>
+  <script>
+/* stylized-nodemode · theme-boot.js · v1.0.0
+   Inline this file's contents in a script element in the document head,
+   AFTER the critical inline style block and BEFORE any stylesheet link.
+   It runs synchronously before the body exists, so the persisted profile
+   and accent are on documentElement before the first paint. That is the
+   entire mechanism behind "no theme flash on hard reload".
+
+   Keep the PROFILES table in sync with themes.ts (same 14 ids). Only the
+   surface-visible vars are needed here; themes.ts re-applies everything
+   once the bundle loads. The body class for light profiles is applied by a
+   MutationObserver the instant body appears, still before paint. */
+(function () {
+  var KEY = 'nodemode_ui_settings';
+  var DEFAULT_THEME = 'studio';
+  var DEFAULT_ACCENT = '#f97316';
+  var LIGHT = { 'light': 1, 'sand': 1, 'nineties': 1, 'duck': 1, 'pro-light-grey': 1, 'pro-light': 1, 'classic': 1, 'adwaita-light': 1, 'soft-light': 1 };
+  var PROFILES = {
+    'studio':        ['#111111', '#17151b', '#222127', '#2a2a2a', '#34333a', '#f7f7f7', '#a4a4a4', '#717072', '#1c1b1d', '#5e5e60', '#191919'],
+    'nodemode-dark': ['#0a0a0a', '#121218', '#1a1a24', '#2a2a35', '#3a3a48', '#e8e8ee', '#a8a8b8', '#6a6a7a', '#0a0a0a', 'rgba(255,255,255,0.04)'],
+    'light':         ['#ecebe6', '#f7f6f1', '#e2e0d8', '#d1cdc1', '#beb9aa', '#26241d', '#4c4a40', '#8b887a', '#e7e5dd', 'rgba(70,60,30,0.10)', '#f4f3ed'],
+    'github-dark':   ['#0d1117', '#161b22', '#21262d', '#30363d', '#3d444d', '#e6edf3', '#9198a1', '#656c76', '#0d1117', 'rgba(230,237,243,0.05)'],
+    'midnight':      ['#0b1020', '#101830', '#182242', '#25325c', '#324274', '#e4e9f7', '#9fabd0', '#63709a', '#0b1020', 'rgba(160,180,255,0.06)'],
+    'forest':        ['#0c130e', '#121c15', '#1a281e', '#2a4030', '#375441', '#e4efe7', '#a4bdac', '#6a8674', '#0c130e', 'rgba(180,230,190,0.05)'],
+    'ember':         ['#140d0a', '#1d1310', '#2a1c16', '#452e22', '#5a3d2e', '#f2e8e2', '#c7ab9c', '#8f7263', '#140d0a', 'rgba(255,200,160,0.05)'],
+    'violet':        ['#100b1c', '#171129', '#221a3c', '#382c5e', '#493b78', '#ece6f9', '#b3a6d8', '#7a6da3', '#100b1c', 'rgba(210,190,255,0.06)'],
+    'slate':         ['#101418', '#171d23', '#212a32', '#32404c', '#415260', '#e7edf2', '#a3b2bf', '#6b7a87', '#101418', 'rgba(200,220,240,0.05)'],
+    'mono':          ['#0e0e0e', '#161616', '#202020', '#333333', '#454545', '#f0f0f0', '#ababab', '#6e6e6e', '#0e0e0e', 'rgba(255,255,255,0.05)'],
+    'sand':          ['#efe8da', '#f8f3e9', '#e6dcc8', '#d4c7ab', '#c2b28e', '#2a2418', '#59503c', '#8d8168', '#eae2d1', 'rgba(80,60,10,0.10)', '#f5efe2'],
+    'ocean':         ['#06131c', '#0a1c29', '#10293c', '#1d425e', '#285578', '#e2eef7', '#96b6cc', '#5b7d94', '#06131c', 'rgba(150,210,255,0.06)'],
+    'rose':          ['#170b10', '#211117', '#301a22', '#4d2b38', '#653a49', '#f5e7ec', '#cfa5b3', '#966b7b', '#170b10', 'rgba(255,190,215,0.05)'],
+    'terminal':      ['#050d05', '#0a140a', '#102010', '#1f3d1f', '#2b522b', '#d8f5d8', '#8fce8f', '#568a56', '#050d05', 'rgba(120,255,120,0.06)'],
+    'contrast':      ['#000000', '#0a0a0a', '#161616', '#555555', '#777777', '#ffffff', '#d8d8d8', '#9a9a9a', '#000000', 'rgba(255,255,255,0.10)'],
+    'nineties':      ['#c0c0c0', '#d4d0c8', '#b4b0a8', '#808080', '#ffffff', '#000000', '#202020', '#585858', '#008080', 'rgba(0,0,0,0.12)', '#d4d0c8'],
+    'duck':          ['#e9e4f7', '#f4f1fc', '#d9d2ef', '#c7bde6', '#b3a6dc', '#2b2540', '#4f4770', '#7a7299', '#e2dcf2', 'rgba(90,70,150,0.10)', '#f4f1fc'],
+    'pro-dark':        ['#1f1f1f', '#2b2b2b', '#363636', '#4a4a4a', '#818181', '#ececec', '#bdbdbd', '#a0a0a0', '#181818', 'rgba(255,255,255,0.05)'],
+    'pro-medium-grey': ['#3a3a3a', '#454545', '#505050', '#666666', '#a0a0a0', '#f4f4f4', '#d6d6d6', '#c3c3c3', '#2e2e2e', 'rgba(255,255,255,0.06)'],
+    'pro-light-grey':  ['#b9b9b9', '#c9c9c9', '#aeaeae', '#8c8c8c', '#5a5a5a', '#121212', '#2a2a2a', '#414141', '#a4a4a4', 'rgba(0,0,0,0.10)'],
+    'pro-light':       ['#e3e3e3', '#f2f2f2', '#d6d6d6', '#b5b5b5', '#767676', '#1a1a1a', '#383838', '#545454', '#d0d0d0', 'rgba(0,0,0,0.08)'],
+    'classic':         ['#d1d4d9', '#e1e4e8', '#c2c6cc', '#9ea4ad', '#666c76', '#14171c', '#2c323a', '#4a515b', '#c0c4ca', 'rgba(0,0,0,0.09)'],
+    'solarized-dark':  ['#002b36', '#073642', '#0d4452', '#1b5563', '#768e97', '#fdf6e3', '#bcc6c6', '#9bb0b3', '#00212b', 'rgba(147,161,161,0.08)'],
+    'adwaita-light':   ['#ebebeb', '#fafafa', '#dedde0', '#c0bfbc', '#77767b', '#241f31', '#3d3846', '#5e5c64', '#f6f5f4', 'rgba(0,0,0,0.07)'],
+    'adwaita-dark':    ['#242424', '#303030', '#3a3a3a', '#4a4a4a', '#858585', '#ffffff', '#deddda', '#b4b3b0', '#1e1e1e', 'rgba(255,255,255,0.05)'],
+    'breeze-dark':     ['#232629', '#31363b', '#3b4045', '#4d5359', '#828c94', '#eff0f1', '#c5cacd', '#a4adb3', '#1b1e20', 'rgba(239,240,241,0.06)'],
+    'soft-light':      ['#e8ebef', '#f4f6f8', '#dce0e6', '#c3c9d2', '#777d89', '#2b323c', '#454d59', '#5b6370', '#dfe3e8', 'rgba(43,50,60,0.08)'],
+    'soft-dark':       ['#22262b', '#2b3036', '#353b43', '#454c56', '#7c8693', '#e1e6ec', '#b9c1cb', '#9ca6b2', '#1b1e22', 'rgba(225,230,236,0.06)']
+  };
+  var NAMES = ['--bg-primary', '--bg-secondary', '--bg-tertiary', '--border-color', '--border-light', '--text-primary', '--text-secondary', '--text-muted', '--canvas-bg', '--grid-color'];
+  var theme = DEFAULT_THEME, accent = DEFAULT_ACCENT, intensity = 1;
+  try {
+    var raw = localStorage.getItem(KEY);
+    /* A choice saved before the Studio Dark redesign is set aside once; from generation 2, the theme and any accent chosen
+       on purpose are kept, the old lavender default becoming orange (generation 3); themes.ts agrees. */
+    if (raw) { var s = JSON.parse(raw); if (s.appearance === 3 || s.appearance === 2) { if (s.theme && PROFILES[s.theme]) theme = s.theme; if (s.accentColor && !(s.appearance === 2 && s.accentColor === '#aba0d3')) accent = s.accentColor; if (s.appearance === 3 && typeof s.intensity === 'number') intensity = Math.min(1.5, Math.max(0, s.intensity)); } }
+  } catch (e) { /* private mode or blocked storage: defaults are correct */ }
+  var p = PROFILES[theme], root = document.documentElement, i;
+  for (i = 0; i < NAMES.length; i++) root.style.setProperty(NAMES[i], p[i]);
+  root.style.setProperty('--bg-node', p[10] || p[1]);
+  root.style.setProperty('--shadow-lg', LIGHT[theme] ? '0 4px 14px rgba(96, 90, 70, 0.16)' : '0 8px 32px rgba(0, 0, 0, 0.5)');
+  root.style.setProperty('--accent-color', accent);
+  root.style.setProperty('--accent-color-dim', accent + '33');
+  root.style.setProperty('--accent-color-hover', 'color-mix(in srgb, ' + accent + ' 82%, #ffffff)');
+  root.style.setProperty('--accent-intensity', String(intensity));
+  /* the critical inline style paints html with the profile background */
+  root.style.background = p[0];
+  if (LIGHT[theme]) {
+    root.classList.add('theme-light-pending');
+    var apply = function () { if (document.body) { document.body.classList.add('theme-light'); root.classList.remove('theme-light-pending'); return true; } return false; };
+    if (!apply()) {
+      var mo = new MutationObserver(function () { if (apply()) mo.disconnect(); });
+      mo.observe(root, { childList: true });
+    }
+  }
+})();
+  </script>
+  <style>html[data-demo=building] #app{visibility:hidden!important}html[data-demo=building]:before{content:"Starting FormDesign";color:#a4a4a4;text-align:center;font:13px -apple-system,Segoe UI,system-ui,sans-serif;position:fixed;top:calc(50% - 30px);left:0;right:0}html[data-demo=building]:after{content:"";background:#222127 linear-gradient(90deg,#f97316,#fdba74) 0 0/60px 3px no-repeat;border-radius:2px;width:180px;height:3px;animation:1.4s ease-in-out infinite alternate demo-start;position:fixed;top:calc(50% - 2px);left:calc(50% - 90px)}@keyframes demo-start{to{background-position:120px 0}}</style>
+  <link rel="stylesheet" href="./assets/demo.css">
+</head>
+<body>
+  <div id="app"></div>
+  <div id="overlay-root"></div>
+  <div id="toast-root"></div>
+<script src="assets/session.js"></script>
+<script defer src="./assets/demo.js"></script>
+</body>
+</html>

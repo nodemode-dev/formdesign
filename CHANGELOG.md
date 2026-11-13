@@ -2,6 +2,28 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.87.0 · 2026-11-13
+
+- Three offline browser demos (`demo/index.html`, `demos/event/`, `demos/report/`) open the real FormDesign window on the magazine, poster and annual review demos, replaying answers recorded from the engine.
+- Home, the demos, the caption buttons and the status bar zoom field appear in every interface language, and Home's greeting and template counts follow a language change straight away.
+- Keys on Home move through Home's buttons and press them, instead of reaching the document behind it.
+- At launch the window shows Home, or your open document, from its first frame.
+- Home shows an up-to-date Recent list when you open it over open documents.
+- In a narrow window, Back to document is in Home's tab row.
+- Home's drop card lights up while you drag files over it.
+- The demo cards on Home show each finished demo's first spread.
+
+## 0.86.0 · 2026-11-13
+
+- Home is the Form family Home: a side panel with the formdesign mark, your pages, a Create group and an Agents group for Claude Code, Ask Claude and Terminal. The panel can be resized or hidden and remembers both.
+- Recent documents on Home show a picture of their first page.
+- Three demos (a magazine feature, an event poster, an annual review) open as new documents from Home, Help > Demos or a command each. Nothing you have open is changed.
+- The title bar Claude Code and Terminal buttons light while the terminal dock shows that kind of tab.
+- `./formdesign mcpb build` makes a Claude Desktop extension, and `./formdesign mcp --attach` connects to a running FormDesign without starting one.
+- The repo carries a Claude Code plugin manifest, and its settings keep Claude Code from adding attribution lines to commits and pull requests.
+- No sparkle icon is left in the app, and `./formdesign counts --check` fails if one returns.
+- Known gap: the new Home and demo text is in English only for now.
+
 ## 0.85.6 · 2026-11-11
 
 - The MCP `run_command` tool and `POST /api/commands/{id}` run engine commands in the active document instead of opening a new blank document.

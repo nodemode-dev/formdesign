@@ -43,7 +43,6 @@ export const TOOL_ICONS: Record<string, string> = {
   'tool-hand': S('<path d="M8 13V6a1.5 1.5 0 0 1 3 0v6M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.6-2.2L3 15.6a1.6 1.6 0 0 1 2.4-2l2.6 2.4"/>'),
   'tool-zoom': S('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 7.5v6M7.5 10.5h6"/>'),
   'fill-stroke': S('<rect x="3" y="3" width="12" height="12" fill="currentColor" stroke="none"/><rect x="9.5" y="9.5" width="11" height="11"/>'),
-  'make': S('<path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/>'),
   'template': S('<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>'),
   'pages': S('<rect x="3.5" y="5" width="8" height="12" rx="1"/><rect x="12.5" y="5" width="8" height="12" rx="1"/><path d="M8 20h8"/>'),
   'pdf': S('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M8.5 16v-4h1.6a1.2 1.2 0 0 1 0 2.4H8.5M12.5 16v-4h1a2 2 0 0 1 0 4zM17 12h-1.7v4M15.3 14h1.5"/>'),

@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version 0.85.6" src="https://img.shields.io/badge/version-0.85.6-eef0f4?style=flat-square">
+  <img alt="version 0.87.0" src="https://img.shields.io/badge/version-0.87.0-eef0f4?style=flat-square">
   <img alt="Rust" src="https://img.shields.io/badge/rust-layout%20core-B7410E?style=flat-square&logo=rust&logoColor=white">
   <img alt="TypeScript and Python" src="https://img.shields.io/badge/typescript%20%2B%20python-engine%20and%20window-3178c6?style=flat-square">
   <img alt="macOS, Windows and Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -98,10 +98,12 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 ./formdesign make article.md photo.jpg --brief "Square ad for Northlight" --out ad.png   # intake, template, fill, export
 ./formdesign templates                       # list the 71 templates
 ./formdesign tool preview '{"page": 1}'      # call any MCP tool from a shell
+./formdesign cli list                        # the shared command catalogue; run any command by id
 ./formdesign mcp                             # MCP server on stdio for Claude Code, Codex and Cursor
+./formdesign mcpb build .                    # the same server as a Claude Desktop extension (.mcpb)
 ```
 
-`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. `./formdesign agents install` registers it for your account. See [`AGENTS.md`](AGENTS.md).
+`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. `./formdesign agents install` registers it for your account. See [`AGENTS.md`](AGENTS.md). In the window, the terminal dock (Window > Show Terminal) holds shell tabs, Claude Code tabs that run your own `claude` with FormDesign's tools attached, and Chat with Claude; Window > Agent Connect decides what outside agents may do.
 
 ## Under the hood
 
@@ -120,6 +122,15 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 | Linux | [Download FormDesign for Linux](https://formai.studio/get/formdesign/linux) | [FormDesign releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formdesign-v&expanded=true) |
 
 All FormDesign builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+
+## Demo
+
+[`demo/index.html`](demo/index.html) is an offline demo that opens from `file://` or any static server and shows the real FormDesign window on "The Island Press", a three-page magazine feature in threaded columns with a drop cap, a pull quote and paragraph styles: its pages and spreads, page navigation, zoom, menus, panels and workspaces. FormDesign's layout core is native code that does not run in a browser, so the page replays engine answers recorded from the real engine for this demo (document state, layout, panels' data and page pictures at 100% and 200%); editing, saving, export, Make and the assistant answer that they need the FormDesign engine. See [`demo/README.md`](demo/README.md). Two more pages of the same window link to each other and to it from the status bar:
+
+- [`demos/event/index.html`](demos/event/index.html): an event poster, "Quay Lights", made from a short brief. See [`demos/event/README.md`](demos/event/README.md).
+- [`demos/report/index.html`](demos/report/index.html): an annual review, "Harbour Trust Annual Review", laid out from one Markdown file. See [`demos/report/README.md`](demos/report/README.md).
+
+The same three demos open inside the app from Home, from Help > Demos, or with the `ui.demo.magazine`, `ui.demo.event` and `ui.demo.report` commands, each as a new document.
 
 ## Run it from source
 

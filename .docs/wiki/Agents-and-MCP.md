@@ -8,6 +8,7 @@ FormDesign is built to be driven by agents as much as by hand. Claude Code, Code
 | --- | --- | --- |
 | Streamable HTTP | `POST http://127.0.0.1:8196/mcp`, stateless JSON, Origin checked | the engine is already running |
 | Standard input and output | `./formdesign mcp` (`setup/mcp_stdio.py`), which starts the engine if it is not running | Claude Desktop, Claude Code, Codex, Cursor |
+| Desktop extension | `./formdesign mcpb build DIR` writes `formdesign-VERSION.mcpb` (`setup/mcpb.py`, `setup/mcpb/manifest.json`); it runs `mcp_stdio.py --attach`, which never starts the engine and offers only `ping` until FormDesign answers | Claude Desktop |
 
 The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 29 tools, by group:
 
@@ -45,7 +46,7 @@ Claude Code starts in the agent folder: the `claudeFolder` preference (Preferenc
 | `formdesign-template-creator` | `.claude/skills/formdesign-template-creator/` | writing and checking new templates |
 | `formdesign-skillset` | `.claude/skills/formdesign-skillset/` | working on FormDesign's own code |
 
-`./formdesign agents sync` regenerates the harness skill's tool and template references from the engine and mirrors the two user-facing skills to `.agents/skills/` for Codex and Cursor. CI runs `agents sync --check` and fails on drift.
+`./formdesign agents sync` regenerates the harness skill's tool and template references from the engine and mirrors all three skills to `.agents/skills/` for Codex and Cursor (`agents install` copies only the two user-facing ones to your account). CI runs `agents sync --check` and fails on drift.
 
 ## Installing for each agent
 

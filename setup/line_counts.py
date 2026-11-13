@@ -47,6 +47,25 @@ def command_words(root: Path, check: bool) -> int:
     return 1 if check and lacking else 0
 
 
+SPARKLE = re.compile("\\bsparkles?['\"]?\\s*:\\s*(?:[`'\"]?\\s*<svg|\\w+\\()|(?:icon|toolIcon)\\(\\s*['\"]sparkles?['\"]|"
+                     "M12 1\\.5l1\\.5 4\\.5 4\\.5 1\\.5|M7\\.5 5\\.6L10 7 8\\.6 4\\.5|M12 3l1\\.8 4\\.6L18\\.5 9|"
+                     "M18 15l\\.9 2\\.1L21 18|[\\u2726\\u2727\\u2728\\u2734\\u2747]")
+
+
+def sparkle_problems(root: Path) -> list[str]:
+    import subprocess
+    out = subprocess.run(["git", "ls-files", "frontend/src", "frontend/public", "frontend/index.html", "backend/app", "src-tauri/src", "native"],
+                         cwd=root, capture_output=True, text=True).stdout.splitlines()
+    problems = []
+    for rel in out:
+        if not rel.endswith((".ts", ".py", ".rs", ".css", ".html", ".svg")) or "/i18n/" in rel:
+            continue
+        for n, line in enumerate((root / rel).read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if SPARKLE.search(line):
+                problems.append(f"{rel}:{n}: sparkle icons are banned app-wide (build laws)")
+    return problems
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else ".").resolve()
     check = "--check" in sys.argv
@@ -72,6 +91,7 @@ def main() -> int:
     for m in re.finditer(r"(?:server with|exposes) (\d+) tools", readme):
         if int(m.group(1)) != tools:
             problems.append(f"README says {m.group(1)} tools, the engine has {tools}")
+    problems += sparkle_problems(root)
     for p in problems:
         print(f"counts: {p}")
     return 1 if problems else 0

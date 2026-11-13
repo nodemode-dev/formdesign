@@ -11,10 +11,6 @@
 .cv-caption-btn.is-close:hover { background: var(--danger); color: var(--text-on-accent); }
 .fd-app .cv-brand { display: flex; align-items: center; gap: var(--space-2); height: var(--ctl-md); padding: 0 var(--space-2) 0 var(--space-1); border: 0; border-radius: var(--radius); background: transparent; color: var(--text-primary); font: inherit; cursor: pointer; }
 .fd-app .cv-brand:hover { background: var(--surface-raised); }
-.fd-home .cv-home-actions { flex-wrap: wrap; justify-content: center; }
-.fd-home .cv-home-action, .fd-home .cv-home-action:first-child, .fd-home .cv-home-action:last-child { width: auto; min-width: 176px; }
-.fd-home .cv-home-action .cv-home-label { margin-right: var(--space-2); }
-.fd-home .cv-home-sub { max-width: 560px; line-height: 1.55; }
 .fd-app .cv-layers > section.cv-group:not(.is-min):not(.is-sized) { flex: 1 1 0; min-height: 150px; overflow: hidden; }
 .fd-app .cv-layers > section.cv-make.cv-group:not(.is-min):not(.is-sized) { flex-grow: 1.6; }
 .fd-app .cv-layers > section.cv-group > .cv-group-body:not([hidden]) { flex: 1; min-height: 0; overflow-y: auto; }

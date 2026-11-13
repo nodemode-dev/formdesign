@@ -1,0 +1,38 @@
+{
+ "magazine": {
+  "title": "The Island Press",
+  "template": "magazine-feature-spread",
+  "material": "magazine.md",
+  "brief": "A magazine feature spread for Northlight, an island quarterly. Elegant and quiet.",
+  "brand": {"name": "Northlight", "palette": {"ink": "#1b1d22", "paper": "#fbf8f2", "accent": "#b4462e", "accent2": "#2e5d73", "muted": "#8a8478", "dark": "#20303a", "light": "#efe8dc"}},
+  "pictures": [["press-1.jpg", "landscape"]],
+  "fills": {"kicker": "Feature · Island life"}
+ },
+ "event": {
+  "title": "Quay Lights",
+  "template": "print-poster-event-type",
+  "material": null,
+  "brief": "A poster for the Quay Lights festival.\nHeadline: Quay Lights\nDate: 14 June\nTime: Saturday 7 pm to midnight\nCTA: Free entry · Bring a lantern\nURL: quaylights.example\nBold and warm, navy and orange.",
+  "brand": {"name": "Quay Lights", "palette": {"ink": "#121a2e", "paper": "#f7f1e6", "accent": "#f2762e", "accent2": "#3a5ba0", "muted": "#9aa3b5", "dark": "#14213d", "light": "#fff4e2"}},
+  "pictures": [],
+  "fills": {"kicker": "Harbour Hall presents", "issue": "Fifth Year", "eventdate": "14 June", "eventtime": "Saturday 7 pm to midnight",
+            "location": ["Harbour Hall", "The Old Quay", "Northlight Bay"],
+            "intro": "Lanterns, live music and late food stalls along the old quay, ending with a parade at dusk.",
+            "list": ["Lantern workshop", "Night market"]}
+ },
+ "report": {
+  "title": "Harbour Trust Annual Review",
+  "template": "report-annual-review",
+  "material": "harbour-trust.md",
+  "brief": "An annual review for the Harbour Trust, a small boatyard charity. Professional and warm.",
+  "brand": {"name": "Harbour Trust", "palette": {"ink": "#16231f", "paper": "#ffffff", "accent": "#2a7f62", "accent2": "#d9a441", "muted": "#7d8a85", "dark": "#173a30", "light": "#eef4f1"}},
+  "pictures": [["trust-1.jpg", "landscape"], ["trust-2.jpg", "portrait"]],
+  "fills": {"kicker": "Annual Review", "issue": "Annual Review", "url": "harbourtrust.example", "brand": "The Harbour Trust",
+            "stat1": "1,690", "stat1.label": "members, up by more than a third",
+            "stat2": "17,450", "stat2.label": "visitors to the boatyard, twice last year",
+            "stat3": "11,200", "stat3.label": "volunteer hours given across the year",
+            "stat4": "5", "stat4.label": "boats restored and back on the water",
+            "quote": "The harbour belongs to all of us, and there is still plenty of work to do.",
+            "name": "Elin Marsh", "role": "Chair of the Harbour Trust"}
+ }
+}

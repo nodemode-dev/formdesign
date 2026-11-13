@@ -37,6 +37,7 @@ On Windows use `formdesign.bat install` and `formdesign.bat boot`; every command
 | `desktop dev`, `desktop build` | run or bundle the desktop app |
 | `make`, `templates` | the command-line Make pass and the template list (see [[Agents-and-MCP]]) |
 | `mcp` | MCP over standard input and output, for Claude Desktop and other MCP clients |
+| `mcpb check`, `mcpb build DIR` | check the Claude Desktop extension manifest, or write `formdesign-VERSION.mcpb` into DIR |
 | `agents install`, `agents sync [--check]` | set up Claude Code, Codex and Cursor; regenerate the harness skill's references |
 | `doctor`, `counts [--check]`, `clean [--all]`, `help` | checks, README code sizes, clean-up, usage |
 

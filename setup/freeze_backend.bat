@@ -10,7 +10,7 @@ if not exist "%ROOT%\native\target\release\formdesign-core.exe" call "%ROOT%\set
 if not exist "%ROOT%\frontend\dist\index.html" call "%ROOT%\setup\build_frontend.bat" || exit /b 1
 if not exist "%ROOT%\backend\app\fonts\fonts.json" call "%ROOT%\setup\install_fonts.bat"
 cd /d "%ROOT%\backend"
-set "DATA=--add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\backend\app\templates\library;templates/library" --add-data "%ROOT%\backend\app\assets;app/assets""
+set "DATA=--add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\backend\app\templates\library;templates/library" --add-data "%ROOT%\backend\app\assets;app/assets" --add-data "%ROOT%\backend\app\demos;app/demos""
 if exist "%ROOT%\backend\app\fonts" set "DATA=!DATA! --add-data "%ROOT%\backend\app\fonts;fonts""
 if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine

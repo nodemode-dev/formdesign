@@ -29,7 +29,11 @@ if /i "%CMD%"=="tools" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="actions" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="tool" ( call setup\cli.bat %* & goto :eof )
 if /i "%CMD%"=="cli" ( call setup\cli.bat %* & goto :eof )
-if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py & goto :eof )
+if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py %2 & goto :eof )
+if /i "%CMD%"=="mcpb" (
+  if /i not "%ARG%"=="build" ( python setup\mcpb.py --check ) else if "%~3"=="" ( python setup\mcpb.py --build . ) else ( python setup\mcpb.py --build "%~3" )
+  goto :eof
+)
 if /i "%CMD%"=="claude" ( python setup\claude_launch.py %2 %3 %4 %5 %6 & goto :eof )
 if /i "%CMD%"=="build-app" ( call build_app.bat %2 %3 & goto :eof )
 if /i "%CMD%"=="agents" (
@@ -46,6 +50,6 @@ exit /b 2
 :usage
 echo formdesign.bat [command]
 echo   boot ^| install [--lite] ^| install-core ^| install-fonts ^| install-desktop ^| backend ^| frontend
-echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| cmd ^| commands ^| actions ^| tools ^| tool ^| mcp ^| claude ^| agents ^| build-app
+echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| make ^| export ^| templates ^| cmd ^| commands ^| actions ^| tools ^| tool ^| mcp [--attach] ^| mcpb check^|build DIR ^| claude ^| agents ^| build-app
 echo   doctor ^| counts ^| clean [--all] ^| help
 exit /b 0
