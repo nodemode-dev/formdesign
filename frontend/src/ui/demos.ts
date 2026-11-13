@@ -8,4 +8,4 @@ export const DEMOS: DemoDef[] = [
   { id: 'report', title: 'An annual review', description: 'A report with headings, a table, lists and pictures, laid out from one Markdown file.', template: 'report-annual-review', command: 'ui.demo.report' },
 ];
 
-export const demoCover = (d: DemoDef): string => `/api/templates/${encodeURIComponent(d.template)}/thumb.png?size=640`;
+export const demoCover = (d: DemoDef): string => `${import.meta.env.BASE_URL}demos/${d.id}.png`;
