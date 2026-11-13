@@ -1,0 +1,40 @@
+{
+  "manifest_version": "0.2",
+  "name": "formdesign",
+  "display_name": "FormDesign",
+  "version": "0.0.0",
+  "description": "Make and edit page layouts in FormDesign in plain language: magazines, newsletters, reports, flyers, posters, ads, web pages and decks from your files and a brief, exported as PDF, IDML, HTML, EPUB or images.",
+  "long_description": "Connects Claude Desktop to FormDesign running on this computer. Start FormDesign first (the desktop app, or ./formdesign boot); this extension never starts it. Until FormDesign answers, only a ping tool is offered, and the full tool list appears once it does. Window > Agent Connect in FormDesign decides what outside agents may do.",
+  "author": { "name": "nodemode-ai", "email": "mackin@nodemode.ai" },
+  "license": "Apache-2.0",
+  "icon": "icon.png",
+  "server": {
+    "type": "python",
+    "entry_point": "server/mcp_stdio.py",
+    "mcp_config": {
+      "command": "python3",
+      "args": ["${__dirname}/server/mcp_stdio.py", "--attach"],
+      "env": { "FORMDESIGN_MCP_URL": "${user_config.engine_url}" },
+      "platform_overrides": {
+        "win32": {
+          "command": "python"
+        }
+      }
+    }
+  },
+  "tools_generated": true,
+  "user_config": {
+    "engine_url": {
+      "type": "string",
+      "title": "FormDesign engine address",
+      "description": "Where the FormDesign engine listens. The default suits a FormDesign started on this computer.",
+      "default": "http://127.0.0.1:8196/mcp",
+      "required": false
+    }
+  },
+  "keywords": ["page layout", "publishing", "templates", "pdf", "design"],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "python": ">=3.9" }
+  }
+}

@@ -178,8 +178,11 @@ jobs:
         run: |
           for f in formdesign backend/oc_install frontend/oc_install setup/*; do
             case "$f" in *.bat|*.py) continue ;; esac
+            [ -f "$f" ] || continue
             bash -n "$f"
           done
+      - name: Desktop extension manifest
+        run: ./formdesign mcpb check
       - name: No em dash in tracked markdown, no emoji in tracked text
         run: |
           python3 - <<'PY'

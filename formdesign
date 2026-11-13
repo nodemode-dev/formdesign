@@ -27,7 +27,8 @@ usage: ./formdesign [command] [options]
   actions [--q T]     every action in one list: engine commands, tools, window actions, MCP tools
   tools | tool NAME   list the MCP tools, or call one: ./formdesign tool preview '{"page": 1}'
   cli list|describe|run  the shared command catalogue (engine and window commands): ./formdesign cli run path.offset offset=6
-  mcp                FormDesign over MCP's stdio transport, for Claude Desktop and other MCP clients
+  mcp [--attach]      FormDesign over MCP's stdio transport, for Claude Desktop and other MCP clients
+  mcpb check|build DIR  validate the Claude Desktop extension manifest, or write formdesign-VERSION.mcpb into DIR
   claude [args]       Claude Code connected to FormDesign's tools (starts the engine when needed)
   build-app [flags]   compile the desktop app in one step (same as ./build_app)
   i18n keys|check     collect the interface strings, or report each language's missing translations
@@ -64,6 +65,14 @@ case "$cmd" in
   templates) exec setup/cli templates "$@" ;;
   cmd|commands|actions|tools|tool|cli) exec setup/cli "$cmd" "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
+  mcpb)
+    sub="${1:-check}"
+    [ $# -gt 0 ] && shift
+    case "$sub" in
+      check) exec python3 setup/mcpb.py --check ;;
+      build) exec python3 setup/mcpb.py --build "${1:-$FORMDESIGN_CWD}" ;;
+      *) usage; exit 2 ;;
+    esac ;;
   claude) exec python3 setup/claude_launch.py "$@" ;;
   build-app) exec ./build_app "$@" ;;
   i18n) exec python3 setup/i18n_keys.py "$@" ;;
