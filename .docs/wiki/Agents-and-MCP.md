@@ -45,7 +45,7 @@ Claude Code starts in the agent folder: the `claudeFolder` preference (Preferenc
 | `formdesign-template-creator` | `.claude/skills/formdesign-template-creator/` | writing and checking new templates |
 | `formdesign-skillset` | `.claude/skills/formdesign-skillset/` | working on FormDesign's own code |
 
-`./formdesign agents sync` regenerates the harness skill's tool and template references from the engine and mirrors the two user-facing skills to `.agents/skills/` for Codex and Cursor. CI runs `agents sync --check` and fails on drift.
+`./formdesign agents sync` regenerates the harness skill's tool and template references from the engine and mirrors all three skills to `.agents/skills/` for Codex and Cursor (`agents install` copies only the two user-facing ones to your account). CI runs `agents sync --check` and fails on drift.
 
 ## Installing for each agent
 

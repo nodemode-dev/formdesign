@@ -20,6 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ["formdesign-harness", "formdesign-template-creator"]
+MIRRORED = SKILLS + ["formdesign-skillset"]
 SRC = ROOT / ".claude" / "skills"
 MIRROR = ROOT / ".agents" / "skills"
 LAUNCH = str(ROOT / ("formdesign.bat" if os.name == "nt" else "formdesign"))
@@ -93,7 +94,7 @@ def sync(check: bool) -> int:
             if not check:
                 ref.parent.mkdir(parents=True, exist_ok=True)
                 ref.write_text(want, encoding="utf-8")
-    for name in SKILLS:
+    for name in MIRRORED:
         src, dst = SRC / name, MIRROR / name
         if not dst.exists() or _files(dst) != _files(src):
             drift.append(str(dst.relative_to(ROOT)))

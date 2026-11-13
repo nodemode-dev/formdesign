@@ -1,0 +1,14 @@
+{
+  "name": "formdesign",
+  "description": "Make and edit page layouts in FormDesign, the page-layout and publishing application, in plain language: the formdesign MCP server and the skills that drive it.",
+  "author": { "name": "nodemode-ai", "email": "mackin@nodemode.ai" },
+  "license": "Apache-2.0",
+  "keywords": ["page layout", "publishing", "templates", "pdf", "mcp"],
+  "skills": ["./.claude/skills/formdesign-harness", "./.claude/skills/formdesign-template-creator"],
+  "mcpServers": {
+    "formdesign": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/formdesign",
+      "args": ["mcp"]
+    }
+  }
+}

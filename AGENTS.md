@@ -7,7 +7,7 @@ FormDesign (repo, command and MCP server: formdesign) is a page-layout applicati
 - In this repository: `.codex/config.toml` and `.cursor/mcp.json` already point at `./formdesign mcp`; Cursor also reads `.cursor/rules/formdesign.mdc`.
 - The person controls agents in FormDesign's Window > Agent Connect: Allow all, Ask for risky steps (publishing, overwriting a file, packaging, printing, deleting several pages) or Deny. A call that was not approved returns an error that says so: ask the person, do not retry in a loop.
 - For your user account, from this folder: `./formdesign agents install` (Claude Code, Codex and Cursor; `--dry-run` shows what it would change).
-- The skills live in `.agents/skills/formdesign-harness` (making layouts) and `.agents/skills/formdesign-template-creator` (new templates), mirrored from `.claude/skills` by `./formdesign agents sync`.
+- The skills live in `.agents/skills/formdesign-harness` (making layouts) and `.agents/skills/formdesign-template-creator` (new templates), with `.agents/skills/formdesign-skillset` for work on the code, mirrored from `.claude/skills` by `./formdesign agents sync`.
 
 ## The fast path
 
