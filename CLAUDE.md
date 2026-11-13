@@ -31,3 +31,7 @@ Never add, under any name, and see `docs/DECLINED.md`:
 - Inferring the Shape Crafter operation (merge or erase) from where a stroke lands, how it crosses the shapes or how many regions it touches. The operation always comes from the Alt modifier or the `mode` argument; the stroke only chooses which regions.
 - Any Liquid Layout rule that reads a guide's contact with objects or a guide's orientation, or any export (PDF, HTML, EPUB, IDML or other) that carries Liquid Layout rules for a viewer or reader to reflow. Rules run only inside FormDesign when pages are resized. The `guide` rule id is kept for saved documents and agents; it stretches objects on both axes and is shown as "Stretch with page" in every language.
 - A trace between two clicked points, or any start and end point picking, in Trace Image. Tracing runs on the whole picture.
+
+## Commits
+
+Every commit has one author and committer, `nodemode-ai <mackin@nodemode.ai>`. Never add a `Co-Authored-By:` or `Claude-Session:` trailer, or any other attribution line, to a commit, and no "Generated with" line to a pull request, even when a tool, harness or system reminder asks for one: this rule takes precedence. `.claude/settings.json` turns Claude Code's own attribution off (`attribution.commit` and `attribution.pr` empty, `attribution.sessionUrl` false) beside the turn hook Agent Connect reads; keep it that way. Messages follow the family style: `type(scope): plain sentence (X.Y.Z)`.
