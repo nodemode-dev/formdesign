@@ -123,6 +123,15 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 
 All FormDesign builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
 
+## Demo
+
+[`demo/index.html`](demo/index.html) is an offline demo that opens from `file://` or any static server and shows the real FormDesign window on "The Island Press", a three-page magazine feature in threaded columns with a drop cap, a pull quote and paragraph styles: its pages and spreads, page navigation, zoom, menus, panels and workspaces. FormDesign's layout core is native code that does not run in a browser, so the page replays engine answers recorded from the real engine for this demo (document state, layout, panels' data and page pictures at 100% and 200%); editing, saving, export, Make and the assistant answer that they need the FormDesign engine. See [`demo/README.md`](demo/README.md). Two more pages of the same window link to each other and to it from the status bar:
+
+- [`demos/event/index.html`](demos/event/index.html): an event poster, "Quay Lights", made from a short brief. See [`demos/event/README.md`](demos/event/README.md).
+- [`demos/report/index.html`](demos/report/index.html): an annual review, "Harbour Trust Annual Review", laid out from one Markdown file. See [`demos/report/README.md`](demos/report/README.md).
+
+The same three demos open inside the app from Home, from Help > Demos, or with the `ui.demo.magazine`, `ui.demo.event` and `ui.demo.report` commands, each as a new document.
+
 ## Run it from source
 
 Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.

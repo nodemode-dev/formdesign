@@ -13,6 +13,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "demo": "vite build --config vite.demo.config.ts --mode magazine && vite build --config vite.demo.config.ts --mode event && vite build --config vite.demo.config.ts --mode report",
     "tauri": "tauri"
   },
   "dependencies": {
