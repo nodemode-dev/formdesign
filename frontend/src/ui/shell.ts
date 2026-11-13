@@ -77,12 +77,7 @@ export class Shell implements Workspace {
       run: (cmd, params) => this.commands.run(cmd, params),
       recent: () => this.recent,
       openRecent: (path) => void this.openPath(path),
-    }, [
-      { label: 'Make a layout…', command: 'ui.make', icon: 'makeLayout', key: 'M' },
-      { label: 'New from template…', command: 'ui.templates', icon: 'newFile' },
-      { label: 'Open…', command: 'ui.open', icon: 'folderOpen', key: 'O' },
-      { label: 'Ask Claude', command: 'ui.claude', icon: 'agentChat', hint: 'Describe what you want and Claude lays it out' },
-    ]);
+    });
     this.captionButtons = new CaptionButtons(q(root, '.cv-titlebar'), () => { try { return localStorage.getItem('formdesign.customTitleBar') === '1'; } catch { return false; } });
     this.uiCommands();
     this.wire();

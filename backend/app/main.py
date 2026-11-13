@@ -24,6 +24,7 @@ from app.routers import plugins as plugins_api
 from app.routers import claude as claude_api
 from app.routers import commands as commands_api
 from app.routers import actionsets as actionsets_api
+from app.routers import home as home_api
 from app.routers import books, core_api, dictionaries, documents as documents_api, find, intake, libraries, make, mcp, preflight, review, system, templates, terminal, userprefs, versions as versions_api, website
 from app.services.pty import terminals
 
@@ -80,6 +81,7 @@ app.include_router(plugins_api.router, prefix="/api")
 app.include_router(claude_api.router, prefix="/api")
 app.include_router(commands_api.router, prefix="/api")
 app.include_router(actionsets_api.router, prefix="/api")
+app.include_router(home_api.router, prefix="/api")
 app.include_router(website.sites)
 app.include_router(mcp.router)
 

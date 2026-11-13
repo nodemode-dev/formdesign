@@ -1,9 +1,11 @@
-import { el, setHidden, setText } from './dom';
+import { api } from '../engine/client';
+import { brandMark } from './brand';
+import { el, escapeHtml, isMac, patchList, setClass, setHidden, setStyleVar, setText, swapMedia } from './dom';
 import { icon } from './icons';
 
-export interface HomeAction { label: string; command: string; icon: string; key?: string; hint?: string }
-
 interface HomeTile { label: string; line: string; category: string; icon: string }
+interface RecentItem { name: string; path: string; modified?: number }
+type Page = 'start' | 'recent' | 'templates';
 
 const TILES: HomeTile[] = [
   { label: 'Flyer or poster', line: 'One page for an event or sale', category: 'print', icon: 'tileFlyer' },
@@ -13,89 +15,199 @@ const TILES: HomeTile[] = [
   { label: 'Website', line: 'A web page or a small site', category: 'web', icon: 'tileWebsite' },
   { label: 'Business stationery', line: 'Cards, letterheads and envelopes', category: 'stationery', icon: 'tileStationery' },
 ];
+const FORMATS = ['FDES', 'IDML', 'PDF', 'MD', 'DOCX', 'HTML', 'TXT', 'CSV', 'PNG', 'JPEG'];
+const NAV_KEY = 'formdesign.homeNav';
+const HIDDEN_KEY = 'formdesign.homeNavHidden';
 
 export interface HomeDeps {
   run: (command: string, params?: Record<string, unknown>) => void;
-  recent: () => Array<{ name: string; path: string; modified?: number }>;
+  recent: () => RecentItem[];
   openRecent: (path: string) => void;
 }
 
 export class HomeScreen {
   readonly root = el('<section class="cv-home fd-home" aria-label="Home" hidden></section>');
-  private readonly list = el('<div class="cv-home-list"></div>');
-  private readonly empty = el('<p class="cv-home-empty">Documents you open appear here.</p>');
-  private readonly recentBox = el('<div class="cv-home-main"><h2 class="cv-home-title">Recent</h2></div>');
-  private listKey = '';
+  private page: Page = 'start';
   private forced = false;
   private docs = 0;
+  private listKey = '';
+  private tplAsked = false;
 
-  constructor(host: HTMLElement, private readonly d: HomeDeps, actions: HomeAction[]) {
-    const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
-    const center = el(`<div class="cv-home-center">
-      <h1 class="cv-home-brand">FormDesign<span class="cv-home-by">by nodemode.ai</span></h1>
-      <p class="cv-home-sub">Make a flyer, a newsletter, a report or a website. Pick a starting point below, describe what you want to Claude, or open a file.</p>
-      <div class="cv-home-actions"></div>
-      <h2 class="cv-home-title cv-home-start-title">Start with</h2>
-      <div class="cv-home-tiles"></div>
-      <p class="cv-home-hint">${icon('upload', 14)}<span>Drop Markdown, PDF, Word, images or a folder anywhere to make a layout from them.</span></p>
-    </div>`);
-    const row = center.querySelector('.cv-home-actions') as HTMLElement;
-    for (const a of actions) {
-      const b = el<HTMLButtonElement>(`<button class="cv-home-action" type="button">${icon(a.icon, 16)}<span class="cv-home-label"></span>${a.key ? '<kbd class="cv-key"></kbd><kbd class="cv-key"></kbd>' : ''}</button>`);
-      setText(b.querySelector('.cv-home-label') as HTMLElement, a.label);
-      if (a.key) {
-        const [k1, k2] = Array.from(b.querySelectorAll('kbd'));
-        setText(k1, mod);
-        setText(k2, a.key);
-      }
-      b.dataset.command = a.command;
-      if (a.hint) b.title = a.hint;
-      b.addEventListener('click', () => this.d.run(a.command));
-      row.appendChild(b);
-    }
-    const tiles = center.querySelector('.cv-home-tiles') as HTMLElement;
-    for (const t of TILES) {
-      const b = el<HTMLButtonElement>(`<button class="cv-home-tile" type="button">${icon(t.icon, 28)}<span class="cv-home-tile-label"></span><span class="cv-home-tile-line"></span></button>`);
-      setText(b.querySelector('.cv-home-tile-label') as HTMLElement, t.label);
-      setText(b.querySelector('.cv-home-tile-line') as HTMLElement, t.line);
-      b.dataset.category = t.category;
-      b.title = `Show ${t.label.toLowerCase()} templates`;
-      b.addEventListener('click', () => this.d.run('ui.templates', { category: t.category }));
-      tiles.appendChild(b);
-    }
-    this.recentBox.append(this.empty, this.list);
-    center.appendChild(this.recentBox);
-    this.root.append(center);
+  constructor(host: HTMLElement, private readonly d: HomeDeps) {
+    const mod = isMac ? '⌘' : 'Ctrl';
+    const key = (k: string): string => `<kbd class="cv-key">${mod}</kbd><kbd class="cv-key">${k}</kbd>`;
+    const page = (v: Page, ic: string, label: string, count = true): string => `<button class="cv-home-nav-item" type="button" data-v="${v}">${icon(ic, 16)}<span>${label}</span>${count ? `<span class="cv-home-count" data-count="${v}">0</span>` : ''}</button>`;
+    const run = (cmd: string, ic: string, label: string, title = ''): string => `<button class="cv-home-nav-item" type="button" data-run="${cmd}"${title ? ` title="${title}"` : ''}>${icon(ic, 16)}<span>${label}</span></button>`;
+    const pages = `${page('start', 'canvasGrid', 'Start', false)}${page('recent', 'history', 'Recent')}${page('templates', 'newFile', 'Templates')}`;
+    const tiles = (counts: boolean): string => TILES.map((t) => `<button class="cv-home-tile" type="button" data-category="${t.category}" title="Show ${t.label.toLowerCase()} templates">${icon(t.icon, 28)}<span class="cv-home-tile-label">${t.label}</span><span class="cv-home-tile-line">${t.line}</span>${counts ? `<span class="cv-home-tile-count" data-cat="${t.category}"></span>` : ''}</button>`).join('');
+    this.root.innerHTML = `<nav class="cv-home-nav" aria-label="Home">
+      <div class="cv-home-brand">${brandMark(26)}formdesign <span translate="no">by nodemode.ai</span></div>
+      ${pages}
+      <div class="cv-home-nav-sep"></div>
+      <div class="cv-home-nav-title">Create</div>
+      ${run('ui.make', 'makeLayout', 'Make a layout…')}${run('ui.templates', 'newFile', 'New from template…')}${run('ui.open', 'folderOpen', 'Open…')}
+      <div class="cv-home-nav-sep"></div>
+      <div class="cv-home-nav-title">Agents</div>
+      ${run('ui.terminal.claude', 'agent', 'Claude Code')}${run('ui.claude', 'agentChat', 'Ask Claude', 'Describe what you want and Claude lays it out')}${run('ui.terminal.toggle', 'terminal', 'Terminal')}
+      <div class="cv-home-nav-foot"><button class="cv-home-nav-item" type="button" data-back hidden>${icon('chevronLeft', 16)}<span>Back to document</span></button>${run('ui.prefs', 'settings', 'Preferences')}${run('ui.shortcuts', 'info', 'Help')}</div>
+    </nav>
+    <div class="cv-home-resizer" role="separator" aria-orientation="vertical" aria-label="Resize the side panel"></div>
+    <button class="cv-home-nav-hide" type="button" title="Hide the side panel" aria-label="Hide the side panel">${icon('chevronLeft', 14)}</button>
+    <button class="cv-home-nav-show" type="button" title="Show the side panel" aria-label="Show the side panel">${icon('chevronRight', 14)}</button>
+    <div class="cv-home-main">
+      <div class="cv-home-narrow">${pages}</div>
+      <div class="cv-home-page" data-page="start">
+        <div class="cv-home-head"><div><h1 class="cv-home-title"></h1><p class="cv-home-sub">Make a flyer, a newsletter, a report or a website. Pick a starting point below, describe what you want to Claude, or open a file.</p></div></div>
+        <div class="cv-home-hero">
+          <span class="cv-home-hero-icon">${icon('upload', 26)}</span>
+          <div class="cv-home-hero-text"><div class="cv-home-hero-title">Start from your material</div>
+            <div class="cv-home-hero-sub">Drop Markdown, PDF, Word, images or a folder anywhere to make a layout from them. Layout files open with every page, style and story still editable.</div>
+            <div class="cv-home-formats">${FORMATS.map((f) => `<span class="cv-home-format">${f}</span>`).join('')}</div></div>
+          <div class="cv-home-hero-actions">
+            <button class="cv-home-action is-primary" type="button" data-run="ui.make">${icon('makeLayout', 16)}<span class="cv-home-label">Make a layout…</span>${key('M')}</button>
+            <button class="cv-home-action" type="button" data-run="ui.open">${icon('folderOpen', 16)}<span class="cv-home-label">Open…</span>${key('O')}</button>
+            <button class="cv-home-action is-ghost" type="button" data-run="ui.templates">${icon('newFile', 16)}<span class="cv-home-label">New from template…</span></button>
+          </div>
+        </div>
+        <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Recent</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="recent">See all</button></div><div class="cv-home-files" data-files="start"></div><p class="cv-home-empty" data-empty="start">Documents you open appear here.</p></section>
+        <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Start with</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="templates">See all</button></div><div class="cv-home-tiles">${tiles(false)}</div></section>
+      </div>
+      <div class="cv-home-page" data-page="recent" hidden><div class="cv-home-head"><div><h1 class="cv-home-title">Recent</h1><p class="cv-home-sub">Documents you opened or saved, newest first.</p></div></div><div class="cv-home-files" data-files="recent"></div><p class="cv-home-empty" data-empty="recent">Documents you open appear here.</p></div>
+      <div class="cv-home-page" data-page="templates" hidden><div class="cv-home-head"><div><h1 class="cv-home-title">Templates</h1><p class="cv-home-sub">Original templates for print, screen and the web. Each opens as a new document with sample text and pictures.</p></div><div class="cv-home-head-actions"><button class="cv-btn" type="button" data-run="ui.templates">${icon('newFile', 14)}<span>Browse all templates…</span></button></div></div><div class="cv-home-tiles">${tiles(true)}</div></div>
+    </div>`;
+    this.root.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-back]')) { this.forced = false; this.sync(this.docs); return; }
+      const v = (t.closest('[data-v]') as HTMLElement | null)?.dataset.v as Page | undefined;
+      if (v) { this.show(v); return; }
+      const cmd = (t.closest('[data-run]') as HTMLElement | null)?.dataset.run;
+      if (cmd) { this.d.run(cmd); return; }
+      const cat = (t.closest('[data-category]') as HTMLElement | null)?.dataset.category;
+      if (cat) { this.d.run('ui.templates', { category: cat }); return; }
+      const path = (t.closest('[data-path]') as HTMLElement | null)?.dataset.path;
+      if (path) this.d.openRecent(path);
+    });
     host.appendChild(this.root);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.forced && this.docs > 0) { this.forced = false; this.sync(this.docs); } });
+    this.sidePanel();
+    this.followDock();
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.forced && this.docs > 0 && !this.root.hidden) { this.forced = false; this.sync(this.docs); } });
+    this.paint();
   }
 
   get isShown(): boolean { return !this.root.hidden; }
 
-  show(): void { this.forced = true; this.sync(this.docs); }
+  show(page?: Page): void {
+    if (page && page !== this.page) { this.page = page; this.paint(); }
+    this.forced = true;
+    this.sync(this.docs);
+  }
 
   sync(docs: number): void {
     if (docs > this.docs) this.forced = false;
     this.docs = docs;
     const on = this.forced || docs === 0;
-    if (on) this.fill();
+    if (on && this.root.hidden) this.paint();
+    if (on) { this.fill(); this.templates(); }
     setHidden(this.root, !on);
+    setHidden(this.root.querySelector('[data-back]') as HTMLElement, docs === 0);
+  }
+
+  private paint(): void {
+    for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('.cv-home-page'))) setHidden(n, n.dataset.page !== this.page);
+    for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('.cv-home-nav-item[data-v]'))) setClass(n, 'is-active', n.dataset.v === this.page);
+    const h = new Date().getHours();
+    setText(this.root.querySelector('[data-page="start"] .cv-home-title'), h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
   }
 
   private fill(): void {
-    const items = this.d.recent().slice(0, 8);
-    setHidden(this.empty, items.length > 0);
+    const items = this.d.recent();
     const key = JSON.stringify(items);
     if (key === this.listKey) return;
     this.listKey = key;
-    this.list.replaceChildren();
-    for (const it of items) {
-      const row = el<HTMLButtonElement>(`<button class="cv-home-item" type="button">${icon('fileImage', 18)}<span class="cv-home-name"></span><span class="cv-home-date"></span></button>`);
-      setText(row.querySelector('.cv-home-name') as HTMLElement, it.name);
-      setText(row.querySelector('.cv-home-date') as HTMLElement, it.modified ? new Date(it.modified).toLocaleString() : '');
-      row.title = it.path;
-      row.addEventListener('click', () => this.d.openRecent(it.path));
-      this.list.appendChild(row);
+    for (const n of Array.from(this.root.querySelectorAll('[data-count="recent"]'))) setText(n, String(items.length));
+    for (const [slot, list] of [['start', items.slice(0, 8)], ['recent', items]] as const) {
+      setHidden(this.root.querySelector(`[data-empty="${slot}"]`) as HTMLElement, list.length > 0);
+      patchList(this.root.querySelector(`[data-files="${slot}"]`) as HTMLElement, list, {
+        key: (it) => it.path,
+        create: (it) => this.card(it),
+        update: (n, it) => { setText(n.querySelector('.cv-home-file-when'), when(it.modified)); this.thumb(n, it); },
+      });
     }
   }
+
+  private card(it: RecentItem): HTMLElement {
+    const n = el(`<button class="cv-home-file" type="button" title="${escapeHtml(it.path)}"><span class="cv-home-file-thumb">${icon('fileImage', 22)}<img alt="" decoding="async" draggable="false" hidden></span><span class="cv-home-file-name"></span><span class="cv-home-file-when"></span></button>`);
+    n.dataset.path = it.path;
+    setText(n.querySelector('.cv-home-file-name'), it.name);
+    setText(n.querySelector('.cv-home-file-when'), when(it.modified));
+    this.thumb(n, it);
+    return n;
+  }
+
+  private thumb(n: HTMLElement, it: RecentItem): void {
+    if (!/\.fdes$/i.test(it.path)) return;
+    const img = n.querySelector('img') as HTMLImageElement;
+    const src = `/api/home/thumb?path=${encodeURIComponent(it.path)}&v=${it.modified ?? 0}`;
+    if (img.dataset.src === src) return;
+    img.dataset.src = src;
+    void swapMedia(img, src).then(() => { setHidden(img, false); setClass(n, 'has-thumb', true); }, () => undefined);
+  }
+
+  private templates(): void {
+    if (this.tplAsked) return;
+    this.tplAsked = true;
+    void api<{ categories: Record<string, number>; total: number }>('/templates').then((r) => {
+      for (const n of Array.from(this.root.querySelectorAll('[data-count="templates"]'))) setText(n, String(r.total));
+      for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('[data-cat]'))) setText(n, r.categories[n.dataset.cat ?? ''] ? `${r.categories[n.dataset.cat ?? '']} templates` : '');
+    }, () => { this.tplAsked = false; });
+  }
+
+  private sidePanel(): void {
+    const root = this.root;
+    const bar = root.querySelector('.cv-home-resizer') as HTMLElement;
+    const save = (): void => {
+      try {
+        localStorage.setItem(NAV_KEY, root.style.getPropertyValue('--fd-home-nav-w'));
+        localStorage.setItem(HIDDEN_KEY, root.classList.contains('is-nav-hidden') ? '1' : '0');
+      } catch { return; }
+    };
+    const hide = (on: boolean): void => { setClass(root, 'is-nav-hidden', on); save(); };
+    try {
+      const w = localStorage.getItem(NAV_KEY);
+      if (w && /^\d+px$/.test(w.trim())) root.style.setProperty('--fd-home-nav-w', w.trim());
+      if (localStorage.getItem(HIDDEN_KEY) === '1') root.classList.add('is-nav-hidden');
+    } catch { void 0; }
+    root.querySelector('.cv-home-nav-hide')?.addEventListener('click', () => hide(true));
+    root.querySelector('.cv-home-nav-show')?.addEventListener('click', () => hide(false));
+    bar.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const x0 = e.clientX;
+      const start = root.querySelector('.cv-home-nav')?.getBoundingClientRect().width || 232;
+      setClass(bar, 'is-dragging', true);
+      const mv = (ev: PointerEvent): void => {
+        const raw = start + ev.clientX - x0;
+        const collapse = raw < 120;
+        setClass(root, 'is-nav-hidden', collapse);
+        if (!collapse) setStyleVar(root, '--fd-home-nav-w', `${Math.round(Math.max(180, Math.min(420, raw)))}px`);
+      };
+      const up = (): void => {
+        setClass(bar, 'is-dragging', false);
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', up);
+        save();
+      };
+      window.addEventListener('pointermove', mv);
+      window.addEventListener('pointerup', up);
+    });
+  }
+
+  private followDock(): void {
+    const dock = document.querySelector<HTMLElement>('.fd-dock');
+    if (!dock || typeof ResizeObserver === 'undefined') return;
+    new ResizeObserver(() => setStyleVar(this.root, '--fd-home-dock', `${dock.offsetHeight}px`)).observe(dock);
+  }
+}
+
+function when(ms?: number): string {
+  return ms ? new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
 }
