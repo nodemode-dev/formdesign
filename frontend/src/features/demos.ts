@@ -1,6 +1,7 @@
 import { api } from '../engine/client';
 import { editor, friendly } from '../editor/editor';
 import { DEMOS, type DemoId } from '../ui/demos';
+import { t } from '../ui/i18n';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
 
@@ -19,7 +20,7 @@ export function installDemos(ws: Workspace): void {
       editor.refreshMeta();
       toast('The demo is open. Save it to keep your changes.');
     } catch (err) {
-      toast(`The demo could not open: ${friendly((err as Error).message)}`, 'error');
+      toast(t('The demo could not open: {error}').replace('{error}', friendly((err as Error).message)), 'error');
     } finally {
       busy = null;
       mark(null);

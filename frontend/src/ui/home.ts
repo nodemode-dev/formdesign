@@ -3,18 +3,19 @@ import { brandMark } from './brand';
 import { DEMOS, demoCover } from './demos';
 import { el, escapeHtml, isMac, patchList, setClass, setHidden, setStyleVar, setText, swapMedia } from './dom';
 import { icon } from './icons';
+import { onLanguage, t } from './i18n';
 
-interface HomeTile { label: string; line: string; category: string; icon: string }
+interface HomeTile { label: string; note: string; title: string; category: string; icon: string }
 interface RecentItem { name: string; path: string; modified?: number }
 type Page = 'start' | 'recent' | 'templates';
 
 const TILES: HomeTile[] = [
-  { label: 'Flyer or poster', line: 'One page for an event or sale', category: 'print', icon: 'tileFlyer' },
-  { label: 'Newsletter', line: 'News for your readers, in print or email', category: 'newsletter', icon: 'tileNewsletter' },
-  { label: 'Presentation', line: 'Slides for a talk or a pitch', category: 'presentation', icon: 'tilePresentation' },
-  { label: 'Social and ads', line: 'Posts, banners and ads', category: 'ad', icon: 'tileSocial' },
-  { label: 'Website', line: 'A web page or a small site', category: 'web', icon: 'tileWebsite' },
-  { label: 'Business stationery', line: 'Cards, letterheads and envelopes', category: 'stationery', icon: 'tileStationery' },
+  { label: 'Flyer or poster', note: 'One page for an event or sale', title: 'Show flyer or poster templates', category: 'print', icon: 'tileFlyer' },
+  { label: 'Newsletter', note: 'News for your readers, in print or email', title: 'Show newsletter templates', category: 'newsletter', icon: 'tileNewsletter' },
+  { label: 'Presentation', note: 'Slides for a talk or a pitch', title: 'Show presentation templates', category: 'presentation', icon: 'tilePresentation' },
+  { label: 'Social and ads', note: 'Posts, banners and ads', title: 'Show social and ads templates', category: 'ad', icon: 'tileSocial' },
+  { label: 'Website', note: 'A web page or a small site', title: 'Show website templates', category: 'web', icon: 'tileWebsite' },
+  { label: 'Business stationery', note: 'Cards, letterheads and envelopes', title: 'Show business stationery templates', category: 'stationery', icon: 'tileStationery' },
 ];
 const FORMATS = ['FDES', 'IDML', 'PDF', 'MD', 'DOCX', 'HTML', 'TXT', 'CSV', 'PNG', 'JPEG'];
 const NAV_KEY = 'formdesign.homeNav';
@@ -40,7 +41,7 @@ export class HomeScreen {
     const page = (v: Page, ic: string, label: string, count = true): string => `<button class="cv-home-nav-item" type="button" data-v="${v}">${icon(ic, 16)}<span>${label}</span>${count ? `<span class="cv-home-count" data-count="${v}">0</span>` : ''}</button>`;
     const run = (cmd: string, ic: string, label: string, title = ''): string => `<button class="cv-home-nav-item" type="button" data-run="${cmd}"${title ? ` title="${title}"` : ''}>${icon(ic, 16)}<span>${label}</span></button>`;
     const pages = `${page('start', 'canvasGrid', 'Start', false)}${page('recent', 'history', 'Recent')}${page('templates', 'newFile', 'Templates')}`;
-    const tiles = (counts: boolean): string => TILES.map((t) => `<button class="cv-home-tile" type="button" data-category="${t.category}" title="Show ${t.label.toLowerCase()} templates">${icon(t.icon, 28)}<span class="cv-home-tile-label">${t.label}</span><span class="cv-home-tile-line">${t.line}</span>${counts ? `<span class="cv-home-tile-count" data-cat="${t.category}"></span>` : ''}</button>`).join('');
+    const tiles = (counts: boolean): string => TILES.map((t) => `<button class="cv-home-tile" type="button" data-category="${t.category}" title="${t.title}">${icon(t.icon, 28)}<span class="cv-home-tile-label">${t.label}</span><span class="cv-home-tile-line">${t.note}</span>${counts ? `<span class="cv-home-tile-count" data-cat="${t.category}"></span>` : ''}</button>`).join('');
     this.root.innerHTML = `<nav class="cv-home-nav" aria-label="Home">
       <div class="cv-home-brand">${brandMark(26)}<span class="cv-home-brand-text">formdesign <span translate="no">by nodemode.ai</span></span></div>
       ${pages}
@@ -70,7 +71,7 @@ export class HomeScreen {
             <button class="cv-home-action is-ghost" type="button" data-run="ui.templates">${icon('newFile', 16)}<span class="cv-home-label">New from template…</span></button>
           </div>
         </div>
-        <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Demos</h2><span class="cv-home-note">Each opens as a new document. Nothing of yours is changed.</span></div><div class="cv-home-demos">${DEMOS.map((m) => `<button class="cv-home-demo" type="button" data-run="${m.command}" data-demo="${m.id}" aria-busy="false"><span class="cv-home-demo-pic"><img data-src="${demoCover(m)}" alt="" width="320" height="180" decoding="async" draggable="false"></span><span class="cv-home-demo-title">${m.title}</span><span>${m.blurb}</span></button>`).join('')}</div></section>
+        <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Demos</h2><span class="cv-home-note">Each opens as a new document. Nothing of yours is changed.</span></div><div class="cv-home-demos">${DEMOS.map((m) => `<button class="cv-home-demo" type="button" data-run="${m.command}" data-demo="${m.id}" aria-busy="false"><span class="cv-home-demo-pic"><img data-src="${demoCover(m)}" alt="" width="320" height="180" decoding="async" draggable="false"></span><span class="cv-home-demo-title">${m.title}</span><span>${m.description}</span></button>`).join('')}</div></section>
         <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Recent</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="recent">See all</button></div><div class="cv-home-files" data-files="start"></div><p class="cv-home-empty" data-empty="start">Documents you open appear here.</p></section>
         <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Start with</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="templates">See all</button></div><div class="cv-home-tiles">${tiles(false)}</div></section>
       </div>
@@ -94,6 +95,7 @@ export class HomeScreen {
     this.followDock();
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.forced && this.docs > 0 && !this.root.hidden) { this.forced = false; this.sync(this.docs); } });
     this.paint();
+    onLanguage(() => { this.paint(); this.tplAsked = false; if (this.isShown) this.templates(); });
   }
 
   get isShown(): boolean { return !this.root.hidden; }
@@ -118,7 +120,7 @@ export class HomeScreen {
     for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('.cv-home-page'))) setHidden(n, n.dataset.page !== this.page);
     for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('.cv-home-nav-item[data-v]'))) setClass(n, 'is-active', n.dataset.v === this.page);
     const h = new Date().getHours();
-    setText(this.root.querySelector('[data-page="start"] .cv-home-title'), h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
+    setText(this.root.querySelector('[data-page="start"] .cv-home-title'), h < 12 ? t('Good morning') : h < 18 ? t('Good afternoon') : t('Good evening'));
   }
 
   private fill(): void {
@@ -161,7 +163,7 @@ export class HomeScreen {
     for (const img of Array.from(this.root.querySelectorAll<HTMLImageElement>('.cv-home-demo-pic img[data-src]'))) if (!img.getAttribute('src')) void swapMedia(img, img.dataset.src ?? '').catch(() => undefined);
     void api<{ categories: Record<string, number>; total: number }>('/templates').then((r) => {
       for (const n of Array.from(this.root.querySelectorAll('[data-count="templates"]'))) setText(n, String(r.total));
-      for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('[data-cat]'))) setText(n, r.categories[n.dataset.cat ?? ''] ? `${r.categories[n.dataset.cat ?? '']} templates` : '');
+      for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('[data-cat]'))) setText(n, r.categories[n.dataset.cat ?? ''] ? t('{n} templates').replace('{n}', String(r.categories[n.dataset.cat ?? ''])) : '');
     }, () => { this.tplAsked = false; });
   }
 
