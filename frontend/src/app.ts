@@ -1,3 +1,4 @@
+import { editor } from './editor/editor';
 import { engine } from './engine/client';
 import { FEATURES } from './features';
 import { brandMark } from './ui/brand';
@@ -82,5 +83,6 @@ export function startApp(): void {
   shell.mountPanels();
   shell.viewport.readBackground();
   void engine.connect();
-  void Promise.race([document.fonts.ready, new Promise((done) => setTimeout(done, 2500))]).then(revealApp, revealApp);
+  const first = new Promise((done) => { const off = editor.on('ready', () => { off(); done(null); }); });
+  void Promise.race([Promise.all([document.fonts.ready, first]), new Promise((done) => setTimeout(done, 2500))]).then(revealApp, revealApp);
 }
