@@ -213,7 +213,7 @@ export class Shell implements Workspace {
     const has = () => editor.hasDoc;
     const toggle = (key: 'guides' | 'frames' | 'baseline' | 'preview' | 'threads') => { vp.opts[key] = !vp.opts[key]; if (key === 'preview') vp.invalidateAll(); vp.drawOverlays(); vp.refreshOverlays(); };
     this.commands.add(
-      { id: 'ui.home', label: 'Home', run: () => this.home.show() },
+      { id: 'ui.home', label: 'Home', run: () => { this.home.show(); void this.loadRecent(); } },
       { id: 'ui.open', label: 'Open…', keys: ['Mod+O'], run: () => void this.openDialog() },
       { id: 'ui.save', label: 'Save', keys: ['Mod+S'], enabled: has, run: () => void this.save(false) },
       { id: 'ui.saveAs', label: 'Save As…', keys: ['Shift+Mod+S'], enabled: has, run: () => void this.save(true) },
