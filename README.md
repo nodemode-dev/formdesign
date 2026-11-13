@@ -98,10 +98,12 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 ./formdesign make article.md photo.jpg --brief "Square ad for Northlight" --out ad.png   # intake, template, fill, export
 ./formdesign templates                       # list the 71 templates
 ./formdesign tool preview '{"page": 1}'      # call any MCP tool from a shell
+./formdesign cli list                        # the shared command catalogue; run any command by id
 ./formdesign mcp                             # MCP server on stdio for Claude Code, Codex and Cursor
+./formdesign mcpb build .                    # the same server as a Claude Desktop extension (.mcpb)
 ```
 
-`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. `./formdesign agents install` registers it for your account. See [`AGENTS.md`](AGENTS.md).
+`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. `./formdesign agents install` registers it for your account. See [`AGENTS.md`](AGENTS.md). In the window, the terminal dock (Window > Show Terminal) holds shell tabs, Claude Code tabs that run your own `claude` with FormDesign's tools attached, and Chat with Claude; Window > Agent Connect decides what outside agents may do.
 
 ## Under the hood
 
