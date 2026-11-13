@@ -42,7 +42,7 @@ export class HomeScreen {
     const pages = `${page('start', 'canvasGrid', 'Start', false)}${page('recent', 'history', 'Recent')}${page('templates', 'newFile', 'Templates')}`;
     const tiles = (counts: boolean): string => TILES.map((t) => `<button class="cv-home-tile" type="button" data-category="${t.category}" title="Show ${t.label.toLowerCase()} templates">${icon(t.icon, 28)}<span class="cv-home-tile-label">${t.label}</span><span class="cv-home-tile-line">${t.line}</span>${counts ? `<span class="cv-home-tile-count" data-cat="${t.category}"></span>` : ''}</button>`).join('');
     this.root.innerHTML = `<nav class="cv-home-nav" aria-label="Home">
-      <div class="cv-home-brand">${brandMark(26)}formdesign <span translate="no">by nodemode.ai</span></div>
+      <div class="cv-home-brand">${brandMark(26)}<span class="cv-home-brand-text">formdesign <span translate="no">by nodemode.ai</span></span></div>
       ${pages}
       <div class="cv-home-nav-sep"></div>
       <div class="cv-home-nav-title">Create</div>
