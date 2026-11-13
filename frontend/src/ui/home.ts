@@ -1,5 +1,6 @@
 import { api } from '../engine/client';
 import { brandMark } from './brand';
+import { DEMOS, demoCover } from './demos';
 import { el, escapeHtml, isMac, patchList, setClass, setHidden, setStyleVar, setText, swapMedia } from './dom';
 import { icon } from './icons';
 
@@ -69,6 +70,7 @@ export class HomeScreen {
             <button class="cv-home-action is-ghost" type="button" data-run="ui.templates">${icon('newFile', 16)}<span class="cv-home-label">New from template…</span></button>
           </div>
         </div>
+        <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Demos</h2><span class="cv-home-note">Each opens as a new document. Nothing of yours is changed.</span></div><div class="cv-home-demos">${DEMOS.map((m) => `<button class="cv-home-demo" type="button" data-run="${m.command}" data-demo="${m.id}" aria-busy="false"><span class="cv-home-demo-pic"><img data-src="${demoCover(m)}" alt="" width="320" height="180" decoding="async" draggable="false"></span><span class="cv-home-demo-title">${m.title}</span><span>${m.blurb}</span></button>`).join('')}</div></section>
         <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Recent</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="recent">See all</button></div><div class="cv-home-files" data-files="start"></div><p class="cv-home-empty" data-empty="start">Documents you open appear here.</p></section>
         <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Start with</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="templates">See all</button></div><div class="cv-home-tiles">${tiles(false)}</div></section>
       </div>
@@ -156,6 +158,7 @@ export class HomeScreen {
   private templates(): void {
     if (this.tplAsked) return;
     this.tplAsked = true;
+    for (const img of Array.from(this.root.querySelectorAll<HTMLImageElement>('.cv-home-demo-pic img[data-src]'))) if (!img.getAttribute('src')) void swapMedia(img, img.dataset.src ?? '').catch(() => undefined);
     void api<{ categories: Record<string, number>; total: number }>('/templates').then((r) => {
       for (const n of Array.from(this.root.querySelectorAll('[data-count="templates"]'))) setText(n, String(r.total));
       for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('[data-cat]'))) setText(n, r.categories[n.dataset.cat ?? ''] ? `${r.categories[n.dataset.cat ?? '']} templates` : '');

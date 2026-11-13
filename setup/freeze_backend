@@ -12,7 +12,7 @@ core="$(fd_core)" || fd_die "the layout core is not built"
 cd "$FORMDESIGN_ROOT/backend"
 sep=":"
 [ "$(fd_os)" = windows ] && sep=";"
-data=(--add-data "$FORMDESIGN_ROOT/frontend/dist${sep}frontend_dist" --add-data "$FORMDESIGN_ROOT/backend/app/templates/library${sep}templates/library" --add-data "$FORMDESIGN_ROOT/backend/app/assets${sep}app/assets")
+data=(--add-data "$FORMDESIGN_ROOT/frontend/dist${sep}frontend_dist" --add-data "$FORMDESIGN_ROOT/backend/app/templates/library${sep}templates/library" --add-data "$FORMDESIGN_ROOT/backend/app/assets${sep}app/assets" --add-data "$FORMDESIGN_ROOT/backend/app/demos${sep}app/demos")
 [ -d "$FORMDESIGN_ROOT/backend/app/fonts" ] && data+=(--add-data "$FORMDESIGN_ROOT/backend/app/fonts${sep}fonts")
 rm -rf build/pyinstaller dist-engine
 pyinstaller --noconfirm --clean --onefile --name formdesign-engine \
