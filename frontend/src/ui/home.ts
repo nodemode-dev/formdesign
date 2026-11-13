@@ -57,7 +57,7 @@ export class HomeScreen {
     <button class="cv-home-nav-hide" type="button" title="Hide the side panel" aria-label="Hide the side panel">${icon('chevronLeft', 14)}</button>
     <button class="cv-home-nav-show" type="button" title="Show the side panel" aria-label="Show the side panel">${icon('chevronRight', 14)}</button>
     <div class="cv-home-main">
-      <div class="cv-home-narrow">${pages}</div>
+      <div class="cv-home-narrow"><button class="cv-home-nav-item" type="button" data-back hidden>${icon('chevronLeft', 16)}<span>Back to document</span></button>${pages}</div>
       <div class="cv-home-page" data-page="start">
         <div class="cv-home-head"><div><h1 class="cv-home-title"></h1><p class="cv-home-sub">Make a flyer, a newsletter, a report or a website. Pick a starting point below, describe what you want to Claude, or open a file.</p></div></div>
         <div class="cv-home-hero">
@@ -113,7 +113,7 @@ export class HomeScreen {
     if (on && this.root.hidden) this.paint();
     if (on) { this.fill(); this.templates(); }
     setHidden(this.root, !on);
-    setHidden(this.root.querySelector('[data-back]') as HTMLElement, docs === 0);
+    for (const n of Array.from(this.root.querySelectorAll<HTMLElement>('[data-back]'))) setHidden(n, docs === 0);
   }
 
   private paint(): void {
