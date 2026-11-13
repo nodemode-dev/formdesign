@@ -72,6 +72,7 @@ export class Shell implements Workspace {
     this.input = new Input(this.viewport, this.stage);
     this.status = new StatusBar(q(root, '.fd-status'), this.viewport);
     this.input.onKeyCommand = (e) => this.onKeyCommand(e);
+    this.input.keysOff = (e) => this.home.isShown && !e.ctrlKey && !e.metaKey && !e.altKey && !/^F\d{1,2}$/.test(e.key);
     root.appendChild(this.fileInput);
     this.home = new HomeScreen(this.stage.parentElement as HTMLElement, {
       run: (cmd, params) => this.commands.run(cmd, params),
