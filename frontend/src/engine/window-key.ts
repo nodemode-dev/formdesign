@@ -16,6 +16,9 @@ export async function loadWindowKey(): Promise<void> {
   const given = holder.__FORMDESIGN_WINDOW_KEY;
   delete holder.__FORMDESIGN_WINDOW_KEY;
   if (typeof given === 'string' && given) { key = given; return; }
+  key = remembered();
+  if (key && await streamTicket().catch(() => '')) return;
+  key = '';
   try {
     const res = await fetch('/api/window/key', { method: 'POST' });
     const body = res.ok ? await res.json() as { key?: unknown } : {};

@@ -7,6 +7,16 @@ Last updated: 2026-11-13 · keys on Home stay on Home · the window is revealed 
 
 ---
 
+## v0.88.0 · a reload in development tries the kept key before asking the engine again (2026-11-19)
+
+- refers-to: src/engine/window-key.ts :: loadWindowKey
+- kind: fix
+- logged: v0.88.0 · 2026-11-19
+
+When the desktop shell has not set the key, `loadWindowKey` now tries the key kept in `sessionStorage` first, by asking for a socket ticket with it, and asks `POST /api/window/key` only when that fails. The engine hands out its development key once, so with the old order every reload asked again, was refused with 409 and the engine logged a second claim that never happened. The kept key is dropped (and the bootstrap asked) only when the ticket request is refused or cannot be made; after a refused bootstrap the kept value is still the last resort, as before.
+
+Checked in headless Chrome against the Vite dev server and the engine on a fresh data folder: load, reload, reload. The engine saw one `POST /api/window/key` (200) and none after; each load then sent `POST /api/window/ticket` with the key header and was answered 200, and the terminal's `POST /api/term` from the page was answered 200.
+
 ## v0.88.0 · the window takes the engine's key once and sends it on every write (2026-11-19)
 
 - refers-to: src/engine/window-key.ts; src/engine/client.ts :: api, EngineClient.connect; src/main.ts; src/features/terminal.ts :: connect, attachSocket; src/features/assistant.ts :: submit; src/features/assignments.ts :: form; src/features/connect.ts :: render
