@@ -10,7 +10,7 @@ usage: ./formdesign [command] [options]
 
   (none) | boot       boot the engine (8196) and the frontend (5196) together
   install [--lite]    install the engine, the layout core, the font library and the frontend
-  install-core        build (or fetch) formdesign-core, the layout core
+  install-core        build formdesign-core, the layout core, from source with cargo
   install-fonts       convert the bundled OFL font library into backend/app/fonts
   install-desktop     install PyInstaller and check the Rust and Tauri toolchain
   backend             boot the engine only
