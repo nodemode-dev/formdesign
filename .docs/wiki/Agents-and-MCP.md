@@ -28,6 +28,22 @@ The fast path for a finished piece is five calls: `intake` (files and a brief in
 
 For the web, `export_document {format: "web"}` writes a responsive site to a folder or a .zip (options `split`, `layout`, `edition`, `baseUrl`, `title`, `description`, `language`) and returns its pages and `warnings`; `publish_website` publishes the active document's site at `http://127.0.0.1:PORT/sites/SLUG/`, lists published sites and unpublishes them.
 
+## Agent Connect: how outside agents are asked
+
+Any program that reaches the MCP server is an outside agent: Claude Desktop, Claude Code, Codex, Cursor, and FormDesign's own command line (`tool`, `cmd`, `cli run`), which shows up as `formdesign-cli`. Window > Agent Connect lists each agent that has connected and holds one choice per agent (`POLICIES` in `backend/app/services/agents.py`):
+
+| Choice | What happens |
+| --- | --- |
+| Allow all | the agent's calls run without asking |
+| Ask for risky steps | the default for an agent FormDesign has not seen before: ordinary calls run, and a risky step waits under Waiting for you in Agent Connect until the person chooses Approve or Decline |
+| Deny | every call from that agent is refused |
+
+The risky steps (`gate_reason` in the same file) are publishing a website or taking it down, sharing a document for review, saving or exporting over a file that already exists, packaging, printing, running a command that Undo cannot reverse, and deleting more than one page. The agent gets an error that says the person did not approve, and should ask rather than retry in a loop; the same happens when 300 seconds pass with no answer, and a risky step is refused at once when no FormDesign window is open to ask. The switch at the top of Agent Connect, Allow agents to use FormDesign (also in Preferences > Agents), turns all agent access off: every call is refused.
+
+Only the FormDesign window can change any of this. The choices, the switch and Approve and Decline are engine routes that answer only a request carrying the window's key for this launch (`backend/app/core/window_key.py`); a script that posts to them without it gets 403 "Only the formdesign window can do this". The MCP endpoint itself stays open, because asking is what it does. The saved choices are sealed with a key in the system keyring where there is one: if the file is changed outside FormDesign, every Allow all falls back to Ask and Agent Connect says so.
+
+Someone scripting FormDesign therefore uses the command line or the MCP endpoint and lets the person answer in the window, or asks the person to set that agent to Allow all in Agent Connect first.
+
 ## The Claude dock
 
 The window has a dock under the canvas for terminals and Claude. `ui.terminal.toggle` (Window > Show Terminal, Ctrl or Cmd+J) shows or hides it; `ui.terminal.new` adds a shell tab; `ui.terminal.claude` (the title-bar Claude Code button, Ctrl or Cmd+Shift+J) opens or reuses the Claude Code tab; `ui.claude` (Chat with Claude, Ctrl or Cmd+Alt+J) opens the dock on its Chat tab, where the Ask line sends a message about the open document. The window fires `fd-dock` with `{open}` whenever the dock opens or closes.
@@ -49,7 +65,7 @@ Claude Code starts in the agent folder: the `claudeFolder` preference (Preferenc
 | `formdesign-template-creator` | `.claude/skills/formdesign-template-creator/` | writing and checking new templates |
 | `formdesign-skillset` | `.claude/skills/formdesign-skillset/` | working on FormDesign's own code |
 
-`./formdesign agents sync` regenerates the harness skill's tool and template references from the engine and mirrors all three skills to `.agents/skills/` for Codex and Cursor (`agents install` copies only the two user-facing ones to your account). CI runs `agents sync --check` and fails on drift.
+`./formdesign agents sync` regenerates the harness skill's tool and template references from the engine, writes `agents/manifest.json` (what FormDesign offers agents: its MCP tools with the read-only and approval-gated ones, its skills and its dock, all read from the code and the skills folder) and mirrors all three skills to `.agents/skills/` for Codex and Cursor (`agents install` copies only the two user-facing ones to your account). CI runs `agents sync --check` and fails on drift.
 
 ## Installing for each agent
 
