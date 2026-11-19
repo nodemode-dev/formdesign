@@ -163,10 +163,7 @@ fn main() {
                         }
                     }
                 }
-                // The engine prints the key line before its address, but its output and its log reach this loop through
-                // two pipes with no order between them, so the key may land just after the address: wait for it, for at
-                // most three seconds.
-                let grace = std::time::Instant::now() + std::time::Duration::from_secs(3);
+                let grace = std::time::Instant::now() + std::time::Duration::from_secs(10);
                 while port.is_some() && key.is_none() && std::time::Instant::now() < grace {
                     match rx.try_recv() {
                         Ok(CommandEvent::Stdout(bytes)) => {
@@ -183,7 +180,7 @@ fn main() {
                     Some(value) => format!("if (window.location.origin === {origin:?}) {{ window.__FORMDESIGN_WINDOW_KEY = {value:?}; }}"),
                     None => String::new(),
                 };
-                let url = port.and_then(|found| format!("http://127.0.0.1:{found}").parse::<tauri::Url>().ok());
+                let url = port.filter(|_| key.is_some()).and_then(|found| format!("http://127.0.0.1:{found}").parse::<tauri::Url>().ok());
                 match url {
                     Some(url) => {
                         let (width, height) = handle
