@@ -2,6 +2,21 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.88.0 · 2026-11-19
+
+- Only FormDesign's own window can change which agents may use FormDesign, open or type into a terminal, install agent setups or answer an approval request. The same changes from anywhere else on your computer are refused.
+- Your saved agent choices are sealed with the system keychain. If they are changed outside FormDesign, an agent that was on Allow all goes back to Ask for risky steps, and Agent Connect says so in one line.
+- The command line is now an agent like any other, listed in Agent Connect as `formdesign-cli`. It follows the choice you made there and cannot change it. A command Undo cannot reverse waits for your approval in the window, and `--yes` no longer skips that.
+- A script that changed things by calling the engine's local address directly is now refused. Use the MCP server or the command line, which follow your Agent Connect choice.
+- Each Claude Code tab and each chat run gets its own access to FormDesign, which ends when the tab closes or the run finishes.
+- When FormDesign runs from source, the window takes its access from the engine once at start and keeps it through a reload of the page.
+- The desktop app waits at most ten seconds for its engine to finish starting. If the engine does not, the app says it failed to start and closes, instead of opening a window that cannot work.
+- New theme: AMOLED Black, a true-black theme for OLED screens, in the Theme list in Preferences.
+- `./formdesign install-core` builds the layout core from source and stops with a clear message when Rust is missing. It no longer downloads a prebuilt core.
+- For people who build on the engine: an approval request now says which agent asks, what it asked in one sentence, which answers it takes and when it runs out, and an answered or expired request is announced. One answer can approve a risky step and set that agent to Allow all. One request reports whether Claude Code, Codex and Cursor are installed. Codex and Cursor started in a terminal tab by the engine get their own access, as Claude Code does, and a terminal can report the end of its program as a notice. FormDesign's own window keeps its terminal panel and Agent Connect as they are in this release.
+- `agents/manifest.json` says what FormDesign offers agents (38 MCP tools, 16 read-only, 7 that can wait for approval, 3 skills). `./formdesign agents sync` writes it and `agents sync --check` checks it.
+- The manual and the wiki say how outside agents are asked in Agent Connect, and state the right counts: 41 layout tools, 38 MCP tools, 394 engine commands. The cli-fallback skill names the `intake` tool instead of a launcher command that does not exist.
+
 ## 0.87.0 · 2026-11-13
 
 - Three offline browser demos (`demo/index.html`, `demos/event/`, `demos/report/`) open the real FormDesign window on the magazine, poster and annual review demos, replaying answers recorded from the engine.
