@@ -1694,6 +1694,7 @@
 "The engine is not answering": "Mesin tidak merespons",
 "The full text did not load; edit not saved": "Teks lengkap tidak dimuat; suntingan tidak disimpan",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "Gambar di bingkai yang dipilih diperluas, dengan model mengisi area kosong, hingga sesuai dengan bentuk bingkai. Hasilnya disimpan di folder links dan menggantikan gambar di bingkai.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "Izin agen yang tersimpan diubah di luar FormDesign, jadi kembali ke Tanya.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "Pengaturan jalur pemotong gambar yang dipilih, nama jalur tersematnya, kanal alfa PSD, dan apakah gambar memiliki transparansi.",
 "The structure is valid against the DTD.": "Struktur valid terhadap DTD.",
 "The tagged content in reading order, for databases and other publishing systems.": "Konten bertag dalam urutan baca, untuk basis data dan sistem penerbitan lainnya.",

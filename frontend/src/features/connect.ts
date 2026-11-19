@@ -8,7 +8,6 @@ import type { Workspace } from '../ui/workspace';
 interface Client { name: string; version: string | null; transport: string | null; lastSeen: number | null; calls: number; policy: 'allow' | 'ask' | 'deny' }
 interface Approval { id: string; client: string; tool: string; args: string; reason: string; at: number }
 interface Act { id: number; at: number; client: string; tool: string; args: string; ok: boolean; ms: number; note: string; changed: boolean }
-let sealNoticeShown = false;
 interface Snap { enabled: boolean; seal?: string; sealBroken?: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
 
 const FOLLOW_KEY = 'formdesign.connect.follow';
@@ -27,6 +26,7 @@ class ConnectPanel {
       <div class="fc-kv"><span>HTTP</span><code class="fc-endpoint"></code></div>
       <div class="fc-kv"><span>stdio</span><code class="fc-stdio"></code></div>
       <label class="fc-switch"><input type="checkbox" class="fc-follow"><span>Follow the agent: show each change it makes</span></label>
+      <p class="cv-note fc-seal">The saved agent permission was changed outside FormDesign, so it is back to Ask.</p>
     </div>
     <div class="fc-sec fc-approvals-sec" hidden>
       <h4 class="fc-h">Waiting for you</h4>
@@ -93,10 +93,7 @@ class ConnectPanel {
   private render(): void {
     const s = this.snap;
     if (!s) return;
-    if (s.sealBroken && !sealNoticeShown) {
-      sealNoticeShown = true;
-      toast('Agent access was changed outside FormDesign, or is now protected for the first time. Until you confirm it here, every agent is asked first and the Claude program is the default one.', 'error');
-    }
+    setClass(q(this.root, '.fc-seal'), 'is-on', !!s.sealBroken);
     if (this.on.checked !== s.enabled) this.on.checked = s.enabled;
     setText(q(this.root, '.fc-endpoint'), s.endpoint);
     setText(q(this.root, '.fc-stdio'), s.stdio);

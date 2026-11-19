@@ -1694,6 +1694,7 @@
 "The engine is not answering": "エンジンが応答していません",
 "The full text did not load; edit not saved": "全文を読み込めませんでした。編集は保存されていません",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "選択したフレーム内の画像を拡張し、フレームの形に合うまでモデルが空白領域を補います。結果は links フォルダーに保存され、フレーム内の画像と置き換えられます。",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "保存されていたエージェントの権限が FormDesign の外で変更されたため、「確認する」に戻りました。",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "選択した画像のクリップパス設定、埋め込みパス名、PSD のアルファチャンネル、透明部分の有無。",
 "The structure is valid against the DTD.": "構造は DTD に対して有効です。",
 "The tagged content in reading order, for databases and other publishing systems.": "データベースやその他の出版システム向けの、タグ付きコンテンツを読み上げ順に並べたもの。",

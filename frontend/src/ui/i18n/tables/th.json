@@ -1694,6 +1694,7 @@
 "The engine is not answering": "เอนจินไม่ตอบสนอง",
 "The full text did not load; edit not saved": "โหลดข้อความทั้งหมดไม่สำเร็จ การแก้ไขไม่ได้บันทึก",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "รูปภาพในกรอบที่เลือกจะถูกขยาย โดยโมเดลเติมพื้นที่ว่างจนพอดีกับรูปทรงของกรอบ ผลลัพธ์จะบันทึกในโฟลเดอร์ links และแทนที่รูปภาพในกรอบ",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "สิทธิ์ของเอเจนต์ที่บันทึกไว้ถูกเปลี่ยนนอก FormDesign จึงกลับไปเป็น ถามก่อน",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "การตั้งค่าเส้นพาธการตัดของรูปภาพที่เลือก ชื่อพาธที่ฝังไว้ แชนเนลอัลฟาของ PSD และมีความโปร่งใสหรือไม่",
 "The structure is valid against the DTD.": "โครงสร้างถูกต้องตาม DTD",
 "The tagged content in reading order, for databases and other publishing systems.": "เนื้อหาที่ติดแท็กตามลำดับการอ่าน สำหรับฐานข้อมูลและระบบสิ่งพิมพ์อื่น ๆ",

@@ -1694,6 +1694,7 @@
 "The engine is not answering": "Движок не отвечает",
 "The full text did not load; edit not saved": "Полный текст не загрузился; правка не сохранена",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "Изображение в выделенном блоке расширяется, а модель заполняет пустую область, пока оно не совпадёт с формой блока. Результат сохраняется в папке связей и заменяет изображение в блоке.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "Сохранённое разрешение для агентов было изменено вне FormDesign, поэтому снова установлено «Спрашивать».",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "Параметры контура обтравки выделенного изображения, имена его встроенных контуров, альфа-каналы PSD и наличие прозрачности.",
 "The structure is valid against the DTD.": "Структура соответствует DTD.",
 "The tagged content in reading order, for databases and other publishing systems.": "Размеченное тегами содержимое в порядке чтения, для баз данных и других издательских систем.",

@@ -1694,6 +1694,7 @@
 "The engine is not answering": "De engine antwoordt niet",
 "The full text did not load; edit not saved": "De volledige tekst is niet geladen; bewerking niet opgeslagen",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "De afbeelding in het geselecteerde kader wordt uitgebreid, waarbij het model het lege gebied vult, tot ze past in de vorm van het kader. Het resultaat wordt opgeslagen in de map Links en vervangt de afbeelding in het kader.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "De opgeslagen agenttoestemming is buiten FormDesign gewijzigd en staat daarom weer op Vragen.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "De instellingen van het uitknippad van de geselecteerde afbeelding, de namen van de ingesloten paden, de PSD-alfakanalen en of er transparantie is.",
 "The structure is valid against the DTD.": "De structuur is geldig volgens de DTD.",
 "The tagged content in reading order, for databases and other publishing systems.": "De getagde inhoud in leesvolgorde, voor databases en andere publicatiesystemen.",

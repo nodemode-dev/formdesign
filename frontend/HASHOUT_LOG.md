@@ -7,6 +7,16 @@ Last updated: 2026-11-13 · keys on Home stay on Home · the window is revealed 
 
 ---
 
+## v0.88.0 · Agent Connect says once, in its own line, that the saved agent permission was reset to Ask (2026-11-19)
+
+- refers-to: src/features/connect.ts :: ConnectPanel (the `.fc-seal` line, render); src/styles/connect.css (.fc-seal); src/ui/i18n/keys.json; src/ui/i18n/tables/*.json
+- kind: feat
+- logged: v0.88.0 · 2026-11-19
+
+When the engine reports `sealBroken` (the stored agent choice was changed outside the app and has been reset to Ask), the first section of Agent Connect shows "The saved agent permission was changed outside FormDesign, so it is back to Ask." This replaces the toast the earlier 0.88.0 change raised from the same flag. The sentence is always in the panel's markup, so its line is reserved: it is hidden with `visibility` and shown by toggling one class (`is-on`) only when the flag differs, so no node is added, removed or rebuilt and nothing moves. The engine clears the flag at the next window write that confirms the choice, and the line empties then. The string is in `keys.json` (collected by `setup/i18n_keys.py keys`) and in all 23 complete language tables; the two regional variants fall back to their parent.
+
+Checked: the engine side was run earlier (hand edit caught, `sealBroken` reported, a window write clears it); `setup/i18n_keys.py check` reports every complete table at 1833 of 1833. NOT checked in a page: Agent Connect only renders with a document open, and no document opens here because the layout core is not built, so the line was not seen on screen. A test plan is in /home/claude/form/out/test_plan/formdesign.md.
+
 ## v0.88.0 · a reload in development tries the kept key before asking the engine again (2026-11-19)
 
 - refers-to: src/engine/window-key.ts :: loadWindowKey

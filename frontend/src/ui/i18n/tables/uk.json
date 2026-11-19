@@ -1694,6 +1694,7 @@
 "The engine is not answering": "Рушій не відповідає",
 "The full text did not load; edit not saved": "Повний текст не завантажився; правку не збережено",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "Зображення у виділеному фреймі розширюється, а модель заповнює порожню ділянку, доки воно не збігатиметься з формою фрейму. Результат зберігається в теці links і замінює зображення у фреймі.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "Збережений дозвіл для агентів змінено поза FormDesign, тому знову встановлено «Питати».",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "Налаштування контуру обрізання виділеного зображення, назви його вбудованих контурів, альфа-канали PSD і чи є в ньому прозорість.",
 "The structure is valid against the DTD.": "Структура відповідає DTD.",
 "The tagged content in reading order, for databases and other publishing systems.": "Позначений вмістом у порядку читання для баз даних та інших видавничих систем.",

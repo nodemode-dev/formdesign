@@ -1694,6 +1694,7 @@
 "The engine is not answering": "A motor nem válaszol",
 "The full text did not load; edit not saved": "A teljes szöveg nem töltődött be; a szerkesztés nincs mentve",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "A kijelölt keretben lévő képet kiterjeszti, a modell kitölti az üres területet, amíg a kép be nem illeszkedik a keret alakjába. Az eredmény a links mappába kerül, és lecseréli a keretben lévő képet.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "A mentett ügynökengedélyt a FormDesignon kívül megváltoztatták, ezért újra Kérdezzen állapotban van.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "A kijelölt kép körbevágási útvonalának beállításai, a beágyazott útvonalainak nevei, a PSD alfacsatornái és hogy van-e átlátszósága.",
 "The structure is valid against the DTD.": "A szerkezet megfelel a DTD-nek.",
 "The tagged content in reading order, for databases and other publishing systems.": "A címkézett tartalom olvasási sorrendben adatbázisok és más kiadványkezelő rendszerek számára.",
