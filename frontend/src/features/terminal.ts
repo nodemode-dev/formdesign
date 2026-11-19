@@ -1,4 +1,5 @@
 import { api } from '../engine/client';
+import { streamTicket } from '../engine/window-key';
 import { editor } from '../editor/editor';
 import { el, isMac, q, setClass, setDisabled, setHidden, setStyleVar, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
@@ -9,7 +10,7 @@ type XTerm = import('@xterm/xterm').Terminal;
 type Fit = import('@xterm/addon-fit').FitAddon;
 interface Preset { id: string; label: string; available: boolean; install: string | null }
 interface Session { id: string; preset: string; title?: string; alive?: boolean }
-interface Info { token: string; presets: Preset[]; sessions: Session[]; cwd: string }
+interface Info { presets: Preset[]; sessions: Session[]; cwd: string }
 interface Started { id: string; preset: string; title: string; reused?: boolean }
 interface Tab { id: string; preset: string; title: string; host: HTMLElement; node: HTMLElement; term: XTerm; fit: Fit; ws: WebSocket | null; exited: boolean }
 
@@ -260,8 +261,12 @@ class TerminalDock {
   }
 
   private connect(tab: Tab): void {
+    void streamTicket().catch(() => '').then((ticket) => this.attachSocket(tab, ticket));
+  }
+
+  private attachSocket(tab: Tab, ticket: string): void {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/api/term/${encodeURIComponent(tab.id)}/ws?token=${encodeURIComponent(this.info?.token ?? '')}`);
+    const ws = new WebSocket(`${proto}://${location.host}/api/term/${encodeURIComponent(tab.id)}/ws?ticket=${encodeURIComponent(ticket)}`);
     ws.binaryType = 'arraybuffer';
     ws.onopen = () => { ws.send(JSON.stringify({ resize: [tab.term.cols, tab.term.rows] })); };
     ws.onmessage = (e) => {

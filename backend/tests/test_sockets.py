@@ -23,7 +23,9 @@ def test_live_socket_refuses_another_origin(client, origin):
 
 @pytest.mark.parametrize("origin", [own_origin(), *WINDOW_ORIGINS])
 def test_live_socket_accepts_the_window(client, origin):
-    with client.websocket_connect("/api/ws", headers={**LOOPBACK_HOST, "origin": origin}) as ws:
+    from app.core import window_key
+
+    with client.websocket_connect(f"/api/ws?ticket={window_key.ticket()}", headers={**LOOPBACK_HOST, "origin": origin}) as ws:
         assert ws.receive_json()
 
 
@@ -37,5 +39,6 @@ def test_terminal_socket_without_the_token_is_refused(client):
 
 
 def test_terminal_socket_with_the_token_reaches_the_session_lookup(client):
-    token = client.get("/api/term", headers={"origin": WINDOW_ORIGINS[0]}).json()["token"]
-    assert close_code(client, f"/api/term/none/ws?token={token}", {**LOOPBACK_HOST, "origin": WINDOW_ORIGINS[0]}) == 4404
+    from app.core import window_key
+
+    assert close_code(client, f"/api/term/none/ws?ticket={window_key.ticket()}", {**LOOPBACK_HOST, "origin": WINDOW_ORIGINS[0]}) == 4404

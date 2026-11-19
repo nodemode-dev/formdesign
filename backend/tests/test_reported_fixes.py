@@ -113,8 +113,8 @@ def config_of(argv):
 def test_in_app_token_is_never_on_the_claude_command_line(launch, monkeypatch):
     from app.services import claude_chat, claude_code
     monkeypatch.setattr(claude_code, "wrap", lambda cmd: cmd)
-    argv = claude_code.argv("/usr/bin/claude", "hello") if launch == "terminal" else claude_chat._argv("/usr/bin/claude", "hello", None)
-    token = inapp_token()
+    token, mcp_file = claude_code.issue()
+    argv = claude_code.argv("/usr/bin/claude", mcp_file, "hello") if launch == "terminal" else claude_chat._argv("/usr/bin/claude", "hello", None, mcp_file)
     assert not any(token in a for a in argv), "the token is readable by any process that lists command lines"
     path = Path(config_of(argv))
     assert path.is_file()

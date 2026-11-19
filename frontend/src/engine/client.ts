@@ -1,3 +1,5 @@
+import { keyHeaders, streamTicket } from './window-key';
+
 export interface CoreMeta {
   rev: number;
   selRev: number;
@@ -46,9 +48,9 @@ export class EngineClient {
   connect(): Promise<void> {
     if (this.connected) return Promise.resolve();
     if (this.opening) return this.opening;
-    this.opening = new Promise<void>((resolve) => {
+    this.opening = streamTicket().catch(() => '').then((ticket) => new Promise<void>((resolve) => {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${proto}//${location.host}/api/ws`);
+      const ws = new WebSocket(`${proto}//${location.host}/api/ws?ticket=${encodeURIComponent(ticket)}`);
       ws.binaryType = 'arraybuffer';
       ws.onopen = () => { this.ws = ws; this.connected = true; this.retry = 0; this.opening = null; this.emit('open'); resolve(); };
       ws.onmessage = (ev) => this.receive(ev.data);
@@ -64,7 +66,7 @@ export class EngineClient {
         window.setTimeout(() => { void this.connect(); }, wait);
         resolve();
       };
-    });
+    }));
     return this.opening;
   }
 
@@ -116,10 +118,10 @@ export class EngineClient {
 }
 
 export async function api<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
-  const opts: RequestInit = { ...init };
+  const opts: RequestInit = { ...init, headers: { ...keyHeaders(), ...((init?.headers as Record<string, string> | undefined) ?? {}) } };
   if (init?.json !== undefined) {
     opts.method = opts.method ?? 'POST';
-    opts.headers = { 'Content-Type': 'application/json', ...(init.headers ?? {}) };
+    opts.headers = { 'Content-Type': 'application/json', ...keyHeaders(), ...((init.headers as Record<string, string> | undefined) ?? {}) };
     opts.body = JSON.stringify(init.json);
   }
   const r = await fetch(`/api${path}`, opts);

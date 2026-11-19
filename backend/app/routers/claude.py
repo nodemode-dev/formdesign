@@ -3,6 +3,7 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
+from app.core import window_key
 from app.routers.terminal import _guard
 from app.services import claude_chat, claude_code
 
@@ -28,7 +29,7 @@ def _run(fn, *args):
 
 @router.get("/claude/status")
 async def status(request: Request):
-    _guard(request)
+    window_key.require(request)
     return claude_code.status()
 
 
@@ -41,7 +42,7 @@ async def prefs(request: Request):
 
 @router.get("/claude/chat")
 async def chat_state(request: Request):
-    _guard(request)
+    window_key.require(request)
     return claude_chat.state()
 
 
@@ -66,7 +67,7 @@ async def chat_reset(request: Request):
 
 @router.get("/claude/sessions")
 async def chat_sessions(request: Request):
-    _guard(request)
+    window_key.require(request)
     return _run(claude_chat.sessions)
 
 

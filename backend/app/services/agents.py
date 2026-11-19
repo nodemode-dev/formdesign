@@ -7,7 +7,7 @@ import time
 from collections import deque
 from pathlib import Path
 
-from app.core import config
+from app.core import config, seal
 from app.engine.core import core
 
 SETTINGS = config.DATA_DIR / "agents.json"
@@ -15,7 +15,6 @@ POLICIES = ("allow", "ask", "deny")
 APPROVAL_WAIT = 300.0
 KNOWN = {"claude-code": "Claude Code", "claude": "Claude Code", "codex": "Codex", "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor"}
 GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print": "prints", "file.printBooklet": "prints a booklet"}
-INAPP_TOKEN = secrets.token_urlsafe(24)
 INAPP_HEADER = "x-formdesign-inapp"
 INAPP_CLIENT = "Claude Code in FormDesign"
 
@@ -65,28 +64,58 @@ def _write(d: dict) -> None:
     SETTINGS.write_text(json.dumps(d, indent=1))
 
 
+def _loosened(vals: dict) -> bool:
+    return any(v == "allow" for k, v in vals["policies"].items() if k != INAPP_CLIENT) or bool(str(vals["claudeBin"] or "").strip())
+
+
+def choice() -> dict:
+    from app.services import claude_code
+    d = _read()
+    policies = d.get("policies") if isinstance(d.get("policies"), dict) else {}
+    vals = {"enabled": bool(d.get("enabled", True)), "policies": dict(policies), "claudeBin": claude_code.raw_prefs().get("claudeBin", "")}
+    state = seal.check(vals, d.get("seal"))
+    broken = state in ("unsealed", "mismatch") and _loosened(vals)
+    if broken:
+        vals = {"enabled": vals["enabled"], "policies": {k: ("ask" if v == "allow" and k != INAPP_CLIENT else v) for k, v in vals["policies"].items()}, "claudeBin": ""}
+    return {**vals, "seal": "broken" if broken else state, "sealBroken": broken}
+
+
+def commit(mutate=None, claude_bin: str | None = None) -> str:
+    eff = choice()
+    d = _read()
+    d["enabled"], d["policies"] = eff["enabled"], dict(eff["policies"])
+    if mutate is not None:
+        mutate(d)
+    bin_ = eff["claudeBin"] if claude_bin is None else claude_bin
+    from app.services import claude_code
+    if claude_code.raw_prefs().get("claudeBin", "") != bin_ and claude_code.PREFS.exists():
+        claude_code.write_bin(bin_)
+    d.pop("seal", None)
+    mark = seal.sign({"enabled": bool(d.get("enabled", True)), "policies": d.get("policies") or {}, "claudeBin": bin_})
+    if mark:
+        d["seal"] = mark
+    _write(d)
+    return bin_
+
+
 def enabled() -> bool:
-    return bool(_read().get("enabled", True))
+    return choice()["enabled"]
 
 
 def set_enabled(on: bool) -> None:
-    d = _read()
-    d["enabled"] = on
-    _write(d)
+    commit(lambda d: d.__setitem__("enabled", on))
     push("settings")
 
 
 def policy(client: str) -> str:
-    p = (_read().get("policies") or {}).get(client, "allow" if client == INAPP_CLIENT else "ask")
+    p = choice()["policies"].get(client, "allow" if client == INAPP_CLIENT else "ask")
     return p if p in POLICIES else "ask"
 
 
 def set_policy(client: str, p: str) -> None:
     if p not in POLICIES:
         raise ValueError(f"policy is one of {', '.join(POLICIES)}")
-    d = _read()
-    d.setdefault("policies", {})[client] = p
-    _write(d)
+    commit(lambda d: d.setdefault("policies", {}).__setitem__(client, p))
     push("clients")
 
 
@@ -144,8 +173,8 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
 
 
 def inapp(headers) -> bool:
-    got = headers.get(INAPP_HEADER) or ""
-    return bool(got) and secrets.compare_digest(got, INAPP_TOKEN)
+    from app.services import claude_code
+    return claude_code.is_inapp(headers.get(INAPP_HEADER))
 
 
 def gate_reason(name: str, args: dict) -> str | None:
@@ -226,11 +255,13 @@ def record(client: str, name: str, args: dict, ok: bool, ms: float, text: str, r
 
 
 def snapshot() -> dict:
-    d = _read()
-    pol = d.get("policies") or {}
+    c = choice()
+    pol = c["policies"]
     names = sorted(set(clients) | set(pol))
     return {
-        "enabled": d.get("enabled", True),
+        "enabled": c["enabled"],
+        "seal": c["seal"],
+        "sealBroken": c["sealBroken"],
         "endpoint": f"http://{config.HOST}:{config.PORT}/mcp",
         "stdio": "./formdesign mcp",
         "clients": [{**clients.get(n, {"name": n, "version": None, "transport": None, "lastSeen": None, "calls": 0}), "policy": policy(n)} for n in names],

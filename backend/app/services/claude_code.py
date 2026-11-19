@@ -1,3 +1,4 @@
+import hmac
 import json
 import os
 import secrets
@@ -14,7 +15,9 @@ KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_U
 CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
 SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
 PREFS = config.DATA_DIR / "claude.json"
-MCP_FILE = config.DATA_DIR / "claude-mcp.json"
+OLD_MCP_FILE = config.DATA_DIR / "claude-mcp.json"
+TOKEN_DIR = config.DATA_DIR / "AgentTokens"
+TOKENS: dict[str, Path] = {}
 FIELDS = ("claudeBin", "claudeFolder", "claudeFirstMessage")
 INSTALL = ("Claude Code is not installed: install it with npm install -g @anthropic-ai/claude-code (or from https://claude.com/claude-code), "
            "run claude once in a terminal to sign in, then open it here again")
@@ -30,7 +33,7 @@ class ClaudeError(ValueError):
     pass
 
 
-def prefs() -> dict:
+def raw_prefs() -> dict:
     try:
         d = json.loads(PREFS.read_text())
     except (OSError, ValueError):
@@ -38,14 +41,34 @@ def prefs() -> dict:
     return {k: str(d.get(k) or "").strip() for k in FIELDS} if isinstance(d, dict) else {}
 
 
+def write_bin(value: str) -> None:
+    try:
+        d = json.loads(PREFS.read_text())
+    except (OSError, ValueError):
+        d = {}
+    d = d if isinstance(d, dict) else {}
+    d["claudeBin"] = value
+    PREFS.write_text(json.dumps(d, indent=1))
+    _cache["value"] = None
+
+
+def prefs() -> dict:
+    d = raw_prefs()
+    if d or PREFS.exists():
+        d["claudeBin"] = agents.choice()["claudeBin"]
+    return d
+
+
 def save_prefs(body: dict) -> dict:
-    d = prefs()
+    d = raw_prefs()
+    d["claudeBin"] = agents.choice()["claudeBin"]
     for k in FIELDS:
         if k in body and body[k] is not None and not isinstance(body[k], str):
             raise ClaudeError(f"preference {k} must be text")
     for k in FIELDS:
         if k in body:
             d[k] = (body[k] or "").strip()[:2000]
+    agents.commit(claude_bin=d.get("claudeBin", ""))
     PREFS.parent.mkdir(parents=True, exist_ok=True)
     PREFS.write_text(json.dumps(d, indent=1))
     _cache["value"] = None
@@ -116,18 +139,40 @@ def info(fresh: bool = False) -> dict:
     return _cache["value"]
 
 
-def mcp_config() -> str:
-    body = json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: agents.INAPP_TOKEN}}}})
-    tmp = MCP_FILE.with_name(f".{MCP_FILE.name}.{secrets.token_hex(6)}")
+def issue() -> tuple[str, str]:
+    token = secrets.token_urlsafe(32)
+    path = TOKEN_DIR / f"mcp-{secrets.token_hex(8)}.json"
+    body = json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: token}}}})
     try:
-        MCP_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with os.fdopen(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
+        TOKEN_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
             f.write(body)
-        os.replace(tmp, MCP_FILE)
     except OSError as e:
-        tmp.unlink(missing_ok=True)
-        raise ClaudeError(f"Claude Code cannot be connected to FormDesign: {MCP_FILE} cannot be written ({e.strerror or e})") from None
-    return str(MCP_FILE)
+        path.unlink(missing_ok=True)
+        raise ClaudeError(f"Claude Code cannot be connected to FormDesign: {path} cannot be written ({e.strerror or e})") from None
+    TOKENS[token] = path
+    return token, str(path)
+
+
+def revoke(token: str) -> None:
+    path = TOKENS.pop(token, None)
+    if path is not None:
+        path.unlink(missing_ok=True)
+
+
+def is_inapp(value) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    return any(hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def sweep() -> None:
+    OLD_MCP_FILE.unlink(missing_ok=True)
+    try:
+        for f in TOKEN_DIR.glob("mcp-*.json"):
+            f.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def workdir() -> Path:
@@ -152,8 +197,8 @@ def wrap(cmd: list[str]) -> list[str]:
     return ["/bin/sh", "-l", "-c", "exec " + shlex.join(cmd)]
 
 
-def argv(path: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE]
+def argv(path: str, mcp_file: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:

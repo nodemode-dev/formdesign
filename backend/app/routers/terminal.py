@@ -1,12 +1,12 @@
 import asyncio
-import hmac
 import json
 import urllib.parse
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from app.services.pty import TOKEN, presets, terminals, workdir
+from app.core import window_key
+from app.services.pty import presets, terminals, workdir
 
 router = APIRouter()
 
@@ -34,13 +34,13 @@ class NewTerminal(BaseModel):
 
 @router.get("/term")
 async def term_info(request: Request):
-    _guard(request)
-    return {"token": TOKEN, "presets": presets(), "sessions": terminals.list(), "cwd": str(workdir())}
+    window_key.require(request)
+    return {"presets": presets(), "sessions": terminals.list(), "cwd": str(workdir())}
 
 
 @router.post("/term")
 async def term_new(body: NewTerminal, request: Request):
-    _guard(request)
+    window_key.require(request)
     if body.reuse and body.preset == "claude" and not body.resume:
         s = await terminals.reuse("claude", body.prompt)
         if s is not None:
@@ -54,7 +54,7 @@ async def term_new(body: NewTerminal, request: Request):
 
 @router.post("/term/{sid}/restart")
 async def term_restart(sid: str, request: Request):
-    _guard(request)
+    window_key.require(request)
     try:
         s = await terminals.restart(sid)
     except KeyError:
@@ -66,14 +66,14 @@ async def term_restart(sid: str, request: Request):
 
 @router.delete("/term/{sid}")
 async def term_close(sid: str, request: Request):
-    _guard(request)
+    window_key.require(request)
     terminals.close(sid)
     return {"ok": True}
 
 
 @router.websocket("/term/{sid}/ws")
 async def term_ws(ws: WebSocket, sid: str):
-    if not _local(ws.headers.get("origin")) or not hmac.compare_digest(ws.query_params.get("token", ""), TOKEN):
+    if not _local(ws.headers.get("origin")) or not window_key.spend(ws.query_params.get("ticket", "")):
         await ws.close(code=4403)
         return
     s = terminals.sessions.get(sid)

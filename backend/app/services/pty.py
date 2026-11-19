@@ -12,7 +12,6 @@ from pathlib import Path
 
 from app.core import config
 
-TOKEN = secrets.token_urlsafe(32)
 MAX_SESSIONS = 12
 SCROLLBACK = 256 * 1024
 
@@ -81,6 +80,7 @@ class Session:
     cols: int = 100
     rows: int = 30
     gen: int = 0
+    on_close: list = field(default_factory=list)
 
     @property
     def alive(self) -> bool:
@@ -165,6 +165,7 @@ class Terminals:
             raise ValueError(f"unknown preset `{preset}`")
         env, cwd = environment(), str(workdir())
         title = spec["label"]
+        token = ""
         if spec["cmd"] is None:
             argv = shell_argv()
             title = "Terminal"
@@ -178,7 +179,11 @@ class Terminals:
                 cwd = str(claude_code.workdir())
             except claude_code.ClaudeError as exc:
                 raise ValueError(str(exc)) from None
-            argv = claude_code.argv(found["path"], prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
+            try:
+                token, mcp_file = claude_code.issue()
+            except claude_code.ClaudeError as exc:
+                raise ValueError(str(exc)) from None
+            argv = claude_code.argv(found["path"], mcp_file, prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
             env = claude_code.child_env()
         else:
             exe = shutil.which(spec["cmd"])
@@ -187,9 +192,14 @@ class Terminals:
             argv = [exe]
         sid = secrets.token_hex(6)
         s = Session(sid, preset, None, title=title, argv=argv, cwd=cwd, env=env, cols=max(2, min(500, cols)), rows=max(1, min(300, rows)))
+        if token:
+            from app.services import claude_code
+            s.on_close.append(lambda: claude_code.revoke(token))
         try:
             self._start(s, asyncio.get_running_loop())
         except OSError as e:
+            for done in s.on_close:
+                done()
             raise ValueError(f"{title} cannot start in {cwd}: {e.strerror or e}") from None
         self.sessions[sid] = s
         return s
@@ -303,6 +313,8 @@ class Terminals:
         s = self.sessions.pop(sid, None)
         if not s:
             return
+        for done in s.on_close:
+            done()
         if s.exited is None:
             try:
                 if s.win is not None:

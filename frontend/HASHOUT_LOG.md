@@ -7,6 +7,16 @@ Last updated: 2026-11-13 · keys on Home stay on Home · the window is revealed 
 
 ---
 
+## v0.88.0 · the window takes the engine's key once and sends it on every write (2026-11-19)
+
+- refers-to: src/engine/window-key.ts; src/engine/client.ts :: api, EngineClient.connect; src/main.ts; src/features/terminal.ts :: connect, attachSocket; src/features/assistant.ts :: submit; src/features/assignments.ts :: form; src/features/connect.ts :: render
+- kind: feat
+- logged: v0.88.0 · 2026-11-19
+
+`loadWindowKey` runs first in `main.ts`: it reads `window.__FORMDESIGN_WINDOW_KEY` (set before the page by the desktop shell, only for the engine's own origin), deletes the global and keeps the key in a module variable; from source it asks `POST /api/window/key` once and keeps the answer in `sessionStorage` so a reload of the tab still works. `api()` adds `X-Formdesign-Window-Key` to every request, and the two raw writes (the assistant stream and the assignment package upload) add it too. The two sockets ask `POST /api/window/ticket` first and open with `?ticket=`; the terminal no longer reads a token from `GET /api/term`. The other raw `fetch` calls are plain reads of pictures and files and need nothing. Nothing on screen changes; Agent Connect shows one notice, once, when the engine reports that the stored agent access was changed outside the app (or is protected for the first time).
+
+Checked in headless Chrome against the Vite dev server and the engine: the page booted, took the key through the development bootstrap (the global was already gone and the key was in `sessionStorage`), opened the live socket and a terminal socket each with a ticket, `POST /api/term` from the page answered 200 with the key and the shell printed its prompt in the dock, and no write left the page without the header. The only failing request was `GET /api/workflow` (422), because the layout core was not built in that environment.
+
 ## Org-navi-map
 
 ```

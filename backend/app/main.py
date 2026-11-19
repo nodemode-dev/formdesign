@@ -10,8 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.core import config
 from app.core.local_guard import LocalGuard
+from app.core.window_key import WindowKeyGuard
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
+from app.services import claude_code
 from app.services import userprefs as userprefs_service
 from app.services import workflow as workflow_service
 from app.routers import agents as agents_api
@@ -40,6 +42,7 @@ log = logging.getLogger("formdesign")
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     config.ensure_dirs()
+    claude_code.sweep()
     try:
         await core.start()
         workflow_service.load_user()
@@ -54,6 +57,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="FormDesign engine", version=__version__, lifespan=lifespan)
+app.add_middleware(WindowKeyGuard)
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(LocalGuard, origins=config.window_origins())
 app.include_router(system.router, prefix="/api")

@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.core import config
+from app.core import config, window_key
 from app.core.local_guard import from_window
 from app.engine.core import core
 from app.routers.terminal import _guard
@@ -14,6 +14,7 @@ _window_actions: list[dict] = []
 
 
 def window_only(request: Request) -> None:
+    window_key.require(request)
     if not from_window(request.headers.get("origin"), request.headers.get("host", ""), config.window_origins()):
         raise HTTPException(403, "only FormDesign's own window changes agent access")
 
@@ -42,7 +43,7 @@ class WindowActions(BaseModel):
 
 @router.get("/agents")
 async def agents(request: Request):
-    _guard(request)
+    window_key.require(request)
     return A.snapshot()
 
 

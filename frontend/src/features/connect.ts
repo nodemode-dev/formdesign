@@ -8,7 +8,8 @@ import type { Workspace } from '../ui/workspace';
 interface Client { name: string; version: string | null; transport: string | null; lastSeen: number | null; calls: number; policy: 'allow' | 'ask' | 'deny' }
 interface Approval { id: string; client: string; tool: string; args: string; reason: string; at: number }
 interface Act { id: number; at: number; client: string; tool: string; args: string; ok: boolean; ms: number; note: string; changed: boolean }
-interface Snap { enabled: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
+let sealNoticeShown = false;
+interface Snap { enabled: boolean; seal?: string; sealBroken?: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
 
 const FOLLOW_KEY = 'formdesign.connect.follow';
 const INSTALL: Array<[string, string]> = [['claude', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor']];
@@ -92,6 +93,10 @@ class ConnectPanel {
   private render(): void {
     const s = this.snap;
     if (!s) return;
+    if (s.sealBroken && !sealNoticeShown) {
+      sealNoticeShown = true;
+      toast('Agent access was changed outside FormDesign, or is now protected for the first time. Until you confirm it here, every agent is asked first and the Claude program is the default one.', 'error');
+    }
     if (this.on.checked !== s.enabled) this.on.checked = s.enabled;
     setText(q(this.root, '.fc-endpoint'), s.endpoint);
     setText(q(this.root, '.fc-stdio'), s.stdio);

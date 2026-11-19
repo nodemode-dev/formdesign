@@ -15,15 +15,32 @@ import urllib.request
 from pathlib import Path
 
 
-def post(url: str, body: dict) -> dict:
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"}, method="POST")
+def post(engine: str, tool: str, arguments: dict) -> dict:
+    payload = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": arguments}}
+    req = urllib.request.Request(f"{engine}/mcp", data=json.dumps(payload).encode(), headers={"Content-Type": "application/json", "User-Agent": "formdesign-template-check/1"}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=300) as r:
-            return json.loads(r.read())
+            reply = json.loads(r.read())
     except urllib.error.HTTPError as exc:
         return {"ok": False, "error": exc.read().decode(errors="replace")}
     except (urllib.error.URLError, OSError) as exc:
         return {"ok": False, "error": f"the FormDesign engine is not answering ({exc}); start it with ./formdesign backend"}
+    if "error" in reply:
+        return {"ok": False, "error": str((reply["error"] or {}).get("message") or "refused")}
+    result = reply.get("result") or {}
+    blocks = result.get("content") or []
+    text = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+    if result.get("isError"):
+        return {"ok": False, "error": text}
+    try:
+        report = json.loads(text)
+    except ValueError:
+        report = {"ok": True, "saved": text}
+    if isinstance(report, dict):
+        images = [b["data"] for b in blocks if b.get("type") == "image"]
+        if images:
+            report["renders"] = images
+    return report
 
 
 def main() -> int:
@@ -34,7 +51,7 @@ def main() -> int:
     ap.add_argument("--save", action="store_true")
     a = ap.parse_args()
     spec = json.loads(Path(a.file).read_text(encoding="utf-8"))
-    rep = post(f"{a.engine}/api/templates/validate", {"spec": spec, "render": bool(a.renders), "size": 900})
+    rep = post(a.engine, "validate_template", {"spec": spec, "render": bool(a.renders)})
     renders = rep.pop("renders", []) or []
     if a.renders and renders:
         out = Path(a.renders)
@@ -44,7 +61,7 @@ def main() -> int:
         rep["renders"] = str(out)
     clean = bool(rep.get("ok")) and not rep.get("problems") and not rep.get("overset") and not any(str(p).startswith("error") for p in rep.get("preflight") or [])
     if a.save and clean:
-        rep["saved"] = post(f"{a.engine}/api/templates", {"spec": spec})
+        rep["saved"] = post(a.engine, "save_template", {"spec": spec})
     print(json.dumps(rep, indent=1))
     return 0 if clean else 1
 

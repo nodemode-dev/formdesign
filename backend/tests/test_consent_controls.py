@@ -77,7 +77,9 @@ def test_an_ungated_tool_needs_no_approval(client):
 
 def ask_with_window(client, approve):
     out = {}
-    with client.websocket_connect("/api/ws", headers={**LOOPBACK_HOST, **WINDOW}) as ws:
+    from app.core import window_key
+
+    with client.websocket_connect(f"/api/ws?ticket={window_key.ticket()}", headers={**LOOPBACK_HOST, **WINDOW}) as ws:
         worker = threading.Thread(target=lambda: out.setdefault("result", call(client, *CHANGING_TOOL)))
         worker.start()
         aid = None
