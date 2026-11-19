@@ -18,6 +18,10 @@ GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print":
 GATED_TOOLS = ("publish_website", "review", "save_document", "export_document", "book", "run_command", "run_commands")
 INAPP_HEADER = "x-formdesign-inapp"
 INAPP_CLIENT = "Claude Code in FormDesign"
+OWN_TABS = {"claude": INAPP_CLIENT, "codex": "Codex in FormDesign", "cursor": "Cursor in FormDesign"}
+OWN_NAMES = frozenset(OWN_TABS.values())
+ANSWERS = ("deny", "once", "always")
+ALWAYS_SCOPE = "agent"
 
 sessions: dict[str, dict] = {}
 clients: dict[str, dict] = {}
@@ -66,7 +70,7 @@ def _write(d: dict) -> None:
 
 
 def _loosened(vals: dict) -> bool:
-    return any(v == "allow" for k, v in vals["policies"].items() if k != INAPP_CLIENT) or bool(str(vals["claudeBin"] or "").strip())
+    return any(v == "allow" for k, v in vals["policies"].items() if k not in OWN_NAMES) or bool(str(vals["claudeBin"] or "").strip())
 
 
 def choice() -> dict:
@@ -77,7 +81,7 @@ def choice() -> dict:
     state = seal.check(vals, d.get("seal"))
     broken = state in ("unsealed", "mismatch") and _loosened(vals)
     if broken:
-        vals = {"enabled": vals["enabled"], "policies": {k: ("ask" if v == "allow" and k != INAPP_CLIENT else v) for k, v in vals["policies"].items()}, "claudeBin": ""}
+        vals = {"enabled": vals["enabled"], "policies": {k: ("ask" if v == "allow" and k not in OWN_NAMES else v) for k, v in vals["policies"].items()}, "claudeBin": ""}
     return {**vals, "seal": "broken" if broken else state, "sealBroken": broken}
 
 
@@ -109,7 +113,7 @@ def set_enabled(on: bool) -> None:
 
 
 def policy(client: str) -> str:
-    p = choice()["policies"].get(client, "allow" if client == INAPP_CLIENT else "ask")
+    p = choice()["policies"].get(client, "allow" if client in OWN_NAMES else "ask")
     return p if p in POLICIES else "ask"
 
 
@@ -162,8 +166,9 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
         info = info or sessions[sid]["info"]
         transport = sessions[sid]["transport"]
     ua = (headers.get("user-agent") or "").split("/")[0].strip()
-    name = INAPP_CLIENT if inapp(headers) else display(info, ua or "Unknown client")
-    if not inapp(headers) and (name.strip().lower() in (INAPP_CLIENT.lower(), "assistant") or name.strip().lower().startswith("plugin:")):
+    own = own_tab(headers)
+    name = OWN_TABS.get(own, INAPP_CLIENT) if own else display(info, ua or "Unknown client")
+    if not own and (name.strip().lower() in ({n.lower() for n in OWN_NAMES} | {"assistant"}) or name.strip().lower().startswith("plugin:")):
         name = f"{name} (unverified)"
     c = clients.setdefault(name, {"name": name, "version": None, "transport": transport, "firstSeen": time.time(), "lastSeen": 0.0, "calls": 0})
     c["lastSeen"] = time.time()
@@ -176,6 +181,11 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
 def inapp(headers) -> bool:
     from app.services import claude_code
     return claude_code.is_inapp(headers.get(INAPP_HEADER))
+
+
+def own_tab(headers) -> str | None:
+    from app.services import claude_code
+    return claude_code.inapp_kind(headers.get(INAPP_HEADER))
 
 
 def gate_reason(name: str, args: dict) -> str | None:
@@ -227,21 +237,30 @@ def short(args: dict, limit: int = 160) -> str:
 async def ask(client: str, name: str, args: dict, reason: str) -> bool:
     aid = secrets.token_hex(6)
     fut = asyncio.get_running_loop().create_future()
-    approvals[aid] = {"id": aid, "client": client, "tool": name, "args": short(args, 400), "reason": reason, "at": time.time(), "future": fut}
-    push("approval", id=aid, client=client, tool=name, reason=reason)
+    now = time.time()
+    more = {"agent": client, "asked": f"run {name}: it {reason}", "detail": short(args, 400), "answers": list(ANSWERS), "alwaysScope": ALWAYS_SCOPE,
+            "expiresAt": now + APPROVAL_WAIT, "wait": APPROVAL_WAIT}
+    approvals[aid] = {"id": aid, "client": client, "tool": name, "args": short(args, 400), "reason": reason, "at": now, **more, "future": fut}
+    push("approval", id=aid, client=client, tool=name, reason=reason, at=now, **more)
+    outcome = "cancelled"
     try:
-        return await asyncio.wait_for(asyncio.shield(fut), APPROVAL_WAIT)
+        ok = await asyncio.wait_for(asyncio.shield(fut), APPROVAL_WAIT)
+        outcome = "approved" if ok else "declined"
+        return ok
     except asyncio.TimeoutError:
+        outcome = "expired"
         return False
     finally:
         approvals.pop(aid, None)
-        push("approvals")
+        push("approvals", id=aid, withdrawn=True, outcome=outcome)
 
 
-def decide(aid: str, approve: bool) -> bool:
+def decide(aid: str, approve: bool, always: bool = False) -> bool:
     a = approvals.get(aid)
     if not a or a["future"].done():
         return False
+    if always and approve:
+        set_policy(a["client"], "allow")
     a["future"].set_result(approve)
     return True
 

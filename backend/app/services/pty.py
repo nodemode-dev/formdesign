@@ -81,10 +81,19 @@ class Session:
     rows: int = 30
     gen: int = 0
     on_close: list = field(default_factory=list)
+    typed: set = field(default_factory=set)
+    notice: bytes = b""
 
     @property
     def alive(self) -> bool:
         return self.exited is None
+
+    def replay(self, typed: bool = False) -> bytes:
+        return bytes(self.buffer) if typed else bytes(self.buffer) + self.notice
+
+    def tell(self, message: dict) -> None:
+        for q in list(self.typed):
+            q.put_nowait(message)
 
     def write(self, data: bytes) -> None:
         if self.exited is not None:
@@ -186,10 +195,11 @@ class Terminals:
             argv = claude_code.argv(found["path"], mcp_file, prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
             env = claude_code.child_env()
         else:
-            exe = shutil.which(spec["cmd"])
-            if not exe:
-                raise ValueError(f"{spec['label']} is not installed. Install it with: {spec.get('install')}")
-            argv = [exe]
+            from app.services import agent_programs
+            try:
+                argv, env, cwd, token = await asyncio.to_thread(agent_programs.launch, preset)
+            except agent_programs.ProgramError as exc:
+                raise ValueError(str(exc)) from None
         sid = secrets.token_hex(6)
         s = Session(sid, preset, None, title=title, argv=argv, cwd=cwd, env=env, cols=max(2, min(500, cols)), rows=max(1, min(300, rows)))
         if token:
@@ -259,6 +269,7 @@ class Terminals:
                 raise KeyError(sid)
         s.exited, s.win = None, None
         s.buffer.clear()
+        s.notice = b""
         try:
             Path(s.cwd).mkdir(parents=True, exist_ok=True)
             self._start(s, loop)
@@ -266,6 +277,7 @@ class Terminals:
             self._exit(s, 1)
             raise ValueError(f"{s.title} cannot start in {s.cwd}: {e.strerror or e}") from None
         s.feed(b"\x1bc")
+        s.tell({"type": "hello", "alive": True, "kind": s.preset})
         return s
 
     def _on_readable(self, s: Session, loop: asyncio.AbstractEventLoop) -> None:
@@ -300,7 +312,9 @@ class Terminals:
             return
         s.exited = code
         line = "Claude Code exited" if s.preset == "claude" else f"Process exited with code {code}"
-        s.feed(f"\r\n[{line} · Restart runs it again]\r\n".encode())
+        s.notice = f"\r\n[{line} · Restart runs it again]\r\n".encode()
+        for q in list(s.listeners):
+            q.put_nowait({"type": "exit", "code": code} if q in s.typed else s.notice)
         s.drop_pending()
         if s.fd >= 0:
             try:

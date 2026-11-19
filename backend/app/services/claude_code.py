@@ -17,7 +17,9 @@ SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/c
 PREFS = config.DATA_DIR / "claude.json"
 OLD_MCP_FILE = config.DATA_DIR / "claude-mcp.json"
 TOKEN_DIR = config.DATA_DIR / "AgentTokens"
-TOKENS: dict[str, Path] = {}
+TOKENS: dict[str, Path | None] = {}
+KINDS: dict[str, str] = {}
+TOKEN_VAR = "FORMDESIGN_INAPP_TOKEN"
 FIELDS = ("claudeBin", "claudeFolder", "claudeFirstMessage")
 INSTALL = ("Claude Code is not installed: install it with npm install -g @anthropic-ai/claude-code (or from https://claude.com/claude-code), "
            "run claude once in a terminal to sign in, then open it here again")
@@ -154,8 +156,16 @@ def issue() -> tuple[str, str]:
     return token, str(path)
 
 
+def issue_for(kind: str) -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS[token] = None
+    KINDS[token] = kind
+    return token
+
+
 def revoke(token: str) -> None:
     path = TOKENS.pop(token, None)
+    KINDS.pop(token, None)
     if path is not None:
         path.unlink(missing_ok=True)
 
@@ -164,6 +174,15 @@ def is_inapp(value) -> bool:
     if not isinstance(value, str) or not value:
         return False
     return any(hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def inapp_kind(value) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    for t in list(TOKENS):
+        if hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")):
+            return KINDS.get(t, "claude")
+    return None
 
 
 def sweep() -> None:

@@ -80,16 +80,26 @@ async def term_ws(ws: WebSocket, sid: str):
     if s is None:
         await ws.close(code=4404)
         return
+    typed = ws.query_params.get("notices") == "1"
     await ws.accept()
     q: asyncio.Queue = asyncio.Queue()
-    if s.buffer:
-        await ws.send_bytes(bytes(s.buffer))
+    first, ended = s.replay(typed), s.exited
     s.listeners.add(q)
+    if typed:
+        s.typed.add(q)
+        await ws.send_text(json.dumps({"type": "hello", "alive": ended is None, "kind": s.preset}))
+    if first:
+        await ws.send_bytes(first)
+    if typed and ended is not None:
+        await ws.send_text(json.dumps({"type": "exit", "code": ended}))
 
     async def pump() -> None:
         while True:
             data = await q.get()
-            await ws.send_bytes(data)
+            if isinstance(data, dict):
+                await ws.send_text(json.dumps(data))
+            else:
+                await ws.send_bytes(data)
 
     task = asyncio.create_task(pump())
     try:
@@ -111,4 +121,5 @@ async def term_ws(ws: WebSocket, sid: str):
         pass
     finally:
         s.listeners.discard(q)
+        s.typed.discard(q)
         task.cancel()
