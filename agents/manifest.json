@@ -1,0 +1,114 @@
+{
+  "format": "form-agent-manifest",
+  "version": 1,
+  "app": "formdesign",
+  "mcp": {
+    "tools": [
+      "intake",
+      "list_templates",
+      "get_template",
+      "make_layout",
+      "preview",
+      "get_slots",
+      "set_slots",
+      "get_document",
+      "list_documents",
+      "switch_document",
+      "new_document",
+      "open_document",
+      "save_document",
+      "export_document",
+      "publish_website",
+      "review",
+      "place_word",
+      "run_commands",
+      "find_commands",
+      "undo",
+      "redo",
+      "preflight",
+      "read_pdf",
+      "pdf_page_image",
+      "list_brands",
+      "save_brand",
+      "validate_template",
+      "save_template",
+      "book",
+      "find_change",
+      "library",
+      "outline",
+      "inspect",
+      "look",
+      "use_tool",
+      "show",
+      "list_commands",
+      "run_command"
+    ],
+    "read_only": [
+      "list_templates",
+      "get_template",
+      "preview",
+      "get_slots",
+      "get_document",
+      "list_documents",
+      "find_commands",
+      "preflight",
+      "read_pdf",
+      "pdf_page_image",
+      "list_brands",
+      "validate_template",
+      "outline",
+      "inspect",
+      "look",
+      "list_commands"
+    ],
+    "approval_gated": [
+      "save_document",
+      "export_document",
+      "publish_website",
+      "review",
+      "run_commands",
+      "book",
+      "run_command"
+    ],
+    "transports": [
+      "stdio",
+      "http"
+    ]
+  },
+  "skills": [
+    {
+      "name": "formdesign-harness",
+      "sub_skills": [
+        "brand-stylist",
+        "cli-fallback",
+        "intake-curator",
+        "layout-director",
+        "layout-finisher",
+        "path-artist",
+        "pdf-reader",
+        "publisher",
+        "template-picker"
+      ]
+    },
+    {
+      "name": "formdesign-skillset",
+      "sub_skills": []
+    },
+    {
+      "name": "formdesign-template-creator",
+      "sub_skills": []
+    }
+  ],
+  "dock": {
+    "present": true,
+    "positions": [
+      "bottom"
+    ],
+    "tabs": [
+      "shell",
+      "claude",
+      "chat"
+    ]
+  },
+  "extensions": null
+}

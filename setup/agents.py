@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """./formdesign agents: layout by conversation with Claude Code, Codex and Cursor.
 
-  sync [--check]            write the harness skill's tool reference from the engine's MCP catalogue and mirror the
-                            agent skills from .claude/skills to .agents/skills (Codex, Cursor); --check exits 1 on drift
+  sync [--check]            write the harness skill's tool reference from the engine's MCP catalogue, agents/manifest.json
+                            (what the app offers agents) and mirror the agent skills from .claude/skills to
+                            .agents/skills (Codex, Cursor); --check exits 1 on drift, naming the file
   install [--dry-run] [claude|codex|cursor ...]
                             set the three up for this user account (all by default): the MCP server (./formdesign mcp at
                             this folder's absolute path) and the skills; files are backed up before they change, and
@@ -81,13 +82,30 @@ def templates_reference() -> str:
     return "\n".join(out)
 
 
+APP = "formdesign"
+DOCK = {"present": True, "positions": ["bottom"], "tabs": ["shell", "claude", "chat"]}
+
+
+def manifest() -> str:
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.routers import mcp as server
+    from app.services import agents as gate
+    names = [t["name"] for t in server.TOOLS]
+    transports = [t for t, there in (("stdio", (ROOT / "setup" / "mcp_stdio.py").is_file()), ("http", any(getattr(r, "path", "") == "/mcp" for r in server.router.routes))) if there]
+    skills = [{"name": d.name, "sub_skills": sorted(s.name for s in (d / "sub-skills").iterdir() if s.is_dir()) if (d / "sub-skills").is_dir() else []} for d in sorted(SRC.iterdir()) if d.is_dir()]
+    doc = {"format": "form-agent-manifest", "version": 1, "app": APP,
+           "mcp": {"tools": names, "read_only": [t["name"] for t in server.TOOLS if t["annotations"]["readOnlyHint"]], "approval_gated": [n for n in names if n in gate.GATED_TOOLS], "transports": transports},
+           "skills": skills, "dock": DOCK, "extensions": None}
+    return json.dumps(doc, indent=2) + "\n"
+
+
 def _files(folder: Path) -> dict:
     return {str(p.relative_to(folder)): p.read_bytes() for p in sorted(folder.rglob("*")) if p.is_file()}
 
 
 def sync(check: bool) -> int:
     drift = []
-    for ref, want in ((SRC / "formdesign-harness" / "references" / "tools.md", tools_reference()),
+    for ref, want in ((ROOT / "agents" / "manifest.json", manifest()), (SRC / "formdesign-harness" / "references" / "tools.md", tools_reference()),
                       (SRC / "formdesign-harness" / "references" / "templates.md", templates_reference())):
         if not ref.exists() or ref.read_text(encoding="utf-8") != want:
             drift.append(str(ref.relative_to(ROOT)))

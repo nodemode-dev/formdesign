@@ -7,6 +7,29 @@ Last updated: 2026-11-13 · no engine change in 0.87.0 (version string only; the
 
 ---
 
+## v0.88.0 · agents/manifest.json says what the app offers agents (2026-11-18)
+
+- refers-to: setup/agents.py :: manifest, sync; app/services/agents.py :: GATED_TOOLS, gate_reason; agents/manifest.json; tests/test_agents_manifest.py
+- kind: feat
+- logged: v0.88.0 · 2026-11-18
+
+The family spec (formadaptor, `spec/agent-manifest.schema.json`) reads one small file per app at each released tag. `./formdesign agents sync` now writes `agents/manifest.json` with the other generated files and `sync --check` exits 1 naming it when the committed file differs. Where each field comes from:
+
+- `app`: `formdesign`, the file name of the registry entry in formcompiler `apps/` (constant `APP`; the one value the repository cannot derive).
+- `mcp.tools`: the names in `routers/mcp.py :: TOOLS`, the list `tools/list` returns (38; compared with a running engine on port 29600, same names in the same order). The 41 layout tools that `use_tool` reaches are defined in the Rust core (`tools::GROUPS`) and are arguments of one MCP tool, not MCP tools, so the schema has no place for them and they are not listed.
+- `mcp.read_only`: the tools whose `annotations.readOnlyHint` is true (16).
+- `mcp.approval_gated`: the new `GATED_TOOLS` tuple in `services/agents.py`, the seven tools `gate_reason` can answer for (`publish_website`, `review`, `save_document`, `export_document`, `book`, `run_command`, `run_commands`). `gate_reason` now returns at once for any other name, so the tuple and the gate cannot disagree. These wait for Allow only when the client is set to Ask and only for the cases `gate_reason` names (a publish, a share, an overwrite, a command Undo cannot reverse); a tool in the list can still run without a prompt when its arguments are harmless. Not every non-read-only tool is gated (`set_slots`, `run_commands` on ordinary commands and `undo` run without asking).
+- `mcp.transports`: `stdio` when `setup/mcp_stdio.py` exists, `http` when the router has a `/mcp` route.
+- `skills`: the folders under `.claude/skills` in name order, with the directories under each `sub-skills/` (the harness has nine; the other two none).
+- `dock`: declared as `DOCK` in `setup/agents.py`, not derived. The truth lives in the frontend: `frontend/src/app.ts` builds one `section.fd-dock` (terminal and agent dock) under the canvas, `frontend/src/styles/dock.css` gives it a top border and a row-resize handle, `frontend/src/features/terminal.ts` has the tabs: terminal presets `shell` and `claude` (ids from `backend/app/services/pty.py` presets) and the `chat` tab (`CHAT = 'chat'`). Position: bottom only; there is no setting to move it. Change `DOCK` when the dock changes.
+- `extensions`: `null`. FormDesign has its own plug-in system (`.fdplugin`, `backend/app/services/plugins.py`, manifest without an `api` field), not the form.ext host contract.
+
+Verified by running: sync wrote the file; `python3 -I scripts/manifest.py check agents/manifest.json --app formdesign` in formadaptor accepted it; `sync --check` exited 0; in a copy of the repository under /tmp, renaming one tool in `mcp.py` made `--check` exit 1 naming `agents/manifest.json` (and the regenerated `tools.md`). `tests/test_agents_manifest.py` runs the check and compares the file with `TOOLS`.
+
+Documents that stated other numbers: the wiki said 29 MCP tools (Home and Agents-and-MCP) and eight harness sub-skills; both are hand-written and now say 38 tools (the group table lists all 38) and nine sub-skills (path-artist was missing). README already said 38.
+
+---
+
 ## v0.88.0 · the use_tool description names the real number of layout tools (2026-11-19)
 
 - refers-to: app/routers/mcp.py :: use_tool

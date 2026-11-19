@@ -12,7 +12,7 @@ Version 0.19.0 · Rust layout core (formdesign-core over FormDesign's own layout
 | Intake (Markdown, Word, RTF, text, HTML, CSV, spreadsheets, PDF, images, briefs) | Stable |
 | Templates (71), brand kits, the template checker | Stable |
 | The Make pass (rank, fill, continue, fit, report) | Stable; swept across all 71 templates every release |
-| MCP server (29 tools), stdio bridge, agent installers, CLI | Stable |
+| MCP server (38 tools), stdio bridge, agent installers, CLI | Stable |
 | The editor: canvas, tools, menus, Properties, Character, Paragraph, Make, Slots, Pages, Layers, Links, Swatches, Styles, Preflight, Info | Working; verified in the browser at 0.6.1 |
 | Rulers, Glyphs, Tabs, Table, Book, Story Editor | Working; new at 0.7.0, verified once each |
 | Separations and Overprint Preview, Track Changes, Notes, Conditional Text, Object Style Options | Working; new at 0.8.0, verified once each |

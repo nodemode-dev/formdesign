@@ -15,6 +15,7 @@ POLICIES = ("allow", "ask", "deny")
 APPROVAL_WAIT = 300.0
 KNOWN = {"claude-code": "Claude Code", "claude": "Claude Code", "codex": "Codex", "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor"}
 GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print": "prints", "file.printBooklet": "prints a booklet"}
+GATED_TOOLS = ("publish_website", "review", "save_document", "export_document", "book", "run_command", "run_commands")
 INAPP_HEADER = "x-formdesign-inapp"
 INAPP_CLIENT = "Claude Code in FormDesign"
 
@@ -178,7 +179,7 @@ def inapp(headers) -> bool:
 
 
 def gate_reason(name: str, args: dict) -> str | None:
-    if not isinstance(args, dict):
+    if not isinstance(args, dict) or name not in GATED_TOOLS:
         return None
     if name == "publish_website" and args.get("action", "publish") != "list":
         return "publishes a website" if args.get("action", "publish") == "publish" else "takes a published website down"

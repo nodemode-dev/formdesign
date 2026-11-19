@@ -10,7 +10,7 @@ FormDesign is built to be driven by agents as much as by hand. Claude Code, Code
 | Standard input and output | `./formdesign mcp` (`setup/mcp_stdio.py`), which starts the engine if it is not running | Claude Desktop, Claude Code, Codex, Cursor |
 | Desktop extension | `./formdesign mcpb build DIR` writes `formdesign-VERSION.mcpb` (`setup/mcpb.py`, `setup/mcpb/manifest.json`); it runs `mcp_stdio.py --attach`, which never starts the engine and offers only `ping` until FormDesign answers | Claude Desktop |
 
-The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 29 tools, by group:
+The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_strategy` prompt. The 38 tools (`agents/manifest.json` lists them, with the 16 that only read and the 7 that can wait for the person's approval), by group:
 
 | Group | Tools |
 | --- | --- |
@@ -20,8 +20,11 @@ The catalogue lives in `backend/app/routers/mcp.py` (`TOOLS`), with a `layout_st
 | Any command | `run_commands`, `find_commands`, `undo`, `redo` |
 | PDF sources | `read_pdf`, `pdf_page_image` |
 | Brands and templates | `list_brands`, `save_brand`, `validate_template`, `save_template`, `library` |
+| Review and place | `review`, `place_word` |
+| Look at the layout | `outline`, `inspect`, `look`, `show` |
+| Tools and commands by id | `use_tool` (one of the 41 layout tools by click or drag), `list_commands`, `run_command` |
 
-The fast path for a finished piece is five calls: `intake` (files and a brief into a pack), `make_layout` (the Make pass and its report), `preview` (page images), `set_slots` (replace what is still sample text), `export_document` (PDF, IDML, PNG, HTML, EPUB, a website or `.fdes`). `run_commands` reaches all 270 core commands for anything else; `find_commands` searches them by words.
+The fast path for a finished piece is five calls: `intake` (files and a brief into a pack), `make_layout` (the Make pass and its report), `preview` (page images), `set_slots` (replace what is still sample text), `export_document` (PDF, IDML, PNG, HTML, EPUB, a website or `.fdes`). `run_commands` reaches all 394 core commands for anything else; `find_commands` searches them by words.
 
 For the web, `export_document {format: "web"}` writes a responsive site to a folder or a .zip (options `split`, `layout`, `edition`, `baseUrl`, `title`, `description`, `language`) and returns its pages and `warnings`; `publish_website` publishes the active document's site at `http://127.0.0.1:PORT/sites/SLUG/`, lists published sites and unpublishes them.
 
@@ -42,7 +45,7 @@ Claude Code starts in the agent folder: the `claudeFolder` preference (Preferenc
 
 | Skill | Path | For |
 | --- | --- | --- |
-| `formdesign-harness` | `.claude/skills/formdesign-harness/` | making layouts: a director and eight sub-skills (intake-curator, template-picker, layout-director, layout-finisher, brand-stylist, publisher, pdf-reader, cli-fallback), with the generated `references/tools.md` and `references/templates.md` |
+| `formdesign-harness` | `.claude/skills/formdesign-harness/` | making layouts: a director and nine sub-skills (intake-curator, template-picker, layout-director, layout-finisher, brand-stylist, path-artist, publisher, pdf-reader, cli-fallback), with the generated `references/tools.md` and `references/templates.md` |
 | `formdesign-template-creator` | `.claude/skills/formdesign-template-creator/` | writing and checking new templates |
 | `formdesign-skillset` | `.claude/skills/formdesign-skillset/` | working on FormDesign's own code |
 
