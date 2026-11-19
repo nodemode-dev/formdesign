@@ -7,6 +7,16 @@ Last updated: 2026-11-13 · no engine change in 0.87.0 (version string only; the
 
 ---
 
+## v0.88.0 · the skillset note says 394 engine commands, not 311 (2026-11-18)
+
+- refers-to: .claude/skills/formdesign-skillset/SKILL.md; .agents/skills/formdesign-skillset/SKILL.md
+- kind: docs
+- logged: v0.88.0 · 2026-11-18
+
+Recounted from source: 394 distinct ids in `cmd("id", ...)` registrations under `native/formdesign-engine/src` (a plain grep gives 394 lines and 394 distinct ids; `setup/line_counts.py --commands` prints 394; `backend/app/command_meta.json` has 394 keys). The skillset note is hand-written (sync only mirrors it), so the two places that said 311 were edited in `.claude/skills` and `setup/agents.py sync` mirrored the copy under `.agents/skills`. The wiki's "270 core commands" in Agents-and-MCP was corrected to 394 in the manifest commit.
+
+---
+
 ## v0.88.0 · agents/manifest.json says what the app offers agents (2026-11-18)
 
 - refers-to: setup/agents.py :: manifest, sync; app/services/agents.py :: GATED_TOOLS, gate_reason; agents/manifest.json; tests/test_agents_manifest.py
