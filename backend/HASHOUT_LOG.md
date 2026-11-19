@@ -7,6 +7,14 @@ Last updated: 2026-11-13 · no engine change in 0.87.0 (version string only; the
 
 ---
 
+## v0.88.0 · the use_tool description names the real number of layout tools (2026-11-19)
+
+- refers-to: app/routers/mcp.py :: use_tool
+- kind: fix
+- logged: v0.88.0 · 2026-11-19
+
+The `use_tool` description said 36 layout tools; `tools::GROUPS` in `native/formdesign-engine/src/tools/mod.rs` defines 41 (counted from the `t(...)` entries, 18 non-empty rail groups), and the rail draws all of them. The description now says 41. The skills' copies were not edited by hand: `setup/agents.py sync` regenerated the harness `references/tools.md` from the MCP catalogue and mirrored the skillset note ("36 tools" in the formdesign-engine row, corrected to 41 in `.claude/skills/formdesign-skillset/SKILL.md`) into `.agents/skills`; `sync --check` reports in step. The CHANGELOG line that says 36 is history and stays. The same skillset row still says "311 commands" where the engine registers 394; that number is a separate lead and was left.
+
 ## v0.88.0 · only the app window can change what agents may do, open a terminal or answer an approval (2026-11-19)
 
 - refers-to: app/core/window_key.py; app/core/seal.py; app/main.py; app/routers/system.py (window/key, window/ticket); app/routers/terminal.py; app/routers/agents.py; app/routers/claude.py; app/routers/core_api.py :: ws; app/services/agents.py :: choice, commit; app/services/claude_code.py :: issue, revoke, is_inapp, save_prefs; app/services/pty.py; app/services/claude_chat.py; app/live_cli.py; formdesign_engine.py; .claude/skills/formdesign-template-creator/scripts/check_template.py
