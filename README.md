@@ -111,7 +111,7 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 - **Engine:** FastAPI service with intake, templates, the Make pass, MCP, and the window socket at `/api/ws`.
 - **Window:** vanilla TypeScript and Vite, tiled rendering of the core with overlays, in 26 languages.
 - **Desktop:** Tauri 2 shell with the engine and the core as sidecars.
-- **Tested:** 66 backend test functions (exports, templates, Make, MCP, consent, sockets, boot) and a window test suite.
+- **Tested:** backend tests (exports, templates, Make, MCP, consent, the window key, the saved-choice seal, sockets, boot, the agent manifest) and a window test suite.
 
 ## Download
 
