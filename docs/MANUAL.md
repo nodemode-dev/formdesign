@@ -61,7 +61,7 @@ Good habits: put the article's title as the first heading, a one-line deck as a 
 | --- | --- |
 | Title bar | menus (File, Edit, Layout, Type, Object, Table, View, Window, Help), undo and redo, zoom, Make, the workspace switcher, Preferences |
 | Control bar | the selection's position, size, rotation, fill and stroke; with text, the font, size, leading, tracking and alignment |
-| Tool rail | 37 tools; hold a tool to see its group; single-key shortcuts |
+| Tool rail | 41 tools; hold a tool to see its group; single-key shortcuts |
 | Document tabs | every open document; the dot marks unsaved changes |
 | Canvas | pages on the pasteboard; rulers on the top and left |
 | Left of the dock | Properties, Character, Paragraph; Glyphs and Tabs; Changes, Notes and Conditions; States, Buttons and Transitions |
