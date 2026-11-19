@@ -13,7 +13,7 @@
 // Never call applyTheme() from a component's first render; that is a second
 // paint and the user sees both.
 
-export interface ThemeProfile { label: string; vars: Record<string, string>; light?: boolean }
+export interface ThemeProfile { label: string; vars: Record<string, string>; light?: boolean; oled?: boolean }
 
 export const THEMES: Record<string, ThemeProfile> = {
   // The target look (Phase 21, UI_SPEC.md): surfaces, text and the pasteboard measured from the owner's screenshots;
@@ -33,6 +33,7 @@ export const THEMES: Record<string, ThemeProfile> = {
   'rose': { label: 'Rose Noir', vars: { '--bg-primary': '#170b10', '--bg-secondary': '#211117', '--bg-tertiary': '#301a22', '--border-color': '#4d2b38', '--border-light': '#653a49', '--text-primary': '#f5e7ec', '--text-secondary': '#cfa5b3', '--text-muted': '#966b7b', '--canvas-bg': '#170b10', '--grid-color': 'rgba(255,190,215,0.05)', '--node-shadow': '0 6px 18px rgba(25,0,10,0.55)' } },
   'terminal': { label: 'Terminal Green', vars: { '--bg-primary': '#050d05', '--bg-secondary': '#0a140a', '--bg-tertiary': '#102010', '--border-color': '#1f3d1f', '--border-light': '#2b522b', '--text-primary': '#d8f5d8', '--text-secondary': '#8fce8f', '--text-muted': '#568a56', '--canvas-bg': '#050d05', '--grid-color': 'rgba(120,255,120,0.06)', '--node-shadow': '0 6px 18px rgba(0,10,0,0.6)' } },
   'contrast': { label: 'High Contrast', vars: { '--bg-primary': '#000000', '--bg-secondary': '#0a0a0a', '--bg-tertiary': '#161616', '--border-color': '#555555', '--border-light': '#777777', '--text-primary': '#ffffff', '--text-secondary': '#d8d8d8', '--text-muted': '#9a9a9a', '--canvas-bg': '#000000', '--grid-color': 'rgba(255,255,255,0.10)', '--node-shadow': '0 0 0 1px #666' } },
+  'amoled': { label: 'AMOLED Black', oled: true, vars: { '--bg-primary': '#000000', '--bg-secondary': '#000000', '--bg-tertiary': '#141414', '--bg-node': '#000000', '--border-color': '#262626', '--border-light': '#3a3a3a', '--text-primary': '#ededed', '--text-secondary': '#a6a6a6', '--text-muted': '#858585', '--canvas-bg': '#000000', '--grid-color': '#262626' } },
   'nineties': { label: '90s', light: true, vars: { '--bg-primary': '#c0c0c0', '--bg-secondary': '#d4d0c8', '--bg-tertiary': '#b4b0a8', '--bg-node': '#d4d0c8', '--border-color': '#808080', '--border-light': '#ffffff', '--text-primary': '#000000', '--text-secondary': '#202020', '--text-muted': '#585858', '--canvas-bg': '#008080', '--grid-color': 'rgba(0,0,0,0.12)', '--node-shadow': '2px 2px 0 rgba(0,0,0,0.45)' } },
   'duck': { label: 'Duck', light: true, vars: { '--bg-primary': '#e9e4f7', '--bg-secondary': '#f4f1fc', '--bg-tertiary': '#d9d2ef', '--bg-node': '#f4f1fc', '--border-color': '#c7bde6', '--border-light': '#b3a6dc', '--text-primary': '#2b2540', '--text-secondary': '#4f4770', '--text-muted': '#7a7299', '--canvas-bg': '#e2dcf2', '--grid-color': 'rgba(90,70,150,0.10)', '--node-shadow': '0 5px 14px rgba(70,50,130,0.16)' } },
   'pro-dark': { label: 'Pro Dark', vars: { '--bg-primary': '#1f1f1f', '--bg-secondary': '#2b2b2b', '--bg-tertiary': '#363636', '--border-color': '#4a4a4a', '--border-light': '#818181', '--text-primary': '#ececec', '--text-secondary': '#bdbdbd', '--text-muted': '#a0a0a0', '--canvas-bg': '#181818', '--grid-color': 'rgba(255,255,255,0.05)' } },
@@ -98,6 +99,7 @@ export function applyTheme(choice: ThemeChoice = readChoice()): void {
   const theme = THEMES[choice.theme] || THEMES[DEFAULT_THEME];
   for (const [k, v] of Object.entries(theme.vars)) root.style.setProperty(k, v);
   document.body.classList.toggle('theme-light', !!theme.light);
+  if (theme.oled) { if (!root.hasAttribute('data-oled')) root.setAttribute('data-oled', ''); } else if (root.hasAttribute('data-oled')) root.removeAttribute('data-oled');
   root.style.setProperty('--bg-node', theme.vars['--bg-node'] || theme.vars['--bg-secondary']);
   root.style.setProperty('--shadow-lg', theme.light
     ? '0 4px 14px rgba(96, 90, 70, 0.16)'

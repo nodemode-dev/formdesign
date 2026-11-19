@@ -7,6 +7,20 @@ Last updated: 2026-11-13 · keys on Home stay on Home · the window is revealed 
 
 ---
 
+## v0.88.0 · AMOLED Black, a true-black theme for OLED screens (2026-11-19)
+
+- refers-to: src/ui/themes.ts :: ThemeProfile, THEMES['amoled'], applyTheme; index.html (critical style, OLED table, PROFILES['amoled'], pre-paint script); src/styles/tokens.css (:root[data-oled])
+- kind: feat
+- logged: v0.88.0 · 2026-11-19
+
+A theme with id `amoled`, label "AMOLED Black", for screens where a `#000000` pixel is off. Surfaces (`--bg-primary`, `--bg-secondary`, `--bg-node`, `--canvas-bg`) are `#000000` and panels are told apart by borders alone (`#262626`, `#3a3a3a`); `--bg-tertiary` stays `#141414` because inputs, menus and selected rows use it as their only fill. Text is `#ededed`, `#a6a6a6` and `#858585` (17.9, 8.6 and 5.7 to 1 on black). The pasteboard dot grid is `#262626`. The accent is the person's own and is not touched. The profile has no `--node-shadow`, like the family's other additions of this kind.
+
+The profile is in both tables, `THEMES` and the pre-paint `PROFILES` in `index.html`, because a theme present in one and not the other paints Studio Dark first and then switches. `ThemeProfile` gains `oled?: boolean`; `applyTheme` sets `data-oled` on `html` for an oled profile and removes it for every other, touching the attribute only when it changes, and the pre-paint script sets it beside the theme before first paint (an `OLED` table next to `LIGHT`). The critical inline style gives `body` `#000000` while `data-oled` is set, so the frame before `tokens.css` arrives is black too. The picker lists it with the others: the Preferences swatch grid and theme list are built from `THEMES`.
+
+`tokens.css` hangs the true-black exceptions on `:root[data-oled]`, never on the theme id, so a later OLED profile only needs the flag: `--bg-hover` and `--border-soft` become 10% and 12% white (the usual 6% and 8% are too close to black to read), `--surface-1` (the mix that tints the title bar, rail, tabs and Home boxes) becomes `--bg-primary`, and `--line-0` (black on black) becomes `--border-color`. This app's tokens are the formvis ones, so the names are formvis's; the rail's accent glow rule that FormVis needed was not added here because it was not measured.
+
+Checked in headless Chrome at 1440 by 900 against the Vite dev server and the engine, with 4x CPU throttling, 150 ms latency, 200 KB/s and the cache off: cold load with `amoled` saved, 26 frames from the first commit to the app being ready, every frame `#000000` at the four corners and at the title bar, sidebar (top, middle, foot) and main area of the Home view (the demo posters are document content and keep their colours). NOT checked: a hard reload as a second run, a live switch with node identity and bounding boxes compared, and every surface of the editor view (canvas surround, layers and inspector panels, rulers, review pages), because no document opens here (the layout core is not built). Those surfaces may still mix a tint or a hard-coded near-black and need a measurement with a document open.
+
 ## v0.88.0 · Agent Connect says once, in its own line, that the saved agent permission was reset to Ask (2026-11-19)
 
 - refers-to: src/features/connect.ts :: ConnectPanel (the `.fc-seal` line, render); src/styles/connect.css (.fc-seal); src/ui/i18n/keys.json; src/ui/i18n/tables/*.json
