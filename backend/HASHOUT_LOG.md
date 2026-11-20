@@ -7,6 +7,18 @@ Last updated: 2026-11-19 · only the app window can change what agents may do, o
 
 ---
 
+## after v0.88.0 · the engine starts when it has no output streams (2026-11-19)
+
+- refers-to: formdesign_engine.py (the first lines, before any other import)
+- kind: fix
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**Why.** An engine frozen for Windows without a console starts with `sys.stdin`, `sys.stdout` and `sys.stderr` set to `None`, and the first `print` or log line then ends the engine at start. A tester saw this in another app of the family. The entry script, which is the file `setup/freeze_backend` freezes, now replaces each stream that is `None` with the null device before anything else is imported, as FormWeb's entry does.
+
+**Seen on Linux.** The entry started with all three streams closed (`<&- >&- 2>&-`) on its own port and data folder answered `/api/health` with 200; started normally it answered and printed its log; run with the three streams set to `None` before the file, `--selfcheck` ended with code 0 and `sys.stdout` was the null device. Whether the entry failed before this change was not tried. Not run on Windows, and not as a frozen engine.
+
+---
+
 ## after v0.88.0 · the tests can only find stand-in agent programs (2026-11-19)
 
 - refers-to: tests/conftest.py :: AGENT_STAND_INS, AGENT_CALLS, AGENT_SHELL, only_stand_in_agent_programs, pytest_sessionfinish, pytest_terminal_summary
