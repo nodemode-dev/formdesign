@@ -2,6 +2,14 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.91.0 · 2026-11-20
+
+- On Windows the desktop app's engine ends with the app however the app ends, and it opens no console window of its own. To see the engine in a console window, build it with `FORMDESIGN_ENGINE_WINDOWED=0`.
+- When FormDesign cannot start, its message now shows the last lines the engine wrote, the code it stopped with and the full path of its log. The app waits at most 90 seconds for its engine to say where it serves, and says so when that runs out.
+- On macOS, an engine left over from an earlier start that has ended is no longer mistaken for one still running.
+- The panel's guide says that Codex, Cursor and Antigravity each get a button of their own when they are installed (the shared panel 2.2.1).
+- The three browser demos are rebuilt with the current window.
+
 ## 0.90.0 · 2026-11-19
 
 - The desktop app's engine stops by itself within about two seconds when the app that started it has gone, so no engine is left running after FormDesign is quit or ended.
