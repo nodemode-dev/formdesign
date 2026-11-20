@@ -7,6 +7,20 @@ Last updated: 2026-11-19 · the window takes the engine's key once and sends it 
 
 ---
 
+## after v0.88.0 · the shared dock is module 2.2.0, and Antigravity is its fourth agent tab (2026-11-19)
+
+- refers-to: src/dock/* (16 entries with MANIFEST.json, FormVis ddc893ae, never edited here; agents.ts is new); src/dock-adapter.ts :: KINDS, NAMES, record, formdesignDock (its type, tabs, errors.kind); src/features/agent-dock.ts :: dock, installTerminal; src/features/connect.ts :: INSTALL; tests/window/test_window.py
+- kind: feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**What changed.** The folder is copied whole again, at 2.2.0. The adapter is typed `DockAdapter<'antigravity'>`, lists `antigravity` in `tabs().builtin`, and maps a session whose preset is `antigravity` to that kind; the dock is held as `Dock<'antigravity'>`. `terminal.open` already posts the kind as the preset, and `agentStatus()` already returns what the engine answers, which now has the `antigravity` key. `errors.kind` also answers `notInstalled` for the finder's sentences ("was not found. Looked in", "but does not start"), which the engine now sends in place of "is not installed". Agent Connect's set-up row has a fourth button, Antigravity; its tooltip is the shared one and says skills are written too, which is not so for Antigravity (the MCP server only).
+
+**The window test.** `test_a_core_toast_request_reaches_the_screen` takes the window's key from the page's own claim and sends it with its two posts (its own commit); not run here, no Playwright in this machine's virtualenv.
+
+**Seen.** `tsc --noEmit` clean. Not looked at in a browser: the fourth button, the row in More agents and the tab were not seen in a window; the engine side was seen through the routes (see the backend log).
+
+---
+
 ## after v0.88.0 · the terminal panel is the family's shared dock, module 2.1.0 (2026-11-19)
 
 - refers-to: src/dock/* (15 files, FormVis 8bbdf61b, never edited here); src/dock-adapter.ts :: formdesignDock, oldHeight, consentRequest, channel, record, DOCK_KEY, DOCK_SIZES; src/features/agent-dock.ts :: installTerminal, registerChat, openChat, documentContext; src/styles/dock-tokens.css; src/styles/dock-layout.css; src/styles/columns.css (.fd-app .cv-main, is-panels-hidden); src/styles/shell.css (is-panels-hidden rows; the Home rule removed); index.html (second pre-paint block, stylesheet links); src/app.ts (SHELL); src/features/claude.ts :: ClaudePanel.send; src/features/connect.ts; src/ui/home.ts; src/ui/i18n.ts :: SKIP

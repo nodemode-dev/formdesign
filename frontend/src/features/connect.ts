@@ -11,7 +11,7 @@ interface Act { id: number; at: number; client: string; tool: string; args: stri
 interface Snap { enabled: boolean; seal?: string; sealBroken?: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
 
 const FOLLOW_KEY = 'formdesign.connect.follow';
-const INSTALL: Array<[string, string]> = [['claude', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor']];
+const INSTALL: Array<[string, string]> = [['claude', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor'], ['antigravity', 'Antigravity']];
 const ago = (t: number | null): string => {
   if (!t) return 'not seen';
   const s = Math.max(0, Math.round(Date.now() / 1000 - t));

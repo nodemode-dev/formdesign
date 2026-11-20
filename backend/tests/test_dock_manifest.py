@@ -51,7 +51,7 @@ def test_the_shared_finder_imports_nothing_from_the_app():
 
 def test_the_shared_dock_files_match_their_manifest():
     kept = json.loads((DOCK / "MANIFEST.json").read_text(encoding="utf-8"))
-    assert kept["module"] == "dock" and kept["version"] == "2.1.0"
+    assert kept["module"] == "dock" and re.fullmatch(r"\d+\.\d+\.\d+", kept["version"])
     now = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in DOCK.iterdir() if p.is_file() and p.name != "MANIFEST.json"}
     assert kept["files"] == now
     assert f"Module version {kept['version']}." in (DOCK / "CONTRACT.md").read_text(encoding="utf-8")
@@ -78,7 +78,7 @@ def test_sync_check_passes_on_the_committed_folder_and_the_manifest_names_the_do
     r = subprocess.run([sys.executable, str(REPO / "setup" / "agents.py"), "sync", "--check"], capture_output=True, text=True, cwd=str(REPO))
     assert r.returncode == 0, r.stdout + r.stderr
     doc = json.loads((REPO / "agents" / "manifest.json").read_text(encoding="utf-8"))
-    assert doc["dock"] == {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude", "codex", "cursor"]}
+    assert doc["dock"] == {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude", "codex", "cursor", "antigravity"]}
 
 
 def test_nothing_in_the_shared_folder_imports_from_the_app():
@@ -132,3 +132,41 @@ def test_a_caller_that_hangs_up_withdraws_its_question(monkeypatch):
     assert said[0][0] == "approval"
     assert said[-1] == ("approvals", {"id": said[0][1]["id"], "withdrawn": True, "outcome": "cancelled"})
     assert not A.approvals and A.policy("hang-up-agent") == "ask"
+
+
+def test_an_antigravity_tab_entry_is_written_beside_other_entries_and_removed_only_with_its_own_token(tmp_path):
+    from app.services import agent_programs
+
+    path = tmp_path / ".agents" / "mcp_config.json"
+    path.parent.mkdir()
+    path.write_text(json.dumps({"mcpServers": {"mine": {"serverUrl": "http://x"}}, "other": True}), encoding="utf-8")
+    agent_programs.write_tab_entry(tmp_path, "token-one")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["mcpServers"]["mine"] == {"serverUrl": "http://x"} and data["other"] is True
+    assert data["mcpServers"]["formdesign_tab"]["headers"] == {"x-formdesign-inapp": "token-one"}
+    assert data["mcpServers"]["formdesign_tab"]["serverUrl"].endswith("/mcp")
+    agent_programs.remove_tab_entry(tmp_path, "another-token")
+    assert "formdesign_tab" in json.loads(path.read_text(encoding="utf-8"))["mcpServers"]
+    agent_programs.remove_tab_entry(tmp_path, "token-one")
+    assert json.loads(path.read_text(encoding="utf-8")) == {"mcpServers": {"mine": {"serverUrl": "http://x"}}, "other": True}
+
+
+def test_agents_install_writes_antigravity_its_entry_and_leaves_one_it_did_not_write(tmp_path):
+    agents = _agents()
+    cfg = tmp_path / ".gemini" / "config" / "mcp_config.json"
+    cfg.parent.mkdir(parents=True)
+    cfg.write_text(json.dumps({"mcpServers": {"other": {"command": "x"}}, "keep": 1}), encoding="utf-8")
+    said = []
+    agents.install_antigravity(tmp_path, False, said)
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    assert data["keep"] == 1 and data["mcpServers"]["other"] == {"command": "x"}
+    assert data["mcpServers"]["formdesign"] == {"command": agents.LAUNCH, "args": ["mcp"]}
+    said = []
+    agents.install_antigravity(tmp_path, False, said)
+    assert said[-1] == f"  MCP server formdesign already in {cfg}"
+    data["mcpServers"]["formdesign"] = {"command": "/somewhere/else", "args": ["serve"]}
+    cfg.write_text(json.dumps(data), encoding="utf-8")
+    said = []
+    agents.install_antigravity(tmp_path, False, said)
+    assert said[-1] == f"  {cfg} has a server named formdesign that FormDesign did not write; left alone"
+    assert json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["formdesign"] == {"command": "/somewhere/else", "args": ["serve"]}

@@ -7,6 +7,20 @@ Last updated: 2026-11-19 · only the app window can change what agents may do, o
 
 ---
 
+## after v0.88.0 · Antigravity has a tab of its own and a place in agents install (2026-11-19)
+
+- refers-to: app/services/pty.py :: PRESETS, Terminals.create; app/services/agent_programs.py :: TAB_ENTRY, tab_folder, _servers, _replace, write_tab_entry, remove_tab_entry, launch; app/services/agents.py :: OWN_TABS, install; ../setup/agents.py :: DOCK, _ours, install_antigravity, main; ../agents/manifest.json (written by agents sync); tests/test_dock_manifest.py
+- kind: feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**The tab.** `POST /api/term` takes the preset `antigravity` and starts `agy` through the finder. Antigravity reads its MCP servers from a file in its workspace and has no way to take a header from the environment, so the tab's token has to be in the file. The tab therefore runs in FormDesign's own folder, `AgentTabs/antigravity` under the data folder, never in the folder the person chose for agents: before the start the engine writes the entry `formdesign_tab` (`serverUrl`, and the header with this tab's token) into `.agents/mcp_config.json` there, keeping every other entry and key, mode 0600, replaced whole. When the tab closes the entry is taken out only if it still carries this tab's token, and the token is revoked. The token is also in the tab's environment as for Codex and Cursor. The engine names the tab "Antigravity in FormDesign".
+
+**agents install.** `./formdesign agents install antigravity` (and install with no name) writes the server `formdesign` into `~/.gemini/config/mcp_config.json`, backing the file up first; an entry named `formdesign` that FormDesign did not write is left alone, and so is a file it cannot read. No skills are copied for Antigravity. Agent Connect's install route takes `antigravity`.
+
+**Seen with a stand-in `agy`.** Status `runs`; a tab through `POST /api/term` whose stream showed the stand-in's banner; `formdesign_tab` in the folder's file beside an entry of another name and another top-level key, mode 600; after `DELETE /api/term/{id}` the entry gone and the rest as it was. `agents install antigravity` on a made-up home: the entry written beside another, a second run changed nothing. Not seen: a real `agy` (whether it reads `serverUrl` and `headers` from that file), a restart of an Antigravity tab, two at once, Windows, macOS.
+
+---
+
 ## after v0.88.0 · the engine starts when it has no output streams (2026-11-19)
 
 - refers-to: formdesign_engine.py (the first lines, before any other import)

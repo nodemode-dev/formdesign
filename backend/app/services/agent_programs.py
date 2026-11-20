@@ -5,8 +5,11 @@ import subprocess
 import time
 from pathlib import Path
 
+from app.core import config
 from app.services import agent_lookup, agents, claude_code
 from app.services.pty import PRESETS
+
+TAB_ENTRY = "formdesign_tab"
 
 PROGRAMS = {p["id"]: p for p in PRESETS if p["cmd"]}
 REPORTED = {kind: {"label": p["label"], "install": p["install"]} for kind, p in PROGRAMS.items()} | {
@@ -84,12 +87,62 @@ def connect(kind: str, folder: Path) -> str | None:
     return None
 
 
+def tab_folder(kind: str) -> Path:
+    folder = config.DATA_DIR / "AgentTabs" / kind
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return folder
+
+
+def _servers(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8") or "{}") if path.exists() else {}
+    if not isinstance(data, dict) or not isinstance(data.get("mcpServers", {}), dict):
+        raise OSError(f"{path} is not an MCP servers file FormDesign can read, so it was left alone")
+    return data
+
+
+def _replace(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    part = path.with_name(path.name + f".part-{os.getpid()}")
+    with os.fdopen(os.open(part, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2) + "\n")
+    os.replace(part, path)
+
+
+def write_tab_entry(folder: Path, token: str) -> None:
+    path = folder / ".agents" / "mcp_config.json"
+    data = _servers(path)
+    data.setdefault("mcpServers", {})[TAB_ENTRY] = {"serverUrl": claude_code.engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: token}}
+    _replace(path, data)
+
+
+def remove_tab_entry(folder: Path, token: str) -> None:
+    path = folder / ".agents" / "mcp_config.json"
+    try:
+        data = _servers(path)
+        entry = data.get("mcpServers", {}).get(TAB_ENTRY)
+        if not isinstance(entry, dict) or (entry.get("headers") or {}).get(agents.INAPP_HEADER) != token:
+            return
+        del data["mcpServers"][TAB_ENTRY]
+        _replace(path, data)
+    except (OSError, ValueError):
+        return
+
+
 def launch(kind: str) -> tuple[list[str], dict[str, str], str, str]:
     spec = PROGRAMS[kind]
     found = claude_code.usable(kind)
     if found.state != "runs":
         raise ProgramError(agent_lookup.sentence(found, spec["install"], claude_code.OTHERWISE))
     exe = found.path
+    if kind == "antigravity":
+        token = claude_code.issue_for(kind)
+        try:
+            folder = tab_folder(kind)
+            write_tab_entry(folder, token)
+        except (OSError, ValueError) as exc:
+            claude_code.revoke(token)
+            raise ProgramError(f"{spec['label']} cannot be connected to FormDesign: {exc}") from None
+        return claude_code.wrap([exe]), claude_code.child_env(exe) | {claude_code.TOKEN_VAR: token}, str(folder), token
     try:
         folder = claude_code.workdir()
     except claude_code.ClaudeError as exc:

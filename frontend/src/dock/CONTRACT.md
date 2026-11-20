@@ -1,6 +1,6 @@
 # The dock's engine contract
 
-Module version 2.1.0. This file travels with the shared dock folder and is the same in every app.
+Module version 2.2.0. This file travels with the shared dock folder and is the same in every app.
 
 The dock's frontend never talks to an engine. It calls the functions of `DockAdapter` (adapter.ts), and each app's adapter turns them into its engine's routes, sockets or event streams. This file says what an engine has to provide so that an adapter can deliver each function, in words that do not depend on the engine's language. Paths, header names and transports are each app's own. Where a clause says "the adapter", the engine may do the work instead; where it says "the engine", the adapter cannot make it up.
 
@@ -55,6 +55,18 @@ Nothing an engine provides changed in 2.1.0: the sixteen clauses read as they di
 - **Notes of a question** (`ConsentRequest.notes`, clause 15) are shown one element each, so each is one whole sentence, already in the person's language or matchable by the app's page translator.
 - **Names.** The classes, attributes and tokens an app may rely on are `DOCK_PUBLIC` in adapter.ts and nowhere else; 2.1.0 added the classes `has-ask-line`, `ft-dock-ask`, `ft-dock-ask-own`, `ft-dock-head`, `ft-dock-tab`, `ft-dock-stage`, `ft-icon`, `is-on`, `is-own` and the tokens `--dock-stage-pad`, `--dock-ask-ctl-h`, `--dock-tab-accent`, each token defaulting to the value 2.0 had written.
 - **Type check.** Before a module version is cut, and as a step of every port, the folder is compiled with `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`, `noImplicitOverride` and `noImplicitReturns` on.
+
+## Module 2.2.0: the agent kinds are a list, and Antigravity is the fourth
+
+An adapter written for 2.1.0 compiles and behaves as before: copying the 2.2.0 folder into an app changes nothing there until its adapter names a further kind. Every type an adapter uses is the 2.1.0 type unless the adapter gives the type argument described below. `keyHeaders` became optional.
+
+- **The list.** `agents.ts` holds the kinds the module knows: `claude` (Claude Code), `codex` (Codex), `cursor` (Cursor) and `antigravity` (Antigravity, Google's `agy` program), each with its label, its picture and its two sentences. Claude Code keeps its own button, the ask line and the guide. Every other kind gets a head button and a row in the More agents menu.
+- **Offering a kind.** A kind is shown when the adapter lists its id in `tabs().builtin` and `agentStatus()` reports it; both. So clause 10's answer may hold further keys, `{ claude?, codex?, cursor?, antigravity?, ... }`, and a key the adapter does not also list is ignored. The module then calls `terminal.open('antigravity', { cols, rows })`, and clause 3's `kind` may be that id. An adapter that adds kinds is typed `DockAdapter<'antigravity'>` (a union for several); `Dock`, `DockTabs`, `DockTerminal` and `DockAgentStatus` follow from it.
+- **What the engine needs for a further kind.** Clause 10 for it (found, version, install line, `signedIn` null when it cannot tell, which is always so for Antigravity: it has no status command), clause 4 for its tab, and clause 11: Antigravity reads its MCP servers from a file, so the tab's entry (named `[app]_tab`, with the tab's token) goes into `.agents/mcp_config.json` of the tab's working folder, mode 0600, every other entry kept, and is taken out when the tab closes.
+- **A kind that is not in the list** needs no change in this folder: the adapter lists its id, and its status carries `label`. It is drawn with the terminal picture and the sentences of the other programs.
+- **`DockProgramStatus.note`** is a whole sentence shown in the kind's menu row in place of the module's (where the engine looked for the program, why it does not start, a step that is not a command). The install line still shows under it.
+- **Part names.** Every control of the module carries `data-dock-part`; the attribute and the names are `DOCK_PUBLIC.partAttribute`, `parts` and `partsByKind` (`launch.[kind]`, `menu.launch.[kind]`, `tab.[kind]`). Automation and command layers use these and no class name.
+- **A status line for a tab.** A terminal record may carry `status`, and a channel may give `onStatus(handler)` and call the handler with new text ("reconnecting", an exit code). The text of the tab in front shows in the head between the tabs and the buttons, clipped; an empty string clears it.
 
 ## The manifest
 

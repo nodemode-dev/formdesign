@@ -20,6 +20,7 @@ PRESETS = [
     {"id": "claude", "label": "Claude Code", "cmd": "claude", "install": "npm install -g @anthropic-ai/claude-code"},
     {"id": "codex", "label": "Codex", "cmd": "codex", "install": "npm install -g @openai/codex"},
     {"id": "cursor", "label": "Cursor CLI", "cmd": "cursor-agent", "install": "curl https://cursor.com/install -fsS | bash"},
+    {"id": "antigravity", "label": "Antigravity", "cmd": "agy", "install": "curl -fsSL https://antigravity.google/cli/install.sh | bash"},
 ]
 
 
@@ -205,6 +206,8 @@ class Terminals:
         if token:
             from app.services import claude_code
             s.on_close.append(lambda: claude_code.revoke(token))
+        if preset == "antigravity":
+            s.on_close.append(lambda: agent_programs.remove_tab_entry(Path(cwd), token))
         try:
             self._start(s, asyncio.get_running_loop())
         except OSError as e:

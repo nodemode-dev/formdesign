@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""./formdesign agents: layout by conversation with Claude Code, Codex and Cursor.
+"""./formdesign agents: layout by conversation with Claude Code, Codex, Cursor and Antigravity.
 
   sync [--check]            write the harness skill's tool reference from the engine's MCP catalogue, agents/manifest.json
                             (what the app offers agents) and mirror the agent skills from .claude/skills to
                             .agents/skills (Codex, Cursor); --check exits 1 on drift, naming the file
-  install [--dry-run] [claude|codex|cursor ...]
-                            set the three up for this user account (all by default): the MCP server (./formdesign mcp at
+  install [--dry-run] [claude|codex|cursor|antigravity ...]
+                            set the four up for this user account (all by default): the MCP server (./formdesign mcp at
                             this folder's absolute path) and the skills; files are backed up before they change, and
-                            running it again changes nothing
+                            running it again changes nothing. Antigravity gets the MCP server only, in
+                            ~/.gemini/config/mcp_config.json; a server named formdesign that FormDesign did not write
+                            is left alone
 """
 
 import hashlib
@@ -84,7 +86,7 @@ def templates_reference() -> str:
 
 
 APP = "formdesign"
-DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude", "codex", "cursor"]}
+DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude", "codex", "cursor", "antigravity"]}
 DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
 LOOKUP = ROOT / "backend" / "app" / "services" / "agent_lookup.py"
 LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
@@ -246,6 +248,40 @@ def install_cursor(home: Path, dry: bool, said: list) -> None:
     _copy_skills(home / ".agents" / "skills", dry, said)
 
 
+def _ours(entry: object) -> bool:
+    return isinstance(entry, dict) and entry.get("args") == ["mcp"] and Path(str(entry.get("command", ""))).name == Path(LAUNCH).name
+
+
+def install_antigravity(home: Path, dry: bool, said: list) -> None:
+    said.append("Antigravity:")
+    cfg = home / ".gemini" / "config" / "mcp_config.json"
+    older = home / ".gemini" / "antigravity-cli" / "mcp_config.json"
+    if older.exists() and not cfg.exists():
+        said.append(f"  an older file was seen at {older} and left alone; the documented file is {cfg}")
+    try:
+        data = json.loads(cfg.read_text(encoding="utf-8") or "{}") if cfg.exists() else {}
+    except ValueError:
+        data = None
+    if not isinstance(data, dict) or not isinstance(data.get("mcpServers", {}), dict):
+        said.append(f"  {cfg} is not an MCP servers file FormDesign can read; left alone")
+        return
+    entry = {"command": LAUNCH, "args": ["mcp"]}
+    have = data.get("mcpServers", {}).get("formdesign")
+    if have == entry:
+        said.append(f"  MCP server formdesign already in {cfg}")
+    elif have is not None and not _ours(have):
+        said.append(f"  {cfg} has a server named formdesign that FormDesign did not write; left alone")
+    else:
+        said.append(f"  MCP server formdesign -> {cfg}")
+        if not dry:
+            _backup(cfg, dry)
+            data.setdefault("mcpServers", {})["formdesign"] = entry
+            cfg.parent.mkdir(parents=True, exist_ok=True)
+            part = cfg.with_name(cfg.name + f".part-{os.getpid()}")
+            part.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            os.replace(part, cfg)
+
+
 def main(argv: list[str]) -> int:
     cmd = argv[0] if argv else "install"
     rest = argv[1:]
@@ -253,14 +289,14 @@ def main(argv: list[str]) -> int:
         return sync("--check" in rest)
     if cmd == "install":
         dry = "--dry-run" in rest
-        which = [a for a in rest if not a.startswith("--")] or ["claude", "codex", "cursor"]
-        bad = [w for w in which if w not in ("claude", "codex", "cursor")]
+        which = [a for a in rest if not a.startswith("--")] or ["claude", "codex", "cursor", "antigravity"]
+        bad = [w for w in which if w not in ("claude", "codex", "cursor", "antigravity")]
         if bad:
-            print(f"agents: unknown client {', '.join(bad)} (claude, codex or cursor)", file=sys.stderr)
+            print(f"agents: unknown client {', '.join(bad)} (claude, codex, cursor or antigravity)", file=sys.stderr)
             return 2
         home, said = Path(os.environ.get("HOME", str(Path.home()))), []
         for w in which:
-            {"claude": install_claude, "codex": install_codex, "cursor": install_cursor}[w](home, dry, said)
+            {"claude": install_claude, "codex": install_codex, "cursor": install_cursor, "antigravity": install_antigravity}[w](home, dry, said)
         print(("Would do (dry run):\n" if dry else "") + "\n".join(said))
         if not dry:
             print("\nRestart the clients, then ask one of them to lay something out: it starts the FormDesign engine when it needs it.")

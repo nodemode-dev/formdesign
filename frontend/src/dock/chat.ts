@@ -9,7 +9,7 @@ function toolName(name: string): string {
   return name.replace(/^mcp__/, '').replace(/__/g, ' ');
 }
 
-export type ChatHost = Omit<DockAdapter, 'chat'> & { chat: DockChatEngine };
+export type ChatHost = Omit<DockAdapter<string>, 'chat'> & { chat: DockChatEngine };
 
 export interface DockChatView {
   readonly root: HTMLElement;

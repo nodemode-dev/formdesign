@@ -12,6 +12,7 @@ export const STRINGS = {
   hide: 'Hide Terminal',
   codex: 'Codex',
   cursor: 'Cursor',
+  antigravity: 'Antigravity',
   moreAgents: 'More agents',
   programMissing: '{program} is not on this computer yet: install it with the command below, then sign in once in a terminal.',
   programReady: '{program} is installed. Start it in a new tab.',

@@ -40,7 +40,7 @@ export class Tour {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.end(true); }
   };
 
-  constructor(private readonly a: DockAdapter) {
+  constructor(private readonly a: DockAdapter<string>) {
     this.s = strings(a);
   }
 

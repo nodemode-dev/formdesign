@@ -22,11 +22,11 @@
 .ft-dock-grip:hover { background: var(--dock-accent-line); }
 .ft-dock-head { flex: none; display: flex; align-items: center; gap: var(--dock-space-2); height: var(--dock-head-h); padding: 0 var(--dock-space-2); background: var(--dock-bar-bg); border-bottom: 1px solid var(--dock-divider, var(--dock-border)); min-width: 0; }
 .ft-dock-tabs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.ft-dock-spacer { flex: 1; }
+.ft-dock-spacer { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: end; color: var(--dock-text-muted); font-size: var(--dock-fs-xs); user-select: text; -webkit-user-select: text; }
 .ft-dock-tab { display: inline-flex; align-items: center; flex: none; gap: 6px; height: var(--dock-tab-h, 26px); padding: 0 6px 0 9px; border: 1px solid transparent; border-radius: var(--dock-tab-radius, 6px); background: transparent; color: var(--dock-tab-text, var(--dock-text-dim)); font: inherit; font-size: var(--dock-fs-sm); cursor: pointer; white-space: nowrap; }
 .ft-dock-tab:hover { color: var(--dock-text); }
 .ft-dock-tab.is-on { border-color: var(--dock-tab-border); background: var(--dock-raised); color: var(--dock-text); }
-.ft-dock-tab.is-claude > .ft-icon, .ft-dock-tab.is-chat > .ft-icon, .ft-dock-tab.is-codex > .ft-icon, .ft-dock-tab.is-cursor > .ft-icon { color: var(--dock-tab-accent, var(--dock-accent)); }
+.ft-dock-tab.is-claude > .ft-icon, .ft-dock-tab.is-chat > .ft-icon, .ft-dock-tab.is-codex > .ft-icon, .ft-dock-tab.is-cursor > .ft-icon, .ft-dock-tab.is-program > .ft-icon { color: var(--dock-tab-accent, var(--dock-accent)); }
 .ft-dock-head .ft-dock-ibtn[hidden] { display: none; }
 .ft-dock-menu { position: absolute; top: calc(var(--dock-head-h) + var(--dock-space-1)); right: var(--dock-space-2); z-index: var(--z-raised); display: flex; flex-direction: column; gap: var(--dock-space-2); width: min(340px, calc(100% - 16px)); padding: var(--dock-space-2) var(--dock-space-3); border: 1px solid var(--dock-border); border-radius: var(--dock-radius-md); background: var(--dock-bar-bg); color: var(--dock-text); font-size: var(--dock-fs-sm); user-select: text; -webkit-user-select: text; }
 .ft-dock-menu[hidden], .ft-dock-menu-go[hidden], .ft-dock-menu-cmd[hidden] { display: none; }

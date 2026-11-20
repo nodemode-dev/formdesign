@@ -18,7 +18,7 @@ GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print":
 GATED_TOOLS = ("publish_website", "review", "save_document", "export_document", "book", "run_command", "run_commands")
 INAPP_HEADER = "x-formdesign-inapp"
 INAPP_CLIENT = "Claude Code in FormDesign"
-OWN_TABS = {"claude": INAPP_CLIENT, "codex": "Codex in FormDesign", "cursor": "Cursor in FormDesign"}
+OWN_TABS = {"claude": INAPP_CLIENT, "codex": "Codex in FormDesign", "cursor": "Cursor in FormDesign", "antigravity": "Antigravity in FormDesign"}
 OWN_NAMES = frozenset(OWN_TABS.values())
 ANSWERS = ("deny", "once", "always")
 ALWAYS_SCOPE = "agent"
@@ -301,8 +301,8 @@ def snapshot() -> dict:
 
 
 def install(client: str, dry: bool) -> str:
-    if client not in ("claude", "codex", "cursor"):
-        raise ValueError("client is claude, codex or cursor")
+    if client not in ("claude", "codex", "cursor", "antigravity"):
+        raise ValueError("client is claude, codex, cursor or antigravity")
     script = config.REPO_ROOT / "setup" / "agents.py"
     if config.FROZEN or not script.exists():
         raise ValueError("agent setup runs from a FormDesign source folder: ./formdesign agents install " + client)

@@ -9,7 +9,7 @@ export type { ChatView } from '../dock-adapter';
 
 const TOGGLE = 'ui.terminal.toggle';
 
-let dock: Dock | null = null;
+let dock: Dock<'antigravity'> | null = null;
 let makeChat: (() => ChatView) | null = null;
 
 export function documentContext(ws: Workspace): string {
@@ -36,7 +36,7 @@ export function installTerminal(ws: Workspace): void {
   );
   ws.addMenuItems({ menu: 'Window', items: [TOGGLE, 'ui.terminal.new', 'ui.terminal.claude', 'ui.claude'], at: 'end' });
   ws.addMenuItems({ menu: 'Help', items: ['ui.claude', 'ui.terminal.claude'], at: 'end' });
-  const d: Dock = new Dock(formdesignDock({
+  const d: Dock<'antigravity'> = new Dock(formdesignDock({
     context: () => documentContext(ws),
     chat: () => makeChat?.() ?? null,
     handoff: (session) => void d.claude(undefined, session),

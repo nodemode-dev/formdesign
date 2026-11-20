@@ -127,11 +127,11 @@ async function channel(id: string): Promise<DockChannel> {
 }
 
 interface Session { id: string; preset: string; title?: string; alive?: boolean }
-const KINDS: PtyKind[] = ['shell', 'claude', 'codex', 'cursor'];
-const NAMES: Record<string, string> = { shell: 'Terminal', claude: 'Claude Code', codex: 'Codex', cursor: 'Cursor' };
+const KINDS: Array<PtyKind | 'antigravity'> = ['shell', 'claude', 'codex', 'cursor', 'antigravity'];
+const NAMES: Record<string, string> = { shell: 'Terminal', claude: 'Claude Code', codex: 'Codex', cursor: 'Cursor', antigravity: 'Antigravity' };
 const titles = new Map<string, { base: string; shown: string }>();
 
-function record(s: Session, alive: boolean): DockTerminal {
+function record(s: Session, alive: boolean): DockTerminal<'antigravity'> {
   const kind = KINDS.find((k) => k === s.preset) ?? 'shell';
   const base = s.title || NAMES[kind] || 'Terminal';
   let have = titles.get(s.id);
@@ -155,7 +155,7 @@ export interface DockDeps {
   chordLabel(): string;
 }
 
-export function formdesignDock(deps: DockDeps): DockAdapter {
+export function formdesignDock(deps: DockDeps): DockAdapter<'antigravity'> {
   return {
     words: {
       app: 'FormDesign', noun: 'document', example: 'Check every page for overset text and fix it', start: './formdesign boot',
@@ -179,7 +179,7 @@ export function formdesignDock(deps: DockDeps): DockAdapter {
     passKey: () => false,
     isDockChord: (e) => e.target instanceof Element && e.target.closest('.ft-dock') !== null && deps.isChord(e),
     chordLabel: deps.chordLabel,
-    tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor'] }),
+    tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor', 'antigravity'] }),
     classes: { iconButton: 'cv-icon-btn', button: 'cv-btn', primaryButton: 'cv-btn-primary', input: 'cv-input', select: 'cv-select', note: 'cv-note' },
     t: (_key, english) => english,
     onTheme: (handler) => { document.addEventListener('nm:ui-settings-changed', handler); },
@@ -191,7 +191,7 @@ export function formdesignDock(deps: DockDeps): DockAdapter {
         if (!(err instanceof DockError)) return null;
         if (err.status === 502 || err.status === 503 || err.status === 504) return 'unreachable';
         if (err.status === 403) return 'refused';
-        if (err.status === 400 && /not installed/i.test(err.message)) return 'notInstalled';
+        if (err.status === 400 && /not installed|was not found\. Looked in|but does not start/i.test(err.message)) return 'notInstalled';
         return (err.status === 404 || err.status === 405) && /^(Not Found|Method Not Allowed)$/i.test(err.message) ? 'oldEngine' : null;
       },
     },

@@ -31,7 +31,7 @@ export class Consent {
     if (this.root) return this.root;
     const s = this.s;
     const c = this.a.classes;
-    const root = el<HTMLDialogElement>(`<dialog class="ft-consent" aria-labelledby="ft-consent-title" aria-describedby="ft-consent-what">
+    const root = el<HTMLDialogElement>(`<dialog class="ft-consent" data-dock-part="consent" aria-labelledby="ft-consent-title" aria-describedby="ft-consent-what">
     <div class="ft-consent-box">
       <h2 class="ft-consent-title" id="ft-consent-title"></h2>
       <p class="ft-consent-count ${c.note}"></p>
@@ -39,9 +39,9 @@ export class Consent {
       <p class="ft-consent-notes" hidden></p>
       <p class="ft-consent-notice ${c.note}" role="status" hidden>${s('consentChanged')}</p>
       <div class="ft-consent-buttons">
-        <button type="button" class="${c.button} ft-consent-btn ft-consent-deny" data-choice="deny">${s('consentDeny')}</button>
-        <button type="button" class="${c.button} ft-consent-btn ft-consent-once" data-choice="once">${s('consentOnce')}</button>
-        <button type="button" class="${c.button} ${c.primaryButton} ft-consent-btn ft-consent-always" data-choice="always"></button>
+        <button type="button" class="${c.button} ft-consent-btn ft-consent-deny" data-dock-part="consent.deny" data-choice="deny">${s('consentDeny')}</button>
+        <button type="button" class="${c.button} ft-consent-btn ft-consent-once" data-dock-part="consent.once" data-choice="once">${s('consentOnce')}</button>
+        <button type="button" class="${c.button} ${c.primaryButton} ft-consent-btn ft-consent-always" data-dock-part="consent.always" data-choice="always"></button>
       </div>
     </div>
   </dialog>`);
