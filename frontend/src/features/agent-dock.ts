@@ -59,6 +59,12 @@ export function installTerminal(ws: Workspace): void {
       if (button.getAttribute('aria-pressed') !== String(on)) button.setAttribute('aria-pressed', String(on));
     }
   };
+  let wasOpen = d.isOpen();
+  d.onChange = () => {
+    if (d.isOpen() === wasOpen) return;
+    wasOpen = d.isOpen();
+    window.dispatchEvent(new CustomEvent('fd-dock', { detail: { open: wasOpen } }));
+  };
   d.mount(main);
   ws.addCommands(
     { id: TOGGLE, label: 'Show Terminal', keys: ['Mod+J'], checked: () => d.isOpen(), run: () => d.toggle() },

@@ -7,6 +7,20 @@ Last updated: 2026-11-19 · only the app window can change what agents may do, o
 
 ---
 
+## after v0.88.0 · a question is withdrawn when its caller hangs up; the app's own tabs use an entry named formdesign_tab; agents sync checks the shared dock folder (2026-11-19)
+
+- refers-to: app/services/agents.py :: ask (the `gone` argument); app/routers/mcp.py :: call_tool (`gone`), mcp (passes `request.is_disconnected`); app/services/claude_code.py :: issue, argv; app/services/claude_chat.py :: _argv; app/services/agent_programs.py :: BLOCK, connect; ../setup/agents.py :: DOCK, DOCK_FOLDER, dock_problems, sync; tests/test_dock_manifest.py; tests/test_dock_contract.py; tests/test_window_key.py
+- kind: fix, feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**The hang-up.** `ask` ended with the outcome `cancelled` only when its task was cancelled, and nothing cancels a route's task when the client closes the connection, so a question from a program that had gone stayed in every window for the full 300 seconds. Seen with the window ported to the shared dock: an agent whose HTTP client gave up after 3 seconds left its dialog on screen. `ask` now takes `gone`, an awaitable test the MCP route fills with `request.is_disconnected`; while the question waits it is asked every half second, and a true answer returns False with the outcome `cancelled`, which the existing `approvals` event carries to the windows. Only the wait is watched: a tool that is already running is never stopped by a disconnect, because a half-run command is worse than a finished one nobody reads. Callers with no connection (the Assistant panel, the stdio bridge, tests) pass nothing and wait as before, through the same `wait_for` line.
+
+**The entry name.** The MCP entry the engine writes for its own Claude Code tab, for Chat, and for the Codex and Cursor tabs was `formdesign`, the same name `./formdesign agents install` writes for an outside agent. It is `formdesign_tab` now (`--allowedTools mcp__formdesign_tab`), so a config file that holds both says which is which, and a person's own `formdesign` entry in the agent folder no longer stops the tab from getting its entry: it stays beside it untouched. An entry named `formdesign_tab` that does not carry the token variable is somebody's own and is left alone, as `formdesign` was before. Not done: removing a `formdesign` entry an unreleased 0.88.0 engine wrote into the agent folder with the token variable; it stays as a second entry until the person deletes it.
+
+**The folder check.** `setup/agents.py sync` and `sync --check` call `dock_problems()`: every file in `frontend/src/dock` must hash to what `MANIFEST.json` says, no file may be there that the manifest does not name, and no file may import from outside the folder. Each problem is printed with its path and the exit code is 1. The manifest file is never written here; it arrives with the folder from FormVis. `DOCK` in the agent manifest reads bottom and right, with the five tabs.
+
+Removed lines, for the record: `"--allowedTools", "mcp__formdesign"` (twice), `{"mcpServers": {"formdesign": {...}}}` in `issue`, `[mcp_servers.formdesign]` and `data["mcpServers"]["formdesign"]` in `connect`, `DOCK = {"present": True, "positions": ["bottom"], "tabs": ["shell", "claude", "chat"]}`.
+
 ## v0.88.0 · the engine side of the shared dock's contract, added beside what the window uses today (2026-11-19)
 
 - refers-to: app/services/agents.py :: OWN_TABS, OWN_NAMES, ANSWERS, ALWAYS_SCOPE, own_tab, identify, policy, ask, decide; app/routers/agents.py :: Decision, agents_decide, agents_programs; app/services/agent_programs.py; app/services/claude_code.py :: KINDS, TOKEN_VAR, issue_for, inapp_kind, revoke; app/services/pty.py :: Session.typed, notice, replay, tell, Terminals.create, restart, _exit; app/routers/terminal.py :: term_ws; tests/test_dock_contract.py

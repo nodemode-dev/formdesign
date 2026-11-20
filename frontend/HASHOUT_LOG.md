@@ -7,6 +7,56 @@ Last updated: 2026-11-19 · the window takes the engine's key once and sends it 
 
 ---
 
+## after v0.88.0 · the terminal panel is the family's shared dock, module 2.1.0 (2026-11-19)
+
+- refers-to: src/dock/* (15 files, FormVis 8bbdf61b, never edited here); src/dock-adapter.ts :: formdesignDock, oldHeight, consentRequest, channel, record, DOCK_KEY, DOCK_SIZES; src/features/agent-dock.ts :: installTerminal, registerChat, openChat, documentContext; src/styles/dock-tokens.css; src/styles/dock-layout.css; src/styles/columns.css (.fd-app .cv-main, is-panels-hidden); src/styles/shell.css (is-panels-hidden rows; the Home rule removed); index.html (second pre-paint block, stylesheet links); src/app.ts (SHELL); src/features/claude.ts :: ClaudePanel.send; src/features/connect.ts; src/ui/home.ts; src/ui/i18n.ts :: SKIP
+- kind: feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**What it is.** FormDesign's own terminal dock (`features/terminal.ts`, `styles/dock.css`, the `section.fd-dock` markup in `app.ts`) is replaced by the family's module. The folder is another repository's: it is copied whole and checked by hash (`./formdesign agents sync --check`); a change to it is made in FormVis and arrives as a new version. Everything FormDesign-specific is in the adapter and the two stylesheets.
+
+**Why the key is `formdesign.agentDock`.** `formdesign.dock` is the panel layout's key (`ui/dock.ts`) and `features/workspaces.ts` reads it to tell a first run. The old height lived under `formdesign.dock.height` as a bare number, which the module's JSON reader would have dropped, so `oldHeight` reads it and the module moves it once (with `seen`, since a person who resized the old dock does not need the first-time guide; Show me around is in the dock's menu).
+
+**Layout.** The dock was the last child of `.cv-stage-col`. It is now a child of `.cv-main` with two grid areas: `termb`, a third row under the canvas column (the same box as before: 304, 592, 846 by 280 at 1440 by 900 with default panels), and `term`, a seventh column at the far right from the options bar down to the status bar. Both tracks are `--ft-dock-h` and `--ft-dock-w`, 0px unless `data-ft-dock="open"` on that side, so a closed dock takes no room and the two `is-panels-hidden` rules (both `!important`) had to learn the new tracks or the implicit ones would size to content. The right side is offered from 1200 px of window width and is at most 0.3 of it: a share of the window, not of the canvas column, because the pre-paint script has to compute the same number before any layout exists. Home is a fixed layer over the window: it stops above the dock at the bottom (`bottom: status + --ft-dock-h`) and left of it at the right (`right: --ft-dock-w`); the ResizeObserver that fed `--fd-home-dock` is gone. Full-screen mode sets both tracks to 0 and hides the dock.
+
+**Pre-paint.** The second function in the head script reads the stored state (or the old height), clamps as `placement.ts` does (140 to 0.7 of the height; 320 to 0.3 of the width; right only from 1200 px) and sets `data-ft-dock`, `data-ft-dock-side`, `data-ft-dock-h`, `data-ft-dock-w`, `--ft-dock-size`, `--ft-dock-wsize`. Seen under 4x CPU, 40 ms latency, 200 kB/s, cache off, every animation frame sampled: remembered at the bottom (300), 2,122 frames, the canvas box `304,114,846,458` in every frame it exists; at the right (400), 2,121 frames, `304,114,446,758` in every frame. A side switch with a shell running: two layouts, the same `.ft-term` element, its output kept. AMOLED Black and back: one layout, dock `rgb(17, 17, 17)` to `rgb(0, 0, 0)` and back, terminal text `rgb(247, 247, 247)` to `rgb(237, 237, 237)` and back, same element.
+
+**The chord stays the command's.** `ui.terminal.toggle` owns Mod+J, can be rebound and is a native menu accelerator, so the module must not listen for a fixed key everywhere. `isDockChord` is true only for an event from inside `.ft-dock` whose key is the one `commands.forEvent` maps to `ui.terminal.toggle` now; outside the dock the registry (or the native menu) calls `dock.toggle()`. `passKey` lets nothing else out, as the old dock did (`root.addEventListener('keydown', e => e.stopPropagation())`): Shift+Mod+J and Alt+Mod+J typed inside the dock still go to the terminal. On macOS Mod is Cmd, so Ctrl+J still reaches the shell. The Hide button's tooltip is filled once from the binding at start (the module has no relabel).
+
+**The terminal stream.** `channel(id)` takes a one-time ticket per connection and opens `/api/term/{id}/ws?ticket=...&notices=1`: output arrives as bytes and goes to xterm as bytes, the end of a program is the typed `exit` notice (no more matching on the printed "Restart runs it again" line), input is sent as bytes and resize as `{"resize":[cols,rows]}`. Frames sent before the socket opens wait in a short list. Equal titles are numbered when a tab is first seen ("Terminal", "Terminal 2") and not renumbered when one closes.
+
+**Chat stays FormDesign's pane** (`chat: { pane, ask: 'line' }`): Markdown, the meter, pictures, From Claude Code and the chips are not in the module's Chat. The module's line is Chat's input on the Chat tab and asks Claude Code on every other tab; the adapter adds the document, page and selection in both. `ClaudePanel.send` answers whether it sent, so the line keeps the text when Claude Code is missing or the request fails. A chip fills the line through `.ft-dock-ask input`.
+
+**The question.** The engine's `approval` event becomes the module's request (`offers` from `answers`, `always: 'agent'`, `expires` from `expiresAt`, the arguments as a second note), `approvals` with `withdrawn` removes it, and the waiting list is read again from `GET /api/agents` on every engine connection, so a reload shows a waiting question again. The title is worded for one step ("to run this step in FormDesign") and a note says that only steps like it are asked about, because FormDesign does not ask before ordinary edits. Agent Connect's toast for a waiting question is removed (the dialog says it); the panel still opens on its Waiting for you card and still answers. The stored choice maps to the master switch: off is Blocked, on is Ask; there is no app-wide Allowed here and the module never sets one.
+
+**Sentences.** `t` returns the English and the page translator translates it in place, so a language change still finds the English. The old dock's sentences are kept word for word where they exist in the tables (`empty`, `chatPlaceholder`, `consentChanged`); the module's new sentences show in English until the 25 tables get them as whole sentences. `keys.json` was not regenerated, so no table is half filled. `.ft-notranslate`, `.ft-consent-what` and `.ft-consent-notes` are on the translator's skip list.
+
+**Known differences from the old dock.** The dock remembers being open, so a window that was closed with it open starts a shell at load if no session is running. Tabs that end are struck through by the module's `is-ended`. "Send to Claude" on the Chat tab's send button now reads "Send to Claude Code" on every tab. A missing Claude Code is a note in the dock with the install line and a Copy button, not a toast. New Terminal with the dock closed and sessions running opens the dock without adding a tab. Pixels at 1440 by 900 against the old dock: closed 0; on a shell 8,343 (8,336 inside the dock box: four new head buttons and a strip about 10 px high along the bottom of the terminal area that the old dock left the colour of the page behind it; 7 elsewhere, not explained); on Chat 873, all inside the dock box (the new head buttons).
+
+**Removed code, quoted.** The whole of `src/features/terminal.ts` (448 lines; `git show df6ecd0:frontend/src/features/terminal.ts`) and `src/styles/dock.css` (34 lines). Its parts that had no other record:
+
+```ts
+const HEIGHT_KEY = 'formdesign.dock.height';
+const isToggle = (e: KeyboardEvent): boolean => (isMac ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyJ';
+root.addEventListener('keydown', (e) => { e.stopPropagation(); if (isToggle(e)) { e.preventDefault(); this.hide(); } });
+setClass(this.ws.root, 'is-dock-open', open);
+const ws = new WebSocket(`${proto}://${location.host}/api/term/${encodeURIComponent(tab.id)}/ws?ticket=${encodeURIComponent(ticket)}`);
+ws.onmessage = (e) => { const data = new Uint8Array(e.data as ArrayBuffer); tab.term.write(data); if (!tab.exited && /Restart runs it again\]/.test(new TextDecoder().decode(data.slice(-120)))) { tab.exited = true; this.paintTabs(); } };
+setText(q(t.node, '.fd-dock-tab-title'), same.length > 1 ? `${t.title} ${same.indexOf(t) + 1}` : t.title);
+if (p && !p.available) { toast(`Claude Code is not installed. Install it with: ${p.install ?? 'npm install -g @anthropic-ai/claude-code'}`, 'error'); return; }
+{ id: 'ui.terminal.new', label: 'New Terminal', run: async () => { const made = await d.show(); if (!made) await d.open(); } },
+```
+
+```css
+.fd-dock { position: relative; flex: none; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; height: var(--fd-dock-h, 280px); min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
+.fd-dock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); }
+.fd-term { position: absolute; inset: 6px 4px 0 10px; }
+.cv-app.is-screen-full .fd-dock { display: none; }
+.fd-app.is-dock-open .cv-home { bottom: calc(var(--cv-status-h) + var(--fd-home-dock, 280px)); }
+```
+
+From `ui/home.ts`: `new ResizeObserver(() => setStyleVar(this.root, '--fd-home-dock', `${dock.offsetHeight}px`)).observe(dock);`. From `features/connect.ts`: `if (e.what === 'approval' && e.client !== 'assistant') toast(`${e.client} asks to run ${e.tool}: it ${e.reason}. Approve or decline in Agent Connect.`);`.
+
 ## v0.88.0 · AMOLED Black, a true-black theme for OLED screens (2026-11-19)
 
 - refers-to: src/ui/themes.ts :: ThemeProfile, THEMES['amoled'], applyTheme; index.html (critical style, OLED table, PROFILES['amoled'], pre-paint script); src/styles/tokens.css (:root[data-oled])
