@@ -69,38 +69,48 @@ def _write(d: dict) -> None:
     SETTINGS.write_text(json.dumps(d, indent=1))
 
 
+PATHS = ("claudeBin", "codexBin", "cursorBin", "antigravityBin")
+LATER = ("codexBin", "cursorBin", "antigravityBin")
+
+
 def _loosened(vals: dict) -> bool:
-    return any(v == "allow" for k, v in vals["policies"].items() if k not in OWN_NAMES) or bool(str(vals["claudeBin"] or "").strip())
+    return any(v == "allow" for k, v in vals["policies"].items() if k not in OWN_NAMES) or any(str(vals[k] or "").strip() for k in PATHS)
+
+
+def _sealed(vals: dict) -> dict:
+    return {k: v for k, v in vals.items() if k not in LATER or v}
 
 
 def choice() -> dict:
     from app.services import claude_code
     d = _read()
     policies = d.get("policies") if isinstance(d.get("policies"), dict) else {}
-    vals = {"enabled": bool(d.get("enabled", True)), "policies": dict(policies), "claudeBin": claude_code.raw_prefs().get("claudeBin", "")}
-    state = seal.check(vals, d.get("seal"))
+    raw = claude_code.raw_prefs()
+    vals = {"enabled": bool(d.get("enabled", True)), "policies": dict(policies), **{k: raw.get(k, "") for k in PATHS}}
+    state = seal.check(_sealed(vals), d.get("seal"))
     broken = state in ("unsealed", "mismatch") and _loosened(vals)
     if broken:
-        vals = {"enabled": vals["enabled"], "policies": {k: ("ask" if v == "allow" and k not in OWN_NAMES else v) for k, v in vals["policies"].items()}, "claudeBin": ""}
+        vals = {"enabled": vals["enabled"], "policies": {k: ("ask" if v == "allow" and k not in OWN_NAMES else v) for k, v in vals["policies"].items()}, **{k: "" for k in PATHS}}
     return {**vals, "seal": "broken" if broken else state, "sealBroken": broken}
 
 
-def commit(mutate=None, claude_bin: str | None = None) -> str:
+def commit(mutate=None, bins: dict | None = None) -> dict:
     eff = choice()
     d = _read()
     d["enabled"], d["policies"] = eff["enabled"], dict(eff["policies"])
     if mutate is not None:
         mutate(d)
-    bin_ = eff["claudeBin"] if claude_bin is None else claude_bin
+    paths = {k: str((eff if bins is None else bins).get(k) or "") for k in PATHS}
     from app.services import claude_code
-    if claude_code.raw_prefs().get("claudeBin", "") != bin_ and claude_code.PREFS.exists():
-        claude_code.write_bin(bin_)
+    raw = claude_code.raw_prefs()
+    if any(raw.get(k, "") != paths[k] for k in PATHS) and claude_code.PREFS.exists():
+        claude_code.write_bins(paths)
     d.pop("seal", None)
-    mark = seal.sign({"enabled": bool(d.get("enabled", True)), "policies": d.get("policies") or {}, "claudeBin": bin_})
+    mark = seal.sign(_sealed({"enabled": bool(d.get("enabled", True)), "policies": d.get("policies") or {}, **paths}))
     if mark:
         d["seal"] = mark
     _write(d)
-    return bin_
+    return paths
 
 
 def enabled() -> bool:

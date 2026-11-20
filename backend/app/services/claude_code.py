@@ -19,7 +19,8 @@ TOKEN_DIR = config.DATA_DIR / "AgentTokens"
 TOKENS: dict[str, Path | None] = {}
 KINDS: dict[str, str] = {}
 TOKEN_VAR = "FORMDESIGN_INAPP_TOKEN"
-FIELDS = ("claudeBin", "claudeFolder", "claudeFirstMessage")
+PATHS = ("claudeBin", "codexBin", "cursorBin", "antigravityBin")
+FIELDS = PATHS + ("claudeFolder", "claudeFirstMessage")
 INSTALL = ("Claude Code is not installed: install it with npm install -g @anthropic-ai/claude-code (or from https://claude.com/claude-code), "
            "run claude once in a terminal to sign in, then open it here again")
 NOTE = ("You are Claude Code running inside FormDesign, the page layout and publishing app open on this computer. "
@@ -42,13 +43,15 @@ def raw_prefs() -> dict:
     return {k: str(d.get(k) or "").strip() for k in FIELDS} if isinstance(d, dict) else {}
 
 
-def write_bin(value: str) -> None:
+def write_bins(values: dict) -> None:
     try:
         d = json.loads(PREFS.read_text())
     except (OSError, ValueError):
         d = {}
     d = d if isinstance(d, dict) else {}
-    d["claudeBin"] = value
+    for k in PATHS:
+        if values.get(k) or d.get(k):
+            d[k] = values.get(k, "")
     PREFS.write_text(json.dumps(d, indent=1))
     _cache["value"] = None
 
@@ -56,20 +59,22 @@ def write_bin(value: str) -> None:
 def prefs() -> dict:
     d = raw_prefs()
     if d or PREFS.exists():
-        d["claudeBin"] = agents.choice()["claudeBin"]
+        c = agents.choice()
+        d.update({k: c[k] for k in PATHS})
     return d
 
 
 def save_prefs(body: dict) -> dict:
     d = raw_prefs()
-    d["claudeBin"] = agents.choice()["claudeBin"]
+    c = agents.choice()
+    d.update({k: c[k] for k in PATHS})
     for k in FIELDS:
         if k in body and body[k] is not None and not isinstance(body[k], str):
             raise ClaudeError(f"preference {k} must be text")
     for k in FIELDS:
         if k in body:
             d[k] = (body[k] or "").strip()[:2000]
-    agents.commit(claude_bin=d.get("claudeBin", ""))
+    agents.commit(bins={k: d.get(k, "") for k in PATHS})
     PREFS.parent.mkdir(parents=True, exist_ok=True)
     PREFS.write_text(json.dumps(d, indent=1))
     _cache["value"] = None
@@ -88,7 +93,8 @@ def child_env(path: str | None = None) -> dict[str, str]:
 
 
 def setting(kind: str) -> str | None:
-    return prefs().get("claudeBin", "") if kind == "claude" else None
+    key = (agent_lookup.PROGRAMS.get(kind) or {}).get("setting")
+    return prefs().get(key, "") if key in PATHS else None
 
 
 def located(kind: str, fresh: bool = False) -> agent_lookup.Found:

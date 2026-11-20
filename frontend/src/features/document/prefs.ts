@@ -350,6 +350,9 @@ export class PreferencesDialog {
     const fields: Array<[string, string, string]> = [
       ['claudeFolder', 'Starts in folder', 'Agent folder in your FormDesign data folder'],
       ['claudeBin', 'Claude Code program', 'found automatically'],
+      ['codexBin', 'Codex program', 'found automatically'],
+      ['cursorBin', 'Cursor program', 'found automatically'],
+      ['antigravityBin', 'Antigravity program', 'found automatically'],
       ['claudeFirstMessage', 'Start with message', 'nothing; Claude Code waits for you'],
     ];
     const found = (r: { installed?: boolean; version?: string | null; folder?: string; install?: string; binNote?: string }): string => {
