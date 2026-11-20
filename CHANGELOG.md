@@ -2,6 +2,17 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.89.0 · 2026-11-19
+
+- Google's Antigravity (the program `agy`) is a fourth agent program beside Claude Code, Codex and Cursor. It has a tab of its own in the terminal panel, a button in Agent Connect's set-up row, and `./formdesign agents install antigravity` adds FormDesign to the file Antigravity reads its servers from, keeping everything else in that file.
+- The terminal panel can sit at the right of the window as well as under the canvas, and remembers its place, its size and whether it was open. Codex, Cursor and Antigravity each open in a tab of their own when the program is installed. A first-time guide shows the panel.
+- FormDesign finds the agent programs however it was started: your path in Preferences for Claude Code, the folders the programs install into, and your own shell's settings. When a program is missing or does not start, the message says where FormDesign looked and how to install it.
+- When an agent's risky step needs your answer, a dialog over the window names the agent, the step and what it was given, with Deny, Allow once and Always allow. The question goes away when the agent that asked has gone.
+- Terminals in the panel follow the theme.
+- The Windows app's engine no longer stops at start when it has no console to write to.
+- For people who build on the engine: the tabs FormDesign starts itself use an MCP entry named `formdesign_tab`, apart from the `formdesign` entry an outside agent sets up. One request reports all four agent programs, with whether each runs and where it was found. `./formdesign agents sync --check` also checks the shared terminal panel and the shared program finder against their recorded hashes.
+- Running FormDesign's own tests never starts a real agent program.
+
 ## 0.88.0 · 2026-11-19
 
 - Only FormDesign's own window can change which agents may use FormDesign, open or type into a terminal, install agent setups or answer an approval request. The same changes from anywhere else on your computer are refused.
