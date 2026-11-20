@@ -7,6 +7,16 @@ Last updated: 2026-11-19 · no window change in 0.90.0 (the version string only)
 
 ---
 
+## v0.91.0 · the shared dock is module 2.2.1: its guide names Codex, Cursor and Antigravity (2026-11-20)
+
+- refers-to: src/dock/* (16 entries with MANIFEST.json, FormVis 23b01889, never edited here)
+- kind: chore
+- logged: v0.91.0 · 2026-11-20
+
+Every file of `src/dock/` was copied unchanged from FormVis 23b018892caa30eae5654a2f98611bd81f0f77ad. Three differ from 2.2.0: `strings.ts` (the guide's two sentences for a computer with Claude Code now end "Codex, Cursor and Antigravity each get a button of their own here when they are on this computer."), `CONTRACT.md` (its 2.2.1 section) and `MANIFEST.json`. No adapter change is needed. FormDesign does not translate the module's own sentences (its language tables carry none of them), so there was nothing to translate again. No check here pins the module's version beyond the manifest itself; `tests/test_dock_manifest.py` (12 passed) and `setup/agents.py sync --check` ("in step") were run on the copy.
+
+---
+
 ## after v0.88.0 · the shared dock is module 2.2.0, and Antigravity is its fourth agent tab (2026-11-19)
 
 - refers-to: src/dock/* (16 entries with MANIFEST.json, FormVis ddc893ae, never edited here; agents.ts is new); src/dock-adapter.ts :: KINDS, NAMES, record, formdesignDock (its type, tabs, errors.kind); src/features/agent-dock.ts :: dock, installTerminal; src/features/connect.ts :: INSTALL; tests/window/test_window.py
