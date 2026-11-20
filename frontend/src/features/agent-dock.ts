@@ -29,6 +29,13 @@ export async function openChat(): Promise<void> { await dock?.show('chat'); }
 export function installTerminal(ws: Workspace): void {
   const main = ws.root.querySelector<HTMLElement>('.cv-main');
   if (!main) return;
+  ws.addCommands(
+    { id: TOGGLE, label: 'Show Terminal', keys: ['Mod+J'], checked: () => d.isOpen(), run: () => d.toggle() },
+    { id: 'ui.terminal.new', label: 'New Terminal', run: () => d.newTerminal() },
+    { id: 'ui.terminal.claude', label: 'Claude Code', keys: ['Shift+Mod+J'], run: async () => { if (!d.isOpen()) d.toggle(true, 'none'); await d.claude(); } },
+  );
+  ws.addMenuItems({ menu: 'Window', items: [TOGGLE, 'ui.terminal.new', 'ui.terminal.claude', 'ui.claude'], at: 'end' });
+  ws.addMenuItems({ menu: 'Help', items: ['ui.claude', 'ui.terminal.claude'], at: 'end' });
   const d: Dock = new Dock(formdesignDock({
     context: () => documentContext(ws),
     chat: () => makeChat?.() ?? null,
@@ -66,11 +73,4 @@ export function installTerminal(ws: Workspace): void {
     window.dispatchEvent(new CustomEvent('fd-dock', { detail: { open: wasOpen } }));
   };
   d.mount(main);
-  ws.addCommands(
-    { id: TOGGLE, label: 'Show Terminal', keys: ['Mod+J'], checked: () => d.isOpen(), run: () => d.toggle() },
-    { id: 'ui.terminal.new', label: 'New Terminal', run: () => d.newTerminal() },
-    { id: 'ui.terminal.claude', label: 'Claude Code', keys: ['Shift+Mod+J'], run: async () => { if (!d.isOpen()) d.toggle(true, 'none'); await d.claude(); } },
-  );
-  ws.addMenuItems({ menu: 'Window', items: [TOGGLE, 'ui.terminal.new', 'ui.terminal.claude', 'ui.claude'], at: 'end' });
-  ws.addMenuItems({ menu: 'Help', items: ['ui.claude', 'ui.terminal.claude'], at: 'end' });
 }

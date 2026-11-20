@@ -119,6 +119,6 @@ def test_in_app_token_is_never_on_the_claude_command_line(launch, monkeypatch):
     path = Path(config_of(argv))
     assert path.is_file()
     servers = json.loads(path.read_text(encoding="utf-8"))["mcpServers"]
-    assert servers["formdesign"]["headers"][INAPP_HEADER] == token
+    assert servers["formdesign_tab"]["headers"][INAPP_HEADER] == token
     if os.name != "nt":
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
