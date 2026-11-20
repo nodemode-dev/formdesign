@@ -7,6 +7,16 @@ Last updated: 2026-11-19 · the desktop engine keeps a log, holds a lock on its 
 
 ---
 
+## v0.91.0 · the Windows engine is frozen with no console window unless FORMDESIGN_ENGINE_WINDOWED=0 (2026-11-20)
+
+- refers-to: setup/freeze_backend (`window`); setup/freeze_backend.bat (`WINDOW`)
+- kind: feat
+- logged: v0.91.0 · 2026-11-20
+
+The owner's decision for every app of the family: a Windows engine opens no console window of its own, as FormWeb's does. The freeze scripts had no switch, so both now give PyInstaller `--noconsole` on Windows, and `FORMDESIGN_ENGINE_WINDOWED=0` leaves it out for someone who wants to watch the engine in a console. The Unix script adds it only when `fd_os` says windows; macOS and Linux freezes are unchanged. The entry script already replaces each missing stream with the null device before anything else (the 0.90.0 entry above), so `--selfcheck`, which the scripts run right after freezing, still runs and still answers by its exit code; what it prints goes nowhere in such a build. The shell reads the engine's address and key from pipes it gives the engine, which a windowed build still has. Checked with `bash -n` and by running the switch's two lines under each value; the `.bat` was read, not run. No Windows build has shown it.
+
+---
+
 ## v0.91.0 · a leftover engine that has ended but was not yet collected counts as gone on macOS (2026-11-20)
 
 - refers-to: app/core/startup.py :: finished, gone_by; tests/test_startup.py

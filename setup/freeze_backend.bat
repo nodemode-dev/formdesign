@@ -12,9 +12,11 @@ if not exist "%ROOT%\backend\app\fonts\fonts.json" call "%ROOT%\setup\install_fo
 cd /d "%ROOT%\backend"
 set "DATA=--add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\backend\app\templates\library;templates/library" --add-data "%ROOT%\backend\app\assets;app/assets" --add-data "%ROOT%\backend\app\demos;app/demos""
 if exist "%ROOT%\backend\app\fonts" set "DATA=!DATA! --add-data "%ROOT%\backend\app\fonts;fonts""
+set "WINDOW=--noconsole"
+if "%FORMDESIGN_ENGINE_WINDOWED%"=="0" set "WINDOW="
 if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine
-pyinstaller --noconfirm --clean --onefile --name formdesign-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller !DATA! --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all ezdxf --hidden-import docx --hidden-import openpyxl --hidden-import striprtf "%ROOT%\backend\formdesign_engine.py" || exit /b 1
+pyinstaller --noconfirm --clean --onefile --name formdesign-engine !WINDOW! --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller !DATA! --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all ezdxf --hidden-import docx --hidden-import openpyxl --hidden-import striprtf "%ROOT%\backend\formdesign_engine.py" || exit /b 1
 if not exist "%ROOT%\src-tauri\binaries" mkdir "%ROOT%\src-tauri\binaries"
 copy /y "dist-engine\formdesign-engine.exe" "%ROOT%\src-tauri\binaries\formdesign-engine-%TRIPLE%.exe" >nul
 copy /y "%ROOT%\native\target\release\formdesign-core.exe" "%ROOT%\src-tauri\binaries\formdesign-core-%TRIPLE%.exe" >nul
