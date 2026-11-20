@@ -84,6 +84,44 @@ def test_a_hand_edited_program_is_caught(folder, keychain):
     assert agents.choice()["sealBroken"] is True
 
 
+@pytest.mark.parametrize("kind,key", [("codex", "codexBin"), ("cursor", "cursorBin"), ("antigravity", "antigravityBin")])
+def test_the_other_programs_paths_are_sealed_and_given_to_the_finder_first(folder, keychain, kind, key):
+    from app.services import agent_lookup, agents, claude_code
+
+    claude_code.save_prefs({key: "/bin/sh"})
+    assert agents.choice()["seal"] == "ok"
+    assert claude_code.setting(kind) == "/bin/sh"
+    found = agent_lookup.find(kind, setting=claude_code.setting(kind), env={}, home=str(folder))
+    assert (found.path, found.how) == ("/bin/sh", "setting")
+    assert claude_code.prefs()[key] == "/bin/sh"
+    edit(folder / "claude.json", lambda d: d.__setitem__(key, "/tmp/other-program"))
+    assert claude_code.setting(kind) == ""
+    assert agents.choice()["sealBroken"] is True
+
+
+def test_a_choice_sealed_by_0_91_0_stays_whole_and_keeps_the_claude_code_path(folder, keychain):
+    import hashlib
+    import hmac
+
+    from app.core import seal
+    from app.services import agents, claude_code
+
+    key = seal._load(True)
+    old = {"enabled": True, "policies": {"Codex": "allow"}, "claudeBin": "/bin/sh"}
+    body = json.dumps(old, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    mark = hmac.new(key, body.encode("utf-8"), hashlib.sha256).hexdigest()
+    (folder / "agents.json").write_text(json.dumps({"enabled": True, "policies": {"Codex": "allow"}, "seal": mark}, indent=1), encoding="utf-8")
+    (folder / "claude.json").write_text(json.dumps({"claudeBin": "/bin/sh", "claudeFolder": "/tmp"}, indent=1), encoding="utf-8")
+    c = agents.choice()
+    assert c["seal"] == "ok" and c["sealBroken"] is False
+    assert agents.policy("Codex") == "allow" and claude_code.setting("claude") == "/bin/sh"
+    assert [c[k] for k in ("codexBin", "cursorBin", "antigravityBin")] == ["", "", ""]
+    claude_code.save_prefs({"claudeFirstMessage": "hello"})
+    claude_code.save_prefs({"cursorBin": "/bin/sh"})
+    c = agents.choice()
+    assert c["seal"] == "ok" and agents.policy("Codex") == "allow" and c["claudeBin"] == "/bin/sh" and c["cursorBin"] == "/bin/sh"
+
+
 def test_tightening_by_hand_is_not_a_break(folder, keychain):
     from app.services import agents
 

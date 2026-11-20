@@ -1037,3 +1037,10 @@ Below 900 px the side panel is hidden, so with a document open Esc was the only 
 - logged: v0.87.0 · 2026-11-13
 
 The layout core is native and cannot run in a page, so `demo/`, `demos/event` and `demos/report` replay a recorded session. `demo/record.py` drives the real window against the real engine: it opens the demo from its Home card, opens every panel tab in every workspace, keeps each `/api` request and socket call with its answer, and has the engine draw each spread at 100% and 200% once on black and once on white, which gives a transparent background so the pasteboard follows the page's theme. It replaces absolute paths, the user name and the port, and fails if a path remains. The shim answers `fetch`, image sources and the engine socket from the recording and cuts each 512 px tile the viewport asks for from the recorded spreads; zoom past 200% enlarges the 200% picture. Anything not recorded shows the needs-the-engine message in the window's own toast. The window script, stylesheet, fonts and covers are stored once in `demo/assets`. The recordings go stale when the engine, core, templates or demo material change; the steps to redo them are in `demo/README.md`. The cover plugin matches the exact `demoCover` text and stops the build if it changes. About 8 MB committed.
+
+### features/document/prefs.ts · the program fields for Codex, Cursor and Antigravity
+- refers-to: src/features/document/prefs.ts :: claudeSection; src/ui/i18n/keys.json; src/ui/i18n/tables/*.json
+- kind: rationale
+- logged: v0.92.0 · 2026-11-20
+
+Preferences > Agents had one program field, for Claude Code. `Codex program`, `Cursor program` and `Antigravity program` follow it in the same list, saved through `/claude/prefs` one field at a time like the others and filled from `/claude/status`, which returns every stored field. The three keys were added to `keys.json` by hand (a full `i18n keys` run here also drops and adds rows unrelated to this change, so it was not committed) and to the 23 language tables, each built on that table's own `Claude Code program` row; `es-MX` and `fr-CA` inherit. No native speaker has read them.
