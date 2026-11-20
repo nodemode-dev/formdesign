@@ -65,10 +65,7 @@ class ConnectPanel {
       b.addEventListener('click', () => void this.install(id, label));
       inst.appendChild(b);
     }
-    engine.on('agents', (e: { what: string; client?: string; tool?: string; reason?: string }) => {
-      if (e.what === 'approval' && e.client !== 'assistant') toast(`${e.client} asks to run ${e.tool}: it ${e.reason}. Approve or decline in Agent Connect.`);
-      void this.load();
-    });
+    engine.on('agents', () => void this.load());
     engine.on('changed', (e: ChangeEvent) => this.followChange(e));
     engine.on('open', () => void this.load());
   }

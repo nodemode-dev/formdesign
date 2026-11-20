@@ -74,7 +74,7 @@ export function onLanguage(fn: () => void): () => void {
 }
 
 const ATTRS = ['title', 'aria-label', 'placeholder'] as const;
-const SKIP = 'textarea, input, script, style, canvas, svg text, [contenteditable], [data-no-i18n], .xterm, .fc-said, .fc-text, .fc-tool, .fa-bubble, .fa-targs, .fa-tnote, .fd-md, code, pre';
+const SKIP = 'textarea, input, script, style, canvas, svg text, [contenteditable], [data-no-i18n], .xterm, .ft-notranslate, .ft-consent-what, .ft-consent-notes, .fc-said, .fc-text, .fc-tool, .fa-bubble, .fa-targs, .fa-tnote, .fd-md, code, pre';
 const SKIP_ATTR = SKIP.replace('textarea, input, ', '');
 const textEn = new WeakMap<Text, { en: string; shown: string }>();
 const attrEn = new WeakMap<Element, Map<string, { en: string; shown: string }>>();

@@ -99,6 +99,29 @@
     }
   }
 })();
+(function () {
+  var open = false, side = 'bottom', h = 280, w = 380;
+  try {
+    var raw = localStorage.getItem('formdesign.agentDock');
+    if (raw) {
+      var s = JSON.parse(raw);
+      if (s && typeof s === 'object') { open = s.open === true; if (s.side === 'right') side = 'right'; if (typeof s.h === 'number') h = s.h; if (typeof s.w === 'number') w = s.w; }
+    } else {
+      var old = Number(localStorage.getItem('formdesign.dock.height'));
+      if (old > 0) h = old;
+    }
+  } catch (e) { open = false; }
+  if (side === 'right' && window.innerWidth < 1200) side = 'bottom';
+  h = Math.round(Math.max(140, Math.min(window.innerHeight * 0.7, h)));
+  w = Math.round(Math.max(320, Math.min(window.innerWidth * 0.3, w)));
+  var root = document.documentElement;
+  root.setAttribute('data-ft-dock', open ? 'open' : 'closed');
+  root.setAttribute('data-ft-dock-side', side);
+  root.setAttribute('data-ft-dock-h', String(h));
+  root.setAttribute('data-ft-dock-w', String(w));
+  root.style.setProperty('--ft-dock-size', h + 'px');
+  root.style.setProperty('--ft-dock-wsize', w + 'px');
+})();
   </script>
   <link rel="stylesheet" href="/src/styles/fonts.css">
   <link rel="stylesheet" href="/src/styles/tokens.css">
@@ -107,7 +130,9 @@
   <link rel="stylesheet" href="/src/styles/dialogs.css">
   <link rel="stylesheet" href="/src/styles/formdesign.css">
   <link rel="stylesheet" href="/src/styles/columns.css">
-  <link rel="stylesheet" href="/src/styles/dock.css">
+  <link rel="stylesheet" href="/src/dock/dock.css">
+  <link rel="stylesheet" href="/src/styles/dock-tokens.css">
+  <link rel="stylesheet" href="/src/styles/dock-layout.css">
   <link rel="stylesheet" href="/src/styles/connect.css">
   <link rel="stylesheet" href="/src/styles/assistant.css">
   <link rel="stylesheet" href="/src/styles/claude.css">

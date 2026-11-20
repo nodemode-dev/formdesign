@@ -92,7 +92,6 @@ export class HomeScreen {
     });
     host.appendChild(this.root);
     this.sidePanel();
-    this.followDock();
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.forced && this.docs > 0 && !this.root.hidden) { this.forced = false; this.sync(this.docs); } });
     this.paint();
     onLanguage(() => { this.paint(); this.tplAsked = false; if (this.isShown) this.templates(); });
@@ -204,12 +203,6 @@ export class HomeScreen {
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
     });
-  }
-
-  private followDock(): void {
-    const dock = document.querySelector<HTMLElement>('.fd-dock');
-    if (!dock || typeof ResizeObserver === 'undefined') return;
-    new ResizeObserver(() => setStyleVar(this.root, '--fd-home-dock', `${dock.offsetHeight}px`)).observe(dock);
   }
 }
 

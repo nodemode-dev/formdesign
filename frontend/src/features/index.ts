@@ -25,7 +25,7 @@ import { installShortcuts } from './shortcuts';
 import { installWorkspaces } from './workspaces';
 import { installClipboard } from './clipboard';
 import { installTextOptions } from './text-options';
-import { installTerminal } from './terminal';
+import { installTerminal } from './agent-dock';
 import { installConnect } from './connect';
 import { installColourTools } from './colour-tools';
 import { installAutocorrect } from './autocorrect';

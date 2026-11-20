@@ -63,7 +63,6 @@ body { font-size: var(--fs-12); line-height: 1.35; }
 /* Home: the whole window below the title bar, over the chrome (100) and under the title bar's menus (200); its bottom
    rises above the terminal dock while the dock is open. */
 .cv-home { position: fixed; top: var(--cv-titlebar-h); left: 0; right: 0; bottom: 0; z-index: calc(var(--z-menu) - 1); display: grid; grid-template-columns: var(--fd-home-nav-w, 232px) 6px minmax(0, 1fr); background: var(--group-head); color: var(--text-primary); }
-.fd-app.is-dock-open .cv-home { bottom: calc(var(--cv-status-h) + var(--fd-home-dock, 280px)); }
 .cv-home[hidden] { display: none; }
 .cv-home-nav { display: flex; flex-direction: column; gap: 2px; min-width: 0; min-height: 0; padding: 14px 10px 12px; background: var(--surface-0); overflow-y: auto; }
 .cv-home-brand { display: flex; align-items: center; gap: 10px; flex: none; height: 36px; margin-bottom: 14px; padding: 0 8px; color: var(--text-primary); font-size: 15px; font-weight: 600; letter-spacing: -0.005em; }
@@ -366,7 +365,7 @@ html.is-native-canvas, .is-native-canvas .cv-stage-col { background: transparent
 /* Screen modes and hidden panels (the F and Tab keys). */
 .cv-app.is-panels-hidden .cv-rail, .cv-app.is-panels-hidden .cv-options, .cv-app.is-panels-hidden .cv-props-col,
 .cv-app.is-panels-hidden .cv-resizer, .cv-app.is-panels-hidden .cv-layers { display: none !important; }
-.cv-app.is-panels-hidden .cv-main { grid-template-columns: 0 minmax(0, 1fr) 0 0 0 !important; grid-template-rows: 0 minmax(0, 1fr) !important; }
+.cv-app.is-panels-hidden .cv-main { grid-template-columns: 0 minmax(0, 1fr) 0 0 0 !important; grid-template-rows: 0 minmax(0, 1fr) var(--ft-dock-h, 0px) !important; }
 .cv-app.is-screen-menu .cv-doc-tabs, .cv-app.is-screen-full .cv-doc-tabs { display: none; }
 .cv-app.is-screen-menu, .cv-app.is-screen-full { --cv-status-h: 0px; }
 .cv-app.is-screen-menu .cv-status, .cv-app.is-screen-full .cv-status { display: none; }

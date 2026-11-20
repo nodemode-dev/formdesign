@@ -43,24 +43,6 @@ const SHELL = `<div class="cv-app fd-app">
 <canvas class="cv-ruler cv-ruler-v" hidden></canvas>
 <div class="cv-drop" hidden></div>
 </main>
-<section class="fd-dock" aria-label="Terminal" hidden>
-<div class="fd-dock-rsz" role="separator" aria-orientation="horizontal" aria-label="Resize the terminal"></div>
-<div class="fd-dock-head">
-<div class="fd-dock-tabs" role="tablist" aria-label="Terminals"></div>
-<span class="fd-dock-spacer"></span>
-<button type="button" class="cv-icon-btn fd-dock-new" title="New Terminal" aria-label="New Terminal">${icon('plus', 15)}</button>
-<button type="button" class="cv-icon-btn fd-dock-chat" title="Chat with Claude about your document" aria-label="Chat">${icon('agentChat', 15)}</button>
-<button type="button" class="cv-icon-btn fd-dock-claude" title="Claude Code" aria-label="Claude Code">${icon('agent', 15)}</button>
-<button type="button" class="cv-icon-btn fd-dock-restart" title="Restart this tab" aria-label="Restart this tab" disabled>${icon('refresh', 15)}</button>
-<button type="button" class="cv-icon-btn fd-dock-hide" title="Hide Terminal (${mod}+J); programs keep running" aria-label="Hide Terminal">${icon('close', 15)}</button>
-</div>
-<div class="fd-dock-stage"><p class="fd-dock-empty cv-note">No terminal is open. Start a shell with the plus button, Claude Code with the robot button, or Chat with the speech bubble.</p></div>
-<form class="fd-dock-ask" autocomplete="off">
-<span class="fd-dock-ask-mark">${icon('agent', 15)}</span>
-<input class="cv-input fd-dock-ask-input" type="text" spellcheck="false" placeholder="Ask Claude Code to work on your document" aria-label="Ask Claude Code">
-<button type="submit" class="cv-icon-btn fd-dock-ask-send" title="Send to Claude Code" aria-label="Send to Claude Code">${icon('send', 14)}</button>
-</form>
-</section>
 </div>
 <section class="cv-props-col" aria-label="Properties"></section>
 <div class="cv-resizer" role="separator" aria-orientation="vertical" aria-label="Resize the panels"></div>
