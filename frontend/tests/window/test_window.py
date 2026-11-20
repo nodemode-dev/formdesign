@@ -126,13 +126,15 @@ def test_a_core_toast_request_reaches_the_screen(engine):
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1440, "height": 900})
-        page.goto(engine + "/", wait_until="load", timeout=120_000)
+        with page.expect_response(lambda r: r.url.endswith("/api/window/key"), timeout=120_000) as claimed:
+            page.goto(engine + "/", wait_until="load", timeout=120_000)
+        key = claimed.value.json()["key"]
         page.wait_for_load_state("networkidle", timeout=120_000)
-        page.evaluate("""async (b64) => {
-            const post = async (path, body) => { const r = await fetch('/api' + path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)}); if (!r.ok) throw new Error(path + ' ' + r.status); };
+        page.evaluate("""async ([b64, key]) => {
+            const post = async (path, body) => { const r = await fetch('/api' + path, {method: 'POST', headers: {'content-type': 'application/json', 'x-formdesign-window-key': key}, body: JSON.stringify(body)}); if (!r.ok) throw new Error(path + ' ' + r.status); };
             await post('/documents/new', {preset: 'Letter', pages: 1});
             await post('/core/exec', {command: 'file.place', params: {base64: b64, name: 'broken.png'}});
-        }""", bad)
+        }""", [bad, key])
         page.wait_for_timeout(1500)
         box = page.locator("canvas").first.bounding_box()
         page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
