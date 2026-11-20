@@ -86,6 +86,30 @@ def templates_reference() -> str:
 APP = "formdesign"
 DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude", "codex", "cursor"]}
 DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
+LOOKUP = ROOT / "backend" / "app" / "services" / "agent_lookup.py"
+LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
+
+
+def lookup_problems() -> list[str]:
+    rel = LOOKUP.relative_to(ROOT).as_posix()
+    try:
+        raw = LOOKUP.read_bytes()
+    except OSError:
+        return [f"{rel}: missing (the shared finder for the agent programs)"]
+    said = re.search(rb'^VERSION = "([^"\r\n]+)"\r?$', raw, re.M)
+    version = said.group(1).decode("ascii", "replace") if said else "unknown"
+    if LOOKUP_HASHES.get(version) != hashlib.sha256(raw).hexdigest():
+        return [f"{rel}: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"]
+    return []
+
+
+def lookup():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("formdesign_agent_lookup", LOOKUP)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def dock_problems(folder: Path = DOCK_FOLDER) -> list[str]:
@@ -136,7 +160,7 @@ def sync(check: bool) -> int:
             if not check:
                 shutil.rmtree(dst, ignore_errors=True)
                 shutil.copytree(src, dst)
-    problems = dock_problems()
+    problems = dock_problems() + lookup_problems()
     for line in problems:
         print("agents: " + line)
     if check:
@@ -167,19 +191,22 @@ def _copy_skills(base: Path, dry: bool, said: list) -> None:
 
 def install_claude(home: Path, dry: bool, said: list) -> None:
     said.append("Claude Code:")
-    claude = shutil.which("claude")
+    finder = lookup()
+    found = finder.check(finder.find("claude", override_vars=("FORMDESIGN_CLAUDE_BIN",), home=home))
+    claude = found.path if found.state == "runs" else None
     if claude:
-        have = subprocess.run([claude, "mcp", "get", "formdesign"], capture_output=True, text=True)
+        env = finder.child_env(claude, home=home)
+        have = finder.run([claude, "mcp", "get", "formdesign"], env, 60)
         if have.returncode == 0 and LAUNCH in have.stdout:
             said.append("  MCP server formdesign already set (user scope)")
         else:
             said.append(f"  claude mcp add --scope user formdesign -- {LAUNCH} mcp")
             if not dry:
                 if have.returncode == 0:
-                    subprocess.run([claude, "mcp", "remove", "formdesign", "--scope", "user"], capture_output=True)
-                subprocess.run([claude, "mcp", "add", "--scope", "user", "formdesign", "--", LAUNCH, "mcp"], check=True, capture_output=True)
+                    finder.run([claude, "mcp", "remove", "formdesign", "--scope", "user"], env, 60)
+                finder.run([claude, "mcp", "add", "--scope", "user", "formdesign", "--", LAUNCH, "mcp"], env, 60).check_returncode()
     else:
-        said.append(f"  the claude command is not installed here; once it is, run: claude mcp add --scope user formdesign -- {LAUNCH} mcp")
+        said.append(f"  {finder.sentence(found, finder.install('claude'))} Once it runs: claude mcp add --scope user formdesign -- {LAUNCH} mcp")
     _copy_skills(home / ".claude" / "skills", dry, said)
 
 

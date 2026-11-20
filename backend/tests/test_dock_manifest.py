@@ -19,6 +19,36 @@ def _agents():
     return module
 
 
+LOOKUP = "backend/app/services/agent_lookup.py"
+
+
+def test_the_shared_finder_matches_the_hash_recorded_for_its_version():
+    module = _agents()
+    version = re.search(r'^VERSION = "([^"]+)"$', (REPO / LOOKUP).read_text(encoding="utf-8"), re.M).group(1)
+    assert module.LOOKUP_HASHES[version] == hashlib.sha256((REPO / LOOKUP).read_bytes()).hexdigest()
+    assert module.lookup_problems() == []
+
+
+def test_the_check_names_the_shared_finder_edited_in_place_or_missing(tmp_path, monkeypatch):
+    module = _agents()
+    copy = tmp_path / "agent_lookup.py"
+    shutil.copy(REPO / LOOKUP, copy)
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "LOOKUP", copy)
+    assert module.lookup_problems() == []
+    with open(copy, "a", encoding="utf-8") as f:
+        f.write("\n")
+    version = re.search(r'^VERSION = "([^"]+)"$', (REPO / LOOKUP).read_text(encoding="utf-8"), re.M).group(1)
+    assert module.lookup_problems() == [f"agent_lookup.py: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"]
+    copy.unlink()
+    assert module.lookup_problems() == ["agent_lookup.py: missing (the shared finder for the agent programs)"]
+
+
+def test_the_shared_finder_imports_nothing_from_the_app():
+    imports = set(re.findall(r"^\s*(?:from|import)\s+([\w.]+)", (REPO / LOOKUP).read_text(encoding="utf-8"), re.M))
+    assert imports == {"__future__", "dataclasses", "os", "pathlib", "re", "shutil", "signal", "subprocess", "sys", "threading", "time", "winreg"}
+
+
 def test_the_shared_dock_files_match_their_manifest():
     kept = json.loads((DOCK / "MANIFEST.json").read_text(encoding="utf-8"))
     assert kept["module"] == "dock" and kept["version"] == "2.1.0"

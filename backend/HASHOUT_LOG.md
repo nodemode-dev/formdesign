@@ -7,6 +7,30 @@ Last updated: 2026-11-19 · only the app window can change what agents may do, o
 
 ---
 
+## after v0.88.0 · every look for Claude Code, Codex, Cursor and Antigravity goes through the family's finder, version 1.0.1 (2026-11-19)
+
+- refers-to: app/services/agent_lookup.py (FormVis ddc893ae, never edited here); app/services/claude_code.py :: OVERRIDES, OTHERWISE, child_env, setting, located, usable, said, cli, info, wrap; app/services/agent_programs.py :: REPORTED, find, _claude_signed_in, status, launch; app/services/pty.py :: presets, Terminals.create; app/services/claude_chat.py :: _run, send; ../setup/agents.py :: LOOKUP, LOOKUP_HASHES, lookup_problems, lookup, install_claude, sync; ../setup/claude_launch.py :: main; tests/test_dock_contract.py; tests/test_dock_manifest.py
+- kind: feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**What it is.** `agent_lookup.py` is the family's one file for finding and starting the agent programs. It is copied whole from FormVis and checked by hash: `./formdesign agents sync` (with and without `--check`) exits 1 naming the file when its bytes do not match the hash recorded for the version the file states. `LOOKUP_HASHES` holds 1.0.0 and 1.0.1. The file is never edited here; a change arrives as a new version.
+
+**The order of the look.** The person's path from Preferences (Claude Code only, see below), the development override (`FORMDESIGN_CLAUDE_BIN`, `FORMDESIGN_CODEX_BIN`, `FORMDESIGN_CURSOR_BIN`, `FORMDESIGN_ANTIGRAVITY_BIN`), the engine's PATH, the known install folders, then the PATH of the person's login shell. A found program is asked for `--version` in the environment a tab gets; the answer is `runs`, `broken` or `missing`. `claude_code.CANDIDATES`, `SYSTEM_PATHS`, `login_shell` and `_from_login_shell` are gone, and so are `agent_programs._version` and its own `command -v` call.
+
+**One environment.** `claude_code.child_env(path)` puts the program's own folder first on PATH, then the shell PATH and the known folders, over `base_env()`; Chat, the Claude Code tab and the Codex and Cursor tabs all use it. The Codex and Cursor tabs used `base_env()` before, so they now also drop the `CLAUDE*` variables that are not kept.
+
+**Status.** `GET /api/agents/programs` answers four programs. Each keeps `installed`, `path`, `version`, `signedIn`, `install` and `label` and gains `finding`, `how`, `looked`, `error`, `said` and `title`. `installed` is true only when `--version` ran. Antigravity's `signedIn` stays null: it has no status command. `GET /api/term` takes `available` from the same answer, so it no longer looks on the engine's PATH only.
+
+**Sentences.** A Claude Code tab, Chat and a Codex or Cursor tab that cannot start now answer the finder's sentence (what was looked in, the install command, "or give its path in Preferences"), not the fixed "is not installed" line. `claude_code.INSTALL` is still what Preferences shows.
+
+**Not done.** Only Claude Code has a path in Preferences. `claudeBin` is part of the sealed agent choice (`agents.choice`, `agents.commit`), so adding `codexBin`, `cursorBin` and `antigravityBin` means changing what the seal signs and the Preferences pane; `setting()` answers None for the three, which leaves "your setting" out of their record.
+
+**Tests changed.** Three tests in `tests/test_dock_contract.py` replaced `agent_programs.find`, which the status and the tab start no longer call; they replace `agent_lookup.find` with a record that found nothing, and the refused tab's sentence is the finder's.
+
+**Seen.** Engine from `formdesign_engine.py` on its own port and data folder with stand-in `claude`, `codex`, `cursor-agent` and `agy` first on PATH and a stand-in shell: the status answered four programs as `runs` with `how: path`; a Claude Code, a Codex and a Cursor tab opened through `POST /api/term` and each started its stand-in once. `agents install --dry-run claude` and `./formdesign claude` (through `setup/claude_launch.py`) found and started the stand-in. Not run: Windows, macOS, a real agent program, a frozen engine.
+
+---
+
 ## after v0.88.0 · a question is withdrawn when its caller hangs up; the app's own tabs use an entry named formdesign_tab; agents sync checks the shared dock folder (2026-11-19)
 
 - refers-to: app/services/agents.py :: ask (the `gone` argument); app/routers/mcp.py :: call_tool (`gone`), mcp (passes `request.is_disconnected`); app/services/claude_code.py :: issue, argv; app/services/claude_chat.py :: _argv; app/services/agent_programs.py :: BLOCK, connect; ../setup/agents.py :: DOCK, DOCK_FOLDER, dock_problems, sync; tests/test_dock_manifest.py; tests/test_dock_contract.py; tests/test_window_key.py

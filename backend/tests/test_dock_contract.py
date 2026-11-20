@@ -159,20 +159,23 @@ def test_agent_status_needs_the_window_key(bare):
 
 def test_agent_status_reports_each_program_in_one_answer(client, stand_ins):
     found = client.get("/api/agents/programs?fresh=true").json()
-    assert set(found) == {"claude", "codex", "cursor"}
+    assert set(found) == {"claude", "codex", "cursor", "antigravity"}
+    assert all(found[kind]["finding"] == "runs" and found[kind]["how"] == "path" for kind in ("claude", "codex", "cursor"))
     assert found["claude"] == found["claude"] | {"installed": True, "path": str(stand_ins / "claude"), "version": "2.9.1", "signedIn": True, "install": "npm install -g @anthropic-ai/claude-code"}
     assert found["codex"] == found["codex"] | {"installed": True, "path": str(stand_ins / "codex"), "version": "0.77.0", "signedIn": None, "install": "npm install -g @openai/codex"}
     assert found["cursor"] == found["cursor"] | {"installed": True, "version": "2026.11.01-abc", "signedIn": None, "install": "curl https://cursor.com/install -fsS | bash"}
 
 
 def test_agent_status_gives_the_install_line_for_a_missing_program(client, monkeypatch):
-    from app.services import agent_programs
+    from app.services import agent_lookup, agent_programs, claude_code
 
     monkeypatch.setattr(agent_programs, "_cache", {"at": 0.0, "value": None})
-    monkeypatch.setattr(agent_programs, "find", lambda kind: None)
+    monkeypatch.setattr(claude_code, "_cache", {"at": 0.0, "value": None})
+    monkeypatch.setattr(agent_lookup, "find", lambda program, **more: agent_lookup.Found(program, agent_lookup.PROGRAMS[program]["title"], looked=["nowhere"]))
     found = client.get("/api/agents/programs").json()
-    for kind in ("codex", "cursor"):
+    for kind in ("codex", "cursor", "antigravity"):
         assert found[kind]["installed"] is False and found[kind]["path"] is None and found[kind]["version"] is None
+        assert found[kind]["finding"] == "missing" and found[kind]["said"].endswith(f"Install it with: {found[kind]['install']}, or give its path in Preferences.")
         assert found[kind]["install"] and " is " not in found[kind]["install"]
 
 
@@ -239,11 +242,11 @@ def test_the_tab_entry_keeps_other_servers_and_leaves_an_entry_the_person_wrote(
 
 
 def test_a_missing_program_tab_is_refused_with_its_install_line(client, monkeypatch):
-    from app.services import agent_programs
+    from app.services import agent_lookup
 
-    monkeypatch.setattr(agent_programs, "find", lambda kind: None)
+    monkeypatch.setattr(agent_lookup, "find", lambda program, **more: agent_lookup.Found(program, agent_lookup.PROGRAMS[program]["title"], looked=["nowhere"]))
     res = client.post("/api/term", json={"preset": "codex"})
-    assert res.status_code == 400 and res.json()["detail"] == "Codex is not installed. Install it with: npm install -g @openai/codex"
+    assert res.status_code == 400 and res.json()["detail"] == "Codex was not found. Looked in: nowhere. Install it with: npm install -g @openai/codex, or give its path in Preferences."
 
 
 def test_a_tab_that_ends_tells_a_typed_listener_and_prints_for_a_plain_one():

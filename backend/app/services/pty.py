@@ -41,11 +41,11 @@ def shell_argv() -> list[str]:
 def presets() -> list[dict]:
     out = []
     for p in PRESETS:
-        if p["id"] == "claude":
-            from app.services import claude_code
-            found = claude_code.info()["installed"]
+        if p["cmd"] is None:
+            found = True
         else:
-            found = True if p["cmd"] is None else bool(shutil.which(p["cmd"]))
+            from app.services import agent_programs
+            found = bool(agent_programs.status()[p["id"]]["installed"])
         out.append({"id": p["id"], "label": p["label"], "available": found, "install": None if found else p.get("install")})
     return out
 
@@ -183,7 +183,7 @@ class Terminals:
             from app.services import claude_code
             found = await asyncio.to_thread(claude_code.info, True)
             if not found["installed"]:
-                raise ValueError(claude_code.INSTALL)
+                raise ValueError(found["said"])
             try:
                 cwd = str(claude_code.workdir())
             except claude_code.ClaudeError as exc:
@@ -193,7 +193,7 @@ class Terminals:
             except claude_code.ClaudeError as exc:
                 raise ValueError(str(exc)) from None
             argv = claude_code.argv(found["path"], mcp_file, prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
-            env = claude_code.child_env()
+            env = claude_code.child_env(found["path"])
         else:
             from app.services import agent_programs
             try:

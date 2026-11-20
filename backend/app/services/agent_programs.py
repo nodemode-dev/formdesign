@@ -1,17 +1,16 @@
 import json
 import os
 import re
-import shlex
-import shutil
 import subprocess
 import time
 from pathlib import Path
 
-from app.services import agents, claude_code
+from app.services import agent_lookup, agents, claude_code
 from app.services.pty import PRESETS
 
 PROGRAMS = {p["id"]: p for p in PRESETS if p["cmd"]}
-VERSION = re.compile(r"\d+(?:\.\d+)+[\w.+-]*")
+REPORTED = {kind: {"label": p["label"], "install": p["install"]} for kind, p in PROGRAMS.items()} | {
+    kind: {"label": agent_lookup.PROGRAMS[kind]["title"], "install": agent_lookup.install(kind)} for kind in agent_lookup.PROGRAMS if kind not in PROGRAMS}
 BLOCK = re.compile(r"(?ms)^\[mcp_servers\.formdesign_tab\]\n.*?(?=^\[|\Z)")
 _cache: dict = {"at": 0.0, "value": None}
 
@@ -21,33 +20,14 @@ class ProgramError(ValueError):
 
 
 def find(kind: str) -> str | None:
-    binary = PROGRAMS[kind]["cmd"]
-    found = shutil.which(binary)
-    if found or os.name == "nt":
-        return found
-    try:
-        out = subprocess.run(claude_code.login_shell() + ["-c", f"command -v {shlex.quote(binary)}"], capture_output=True, text=True, timeout=10,
-                             env=claude_code.base_env(), stdin=subprocess.DEVNULL)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    lines = out.stdout.strip().splitlines()[-1:] if out.returncode == 0 else []
-    return lines[0] if lines and os.path.isabs(lines[0]) and os.access(lines[0], os.X_OK) else None
-
-
-def _version(path: str) -> str | None:
-    try:
-        out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=10, env=claude_code.base_env(), stdin=subprocess.DEVNULL)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    m = VERSION.search(out.stdout)
-    return m.group(0) if m else None
+    return claude_code.located(kind).path or None
 
 
 def _claude_signed_in(path: str) -> bool | None:
     if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
         return True
     try:
-        out = subprocess.run([path, "auth", "status"], capture_output=True, text=True, timeout=15, env=claude_code.child_env(), stdin=subprocess.DEVNULL)
+        out = agent_lookup.run([path, "auth", "status"], claude_code.child_env(path), claude_code.CHECK_WAIT)
         data = json.loads(out.stdout)
     except (OSError, subprocess.SubprocessError, ValueError):
         return None
@@ -57,14 +37,11 @@ def _claude_signed_in(path: str) -> bool | None:
 def status(fresh: bool = False) -> dict:
     if not fresh and _cache["value"] is not None and time.time() - _cache["at"] < 60:
         return _cache["value"]
-    found = claude_code.info(fresh)
-    out = {"claude": {"installed": found["installed"], "path": found["path"], "version": found["version"],
-                      "signedIn": _claude_signed_in(found["path"]) if found["installed"] else None,
-                      "install": PROGRAMS["claude"]["install"], "label": PROGRAMS["claude"]["label"]}}
-    for kind in ("codex", "cursor"):
-        path = find(kind)
-        out[kind] = {"installed": path is not None, "path": path, "version": _version(path) if path else None, "signedIn": None,
-                     "install": PROGRAMS[kind]["install"], "label": PROGRAMS[kind]["label"]}
+    out = {}
+    for kind, spec in REPORTED.items():
+        found = claude_code.info(fresh) if kind == "claude" else agent_lookup.answer(claude_code.located(kind, fresh), spec["install"], claude_code.OTHERWISE)
+        out[kind] = found | {"signedIn": _claude_signed_in(found["path"]) if kind == "claude" and found["installed"] else None,
+                             "install": spec["install"], "label": spec["label"], "title": spec["label"]}
     _cache["value"], _cache["at"] = out, time.time()
     return out
 
@@ -109,13 +86,14 @@ def connect(kind: str, folder: Path) -> str | None:
 
 def launch(kind: str) -> tuple[list[str], dict[str, str], str, str]:
     spec = PROGRAMS[kind]
-    exe = find(kind)
-    if not exe:
-        raise ProgramError(f"{spec['label']} is not installed. Install it with: {spec.get('install')}")
+    found = claude_code.usable(kind)
+    if found.state != "runs":
+        raise ProgramError(agent_lookup.sentence(found, spec["install"], claude_code.OTHERWISE))
+    exe = found.path
     try:
         folder = claude_code.workdir()
     except claude_code.ClaudeError as exc:
         raise ProgramError(str(exc).replace("Claude Code", spec["label"], 1)) from None
     connect(kind, folder)
     token = claude_code.issue_for(kind)
-    return claude_code.wrap([exe]), claude_code.base_env() | {claude_code.TOKEN_VAR: token}, str(folder), token
+    return claude_code.wrap([exe]), claude_code.child_env(exe) | {claude_code.TOKEN_VAR: token}, str(folder), token

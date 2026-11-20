@@ -2,18 +2,17 @@ import hmac
 import json
 import os
 import secrets
-import shlex
-import shutil
-import subprocess
 import time
 from pathlib import Path
 
 from app.core import config
-from app.services import agents
+from app.services import agent_lookup, agents
 
-KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CONFIG_DIR"}
-CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
-SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
+KEEP_ENV = agent_lookup.KEEP_ENV
+OVERRIDES = {"claude": ("FORMDESIGN_CLAUDE_BIN",), "codex": ("FORMDESIGN_CODEX_BIN",), "cursor": ("FORMDESIGN_CURSOR_BIN",), "antigravity": ("FORMDESIGN_ANTIGRAVITY_BIN",)}
+OTHERWISE = "give its path in Preferences"
+SHELL_WAIT = 10.0
+CHECK_WAIT = 15.0
 PREFS = config.DATA_DIR / "claude.json"
 OLD_MCP_FILE = config.DATA_DIR / "claude-mcp.json"
 TOKEN_DIR = config.DATA_DIR / "AgentTokens"
@@ -77,11 +76,6 @@ def save_prefs(body: dict) -> dict:
     return d
 
 
-def login_shell() -> list[str]:
-    sh = os.environ.get("SHELL") or shutil.which("bash") or "/bin/sh"
-    return [sh, "-l"] if Path(sh).name in ("bash", "zsh", "fish") else [sh]
-
-
 def base_env() -> dict[str, str]:
     from app.services import pty
     env = pty.environment()
@@ -89,8 +83,26 @@ def base_env() -> dict[str, str]:
     return env
 
 
-def child_env() -> dict[str, str]:
-    return {k: v for k, v in base_env().items() if not k.startswith("CLAUDE") or k in KEEP_ENV}
+def child_env(path: str | None = None) -> dict[str, str]:
+    return agent_lookup.child_env(path, base=base_env(), shell_timeout=SHELL_WAIT)
+
+
+def setting(kind: str) -> str | None:
+    return prefs().get("claudeBin", "") if kind == "claude" else None
+
+
+def located(kind: str, fresh: bool = False) -> agent_lookup.Found:
+    found = agent_lookup.find(kind, setting=setting(kind), override_vars=OVERRIDES.get(kind, ()), shell_timeout=SHELL_WAIT, fresh=fresh)
+    return agent_lookup.check(found, child_env(found.path), CHECK_WAIT, fresh)
+
+
+def usable(kind: str) -> agent_lookup.Found:
+    found = located(kind)
+    return found if found.state == "runs" else located(kind, fresh=True)
+
+
+def said(found: agent_lookup.Found) -> str:
+    return agent_lookup.sentence(found, agent_lookup.install(found.program), OTHERWISE)
 
 
 def engine_url() -> str:
@@ -102,42 +114,15 @@ def _runnable(path: str) -> bool:
     return p.is_file() and os.access(p, os.X_OK)
 
 
-def _from_login_shell() -> str | None:
-    if os.name == "nt":
-        return None
-    try:
-        out = subprocess.run(login_shell() + ["-c", "command -v claude"], capture_output=True, text=True, timeout=10, env=child_env())
-    except (OSError, subprocess.SubprocessError):
-        return None
-    found = out.stdout.strip().splitlines()[-1:] if out.returncode == 0 else []
-    return found[0] if found and os.path.isabs(found[0]) else None
-
-
 def cli() -> str | None:
-    chosen = prefs().get("claudeBin", "")
-    if chosen and _runnable(chosen):
-        return str(Path(chosen).expanduser())
-    found = os.environ.get("FORMDESIGN_CLAUDE_BIN") or shutil.which("claude")
-    if found:
-        return found
-    home = Path.home()
-    for p in [home / c for c in CANDIDATES] + [Path(s) for s in SYSTEM_PATHS]:
-        if p.is_file() and os.access(p, os.X_OK):
-            return str(p)
-    return _from_login_shell()
+    return located("claude").path or None
 
 
 def info(fresh: bool = False) -> dict:
     if not fresh and _cache["value"] is not None and time.time() - _cache["at"] < 60:
         return _cache["value"]
-    path, version = cli(), None
-    if path:
-        try:
-            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=15, env=child_env())
-            version = (out.stdout.strip().split() or [None])[0]
-        except (OSError, subprocess.SubprocessError):
-            path = None
-    _cache["value"], _cache["at"] = {"installed": bool(path), "path": path, "version": version}, time.time()
+    found = located("claude", fresh)
+    _cache["value"], _cache["at"] = agent_lookup.answer(found, agent_lookup.install("claude"), OTHERWISE), time.time()
     return _cache["value"]
 
 
@@ -205,15 +190,7 @@ def workdir() -> Path:
 
 
 def wrap(cmd: list[str]) -> list[str]:
-    if os.name == "nt":
-        return cmd
-    shell = login_shell()
-    name = Path(shell[0]).name
-    if name == "fish":
-        return shell + ["-c", "exec " + " ".join("'" + a.replace("\\", "\\\\").replace("'", "\\'") + "'" for a in cmd)]
-    if name in ("bash", "zsh", "sh", "dash", "ksh"):
-        return shell + ["-c", "exec " + shlex.join(cmd)]
-    return ["/bin/sh", "-l", "-c", "exec " + shlex.join(cmd)]
+    return agent_lookup.start_argv(cmd)
 
 
 def argv(path: str, mcp_file: str, prompt: str | None = None, resume: str | None = None) -> list[str]:

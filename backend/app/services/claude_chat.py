@@ -106,7 +106,7 @@ def _run(text: str, path: str, folder: str) -> None:
     token = ""
     try:
         token, mcp_file = claude_code.issue()
-        proc = subprocess.Popen(_argv(path, text, STATE["session"], mcp_file), cwd=folder, env=claude_code.child_env(), stdin=subprocess.DEVNULL,
+        proc = subprocess.Popen(_argv(path, text, STATE["session"], mcp_file), cwd=folder, env=claude_code.child_env(path), stdin=subprocess.DEVNULL,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, encoding="utf-8", errors="replace")
         STATE["proc"] = proc
 
@@ -208,7 +208,7 @@ def send(text: str, context: str = "", note: str = "") -> dict:
     prompt = f"{shown} ({context.strip()})" if context.strip() else shown
     found = claude_code.info(fresh=True)
     if not found["installed"]:
-        raise claude_code.ClaudeError(claude_code.INSTALL)
+        raise claude_code.ClaudeError(found["said"])
     folder = str(claude_code.workdir())
     _loop = asyncio.get_running_loop()
     with _lock:
