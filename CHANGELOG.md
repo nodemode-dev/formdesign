@@ -2,6 +2,12 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.92.0 · 2026-11-20
+
+- Preferences > Agents has a field for where Codex, Cursor and Antigravity are, beside the one for Claude Code. FormDesign looks there first when it starts the program, and the path is kept with the agent choices, which only the app window can change. A path changed by hand outside the app is not used.
+- Your agent choices and the Claude Code path you set in an earlier version stay as they were after the update.
+- The three browser demos are rebuilt with this version.
+
 ## 0.91.0 · 2026-11-20
 
 - On Windows the desktop app's engine ends with the app however the app ends, and it opens no console window of its own. To see the engine in a console window, build it with `FORMDESIGN_ENGINE_WINDOWED=0`.
