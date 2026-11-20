@@ -209,15 +209,28 @@ def test_the_tab_entry_keeps_other_servers_and_leaves_an_entry_the_person_wrote(
     (shared / ".cursor" / "mcp.json").write_text(json.dumps({"mcpServers": {"other": {"command": "other"}}}), encoding="utf-8")
     assert agent_programs.connect("codex", shared) and agent_programs.connect("cursor", shared)
     toml = (shared / ".codex" / "config.toml").read_text(encoding="utf-8")
-    assert toml.startswith('model = "x"\n\n[mcp_servers.other]\ncommand = "other"\n') and "[mcp_servers.formdesign]" in toml
+    assert toml.startswith('model = "x"\n\n[mcp_servers.other]\ncommand = "other"\n') and "[mcp_servers.formdesign_tab]" in toml and "[mcp_servers.formdesign]" not in toml
     servers = json.loads((shared / ".cursor" / "mcp.json").read_text(encoding="utf-8"))["mcpServers"]
-    assert servers["other"] == {"command": "other"} and "formdesign" in servers
+    assert servers["other"] == {"command": "other"} and "formdesign_tab" in servers and "formdesign" not in servers
+
+    outside = tmp_path / "outside"
+    (outside / ".codex").mkdir(parents=True)
+    (outside / ".cursor").mkdir()
+    outside_toml = '[mcp_servers.formdesign]\ncommand = "./formdesign"\nargs = ["mcp"]\n'
+    outside_entry = {"command": "./formdesign", "args": ["mcp"]}
+    (outside / ".codex" / "config.toml").write_text(outside_toml, encoding="utf-8")
+    (outside / ".cursor" / "mcp.json").write_text(json.dumps({"mcpServers": {"formdesign": outside_entry}}), encoding="utf-8")
+    assert agent_programs.connect("codex", outside) and agent_programs.connect("cursor", outside)
+    toml = (outside / ".codex" / "config.toml").read_text(encoding="utf-8")
+    assert toml.startswith(outside_toml) and "[mcp_servers.formdesign_tab]" in toml
+    servers = json.loads((outside / ".cursor" / "mcp.json").read_text(encoding="utf-8"))["mcpServers"]
+    assert servers["formdesign"] == outside_entry and "formdesign_tab" in servers
 
     own = tmp_path / "own"
     (own / ".codex").mkdir(parents=True)
     (own / ".cursor").mkdir()
-    own_toml = '[mcp_servers.formdesign]\ncommand = "./formdesign"\nargs = ["mcp"]\n'
-    own_json = json.dumps({"mcpServers": {"formdesign": {"command": "./formdesign", "args": ["mcp"]}}})
+    own_toml = '[mcp_servers.formdesign_tab]\ncommand = "./formdesign"\nargs = ["mcp"]\n'
+    own_json = json.dumps({"mcpServers": {"formdesign_tab": {"command": "./formdesign", "args": ["mcp"]}}})
     (own / ".codex" / "config.toml").write_text(own_toml, encoding="utf-8")
     (own / ".cursor" / "mcp.json").write_text(own_json, encoding="utf-8")
     assert agent_programs.connect("codex", own) is None and agent_programs.connect("cursor", own) is None

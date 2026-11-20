@@ -144,7 +144,7 @@ def info(fresh: bool = False) -> dict:
 def issue() -> tuple[str, str]:
     token = secrets.token_urlsafe(32)
     path = TOKEN_DIR / f"mcp-{secrets.token_hex(8)}.json"
-    body = json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: token}}}})
+    body = json.dumps({"mcpServers": {"formdesign_tab": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: token}}}})
     try:
         TOKEN_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
         with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
@@ -217,7 +217,7 @@ def wrap(cmd: list[str]) -> list[str]:
 
 
 def argv(path: str, mcp_file: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE]
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdesign_tab", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:

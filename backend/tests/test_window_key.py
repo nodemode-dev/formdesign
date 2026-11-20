@@ -131,7 +131,7 @@ def test_inapp_token_lives_in_a_private_file_until_revoked():
     assert claude_code.is_inapp(token)
     if os.name != "nt":
         assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
-    assert json.loads(open(path, encoding="utf-8").read())["mcpServers"]["formdesign"]["headers"]["x-formdesign-inapp"] == token
+    assert json.loads(open(path, encoding="utf-8").read())["mcpServers"]["formdesign_tab"]["headers"]["x-formdesign-inapp"] == token
     claude_code.revoke(token)
     assert not os.path.exists(path)
     assert not claude_code.is_inapp(token)

@@ -102,12 +102,15 @@
   "dock": {
     "present": true,
     "positions": [
-      "bottom"
+      "bottom",
+      "right"
     ],
     "tabs": [
-      "shell",
+      "chat",
+      "terminal",
       "claude",
-      "chat"
+      "codex",
+      "cursor"
     ]
   },
   "extensions": null

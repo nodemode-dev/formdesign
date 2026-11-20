@@ -12,7 +12,7 @@ from app.services.pty import PRESETS
 
 PROGRAMS = {p["id"]: p for p in PRESETS if p["cmd"]}
 VERSION = re.compile(r"\d+(?:\.\d+)+[\w.+-]*")
-BLOCK = re.compile(r"(?ms)^\[mcp_servers\.formdesign\]\n.*?(?=^\[|\Z)")
+BLOCK = re.compile(r"(?ms)^\[mcp_servers\.formdesign_tab\]\n.*?(?=^\[|\Z)")
 _cache: dict = {"at": 0.0, "value": None}
 
 
@@ -85,16 +85,16 @@ def connect(kind: str, folder: Path) -> str | None:
             if not isinstance(data, dict) or not isinstance(data.get("mcpServers", {}), dict):
                 return None
             entry = {"url": url, "headers": {agents.INAPP_HEADER: "${env:" + claude_code.TOKEN_VAR + "}"}}
-            had = data.get("mcpServers", {}).get("formdesign")
+            had = data.get("mcpServers", {}).get("formdesign_tab")
             if had is not None and claude_code.TOKEN_VAR not in json.dumps(had):
                 return None
             if had != entry:
-                data.setdefault("mcpServers", {})["formdesign"] = entry
+                data.setdefault("mcpServers", {})["formdesign_tab"] = entry
                 _write(path, json.dumps(data, indent=2) + "\n")
             return str(path)
         if kind == "codex":
             path = folder / ".codex" / "config.toml"
-            block = f"[mcp_servers.formdesign]\nurl = {json.dumps(url)}\nenv_http_headers = {{ {json.dumps(agents.INAPP_HEADER)} = {json.dumps(claude_code.TOKEN_VAR)} }}\n"
+            block = f"[mcp_servers.formdesign_tab]\nurl ={json.dumps(url)}\nenv_http_headers = {{ {json.dumps(agents.INAPP_HEADER)} = {json.dumps(claude_code.TOKEN_VAR)} }}\n"
             text = path.read_text(encoding="utf-8") if path.exists() else ""
             found = BLOCK.search(text)
             if found and claude_code.TOKEN_VAR not in found.group(0):
