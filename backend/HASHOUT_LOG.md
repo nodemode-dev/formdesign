@@ -7,6 +7,20 @@ Last updated: 2026-11-19 · only the app window can change what agents may do, o
 
 ---
 
+## after v0.88.0 · the tests can only find stand-in agent programs (2026-11-19)
+
+- refers-to: tests/conftest.py :: AGENT_STAND_INS, AGENT_CALLS, AGENT_SHELL, only_stand_in_agent_programs, pytest_sessionfinish, pytest_terminal_summary
+- kind: test
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**Why.** A plain run of the suite on a machine with Claude Code installed started the real `claude` (four times on the build machine: `--version` and `auth status` from the status route). A test must never start a real agent program.
+
+**How.** Before the app is imported, `conftest.py` writes stand-ins named `claude`, `codex`, `cursor-agent`, `agent` and `agy` into the run's sandbox, sets PATH to that folder and the four system folders, sets SHELL to a stand-in shell that runs a `-c` script with `/bin/sh` and reads no profile, and removes `NPM_CONFIG_PREFIX`, `npm_config_prefix`, `PNPM_HOME`, `VOLTA_HOME`, `BUN_INSTALL` and `NVM_SYMLINK`, which the finder reads for install folders. HOME was already the sandbox. The autouse fixture empties the finder's `system_folders`, so `/usr/local/bin` and `/opt/homebrew/bin` are not looked in either. Each stand-in writes its start to a file in the sandbox; the run ends with one line, "agent program stand-ins started N time(s): ...". Not on Windows (the stand-ins are shell scripts).
+
+**Seen.** The whole suite with a second folder of logging decoys first on the outer PATH and a decoy SHELL: the decoys' own log stayed empty (0 lines); the summary line named 7 stand-in starts (`--version` of the four programs and `claude auth status`). 201 passed, 95 failed, the 95 all need the layout core, the same files as before.
+
+---
+
 ## after v0.88.0 · every look for Claude Code, Codex, Cursor and Antigravity goes through the family's finder, version 1.0.1 (2026-11-19)
 
 - refers-to: app/services/agent_lookup.py (FormVis ddc893ae, never edited here); app/services/claude_code.py :: OVERRIDES, OTHERWISE, child_env, setting, located, usable, said, cli, info, wrap; app/services/agent_programs.py :: REPORTED, find, _claude_signed_in, status, launch; app/services/pty.py :: presets, Terminals.create; app/services/claude_chat.py :: _run, send; ../setup/agents.py :: LOOKUP, LOOKUP_HASHES, lookup_problems, lookup, install_claude, sync; ../setup/claude_launch.py :: main; tests/test_dock_contract.py; tests/test_dock_manifest.py
