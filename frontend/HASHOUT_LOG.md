@@ -7,6 +7,16 @@ Last updated: 2026-11-19 · no window change in 0.90.0 (the version string only)
 
 ---
 
+## v0.91.0 · the three browser demos are rebuilt from this tip (2026-11-20)
+
+- refers-to: ../demo/index.html, ../demo/assets/demo.js, ../demo/assets/demo.css, ../demos/event/index.html, ../demos/report/index.html
+- kind: chore
+- logged: v0.91.0 · 2026-11-20
+
+`npm run demo` was run on this tip, so the pages carry the window of now: the AMOLED Black theme in the pre-paint boot, the shared dock 2.2.1 with its four agent tabs and the guide that names them. The recordings (`assets/session.js`) are unchanged; they cannot be remade without the engine's recording run, so the status bar still shows the core version that was recorded. Each page was opened once from `file://` in headless Chromium (Playwright 1.63.0): each drew (`app-ready`, six canvases) and its console held no error.
+
+---
+
 ## v0.91.0 · the shared dock is module 2.2.1: its guide names Codex, Cursor and Antigravity (2026-11-20)
 
 - refers-to: src/dock/* (16 entries with MANIFEST.json, FormVis 23b01889, never edited here)
