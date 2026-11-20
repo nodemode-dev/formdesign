@@ -1,6 +1,6 @@
 # The dock's engine contract
 
-Module version 2.2.0. This file travels with the shared dock folder and is the same in every app.
+Module version 2.2.1. This file travels with the shared dock folder and is the same in every app.
 
 The dock's frontend never talks to an engine. It calls the functions of `DockAdapter` (adapter.ts), and each app's adapter turns them into its engine's routes, sockets or event streams. This file says what an engine has to provide so that an adapter can deliver each function, in words that do not depend on the engine's language. Paths, header names and transports are each app's own. Where a clause says "the adapter", the engine may do the work instead; where it says "the engine", the adapter cannot make it up.
 
@@ -67,6 +67,10 @@ An adapter written for 2.1.0 compiles and behaves as before: copying the 2.2.0 f
 - **`DockProgramStatus.note`** is a whole sentence shown in the kind's menu row in place of the module's (where the engine looked for the program, why it does not start, a step that is not a command). The install line still shows under it.
 - **Part names.** Every control of the module carries `data-dock-part`; the attribute and the names are `DOCK_PUBLIC.partAttribute`, `parts` and `partsByKind` (`launch.[kind]`, `menu.launch.[kind]`, `tab.[kind]`). Automation and command layers use these and no class name.
 - **A status line for a tab.** A terminal record may carry `status`, and a channel may give `onStatus(handler)` and call the handler with new text ("reconnecting", an exit code). The text of the tab in front shows in the head between the tabs and the buttons, clipped; an empty string clears it.
+
+## Module 2.2.1
+
+The guide's two sentences for a computer that has Claude Code (`tourInstalledBody` and `tourReadyBody`) now end by naming the other three programs: "Codex, Cursor and Antigravity each get a button of their own here when they are on this computer." Nothing else in the folder changed, and an adapter written for 2.2.0 needs no change; an app that translates the module's sentences translates these two again.
 
 ## The manifest
 

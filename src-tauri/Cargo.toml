@@ -1,6 +1,6 @@
 [package]
 name = "formdesign"
-version = "0.90.0"
+version = "0.91.0"
 description = "FormDesign desktop shell"
 authors = ["nodemode-ai"]
 license = "Apache-2.0"
@@ -20,6 +20,9 @@ serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 # The native canvas (opt-in, View > Renderer > Native): wgpu composition of the page tiles, started by native_canvas_start.
 formdesign-gpu = { path = "../native/formdesign-gpu" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

@@ -4,6 +4,22 @@ Living log for the desktop shell. Source files stay comment-free where this log 
 
 ---
 
+## v0.91.0 · the engine is held in a job object on Windows, the wait for its address has a limit, and a failed start names the engine's last lines and its log (2026-11-20)
+
+- refers-to: src/win_job.rs; src/engine_start.rs; src/main.rs :: kill_backend, start_limit, engine_failed, setup; Cargo.toml and Cargo.lock (`windows-sys`, Windows only)
+- kind: feat
+- logged: v0.91.0 · 2026-11-20
+
+The part held in 0.90.0, done the way FormVis does it, because this shell still starts its engine through tauri-plugin-shell: the start is not moved, and the job takes the engine by its process id. Not compiled as a whole here (the system WebKit libraries are missing); both new files were checked in a scratch crate for `x86_64-pc-windows-msvc` and `x86_64-pc-windows-gnu`, and the plain functions of `engine_start.rs` ran there as five tests. `main.rs` was read line by line against FormVis at `origin/main`.
+
+**`win_job.rs`.** One job object for the app, made the first time it is needed, with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`. `hold_pid` opens the engine by its id and puts it in the job; when the shell ends in any way Windows closes the job's last handle and ends the engine with it. `end` ends the job at once and is called by `kill_backend` before the plugin's own kill. A job that cannot be made or a process that cannot be opened leaves the start as it was; the engine's own watch of `FORMDESIGN_SHELL_PID` still covers it. `windows-sys` 0.61.2 was already in `Cargo.lock` through other crates, so the lock gains only the line that names it for the shell; `cargo metadata --locked --offline` resolves.
+
+**`engine_start.rs`.** The sentences of a failed start, the last twelve lines the engine wrote (never the window key line, control characters taken out, 300 characters a line at most), its exit code, and the full path of its log, worked out the way the engine works it out (`FORMDESIGN_DATA_DIR`, `~` expanded, else `FormDesign` in the home folder, which is `USERPROFILE` on Windows and `HOME` elsewhere, then `Logs/formdesign-engine.log`). The sentences of 0.90.0 are kept: code 2 is another copy holding the data folder, any other code is named.
+
+**The waits.** The reading loop now takes its events from a channel that the engine's events and three timers feed. The address is waited for 90 seconds (the owner's decision for every app); after the address the key is waited for ten seconds, as in 0.88.0; after the engine ends, one more second lets its last lines arrive before the dialog. A wait that runs out says how long it waited and for what.
+
+---
+
 ## v0.90.0 · the shell tells the engine its process id, and a failed start shows its message before the last window closes (2026-11-19)
 
 - refers-to: src/main.rs :: setup (the engine's start, the spawned task's Terminated arm, the two failure paths)

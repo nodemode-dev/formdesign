@@ -1,8 +1,8 @@
 {
   "module": "dock",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "files": {
-    "CONTRACT.md": "ccef67fcf0017569c0bf68df0eae2e1e3ddf376117ac929789b803713c427df6",
+    "CONTRACT.md": "9791fa9d5eb7ef7e09543d34c2d097cfe6559b7fa1792f251afb9abfa7ac0bd7",
     "adapter.ts": "1128c16892424485fe68bb2bf92ebc7229a9c2ff749db2fcd2419662d9c3ada9",
     "agents.ts": "db666d1042555f8bbda4a697dbfc475df23779d0c5a25abd532bcfa43ae81043",
     "chat.ts": "994878030b9fbff729734d34e2baa5b018e7d0b8555c24bfb7c98962c50446fa",
@@ -14,7 +14,7 @@
     "keys.ts": "1adfc7daefa35b0e6eb8957250dca3926ded1c59fd51db7d60da6346caf0d561",
     "placement.ts": "0f7e03ef0b720af07995111f30dcb5ed124529d44cf5cb67ae4bfb1f96c7f880",
     "state.ts": "bef508e8343737f67adfbd7ae8cb8efb446968dfd4e7e0aff37da11f996955d7",
-    "strings.ts": "19a6a32f235b61dfed6179e2271a6d599f4357c9a6b9c09118bb65990d1e114f",
+    "strings.ts": "3654a59c4d005125e248dd322f467d4ad3c513f4fd86f6dfe76f5565408ac50e",
     "terminal.ts": "8bf886a7ad4dc69323e803acc13641a66e1d8614e9b85a6a60977fa30d8a56fc",
     "tour.ts": "2f83994051f4370c5d1630a827b4539eb12fd50e7fe9531f5641a4bf75615782"
   }

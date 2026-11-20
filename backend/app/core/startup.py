@@ -194,9 +194,26 @@ def same(pid: int, born: float) -> bool:
     return alive(pid) and (not born or (seen > 0 and abs(seen - born) <= SLACK))
 
 
+def finished(pid: int) -> bool:
+    if WINDOWS or os.path.isdir(PROC):
+        return False
+    try:
+        told = subprocess.run(
+            ["ps", "-o", "stat=", "-p", str(pid)],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=END_WAIT,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return told.stdout.strip().startswith("Z")
+
+
 def gone_by(pid: int, seconds: float) -> bool:
     until = time.monotonic() + seconds
-    while alive(pid):
+    while alive(pid) and not finished(pid):
         if time.monotonic() >= until:
             return False
         time.sleep(STEP)
