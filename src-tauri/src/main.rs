@@ -130,7 +130,7 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
             reveal::round_splash(&handle);
-            let mut cmd = app.shell().sidecar("formdesign-engine")?.env("FORMDESIGN_PORT", "8196").env("FORMDESIGN_WINDOW_KEY_STDOUT", "1");
+            let mut cmd = app.shell().sidecar("formdesign-engine")?.env("FORMDESIGN_PORT", "8196").env("FORMDESIGN_WINDOW_KEY_STDOUT", "1").env("FORMDESIGN_SHELL_PID", std::process::id().to_string());
             if let Some(core) = core_path() {
                 cmd = cmd.env("FORMDESIGN_CORE", core);
             }
@@ -143,6 +143,7 @@ fn main() {
                 let key_pattern = regex::Regex::new(r"formdesign-window-key: ([A-Za-z0-9_-]{32,})").ok();
                 let mut port: Option<u16> = None;
                 let mut key: Option<String> = None;
+                let mut stopped: Option<i32> = None;
                 while let Some(event) = rx.recv().await {
                     let line = match event {
                         CommandEvent::Stdout(bytes) => {
@@ -153,7 +154,10 @@ fn main() {
                             text
                         }
                         CommandEvent::Stderr(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
-                        CommandEvent::Terminated(_) => break,
+                        CommandEvent::Terminated(payload) => {
+                            stopped = payload.code;
+                            break;
+                        }
                         _ => continue,
                     };
                     if let Some(captures) = pattern.as_ref().and_then(|p| p.captures(&line)) {
@@ -222,13 +226,21 @@ fn main() {
                             reveal::conceal(&window);
                             traffic_lights::place(&window.as_ref().window());
                         } else {
+                            handle.dialog().message("FormDesign could not open its window. Please relaunch the app.").blocking_show();
                             close_splash(&handle);
+                            kill_backend(&handle);
+                            std::process::exit(1);
                         }
                         check_for_updates(handle.clone());
                     }
                     None => {
+                        let text = match stopped {
+                            Some(2) => "FormDesign could not start: another copy of its engine holds its data folder. Close the other FormDesign and open it again.".to_string(),
+                            Some(code) => format!("FormDesign could not start: its engine stopped with code {code} before the window could open. Its log is formdesign-engine.log, in the Logs folder of the FormDesign data folder."),
+                            None => "The FormDesign engine failed to start. Please relaunch the app. Its log is formdesign-engine.log, in the Logs folder of the FormDesign data folder.".to_string(),
+                        };
+                        handle.dialog().message(text).blocking_show();
                         close_splash(&handle);
-                        handle.dialog().message("The FormDesign engine failed to start. Please relaunch the app.").blocking_show();
                         kill_backend(&handle);
                         std::process::exit(1);
                     }

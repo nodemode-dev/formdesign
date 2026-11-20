@@ -4,6 +4,24 @@ Living log for the desktop shell. Source files stay comment-free where this log 
 
 ---
 
+## v0.90.0 · the shell tells the engine its process id, and a failed start shows its message before the last window closes (2026-11-19)
+
+- refers-to: src/main.rs :: setup (the engine's start, the spawned task's Terminated arm, the two failure paths)
+- kind: fix
+- logged: v0.90.0 · 2026-11-19
+
+The small part of the family's Windows pattern, the part the engine of this version cannot do without. Not compiled here and not run on any system; each line was read against tauri-plugin-shell 2.4 (`Command::env`, `TerminatedPayload.code`) and tauri-plugin-dialog 2 (`message`, `blocking_show`), which this file already used.
+
+**`FORMDESIGN_SHELL_PID`.** The engine is started with the shell's own process id in that variable. The engine records it in its lock, watches that process and leaves within about two seconds of its ending, so an engine is no longer left behind when the shell is ended or when the kill reaches only the first of the engine's two processes. It must stay: a frozen engine that finds no such variable takes itself for started alone, opens the app and stops (backend log, 0.90.0), so a shell that did not set it would start itself again and again.
+
+**The message comes first.** Both failure paths closed the loading window and then showed the dialog. On Windows the app can end when its last window closes, so the person saw nothing. Now the dialog is shown, and only after it returns the loading window is closed, the engine stopped and the app ended. A main window that fails to build takes the same path with its own sentence; before, it closed the loading window and said nothing.
+
+**What the message says.** The exit code of an engine that stopped before it gave its address is kept from the `Terminated` event. Code 2 is the engine's refusal of a second copy, and the sentence says another copy of its engine holds its data folder. Any other code is named. With no code the old sentence stays. The last two say where the engine's log is.
+
+**Held, not in this version:** the job object that ends the engine with the shell however the shell ends (`win_job.rs`, which wants a `std::process::Child` or the child's handle, and `windows-sys` named in `Cargo.toml` and `Cargo.lock`); `engine_start.rs` with the engine's last lines and the log's full path in the message; a limit on the wait for the engine's address, which is still unlimited; single-instance handling. Until the job object is in, ending the shell is covered by the engine's own watch.
+
+---
+
 ## v0.88.0 · the shell waits at most ten seconds for the engine's key and opens no window without it (2026-11-19)
 
 - refers-to: src/main.rs :: setup (the spawned task that reads the engine's first lines)
