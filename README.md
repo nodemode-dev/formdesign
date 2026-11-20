@@ -16,7 +16,7 @@
   <img alt="TypeScript and Python" src="https://img.shields.io/badge/typescript%20%2B%20python-engine%20and%20window-3178c6?style=flat-square">
   <img alt="macOS, Windows and Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
   <img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-3a3a3a?style=flat-square">
-  <img alt="Status: active" src="https://img.shields.io/badge/status-active-d69e2e?style=flat-square">
+  <img alt="Status: released" src="https://img.shields.io/badge/status-released-d69e2e?style=flat-square">
 </p>
 
 <p align="center">
@@ -148,7 +148,7 @@ cd formdesign
 The first `install` compiles the layout core, which takes several minutes. `./formdesign doctor` checks the toolchain and ports. `./formdesign desktop dev` opens the desktop window instead; `./build_app` bundles it. Settings live in `backend/.env` (see `backend/.env.example`).
 
 > [!IMPORTANT]
-> **Status:** active. Opening .indd files, stock photo search, DWG drawings and .ai or PSD artwork are not supported; work on existing PDFs belongs to FormPDF.
+> **Status:** released. FormDesign is built and bundled for macOS, Windows and Linux and has been tested on all three. Opening .indd files, stock photo search, DWG drawings and .ai or PSD artwork are not supported; work on existing PDFs belongs to FormPDF.
 
 **Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
