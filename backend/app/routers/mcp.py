@@ -162,7 +162,7 @@ TOOLS = [
           {"ids": {"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 100}, "fields": {"type": "array", "items": {"type": "string"}}}, ["ids"], read=True, idempotent=True),
     _tool("look", "Looks at a page: a PNG (a region of it when region is given, in page points [x0, y0, x1, y1]) plus a short list of visible problems on that page: overset text, empty graphic frames, objects off the page.",
           {"page": {"type": "integer", "minimum": 1, "default": 1}, "region": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}, "max_size": {"type": "integer", "minimum": 128, "maximum": 2048, "default": 900}}, [], read=True, idempotent=True),
-    _tool("use_tool", "Uses one of the 36 layout tools the way a person would, for what only a tool does (drawing a path with the pen, a polygon, a gradient drag): tool id (selection, type, pen, rectangleFrame, ellipse, polygon, gradientSwatch...), then a click [x, y] or a drag [x0, y0, x1, y1] in the same spread points outline and inspect use, optionally text to type afterwards. One undo step per gesture.",
+    _tool("use_tool", "Uses one of the 41 layout tools the way a person would, for what only a tool does (drawing a path with the pen, a polygon, a gradient drag): tool id (selection, type, pen, rectangleFrame, ellipse, polygon, gradientSwatch...), then a click [x, y] or a drag [x0, y0, x1, y1] in the same spread points outline and inspect use, optionally text to type afterwards. One undo step per gesture.",
           {"tool": {"type": "string"}, "spread": {"type": "integer", "minimum": 0, "default": 0}, "click": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "drag": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}, "text": {"type": "string"}}, ["tool"]),
     _tool("show", "Moves the person's FormDesign window so they can follow what you did: go to a page, zoom (fit page, fit spread or a percentage), open a panel, pick a tool, or select objects by id. Changes nothing in the document.",
           {"page": {"type": "integer", "minimum": 1, "description": "Page to show, counting from 1."}, "zoom": {"type": "string", "description": "fit-page, fit-spread, or a percentage such as 150."},
@@ -767,7 +767,7 @@ async def _book(a: dict) -> dict:
         return _fail(str(exc))
 
 
-async def call_tool(name: str, args: dict, client: str = "Unknown client", session: str | None = None) -> dict:
+async def call_tool(name: str, args: dict, client: str = "Unknown client", session: str | None = None, gone=None) -> dict:
     if not agents_enabled():
         return _fail("Agent access to FormDesign is turned off. Turn it on in FormDesign under Window > Agent Connect (or Preferences > Agents).")
     pol = A.policy(client)
@@ -788,7 +788,7 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
         if not core.listeners:
             A.record(client, name, args, False, 0, f"refused: {reason}, and no window is open to ask", core.rev)
             return _fail(f"No FormDesign window is open to approve this ({reason}). Open FormDesign and retry, or set {client} to Allow in Agent Connect.")
-        if not await A.ask(client, name, args, reason):
+        if not await A.ask(client, name, args, reason, gone):
             A.record(client, name, args, False, 0, f"not approved: {reason}", core.rev)
             return _fail(f"The person did not approve this ({reason}) in FormDesign's Agent Connect panel within {int(A.APPROVAL_WAIT)} seconds, or declined it. Ask them, then retry.")
     _status["calls"] += 1
@@ -856,7 +856,7 @@ async def mcp(request: Request) -> Response:
         elif not isinstance(args, dict):
             out = _err(req_id, -32602, f"`arguments` for {name} must be an object")
         else:
-            out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id")), modern)
+            out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id"), request.is_disconnected), modern)
     else:
         out = _err(req_id, -32601, f"Method not found: {method}")
     if new_sid:

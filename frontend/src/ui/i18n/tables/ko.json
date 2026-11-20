@@ -1694,6 +1694,7 @@
 "The engine is not answering": "엔진이 응답하지 않습니다",
 "The full text did not load; edit not saved": "전체 텍스트를 불러오지 못했습니다. 편집 내용이 저장되지 않았습니다",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "선택한 프레임의 그림을 확장하여 모델이 빈 영역을 채우고, 프레임의 모양에 맞을 때까지 계속합니다. 결과는 links 폴더에 저장되고 프레임의 그림을 대체합니다.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "저장된 에이전트 권한이 FormDesign 밖에서 변경되어 다시 ‘묻기’로 돌아갔습니다.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "선택한 그림의 클리핑 패스 설정, 내장된 패스 이름, PSD 알파 채널, 투명도 유무.",
 "The structure is valid against the DTD.": "구조가 DTD에 유효합니다.",
 "The tagged content in reading order, for databases and other publishing systems.": "데이터베이스와 기타 출판 시스템을 위한, 태그가 지정된 콘텐츠를 읽기 순서로 나열한 것입니다.",

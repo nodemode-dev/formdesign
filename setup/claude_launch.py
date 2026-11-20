@@ -19,15 +19,17 @@ def config() -> str:
 
 
 def main(argv: list[str]) -> int:
-    claude = os.environ.get("FORMDESIGN_CLAUDE_BIN") or shutil.which("claude")
-    if not claude:
-        print("[formdesign] Claude Code is not installed: npm install -g @anthropic-ai/claude-code (https://claude.com/claude-code)", file=sys.stderr)
+    sys.path.insert(0, os.path.join(ROOT, "backend", "app", "services"))
+    import agent_lookup
+    found = agent_lookup.check(agent_lookup.find("claude", override_vars=("FORMDESIGN_CLAUDE_BIN",)))
+    if found.state != "runs":
+        print("[formdesign] " + agent_lookup.sentence(found, agent_lookup.install("claude")), file=sys.stderr)
         return 1
     if "--print-config" in argv:
         print(config())
         return 0
-    return subprocess.call([claude, "--mcp-config", config(), "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE, *argv],
-                           cwd=os.environ.get("FORMDESIGN_CWD") or ROOT)
+    cmd = [found.path, "--mcp-config", config(), "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE, *argv]
+    return subprocess.call(agent_lookup.start_argv(cmd), cwd=os.environ.get("FORMDESIGN_CWD") or ROOT, env=agent_lookup.child_env(found.path))
 
 
 if __name__ == "__main__":

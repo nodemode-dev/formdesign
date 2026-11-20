@@ -1,7 +1,15 @@
-import json
 import os
-import socket
 import sys
+
+if sys.stdin is None:
+    sys.stdin = open(os.devnull, encoding="utf-8")
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
+import json
+import socket
 
 
 def resource_dir() -> str:
@@ -55,7 +63,10 @@ def main() -> int:
     import uvicorn
 
     from app.main import app as fastapi_app
+    from app.core import window_key
 
+    if window_key.stdout_mode():
+        print(window_key.LINE + window_key.KEY, flush=True)
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
     return 0
 

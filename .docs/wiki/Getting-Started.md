@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Node | 20.19 or newer (22 recommended) | the Vite window |
 | Python | 3.12 or newer | the engine |
-| Rust | stable (1.90 or newer) | the layout core; without it `install-core` downloads a prebuilt core from a published release |
+| Rust | stable (1.90 or newer) | the layout core, which is built from source (`install-core` stops with a message when Rust is missing; it downloads nothing) |
 | git | any | cloning the repository; the core has no git dependencies |
 
 Linux desktop builds also need the webview packages: `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev patchelf`.
@@ -14,7 +14,7 @@ Linux desktop builds also need the webview packages: `sudo apt install libwebkit
 ## Install and boot
 
 ```bash
-git clone git@github.com:nodemode-ai/formdesign.git
+git clone git@github.com:nodemode-dev/formdesign.git
 cd formdesign
 ./formdesign install   # engine venv, font library, layout core, frontend
 ./formdesign boot      # engine on 8196 and the window on 5196 together
@@ -28,7 +28,7 @@ On Windows use `formdesign.bat install` and `formdesign.bat boot`; every command
 | --- | --- |
 | `./formdesign` or `boot` | engine (8196) and window (5196) together |
 | `install [--lite]` | engine, fonts, core and frontend; `--lite` keeps a core that is already built |
-| `install-core` | build formdesign-core with cargo, or download the prebuilt core for this version |
+| `install-core` | build formdesign-core from source with cargo |
 | `install-fonts` | convert the bundled OFL font library into `backend/app/fonts` |
 | `install-desktop` | PyInstaller, and a check of Rust and the webview libraries |
 | `backend`, `frontend` | one side only |
@@ -38,7 +38,7 @@ On Windows use `formdesign.bat install` and `formdesign.bat boot`; every command
 | `make`, `templates` | the command-line Make pass and the template list (see [[Agents-and-MCP]]) |
 | `mcp` | MCP over standard input and output, for Claude Desktop and other MCP clients |
 | `mcpb check`, `mcpb build DIR` | check the Claude Desktop extension manifest, or write `formdesign-VERSION.mcpb` into DIR |
-| `agents install`, `agents sync [--check]` | set up Claude Code, Codex and Cursor; regenerate the harness skill's references |
+| `agents install`, `agents sync [--check]` | set up Claude Code, Codex, Cursor and Antigravity (`install`); regenerate the harness skill's references, write `agents/manifest.json` and mirror the skills into `.agents/skills` (`sync`, which with `--check` exits 1 and names the file when one is out of date) |
 | `doctor`, `counts [--check]`, `clean [--all]`, `help` | checks, README code sizes, clean-up, usage |
 
 ## Ports

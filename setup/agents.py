@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""./formdesign agents: layout by conversation with Claude Code, Codex and Cursor.
+"""./formdesign agents: layout by conversation with Claude Code, Codex, Cursor and Antigravity.
 
-  sync [--check]            write the harness skill's tool reference from the engine's MCP catalogue and mirror the
-                            agent skills from .claude/skills to .agents/skills (Codex, Cursor); --check exits 1 on drift
-  install [--dry-run] [claude|codex|cursor ...]
-                            set the three up for this user account (all by default): the MCP server (./formdesign mcp at
+  sync [--check]            write the harness skill's tool reference from the engine's MCP catalogue, agents/manifest.json
+                            (what the app offers agents) and mirror the agent skills from .claude/skills to
+                            .agents/skills (Codex, Cursor); --check exits 1 on drift, naming the file
+  install [--dry-run] [claude|codex|cursor|antigravity ...]
+                            set the four up for this user account (all by default): the MCP server (./formdesign mcp at
                             this folder's absolute path) and the skills; files are backed up before they change, and
-                            running it again changes nothing
+                            running it again changes nothing. Antigravity gets the MCP server only, in
+                            ~/.gemini/config/mcp_config.json; a server named formdesign that FormDesign did not write
+                            is left alone
 """
 
+import hashlib
 import json
 import os
 import re
@@ -81,13 +85,70 @@ def templates_reference() -> str:
     return "\n".join(out)
 
 
+APP = "formdesign"
+DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude", "codex", "cursor", "antigravity"]}
+DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
+LOOKUP = ROOT / "backend" / "app" / "services" / "agent_lookup.py"
+LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
+
+
+def lookup_problems() -> list[str]:
+    rel = LOOKUP.relative_to(ROOT).as_posix()
+    try:
+        raw = LOOKUP.read_bytes()
+    except OSError:
+        return [f"{rel}: missing (the shared finder for the agent programs)"]
+    said = re.search(rb'^VERSION = "([^"\r\n]+)"\r?$', raw, re.M)
+    version = said.group(1).decode("ascii", "replace") if said else "unknown"
+    if LOOKUP_HASHES.get(version) != hashlib.sha256(raw).hexdigest():
+        return [f"{rel}: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"]
+    return []
+
+
+def lookup():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("formdesign_agent_lookup", LOOKUP)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def dock_problems(folder: Path = DOCK_FOLDER) -> list[str]:
+    name = "frontend/src/dock"
+    try:
+        kept = json.loads((folder / "MANIFEST.json").read_text(encoding="utf-8"))["files"]
+    except (OSError, ValueError, KeyError):
+        return [f"{name}/MANIFEST.json: missing or unreadable"]
+    now = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in folder.iterdir() if p.is_file() and p.name != "MANIFEST.json"}
+    said = [f"{name}/{file}: does not match MANIFEST.json (the shared dock module changes only as a whole new version)" for file in sorted(set(kept) | set(now)) if kept.get(file) != now.get(file)]
+    for path in sorted(folder.glob("*.ts")):
+        for target in re.findall(r"(?:from|import)\s*\(?'([^']+)'", path.read_text(encoding="utf-8")):
+            if target.startswith(".") and (path.parent / target).resolve().parent != folder.resolve():
+                said.append(f"{name}/{path.name}: imports {target} from outside the shared folder")
+    return said
+
+
+def manifest() -> str:
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.routers import mcp as server
+    from app.services import agents as gate
+    names = [t["name"] for t in server.TOOLS]
+    transports = [t for t, there in (("stdio", (ROOT / "setup" / "mcp_stdio.py").is_file()), ("http", any(getattr(r, "path", "") == "/mcp" for r in server.router.routes))) if there]
+    skills = [{"name": d.name, "sub_skills": sorted(s.name for s in (d / "sub-skills").iterdir() if s.is_dir()) if (d / "sub-skills").is_dir() else []} for d in sorted(SRC.iterdir()) if d.is_dir()]
+    doc = {"format": "form-agent-manifest", "version": 1, "app": APP,
+           "mcp": {"tools": names, "read_only": [t["name"] for t in server.TOOLS if t["annotations"]["readOnlyHint"]], "approval_gated": [n for n in names if n in gate.GATED_TOOLS], "transports": transports},
+           "skills": skills, "dock": DOCK, "extensions": None}
+    return json.dumps(doc, indent=2) + "\n"
+
+
 def _files(folder: Path) -> dict:
     return {str(p.relative_to(folder)): p.read_bytes() for p in sorted(folder.rglob("*")) if p.is_file()}
 
 
 def sync(check: bool) -> int:
     drift = []
-    for ref, want in ((SRC / "formdesign-harness" / "references" / "tools.md", tools_reference()),
+    for ref, want in ((ROOT / "agents" / "manifest.json", manifest()), (SRC / "formdesign-harness" / "references" / "tools.md", tools_reference()),
                       (SRC / "formdesign-harness" / "references" / "templates.md", templates_reference())):
         if not ref.exists() or ref.read_text(encoding="utf-8") != want:
             drift.append(str(ref.relative_to(ROOT)))
@@ -101,11 +162,15 @@ def sync(check: bool) -> int:
             if not check:
                 shutil.rmtree(dst, ignore_errors=True)
                 shutil.copytree(src, dst)
+    problems = dock_problems() + lookup_problems()
+    for line in problems:
+        print("agents: " + line)
     if check:
-        print("agents: in step" if not drift else "agents: drifted: " + ", ".join(drift) + " (run ./formdesign agents sync)")
-        return 1 if drift else 0
+        if drift or not problems:
+            print("agents: in step" if not drift else "agents: drifted: " + ", ".join(drift) + " (run ./formdesign agents sync)")
+        return 1 if drift or problems else 0
     print("agents: " + ("updated " + ", ".join(drift) if drift else "already in step"))
-    return 0
+    return 1 if problems else 0
 
 
 def _backup(path: Path, dry: bool) -> None:
@@ -128,19 +193,22 @@ def _copy_skills(base: Path, dry: bool, said: list) -> None:
 
 def install_claude(home: Path, dry: bool, said: list) -> None:
     said.append("Claude Code:")
-    claude = shutil.which("claude")
+    finder = lookup()
+    found = finder.check(finder.find("claude", override_vars=("FORMDESIGN_CLAUDE_BIN",), home=home))
+    claude = found.path if found.state == "runs" else None
     if claude:
-        have = subprocess.run([claude, "mcp", "get", "formdesign"], capture_output=True, text=True)
+        env = finder.child_env(claude, home=home)
+        have = finder.run([claude, "mcp", "get", "formdesign"], env, 60)
         if have.returncode == 0 and LAUNCH in have.stdout:
             said.append("  MCP server formdesign already set (user scope)")
         else:
             said.append(f"  claude mcp add --scope user formdesign -- {LAUNCH} mcp")
             if not dry:
                 if have.returncode == 0:
-                    subprocess.run([claude, "mcp", "remove", "formdesign", "--scope", "user"], capture_output=True)
-                subprocess.run([claude, "mcp", "add", "--scope", "user", "formdesign", "--", LAUNCH, "mcp"], check=True, capture_output=True)
+                    finder.run([claude, "mcp", "remove", "formdesign", "--scope", "user"], env, 60)
+                finder.run([claude, "mcp", "add", "--scope", "user", "formdesign", "--", LAUNCH, "mcp"], env, 60).check_returncode()
     else:
-        said.append(f"  the claude command is not installed here; once it is, run: claude mcp add --scope user formdesign -- {LAUNCH} mcp")
+        said.append(f"  {finder.sentence(found, finder.install('claude'))} Once it runs: claude mcp add --scope user formdesign -- {LAUNCH} mcp")
     _copy_skills(home / ".claude" / "skills", dry, said)
 
 
@@ -180,6 +248,40 @@ def install_cursor(home: Path, dry: bool, said: list) -> None:
     _copy_skills(home / ".agents" / "skills", dry, said)
 
 
+def _ours(entry: object) -> bool:
+    return isinstance(entry, dict) and entry.get("args") == ["mcp"] and Path(str(entry.get("command", ""))).name == Path(LAUNCH).name
+
+
+def install_antigravity(home: Path, dry: bool, said: list) -> None:
+    said.append("Antigravity:")
+    cfg = home / ".gemini" / "config" / "mcp_config.json"
+    older = home / ".gemini" / "antigravity-cli" / "mcp_config.json"
+    if older.exists() and not cfg.exists():
+        said.append(f"  an older file was seen at {older} and left alone; the documented file is {cfg}")
+    try:
+        data = json.loads(cfg.read_text(encoding="utf-8") or "{}") if cfg.exists() else {}
+    except ValueError:
+        data = None
+    if not isinstance(data, dict) or not isinstance(data.get("mcpServers", {}), dict):
+        said.append(f"  {cfg} is not an MCP servers file FormDesign can read; left alone")
+        return
+    entry = {"command": LAUNCH, "args": ["mcp"]}
+    have = data.get("mcpServers", {}).get("formdesign")
+    if have == entry:
+        said.append(f"  MCP server formdesign already in {cfg}")
+    elif have is not None and not _ours(have):
+        said.append(f"  {cfg} has a server named formdesign that FormDesign did not write; left alone")
+    else:
+        said.append(f"  MCP server formdesign -> {cfg}")
+        if not dry:
+            _backup(cfg, dry)
+            data.setdefault("mcpServers", {})["formdesign"] = entry
+            cfg.parent.mkdir(parents=True, exist_ok=True)
+            part = cfg.with_name(cfg.name + f".part-{os.getpid()}")
+            part.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            os.replace(part, cfg)
+
+
 def main(argv: list[str]) -> int:
     cmd = argv[0] if argv else "install"
     rest = argv[1:]
@@ -187,14 +289,14 @@ def main(argv: list[str]) -> int:
         return sync("--check" in rest)
     if cmd == "install":
         dry = "--dry-run" in rest
-        which = [a for a in rest if not a.startswith("--")] or ["claude", "codex", "cursor"]
-        bad = [w for w in which if w not in ("claude", "codex", "cursor")]
+        which = [a for a in rest if not a.startswith("--")] or ["claude", "codex", "cursor", "antigravity"]
+        bad = [w for w in which if w not in ("claude", "codex", "cursor", "antigravity")]
         if bad:
-            print(f"agents: unknown client {', '.join(bad)} (claude, codex or cursor)", file=sys.stderr)
+            print(f"agents: unknown client {', '.join(bad)} (claude, codex, cursor or antigravity)", file=sys.stderr)
             return 2
         home, said = Path(os.environ.get("HOME", str(Path.home()))), []
         for w in which:
-            {"claude": install_claude, "codex": install_codex, "cursor": install_cursor}[w](home, dry, said)
+            {"claude": install_claude, "codex": install_codex, "cursor": install_cursor, "antigravity": install_antigravity}[w](home, dry, said)
         print(("Would do (dry run):\n" if dry else "") + "\n".join(said))
         if not dry:
             print("\nRestart the clients, then ask one of them to lay something out: it starts the FormDesign engine when it needs it.")

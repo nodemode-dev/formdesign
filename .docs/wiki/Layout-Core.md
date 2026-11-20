@@ -1,6 +1,6 @@
 # Layout Core
 
-`formdesign-core` is a Rust binary that owns every open document. It is a thin shell over FormDesign's own crates in `native/` behind a JSON-lines protocol on standard input and output: formdesign-model (the document model and the `.fdoc` file), formdesign-text (shaping, the Knuth and Plass composer, hyphenation, flow through frames, tables, footnotes, drop caps, small caps), formdesign-render (raster and PDF output), formdesign-interchange (IDML in and out, text import, HTML and EPUB) and formdesign-engine (the session with undo and batches, 388 commands, the 41 tools, overlays, tiles). There are no git dependencies; the first build compiles these crates, which takes a few minutes. Source Serif 4, Source Sans 3, Inter and JetBrains Mono are embedded (`native/formdesign-core/fonts`, SIL OFL 1.1), as is a SCOWL en_US Hunspell dictionary (`native/formdesign-core/dict`). The engine service starts it, restarts it if it dies, and is its only client.
+`formdesign-core` is a Rust binary that owns every open document. It is a thin shell over FormDesign's own crates in `native/` behind a JSON-lines protocol on standard input and output: formdesign-model (the document model and the `.fdoc` file), formdesign-text (shaping, the Knuth and Plass composer, hyphenation, flow through frames, tables, footnotes, drop caps, small caps), formdesign-render (raster and PDF output), formdesign-interchange (IDML in and out, text import, HTML and EPUB) and formdesign-engine (the session with undo and batches, 394 commands, the 41 tools, overlays, tiles). There are no git dependencies; the first build compiles these crates, which takes a few minutes. Source Serif 4, Source Sans 3, Inter and JetBrains Mono are embedded (`native/formdesign-core/fonts`, SIL OFL 1.1), as is a SCOWL en_US Hunspell dictionary (`native/formdesign-core/dict`). The engine service starts it, restarts it if it dies, and is its only client.
 
 ## Source
 
@@ -31,7 +31,7 @@ One request per line: `{"id": 7, "method": "exec", "params": {...}}`. One reply 
 | --- | --- |
 | `ping`, `hello` | liveness and version |
 | `exec`, `batch` | run one command, or a list of `{command, params}` through formdesign-engine's `Session::batch` (one undo step), where a later step can refer to an earlier result as `$N`; a failing batch rolls the document back unless `atomic` is false |
-| `commands` | the catalogue of 388 commands with menu paths, labels, shortcuts and parameter summaries |
+| `commands` | the catalogue of 394 commands with menu paths, labels, shortcuts and parameter summaries |
 | `inspect`, `state`, `layout` | the document as data, the session (documents, selection, tool, `wantsText`), spreads and pages in canvas coordinates |
 | `tiles`, `page.png`, `overlays`, `cursor` | pixels and overlay geometry for the window; overlays also list artboards (with the Artboard tool's active one) and, under the Mesh tool, the selected meshes' points |
 | `artboard.png` | `{artboard: index or name, scale?, maxSide?, format?}` to one artboard as PNG or JPEG: the spread's items under its rect, pasteboard included; served as `GET /api/core/artboard.png` |

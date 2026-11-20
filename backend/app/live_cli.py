@@ -10,7 +10,7 @@ ENGINE = os.environ.get("FORMDESIGN_ENGINE_URL", "http://127.0.0.1:8196").rstrip
 
 def _post(path: str, body: dict) -> dict:
     req = urllib.request.Request(ENGINE + path, data=json.dumps(body).encode(), method="POST",
-                                 headers={"content-type": "application/json", "accept": "application/json, text/event-stream"})
+                                 headers={"content-type": "application/json", "accept": "application/json, text/event-stream", "user-agent": "formdesign-cli/1"})
     try:
         with urllib.request.urlopen(req, timeout=600) as r:
             return json.loads(r.read() or b"{}")
@@ -42,17 +42,26 @@ def params_of(pairs: list[str], extra: str | None) -> dict:
     return out
 
 
+def _tool_text(name: str, arguments: dict) -> dict:
+    res = _rpc("tools/call", {"name": name, "arguments": arguments})
+    text = " ".join(c.get("text", "") for c in res.get("content", []) if c.get("type") == "text")
+    if res.get("isError"):
+        raise SystemExit(f"formdesign: {text}")
+    try:
+        return json.loads(text)
+    except ValueError:
+        return {"result": text}
+
+
 def cmd_run(a) -> int:
-    r = _post("/api/core/exec", {"command": a.id, "params": params_of(a.pairs, a.params)})
+    r = _tool_text("run_command", {"id": a.id, "params": params_of(a.pairs, a.params)})
     res = r.get("result", r)
     print(json.dumps(res, indent=1, ensure_ascii=False) if a.json or not isinstance(res, str) else res)
     return 0
 
 
 def cmd_commands(a) -> int:
-    r = _post("/api/core/commands", {})
-    items = r.get("result", r)
-    items = items.get("commands", items) if isinstance(items, dict) else items
+    items = _tool_text("list_commands", {"limit": 500}).get("commands", [])
     q = (a.q or "").lower()
     rows = [c for c in items if not q or q in c["id"].lower() or q in str(c.get("label", "")).lower() or q in " ".join(c.get("menu") or []).lower()]
     if a.json:
@@ -146,19 +155,18 @@ def cmd_cli(a) -> int:
             if c.get(k) not in (None, "", [], {}):
                 print(f"{k:<12} {c[k]}")
         return 0
-    body = {"params": params_of(a.pairs, a.params), "yes": a.yes}
-    res = _post("/api/commands/" + urllib.parse.quote(a.target), body)
+    res = _tool_text("run_command", {"id": a.target, "params": params_of(a.pairs, a.params)})
     print(json.dumps(res, indent=1, ensure_ascii=False) if a.json else json.dumps(res.get("result"), ensure_ascii=False))
     return 0 if res.get("ran") else 1
 
 
 def add_parsers(sub) -> dict:
-    k = sub.add_parser("cli", help="the shared command catalogue: list [word], describe ID, run ID key=value... (--yes for commands Undo cannot reverse)")
+    k = sub.add_parser("cli", help="the shared command catalogue: list [word], describe ID, run ID key=value... (commands Undo cannot reverse wait for the person's approval in Agent Connect, as for any agent)")
     k.add_argument("action", choices=["list", "describe", "run"])
     k.add_argument("target", nargs="?")
     k.add_argument("pairs", nargs="*")
     k.add_argument("--params")
-    k.add_argument("--yes", action="store_true")
+    k.add_argument("--yes", action="store_true", help="accepted and ignored: approval comes from the person, never from the command line")
     k.add_argument("--json", action="store_true")
     c = sub.add_parser("cmd", help="run one engine command on the running engine's open document, e.g. formdesign cmd layout.pages.add count=2")
     c.add_argument("id")

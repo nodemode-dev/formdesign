@@ -1,6 +1,6 @@
 # Releasing
 
-A release is a version bump on `main`, a `compile_v*.*.*` branch cut from it, and the draft release formcompiler (`nodemode-ai/formcompiler`) builds from that branch. FormDesign's own repository builds no release; its GitHub Actions only run the checks.
+A release is a version bump on `main`, a `compile_v*.*.*` branch cut from it, and the draft release formcompiler (`nodemode-dev/formcompiler`) builds from that branch. FormDesign's own repository builds no release; its GitHub Actions only run the checks.
 
 ## Steps
 
@@ -16,7 +16,7 @@ A release is a version bump on `main`, a `compile_v*.*.*` branch cut from it, an
 | `core` | macos-latest | `formdesign-core-x86_64-apple-darwin` for Intel Macs |
 | `release` | ubuntu-latest | `latest.json` when signatures exist, then a draft release `formdesign-v[version]` with every file on formcompiler's release page |
 
-4. Download and try the bundles, then publish the draft on formcompiler. Publishing matters: `./formdesign install-core` on a machine without Rust downloads `formdesign-core-[triple]` from the published `formdesign-v[version]` release on formcompiler.
+4. Download and try the bundles, then publish the draft on formcompiler. The bundles carry the layout core as `formdesign-core-[triple]`; `./formdesign install-core` does not download it and builds the core from source with cargo.
 
 ## Secrets
 

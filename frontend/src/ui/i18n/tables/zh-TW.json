@@ -1694,6 +1694,7 @@
 "The engine is not answering": "引擎沒有回應",
 "The full text did not load; edit not saved": "完整文字未能載入；編輯未儲存",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "所選框架中的圖片會被延伸，由模型填補空白區域，直到符合框架的形狀。結果儲存在 links 資料夾中並取代框架中的圖片。",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "已儲存的代理程式權限在 FormDesign 之外被更改，已恢復為「詢問」。",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "所選圖片的剪裁路徑設定、其內嵌路徑名稱、PSD Alpha 色版以及是否含有透明度。",
 "The structure is valid against the DTD.": "結構符合 DTD。",
 "The tagged content in reading order, for databases and other publishing systems.": "依閱讀順序排列的已標籤內容，供資料庫和其他出版系統使用。",

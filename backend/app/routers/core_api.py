@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, Body, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 
+from app.core import window_key
 from app.engine.core import CoreError, core
 from app.engine.documents import documents
 
@@ -94,6 +95,9 @@ def _frame(header: dict, payload: bytes) -> bytes:
 
 @router.websocket("/ws")
 async def ws(socket: WebSocket):
+    if not window_key.spend(socket.query_params.get("ticket", "")):
+        await socket.close(code=4403)
+        return
     await socket.accept()
     queue = core.subscribe()
     send_lock = asyncio.Lock()

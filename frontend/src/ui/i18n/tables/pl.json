@@ -1694,6 +1694,7 @@
 "The engine is not answering": "Silnik nie odpowiada",
 "The full text did not load; edit not saved": "Pełny tekst się nie wczytał; edycja nie została zapisana",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "Obraz w zaznaczonej ramce jest rozszerzany, a model wypełnia puste miejsce, aż dopasuje się do kształtu ramki. Wynik jest zapisywany w folderze łączy i zastępuje obraz w ramce.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "Zapisane uprawnienie agentów zostało zmienione poza FormDesign, więc wróciło do ustawienia Pytaj.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "Ustawienia ścieżki przycinania zaznaczonego obrazu, nazwy jego osadzonych ścieżek, kanały alfa PSD i informacja, czy ma przezroczystość.",
 "The structure is valid against the DTD.": "Struktura jest zgodna z DTD.",
 "The tagged content in reading order, for databases and other publishing systems.": "Oznaczona zawartość w kolejności czytania, dla baz danych i innych systemów publikacyjnych.",

@@ -61,7 +61,7 @@ Good habits: put the article's title as the first heading, a one-line deck as a 
 | --- | --- |
 | Title bar | menus (File, Edit, Layout, Type, Object, Table, View, Window, Help), undo and redo, zoom, Make, the workspace switcher, Preferences |
 | Control bar | the selection's position, size, rotation, fill and stroke; with text, the font, size, leading, tracking and alignment |
-| Tool rail | 37 tools; hold a tool to see its group; single-key shortcuts |
+| Tool rail | 41 tools; hold a tool to see its group; single-key shortcuts |
 | Document tabs | every open document; the dot marks unsaved changes |
 | Canvas | pages on the pasteboard; rulers on the top and left |
 | Left of the dock | Properties, Character, Paragraph; Glyphs and Tabs; Changes, Notes and Conditions; States, Buttons and Transitions |
@@ -74,7 +74,7 @@ Window > Workspace, or the switcher in the title bar, arranges the panels for a 
 
 Edit > Keyboard Shortcuts (Alt+Shift+Ctrl+K) changes the keys. Choose a product area or search, pick a command, click New shortcut and press the keys; the dialog says which command has them now, and Assign moves them to the picked command. Remove takes a key away. The default set cannot be changed, so your first change asks for a name and makes your own set, which you can switch, delete or reset; Show Set saves every shortcut in the set as a text file. Tools are listed too.
 
-Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex and Cursor.
+Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex, Cursor and Antigravity.
 
 ## Pages and parents
 
@@ -186,7 +186,11 @@ Drop a PDF on the Make panel or the canvas to lay it out again in a template: Fo
 
 ## Working with an agent
 
-Claude Code, Codex and Cursor can make and finish layouts for you through FormDesign's MCP server; set them up once with `./formdesign agents install` (Preferences, Agents shows the commands). Then ask in your own words: "make a two-page magazine feature from article.md and these photos, elegant, cream paper". The agent reads your files, makes the layout, looks at the pages, replaces sample text and exports, and its changes appear live in the open window, where you can keep editing. Everything an agent changes in one turn is one step in Edit > Undo (shown as Undo Agent Turn), so a single Undo takes back what one request did; your own edits in between stay separate steps. A turn ends when you send Claude Code your next prompt, or after two minutes without a call from that agent. From a terminal, `./formdesign make files --brief "..." --out layout.pdf` does the same without an agent. Preferences > Agents has a switch for agent access: with it off, agents can see FormDesign's tools but every call is refused.
+Claude Code, Codex, Cursor and Antigravity can make and finish layouts for you through FormDesign's MCP server; set them up once with `./formdesign agents install` (Preferences, Agents shows the commands). Then ask in your own words: "make a two-page magazine feature from article.md and these photos, elegant, cream paper". The agent reads your files, makes the layout, looks at the pages, replaces sample text and exports, and its changes appear live in the open window, where you can keep editing. Everything an agent changes in one turn is one step in Edit > Undo (shown as Undo Agent Turn), so a single Undo takes back what one request did; your own edits in between stay separate steps. A turn ends when you send Claude Code your next prompt, or after two minutes without a call from that agent. From a terminal, `./formdesign make files --brief "..." --out layout.pdf` does the same without an agent. Preferences > Agents has a switch for agent access: with it off, agents can see FormDesign's tools but every call is refused.
+
+### Agent Connect: what an agent may do
+
+Window > Agent Connect lists every agent that has connected to FormDesign, including FormDesign's own command line, which appears as `formdesign-cli`. Each one has a choice: Allow all, Ask for risky steps or Deny. An agent FormDesign has not seen before starts on Ask for risky steps: it can lay out, edit and look without asking, but a risky step (publishing a website, sharing a document for review, saving or exporting over a file that already exists, packaging, printing, running a command Undo cannot reverse, deleting more than one page) waits under Waiting for you until you choose Approve or Decline. If you do not answer within five minutes, or no FormDesign window is open, the agent is told you did not approve and should ask you. Deny refuses every call from that agent. Only the FormDesign window can change these choices or answer a request; a script running on your computer cannot. If the saved choices are changed outside FormDesign, Allow all falls back to Ask and Agent Connect says so. If you script FormDesign from a terminal, expect its risky steps to wait for you in the window, or set `formdesign-cli` to Allow all there first.
 
 ### The Claude dock
 

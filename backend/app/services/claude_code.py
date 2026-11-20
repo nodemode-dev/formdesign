@@ -1,20 +1,24 @@
+import hmac
 import json
 import os
 import secrets
-import shlex
-import shutil
-import subprocess
 import time
 from pathlib import Path
 
 from app.core import config
-from app.services import agents
+from app.services import agent_lookup, agents
 
-KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CONFIG_DIR"}
-CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
-SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
+KEEP_ENV = agent_lookup.KEEP_ENV
+OVERRIDES = {"claude": ("FORMDESIGN_CLAUDE_BIN",), "codex": ("FORMDESIGN_CODEX_BIN",), "cursor": ("FORMDESIGN_CURSOR_BIN",), "antigravity": ("FORMDESIGN_ANTIGRAVITY_BIN",)}
+OTHERWISE = "give its path in Preferences"
+SHELL_WAIT = 10.0
+CHECK_WAIT = 15.0
 PREFS = config.DATA_DIR / "claude.json"
-MCP_FILE = config.DATA_DIR / "claude-mcp.json"
+OLD_MCP_FILE = config.DATA_DIR / "claude-mcp.json"
+TOKEN_DIR = config.DATA_DIR / "AgentTokens"
+TOKENS: dict[str, Path | None] = {}
+KINDS: dict[str, str] = {}
+TOKEN_VAR = "FORMDESIGN_INAPP_TOKEN"
 FIELDS = ("claudeBin", "claudeFolder", "claudeFirstMessage")
 INSTALL = ("Claude Code is not installed: install it with npm install -g @anthropic-ai/claude-code (or from https://claude.com/claude-code), "
            "run claude once in a terminal to sign in, then open it here again")
@@ -30,7 +34,7 @@ class ClaudeError(ValueError):
     pass
 
 
-def prefs() -> dict:
+def raw_prefs() -> dict:
     try:
         d = json.loads(PREFS.read_text())
     except (OSError, ValueError):
@@ -38,23 +42,38 @@ def prefs() -> dict:
     return {k: str(d.get(k) or "").strip() for k in FIELDS} if isinstance(d, dict) else {}
 
 
+def write_bin(value: str) -> None:
+    try:
+        d = json.loads(PREFS.read_text())
+    except (OSError, ValueError):
+        d = {}
+    d = d if isinstance(d, dict) else {}
+    d["claudeBin"] = value
+    PREFS.write_text(json.dumps(d, indent=1))
+    _cache["value"] = None
+
+
+def prefs() -> dict:
+    d = raw_prefs()
+    if d or PREFS.exists():
+        d["claudeBin"] = agents.choice()["claudeBin"]
+    return d
+
+
 def save_prefs(body: dict) -> dict:
-    d = prefs()
+    d = raw_prefs()
+    d["claudeBin"] = agents.choice()["claudeBin"]
     for k in FIELDS:
         if k in body and body[k] is not None and not isinstance(body[k], str):
             raise ClaudeError(f"preference {k} must be text")
     for k in FIELDS:
         if k in body:
             d[k] = (body[k] or "").strip()[:2000]
+    agents.commit(claude_bin=d.get("claudeBin", ""))
     PREFS.parent.mkdir(parents=True, exist_ok=True)
     PREFS.write_text(json.dumps(d, indent=1))
     _cache["value"] = None
     return d
-
-
-def login_shell() -> list[str]:
-    sh = os.environ.get("SHELL") or shutil.which("bash") or "/bin/sh"
-    return [sh, "-l"] if Path(sh).name in ("bash", "zsh", "fish") else [sh]
 
 
 def base_env() -> dict[str, str]:
@@ -64,8 +83,26 @@ def base_env() -> dict[str, str]:
     return env
 
 
-def child_env() -> dict[str, str]:
-    return {k: v for k, v in base_env().items() if not k.startswith("CLAUDE") or k in KEEP_ENV}
+def child_env(path: str | None = None) -> dict[str, str]:
+    return agent_lookup.child_env(path, base=base_env(), shell_timeout=SHELL_WAIT)
+
+
+def setting(kind: str) -> str | None:
+    return prefs().get("claudeBin", "") if kind == "claude" else None
+
+
+def located(kind: str, fresh: bool = False) -> agent_lookup.Found:
+    found = agent_lookup.find(kind, setting=setting(kind), override_vars=OVERRIDES.get(kind, ()), shell_timeout=SHELL_WAIT, fresh=fresh)
+    return agent_lookup.check(found, child_env(found.path), CHECK_WAIT, fresh)
+
+
+def usable(kind: str) -> agent_lookup.Found:
+    found = located(kind)
+    return found if found.state == "runs" else located(kind, fresh=True)
+
+
+def said(found: agent_lookup.Found) -> str:
+    return agent_lookup.sentence(found, agent_lookup.install(found.program), OTHERWISE if found.program == "claude" else "")
 
 
 def engine_url() -> str:
@@ -77,57 +114,69 @@ def _runnable(path: str) -> bool:
     return p.is_file() and os.access(p, os.X_OK)
 
 
-def _from_login_shell() -> str | None:
-    if os.name == "nt":
-        return None
-    try:
-        out = subprocess.run(login_shell() + ["-c", "command -v claude"], capture_output=True, text=True, timeout=10, env=child_env())
-    except (OSError, subprocess.SubprocessError):
-        return None
-    found = out.stdout.strip().splitlines()[-1:] if out.returncode == 0 else []
-    return found[0] if found and os.path.isabs(found[0]) else None
-
-
 def cli() -> str | None:
-    chosen = prefs().get("claudeBin", "")
-    if chosen and _runnable(chosen):
-        return str(Path(chosen).expanduser())
-    found = os.environ.get("FORMDESIGN_CLAUDE_BIN") or shutil.which("claude")
-    if found:
-        return found
-    home = Path.home()
-    for p in [home / c for c in CANDIDATES] + [Path(s) for s in SYSTEM_PATHS]:
-        if p.is_file() and os.access(p, os.X_OK):
-            return str(p)
-    return _from_login_shell()
+    return located("claude").path or None
 
 
 def info(fresh: bool = False) -> dict:
     if not fresh and _cache["value"] is not None and time.time() - _cache["at"] < 60:
         return _cache["value"]
-    path, version = cli(), None
-    if path:
-        try:
-            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=15, env=child_env())
-            version = (out.stdout.strip().split() or [None])[0]
-        except (OSError, subprocess.SubprocessError):
-            path = None
-    _cache["value"], _cache["at"] = {"installed": bool(path), "path": path, "version": version}, time.time()
+    found = located("claude", fresh)
+    _cache["value"], _cache["at"] = agent_lookup.answer(found, agent_lookup.install("claude"), OTHERWISE), time.time()
     return _cache["value"]
 
 
-def mcp_config() -> str:
-    body = json.dumps({"mcpServers": {"formdesign": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: agents.INAPP_TOKEN}}}})
-    tmp = MCP_FILE.with_name(f".{MCP_FILE.name}.{secrets.token_hex(6)}")
+def issue() -> tuple[str, str]:
+    token = secrets.token_urlsafe(32)
+    path = TOKEN_DIR / f"mcp-{secrets.token_hex(8)}.json"
+    body = json.dumps({"mcpServers": {"formdesign_tab": {"type": "http", "url": engine_url() + "/mcp", "headers": {agents.INAPP_HEADER: token}}}})
     try:
-        MCP_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with os.fdopen(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
+        TOKEN_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as f:
             f.write(body)
-        os.replace(tmp, MCP_FILE)
     except OSError as e:
-        tmp.unlink(missing_ok=True)
-        raise ClaudeError(f"Claude Code cannot be connected to FormDesign: {MCP_FILE} cannot be written ({e.strerror or e})") from None
-    return str(MCP_FILE)
+        path.unlink(missing_ok=True)
+        raise ClaudeError(f"Claude Code cannot be connected to FormDesign: {path} cannot be written ({e.strerror or e})") from None
+    TOKENS[token] = path
+    return token, str(path)
+
+
+def issue_for(kind: str) -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS[token] = None
+    KINDS[token] = kind
+    return token
+
+
+def revoke(token: str) -> None:
+    path = TOKENS.pop(token, None)
+    KINDS.pop(token, None)
+    if path is not None:
+        path.unlink(missing_ok=True)
+
+
+def is_inapp(value) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    return any(hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def inapp_kind(value) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    for t in list(TOKENS):
+        if hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")):
+            return KINDS.get(t, "claude")
+    return None
+
+
+def sweep() -> None:
+    OLD_MCP_FILE.unlink(missing_ok=True)
+    try:
+        for f in TOKEN_DIR.glob("mcp-*.json"):
+            f.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def workdir() -> Path:
@@ -141,19 +190,11 @@ def workdir() -> Path:
 
 
 def wrap(cmd: list[str]) -> list[str]:
-    if os.name == "nt":
-        return cmd
-    shell = login_shell()
-    name = Path(shell[0]).name
-    if name == "fish":
-        return shell + ["-c", "exec " + " ".join("'" + a.replace("\\", "\\\\").replace("'", "\\'") + "'" for a in cmd)]
-    if name in ("bash", "zsh", "sh", "dash", "ksh"):
-        return shell + ["-c", "exec " + shlex.join(cmd)]
-    return ["/bin/sh", "-l", "-c", "exec " + shlex.join(cmd)]
+    return agent_lookup.start_argv(cmd)
 
 
-def argv(path: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdesign", "--append-system-prompt", NOTE]
+def argv(path: str, mcp_file: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdesign_tab", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:

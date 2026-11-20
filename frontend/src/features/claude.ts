@@ -6,7 +6,7 @@ import { icon } from '../ui/icons';
 import { MarkdownStream } from '../ui/markdown';
 import { toast } from '../ui/toast';
 import type { Workspace } from '../ui/workspace';
-import { openChat, registerChat, type ChatView } from './terminal';
+import { openChat, registerChat, type ChatView } from './agent-dock';
 
 interface Part { kind: 'text' | 'tool'; text?: string; id?: string; name?: string; input?: string; status?: string; images?: string[] }
 interface Meta { seconds?: number; turns?: number | null; costUsd?: number | null; inputTokens?: number; outputTokens?: number }
@@ -137,13 +137,17 @@ class ClaudePanel implements ChatView {
     if (s.busy) { this.begin(); this.setBusy(true); }
   }
 
-  async send(text: string, context: string): Promise<void> {
-    if (!text || this.busy) return;
-    if (!this.ready) { await this.status(); if (!this.ready) return; }
+  async send(text: string, context: string): Promise<boolean> {
+    if (!text || this.busy) return false;
+    if (!this.ready) { await this.status(); if (!this.ready) return false; }
     const sel = editor.selection?.items ?? [];
     try {
       await api('/claude/chat', { json: { text, context, note: sel.length ? `${sel.length} selected` : '' } });
-    } catch (e) { toast((e as Error).message, 'error'); }
+      return true;
+    } catch (e) {
+      toast((e as Error).message, 'error');
+      return false;
+    }
   }
 
   private async stop(): Promise<void> {

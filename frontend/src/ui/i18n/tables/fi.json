@@ -1694,6 +1694,7 @@
 "The engine is not answering": "Moottori ei vastaa",
 "The full text did not load; edit not saved": "Koko teksti ei latautunut; muokkausta ei tallennettu",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "Valitun kehyksen kuvaa laajennetaan mallin täyttäessä tyhjän alueen, kunnes se sopii kehyksen muotoon. Tulos tallennetaan linkkikansioon ja korvaa kehyksen kuvan.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "Tallennettu agenttien lupa muutettiin FormDesignin ulkopuolella, joten se on taas Kysy.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "Valitun kuvan rajauspolun asetukset, sen upotettujen polkujen nimet, PSD-alfakanavat ja se, onko siinä läpinäkyvyyttä.",
 "The structure is valid against the DTD.": "Rakenne on DTD:n mukainen.",
 "The tagged content in reading order, for databases and other publishing systems.": "Merkitty sisältö lukujärjestyksessä tietokantoja ja muita julkaisujärjestelmiä varten.",

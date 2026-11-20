@@ -1,4 +1,5 @@
 import { api, EngineError } from '../engine/client';
+import { keyHeaders } from '../engine/window-key';
 import { editor } from '../editor/editor';
 import { el, q, setClass, setDisabled, setHidden, setText } from '../ui/dom';
 import { toast } from '../ui/toast';
@@ -179,7 +180,7 @@ class AssistantPanel {
     this.setBusy(true);
     this.runDoc = uid;
     try {
-      const r = await fetch('/api/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, page: this.ws.viewport.currentPage() + 1 }) });
+      const r = await fetch('/api/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', ...keyHeaders() }, body: JSON.stringify({ message: text, page: this.ws.viewport.currentPage() + 1 }) });
       if (!r.ok || !r.body) {
         let d = r.statusText;
         try { d = (await r.json()).detail ?? d; } catch { }

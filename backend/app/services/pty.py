@@ -12,7 +12,6 @@ from pathlib import Path
 
 from app.core import config
 
-TOKEN = secrets.token_urlsafe(32)
 MAX_SESSIONS = 12
 SCROLLBACK = 256 * 1024
 
@@ -21,6 +20,7 @@ PRESETS = [
     {"id": "claude", "label": "Claude Code", "cmd": "claude", "install": "npm install -g @anthropic-ai/claude-code"},
     {"id": "codex", "label": "Codex", "cmd": "codex", "install": "npm install -g @openai/codex"},
     {"id": "cursor", "label": "Cursor CLI", "cmd": "cursor-agent", "install": "curl https://cursor.com/install -fsS | bash"},
+    {"id": "antigravity", "label": "Antigravity", "cmd": "agy", "install": "curl -fsSL https://antigravity.google/cli/install.sh | bash"},
 ]
 
 
@@ -42,11 +42,11 @@ def shell_argv() -> list[str]:
 def presets() -> list[dict]:
     out = []
     for p in PRESETS:
-        if p["id"] == "claude":
-            from app.services import claude_code
-            found = claude_code.info()["installed"]
+        if p["cmd"] is None:
+            found = True
         else:
-            found = True if p["cmd"] is None else bool(shutil.which(p["cmd"]))
+            from app.services import agent_programs
+            found = bool(agent_programs.status()[p["id"]]["installed"])
         out.append({"id": p["id"], "label": p["label"], "available": found, "install": None if found else p.get("install")})
     return out
 
@@ -81,10 +81,20 @@ class Session:
     cols: int = 100
     rows: int = 30
     gen: int = 0
+    on_close: list = field(default_factory=list)
+    typed: set = field(default_factory=set)
+    notice: bytes = b""
 
     @property
     def alive(self) -> bool:
         return self.exited is None
+
+    def replay(self, typed: bool = False) -> bytes:
+        return bytes(self.buffer) if typed else bytes(self.buffer) + self.notice
+
+    def tell(self, message: dict) -> None:
+        for q in list(self.typed):
+            q.put_nowait(message)
 
     def write(self, data: bytes) -> None:
         if self.exited is not None:
@@ -165,6 +175,7 @@ class Terminals:
             raise ValueError(f"unknown preset `{preset}`")
         env, cwd = environment(), str(workdir())
         title = spec["label"]
+        token = ""
         if spec["cmd"] is None:
             argv = shell_argv()
             title = "Terminal"
@@ -173,23 +184,35 @@ class Terminals:
             from app.services import claude_code
             found = await asyncio.to_thread(claude_code.info, True)
             if not found["installed"]:
-                raise ValueError(claude_code.INSTALL)
+                raise ValueError(found["said"])
             try:
                 cwd = str(claude_code.workdir())
             except claude_code.ClaudeError as exc:
                 raise ValueError(str(exc)) from None
-            argv = claude_code.argv(found["path"], prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
-            env = claude_code.child_env()
+            try:
+                token, mcp_file = claude_code.issue()
+            except claude_code.ClaudeError as exc:
+                raise ValueError(str(exc)) from None
+            argv = claude_code.argv(found["path"], mcp_file, prompt or claude_code.prefs().get("claudeFirstMessage") or None, resume)
+            env = claude_code.child_env(found["path"])
         else:
-            exe = shutil.which(spec["cmd"])
-            if not exe:
-                raise ValueError(f"{spec['label']} is not installed. Install it with: {spec.get('install')}")
-            argv = [exe]
+            from app.services import agent_programs
+            try:
+                argv, env, cwd, token = await asyncio.to_thread(agent_programs.launch, preset)
+            except agent_programs.ProgramError as exc:
+                raise ValueError(str(exc)) from None
         sid = secrets.token_hex(6)
         s = Session(sid, preset, None, title=title, argv=argv, cwd=cwd, env=env, cols=max(2, min(500, cols)), rows=max(1, min(300, rows)))
+        if token:
+            from app.services import claude_code
+            s.on_close.append(lambda: claude_code.revoke(token))
+        if preset == "antigravity":
+            s.on_close.append(lambda: agent_programs.remove_tab_entry(Path(cwd), token))
         try:
             self._start(s, asyncio.get_running_loop())
         except OSError as e:
+            for done in s.on_close:
+                done()
             raise ValueError(f"{title} cannot start in {cwd}: {e.strerror or e}") from None
         self.sessions[sid] = s
         return s
@@ -249,6 +272,7 @@ class Terminals:
                 raise KeyError(sid)
         s.exited, s.win = None, None
         s.buffer.clear()
+        s.notice = b""
         try:
             Path(s.cwd).mkdir(parents=True, exist_ok=True)
             self._start(s, loop)
@@ -256,6 +280,7 @@ class Terminals:
             self._exit(s, 1)
             raise ValueError(f"{s.title} cannot start in {s.cwd}: {e.strerror or e}") from None
         s.feed(b"\x1bc")
+        s.tell({"type": "hello", "alive": True, "kind": s.preset})
         return s
 
     def _on_readable(self, s: Session, loop: asyncio.AbstractEventLoop) -> None:
@@ -290,7 +315,9 @@ class Terminals:
             return
         s.exited = code
         line = "Claude Code exited" if s.preset == "claude" else f"Process exited with code {code}"
-        s.feed(f"\r\n[{line} · Restart runs it again]\r\n".encode())
+        s.notice = f"\r\n[{line} · Restart runs it again]\r\n".encode()
+        for q in list(s.listeners):
+            q.put_nowait({"type": "exit", "code": code} if q in s.typed else s.notice)
         s.drop_pending()
         if s.fd >= 0:
             try:
@@ -303,6 +330,8 @@ class Terminals:
         s = self.sessions.pop(sid, None)
         if not s:
             return
+        for done in s.on_close:
+            done()
         if s.exited is None:
             try:
                 if s.win is not None:

@@ -7,7 +7,7 @@ import time
 from collections import deque
 from pathlib import Path
 
-from app.core import config
+from app.core import config, seal
 from app.engine.core import core
 
 SETTINGS = config.DATA_DIR / "agents.json"
@@ -15,9 +15,13 @@ POLICIES = ("allow", "ask", "deny")
 APPROVAL_WAIT = 300.0
 KNOWN = {"claude-code": "Claude Code", "claude": "Claude Code", "codex": "Codex", "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor"}
 GATED_COMMANDS = {"file.package": "packages the document to disk", "file.print": "prints", "file.printBooklet": "prints a booklet"}
-INAPP_TOKEN = secrets.token_urlsafe(24)
+GATED_TOOLS = ("publish_website", "review", "save_document", "export_document", "book", "run_command", "run_commands")
 INAPP_HEADER = "x-formdesign-inapp"
 INAPP_CLIENT = "Claude Code in FormDesign"
+OWN_TABS = {"claude": INAPP_CLIENT, "codex": "Codex in FormDesign", "cursor": "Cursor in FormDesign", "antigravity": "Antigravity in FormDesign"}
+OWN_NAMES = frozenset(OWN_TABS.values())
+ANSWERS = ("deny", "once", "always")
+ALWAYS_SCOPE = "agent"
 
 sessions: dict[str, dict] = {}
 clients: dict[str, dict] = {}
@@ -65,28 +69,58 @@ def _write(d: dict) -> None:
     SETTINGS.write_text(json.dumps(d, indent=1))
 
 
+def _loosened(vals: dict) -> bool:
+    return any(v == "allow" for k, v in vals["policies"].items() if k not in OWN_NAMES) or bool(str(vals["claudeBin"] or "").strip())
+
+
+def choice() -> dict:
+    from app.services import claude_code
+    d = _read()
+    policies = d.get("policies") if isinstance(d.get("policies"), dict) else {}
+    vals = {"enabled": bool(d.get("enabled", True)), "policies": dict(policies), "claudeBin": claude_code.raw_prefs().get("claudeBin", "")}
+    state = seal.check(vals, d.get("seal"))
+    broken = state in ("unsealed", "mismatch") and _loosened(vals)
+    if broken:
+        vals = {"enabled": vals["enabled"], "policies": {k: ("ask" if v == "allow" and k not in OWN_NAMES else v) for k, v in vals["policies"].items()}, "claudeBin": ""}
+    return {**vals, "seal": "broken" if broken else state, "sealBroken": broken}
+
+
+def commit(mutate=None, claude_bin: str | None = None) -> str:
+    eff = choice()
+    d = _read()
+    d["enabled"], d["policies"] = eff["enabled"], dict(eff["policies"])
+    if mutate is not None:
+        mutate(d)
+    bin_ = eff["claudeBin"] if claude_bin is None else claude_bin
+    from app.services import claude_code
+    if claude_code.raw_prefs().get("claudeBin", "") != bin_ and claude_code.PREFS.exists():
+        claude_code.write_bin(bin_)
+    d.pop("seal", None)
+    mark = seal.sign({"enabled": bool(d.get("enabled", True)), "policies": d.get("policies") or {}, "claudeBin": bin_})
+    if mark:
+        d["seal"] = mark
+    _write(d)
+    return bin_
+
+
 def enabled() -> bool:
-    return bool(_read().get("enabled", True))
+    return choice()["enabled"]
 
 
 def set_enabled(on: bool) -> None:
-    d = _read()
-    d["enabled"] = on
-    _write(d)
+    commit(lambda d: d.__setitem__("enabled", on))
     push("settings")
 
 
 def policy(client: str) -> str:
-    p = (_read().get("policies") or {}).get(client, "allow" if client == INAPP_CLIENT else "ask")
+    p = choice()["policies"].get(client, "allow" if client in OWN_NAMES else "ask")
     return p if p in POLICIES else "ask"
 
 
 def set_policy(client: str, p: str) -> None:
     if p not in POLICIES:
         raise ValueError(f"policy is one of {', '.join(POLICIES)}")
-    d = _read()
-    d.setdefault("policies", {})[client] = p
-    _write(d)
+    commit(lambda d: d.setdefault("policies", {}).__setitem__(client, p))
     push("clients")
 
 
@@ -132,8 +166,9 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
         info = info or sessions[sid]["info"]
         transport = sessions[sid]["transport"]
     ua = (headers.get("user-agent") or "").split("/")[0].strip()
-    name = INAPP_CLIENT if inapp(headers) else display(info, ua or "Unknown client")
-    if not inapp(headers) and (name.strip().lower() in (INAPP_CLIENT.lower(), "assistant") or name.strip().lower().startswith("plugin:")):
+    own = own_tab(headers)
+    name = OWN_TABS.get(own, INAPP_CLIENT) if own else display(info, ua or "Unknown client")
+    if not own and (name.strip().lower() in ({n.lower() for n in OWN_NAMES} | {"assistant"}) or name.strip().lower().startswith("plugin:")):
         name = f"{name} (unverified)"
     c = clients.setdefault(name, {"name": name, "version": None, "transport": transport, "firstSeen": time.time(), "lastSeen": 0.0, "calls": 0})
     c["lastSeen"] = time.time()
@@ -144,12 +179,17 @@ def identify(headers, params: dict, method: str) -> tuple[str, str | None]:
 
 
 def inapp(headers) -> bool:
-    got = headers.get(INAPP_HEADER) or ""
-    return bool(got) and secrets.compare_digest(got, INAPP_TOKEN)
+    from app.services import claude_code
+    return claude_code.is_inapp(headers.get(INAPP_HEADER))
+
+
+def own_tab(headers) -> str | None:
+    from app.services import claude_code
+    return claude_code.inapp_kind(headers.get(INAPP_HEADER))
 
 
 def gate_reason(name: str, args: dict) -> str | None:
-    if not isinstance(args, dict):
+    if not isinstance(args, dict) or name not in GATED_TOOLS:
         return None
     if name == "publish_website" and args.get("action", "publish") != "list":
         return "publishes a website" if args.get("action", "publish") == "publish" else "takes a published website down"
@@ -194,24 +234,43 @@ def short(args: dict, limit: int = 160) -> str:
     return s if len(s) <= limit else s[: limit - 1] + "…"
 
 
-async def ask(client: str, name: str, args: dict, reason: str) -> bool:
+async def ask(client: str, name: str, args: dict, reason: str, gone=None) -> bool:
     aid = secrets.token_hex(6)
     fut = asyncio.get_running_loop().create_future()
-    approvals[aid] = {"id": aid, "client": client, "tool": name, "args": short(args, 400), "reason": reason, "at": time.time(), "future": fut}
-    push("approval", id=aid, client=client, tool=name, reason=reason)
+    now = time.time()
+    more = {"agent": client, "asked": f"run {name}: it {reason}", "detail": short(args, 400), "answers": list(ANSWERS), "alwaysScope": ALWAYS_SCOPE,
+            "expiresAt": now + APPROVAL_WAIT, "wait": APPROVAL_WAIT}
+    approvals[aid] = {"id": aid, "client": client, "tool": name, "args": short(args, 400), "reason": reason, "at": now, **more, "future": fut}
+    push("approval", id=aid, client=client, tool=name, reason=reason, at=now, **more)
+    outcome = "cancelled"
     try:
-        return await asyncio.wait_for(asyncio.shield(fut), APPROVAL_WAIT)
+        if gone is None:
+            ok = await asyncio.wait_for(asyncio.shield(fut), APPROVAL_WAIT)
+        else:
+            end = time.monotonic() + APPROVAL_WAIT
+            while not fut.done():
+                if time.monotonic() >= end:
+                    raise asyncio.TimeoutError
+                if await gone():
+                    return False
+                await asyncio.wait([fut], timeout=min(0.5, max(0.01, end - time.monotonic())))
+            ok = fut.result()
+        outcome = "approved" if ok else "declined"
+        return ok
     except asyncio.TimeoutError:
+        outcome = "expired"
         return False
     finally:
         approvals.pop(aid, None)
-        push("approvals")
+        push("approvals", id=aid, withdrawn=True, outcome=outcome)
 
 
-def decide(aid: str, approve: bool) -> bool:
+def decide(aid: str, approve: bool, always: bool = False) -> bool:
     a = approvals.get(aid)
     if not a or a["future"].done():
         return False
+    if always and approve:
+        set_policy(a["client"], "allow")
     a["future"].set_result(approve)
     return True
 
@@ -226,11 +285,13 @@ def record(client: str, name: str, args: dict, ok: bool, ms: float, text: str, r
 
 
 def snapshot() -> dict:
-    d = _read()
-    pol = d.get("policies") or {}
+    c = choice()
+    pol = c["policies"]
     names = sorted(set(clients) | set(pol))
     return {
-        "enabled": d.get("enabled", True),
+        "enabled": c["enabled"],
+        "seal": c["seal"],
+        "sealBroken": c["sealBroken"],
         "endpoint": f"http://{config.HOST}:{config.PORT}/mcp",
         "stdio": "./formdesign mcp",
         "clients": [{**clients.get(n, {"name": n, "version": None, "transport": None, "lastSeen": None, "calls": 0}), "policy": policy(n)} for n in names],
@@ -240,8 +301,8 @@ def snapshot() -> dict:
 
 
 def install(client: str, dry: bool) -> str:
-    if client not in ("claude", "codex", "cursor"):
-        raise ValueError("client is claude, codex or cursor")
+    if client not in ("claude", "codex", "cursor", "antigravity"):
+        raise ValueError("client is claude, codex, cursor or antigravity")
     script = config.REPO_ROOT / "setup" / "agents.py"
     if config.FROZEN or not script.exists():
         raise ValueError("agent setup runs from a FormDesign source folder: ./formdesign agents install " + client)

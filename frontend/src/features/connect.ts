@@ -8,10 +8,10 @@ import type { Workspace } from '../ui/workspace';
 interface Client { name: string; version: string | null; transport: string | null; lastSeen: number | null; calls: number; policy: 'allow' | 'ask' | 'deny' }
 interface Approval { id: string; client: string; tool: string; args: string; reason: string; at: number }
 interface Act { id: number; at: number; client: string; tool: string; args: string; ok: boolean; ms: number; note: string; changed: boolean }
-interface Snap { enabled: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
+interface Snap { enabled: boolean; seal?: string; sealBroken?: boolean; endpoint: string; stdio: string; clients: Client[]; approvals: Approval[]; activity: Act[] }
 
 const FOLLOW_KEY = 'formdesign.connect.follow';
-const INSTALL: Array<[string, string]> = [['claude', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor']];
+const INSTALL: Array<[string, string]> = [['claude', 'Claude Code'], ['codex', 'Codex'], ['cursor', 'Cursor'], ['antigravity', 'Antigravity']];
 const ago = (t: number | null): string => {
   if (!t) return 'not seen';
   const s = Math.max(0, Math.round(Date.now() / 1000 - t));
@@ -26,6 +26,7 @@ class ConnectPanel {
       <div class="fc-kv"><span>HTTP</span><code class="fc-endpoint"></code></div>
       <div class="fc-kv"><span>stdio</span><code class="fc-stdio"></code></div>
       <label class="fc-switch"><input type="checkbox" class="fc-follow"><span>Follow the agent: show each change it makes</span></label>
+      <p class="cv-note fc-seal">The saved agent permission was changed outside FormDesign, so it is back to Ask.</p>
     </div>
     <div class="fc-sec fc-approvals-sec" hidden>
       <h4 class="fc-h">Waiting for you</h4>
@@ -64,10 +65,7 @@ class ConnectPanel {
       b.addEventListener('click', () => void this.install(id, label));
       inst.appendChild(b);
     }
-    engine.on('agents', (e: { what: string; client?: string; tool?: string; reason?: string }) => {
-      if (e.what === 'approval' && e.client !== 'assistant') toast(`${e.client} asks to run ${e.tool}: it ${e.reason}. Approve or decline in Agent Connect.`);
-      void this.load();
-    });
+    engine.on('agents', () => void this.load());
     engine.on('changed', (e: ChangeEvent) => this.followChange(e));
     engine.on('open', () => void this.load());
   }
@@ -92,6 +90,7 @@ class ConnectPanel {
   private render(): void {
     const s = this.snap;
     if (!s) return;
+    setClass(q(this.root, '.fc-seal'), 'is-on', !!s.sealBroken);
     if (this.on.checked !== s.enabled) this.on.checked = s.enabled;
     setText(q(this.root, '.fc-endpoint'), s.endpoint);
     setText(q(this.root, '.fc-stdio'), s.stdio);

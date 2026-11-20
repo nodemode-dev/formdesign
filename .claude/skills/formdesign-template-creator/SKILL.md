@@ -22,7 +22,7 @@ What goes wrong without it: frames placed by eye in points that do not add up, t
 4. **Name content by slots.** Every frame that holds content gets a slot from `references/spec.md` (or `flow: "body"` for running text with a continuation page recipe); decoration gets none. Write original sample text that is the length real content will be.
 5. **Style through the kit.** Use the kit's paragraph styles by name; add template styles with `basedOn` and `leading` given with `size`. Colours only through palette roles.
 6. **Validate and look.** `validate_template {spec}` (MCP) or `python3 scripts/check_template.py file.json --renders out/` returns problems, pages, slots, overset outside flows, preflight and page images. Look at every image. Fix and repeat until `references/checklist.md` passes.
-7. **Save.** `save_template {spec}` (or POST /api/templates). It appears in the gallery and in `list_templates`, and the Make pass ranks it.
+7. **Save.** `save_template {spec}`. It appears in the gallery and in `list_templates`, and the Make pass ranks it.
 
 ## Gates
 

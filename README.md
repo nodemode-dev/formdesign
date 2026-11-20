@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version 0.87.0" src="https://img.shields.io/badge/version-0.87.0-eef0f4?style=flat-square">
+  <img alt="version 0.89.0" src="https://img.shields.io/badge/version-0.89.0-eef0f4?style=flat-square">
   <img alt="Rust" src="https://img.shields.io/badge/rust-layout%20core-B7410E?style=flat-square&logo=rust&logoColor=white">
   <img alt="TypeScript and Python" src="https://img.shields.io/badge/typescript%20%2B%20python-engine%20and%20window-3178c6?style=flat-square">
   <img alt="macOS, Windows and Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -99,7 +99,7 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 ./formdesign templates                       # list the 71 templates
 ./formdesign tool preview '{"page": 1}'      # call any MCP tool from a shell
 ./formdesign cli list                        # the shared command catalogue; run any command by id
-./formdesign mcp                             # MCP server on stdio for Claude Code, Codex and Cursor
+./formdesign mcp                             # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ./formdesign mcpb build .                    # the same server as a Claude Desktop extension (.mcpb)
 ```
 
@@ -111,7 +111,7 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 - **Engine:** FastAPI service with intake, templates, the Make pass, MCP, and the window socket at `/api/ws`.
 - **Window:** vanilla TypeScript and Vite, tiled rendering of the core with overlays, in 26 languages.
 - **Desktop:** Tauri 2 shell with the engine and the core as sidecars.
-- **Tested:** 66 backend test functions (exports, templates, Make, MCP, consent, sockets, boot) and a window test suite.
+- **Tested:** backend tests (exports, templates, Make, MCP, consent, the window key, the saved-choice seal, sockets, boot, the agent manifest) and a window test suite.
 
 ## Download
 

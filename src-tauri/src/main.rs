@@ -130,7 +130,7 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
             reveal::round_splash(&handle);
-            let mut cmd = app.shell().sidecar("formdesign-engine")?.env("FORMDESIGN_PORT", "8196");
+            let mut cmd = app.shell().sidecar("formdesign-engine")?.env("FORMDESIGN_PORT", "8196").env("FORMDESIGN_WINDOW_KEY_STDOUT", "1");
             if let Some(core) = core_path() {
                 cmd = cmd.env("FORMDESIGN_CORE", core);
             }
@@ -140,10 +140,19 @@ fn main() {
             }
             tauri::async_runtime::spawn(async move {
                 let pattern = regex::Regex::new(r"http://127\.0\.0\.1:(\d+)").ok();
+                let key_pattern = regex::Regex::new(r"formdesign-window-key: ([A-Za-z0-9_-]{32,})").ok();
                 let mut port: Option<u16> = None;
+                let mut key: Option<String> = None;
                 while let Some(event) = rx.recv().await {
                     let line = match event {
-                        CommandEvent::Stdout(bytes) | CommandEvent::Stderr(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
+                        CommandEvent::Stdout(bytes) => {
+                            let text = String::from_utf8_lossy(&bytes).into_owned();
+                            if key.is_none() {
+                                key = key_pattern.as_ref().and_then(|p| p.captures(&text)).map(|found| found[1].to_string());
+                            }
+                            text
+                        }
+                        CommandEvent::Stderr(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
                         CommandEvent::Terminated(_) => break,
                         _ => continue,
                     };
@@ -154,7 +163,24 @@ fn main() {
                         }
                     }
                 }
-                let url = port.and_then(|found| format!("http://127.0.0.1:{found}").parse::<tauri::Url>().ok());
+                let grace = std::time::Instant::now() + std::time::Duration::from_secs(10);
+                while port.is_some() && key.is_none() && std::time::Instant::now() < grace {
+                    match rx.try_recv() {
+                        Ok(CommandEvent::Stdout(bytes)) => {
+                            key = key_pattern.as_ref().and_then(|p| p.captures(&String::from_utf8_lossy(&bytes))).map(|found| found[1].to_string());
+                        }
+                        Ok(_) => {}
+                        Err(_) => {
+                            let _ = tauri::async_runtime::spawn_blocking(|| std::thread::sleep(std::time::Duration::from_millis(20))).await;
+                        }
+                    }
+                }
+                let origin = port.map(|found| format!("http://127.0.0.1:{found}")).unwrap_or_default();
+                let key_script = match &key {
+                    Some(value) => format!("if (window.location.origin === {origin:?}) {{ window.__FORMDESIGN_WINDOW_KEY = {value:?}; }}"),
+                    None => String::new(),
+                };
+                let url = port.filter(|_| key.is_some()).and_then(|found| format!("http://127.0.0.1:{found}").parse::<tauri::Url>().ok());
                 match url {
                     Some(url) => {
                         let (width, height) = handle
@@ -180,6 +206,7 @@ fn main() {
                             .visible(reveal::BUILD_VISIBLE)
                             .background_color(reveal::BACKGROUND)
                             .initialization_script(preset)
+                            .initialization_script(key_script)
                             .title("FormDesign")
                             .inner_size(width, height)
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)

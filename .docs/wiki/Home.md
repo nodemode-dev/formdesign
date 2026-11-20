@@ -8,11 +8,11 @@ Version 0.19.0 · Rust layout core (formdesign-core over FormDesign's own layout
 
 | Area | State |
 | --- | --- |
-| Layout core: 388 commands, 41 tools, tiles, overlays, slots, threads, fonts | Stable |
+| Layout core: 394 commands, 41 tools, tiles, overlays, slots, threads, fonts | Stable |
 | Intake (Markdown, Word, RTF, text, HTML, CSV, spreadsheets, PDF, images, briefs) | Stable |
 | Templates (71), brand kits, the template checker | Stable |
 | The Make pass (rank, fill, continue, fit, report) | Stable; swept across all 71 templates every release |
-| MCP server (29 tools), stdio bridge, agent installers, CLI | Stable |
+| MCP server (38 tools), stdio bridge, agent installers, CLI | Stable |
 | The editor: canvas, tools, menus, Properties, Character, Paragraph, Make, Slots, Pages, Layers, Links, Swatches, Styles, Preflight, Info | Working; verified in the browser at 0.6.1 |
 | Rulers, Glyphs, Tabs, Table, Book, Story Editor | Working; new at 0.7.0, verified once each |
 | Separations and Overprint Preview, Track Changes, Notes, Conditional Text, Object Style Options | Working; new at 0.8.0, verified once each |
@@ -36,7 +36,7 @@ The measured parity with professional layout and PDF applications (170 scored ro
 | [[Engine-Service]] | `backend/`: documents, intake, templates, books, routes |
 | [[Make-Pass]] | How files and a brief become a filled layout |
 | [[Templates]] | The template library, brand kits, adding templates |
-| [[Agents-and-MCP]] | MCP tools, the skills, the CLI, installing for Claude Code, Codex and Cursor |
+| [[Agents-and-MCP]] | MCP tools, the skills, the CLI, installing for Claude Code, Codex, Cursor and Antigravity |
 | [[Editor]] | `frontend/`: the canvas, input, the feature modules, the zero-flash rules |
 | [[Project-Format]] | `.fdes` documents and `.fdbook` books, entry by entry |
 | [[Desktop]] | The Tauri shell, the frozen engine, building bundles |

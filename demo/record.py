@@ -104,7 +104,7 @@ class Recorder:
             pg.wait_for_timeout(1200)
             for t in pg.query_selector_all('[role="tab"]'):
                 try:
-                    if t.is_visible() and t.get_attribute("aria-selected") != "true" and not t.evaluate('n => !!n.closest(".cv-doc-tabs, .fd-dock")'):
+                    if t.is_visible() and t.get_attribute("aria-selected") != "true" and not t.evaluate('n => !!n.closest(".cv-doc-tabs, .ft-dock")'):
                         t.click(timeout=1500)
                         pg.wait_for_timeout(500)
                 except Exception:

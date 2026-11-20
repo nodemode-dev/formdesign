@@ -2,10 +2,118 @@
 
 Living log for the window. Source files stay comment-free; what they would have said lives here, indexed. Read it before editing `frontend/`.
 
-Current build version: v0.87.0
-Last updated: 2026-11-13 · keys on Home stay on Home · the window is revealed once the first document state is known · Back in the narrow row, the drop card lights, real demo covers, translated Home · the demos as browser pages that replay the engine · the family Home with a side panel that resizes and collapses · three demos open as new documents · the title bar Claude Code and Terminal buttons light with the dock · the unused two-star make glyph is gone · 2026-11-11 · core toast requests reach the screen · PNG and JPEG export pages count from 1 · 2026-11-10 · Find/Change follows the caret into another story · Publish Online waits for the list · Generate Alt Text shows only the latest answer · the Plugins setup lines quote the folder · each glyph preview font gets its own name · the Adjustments curve keeps drawing when two points share an input · pica lengths with a minus sign or a lone point · z-index on the layer scale, colours on real tokens · ticked stories stay with their own document · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
+Current build version: v0.89.0
+Last updated: 2026-11-19 · the shared dock is module 2.2.0 with Antigravity as its fourth agent tab · the terminal panel is the family's shared dock · the window takes the engine's key once and sends it on every write · a reload in development tries the kept key before asking the engine again · Agent Connect says in its own line that the saved agent permission was reset to Ask · AMOLED Black, a true-black theme for OLED screens · 2026-11-13 · keys on Home stay on Home · the window is revealed once the first document state is known · Back in the narrow row, the drop card lights, real demo covers, translated Home · the demos as browser pages that replay the engine · the family Home with a side panel that resizes and collapses · three demos open as new documents · the title bar Claude Code and Terminal buttons light with the dock · the unused two-star make glyph is gone · 2026-11-11 · core toast requests reach the screen · PNG and JPEG export pages count from 1 · 2026-11-10 · Find/Change follows the caret into another story · Publish Online waits for the list · Generate Alt Text shows only the latest answer · the Plugins setup lines quote the folder · each glyph preview font gets its own name · the Adjustments curve keeps drawing when two points share an input · pica lengths with a minus sign or a lone point · z-index on the layer scale, colours on real tokens · ticked stories stay with their own document · Claude Code's context names the open document · the Editor role hides its menus in every language · an empty object style stroke weight keeps the default · Make never reuses a removed file's content · margins and columns come from the page in view · Ctrl+J only on Show Terminal · Play Action works before the Actions panel is shown · every pixel ratio change resizes the canvases · tiles load after a tab change mid-request · a slot preview is never saved over the full story · a closed dropdown leaves nothing behind · Document Setup keeps a per-side bleed · a new animation starts from the preset's defaults · the Story Editor sends whole characters · a dropped Library item lands under the cursor · a cancelled file picker leaves no listener · a Text Options paragraph border draws · the panels follow a new selection or caret · a plug-in's panel title is set as text · copied objects without text paste as themselves · Save As and Open as layout pass the answer on · the Missing Fonts note takes the title as text · copy, cut and paste reach the system clipboard
 
 ---
+
+## after v0.88.0 · the shared dock is module 2.2.0, and Antigravity is its fourth agent tab (2026-11-19)
+
+- refers-to: src/dock/* (16 entries with MANIFEST.json, FormVis ddc893ae, never edited here; agents.ts is new); src/dock-adapter.ts :: KINDS, NAMES, record, formdesignDock (its type, tabs, errors.kind); src/features/agent-dock.ts :: dock, installTerminal; src/features/connect.ts :: INSTALL; tests/window/test_window.py
+- kind: feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**What changed.** The folder is copied whole again, at 2.2.0. The adapter is typed `DockAdapter<'antigravity'>`, lists `antigravity` in `tabs().builtin`, and maps a session whose preset is `antigravity` to that kind; the dock is held as `Dock<'antigravity'>`. `terminal.open` already posts the kind as the preset, and `agentStatus()` already returns what the engine answers, which now has the `antigravity` key. `errors.kind` also answers `notInstalled` for the finder's sentences ("was not found. Looked in", "but does not start"), which the engine now sends in place of "is not installed". Agent Connect's set-up row has a fourth button, Antigravity; its tooltip is the shared one and says skills are written too, which is not so for Antigravity (the MCP server only).
+
+**The window test.** `test_a_core_toast_request_reaches_the_screen` takes the window's key from the page's own claim and sends it with its two posts (its own commit); not run here, no Playwright in this machine's virtualenv.
+
+**Seen.** `tsc --noEmit` clean. Not looked at in a browser: the fourth button, the row in More agents and the tab were not seen in a window; the engine side was seen through the routes (see the backend log).
+
+---
+
+## after v0.88.0 · the terminal panel is the family's shared dock, module 2.1.0 (2026-11-19)
+
+- refers-to: src/dock/* (15 files, FormVis 8bbdf61b, never edited here); src/dock-adapter.ts :: formdesignDock, oldHeight, consentRequest, channel, record, DOCK_KEY, DOCK_SIZES; src/features/agent-dock.ts :: installTerminal, registerChat, openChat, documentContext; src/styles/dock-tokens.css; src/styles/dock-layout.css; src/styles/columns.css (.fd-app .cv-main, is-panels-hidden); src/styles/shell.css (is-panels-hidden rows; the Home rule removed); index.html (second pre-paint block, stylesheet links); src/app.ts (SHELL); src/features/claude.ts :: ClaudePanel.send; src/features/connect.ts; src/ui/home.ts; src/ui/i18n.ts :: SKIP
+- kind: feat
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+**What it is.** FormDesign's own terminal dock (`features/terminal.ts`, `styles/dock.css`, the `section.fd-dock` markup in `app.ts`) is replaced by the family's module. The folder is another repository's: it is copied whole and checked by hash (`./formdesign agents sync --check`); a change to it is made in FormVis and arrives as a new version. Everything FormDesign-specific is in the adapter and the two stylesheets.
+
+**Why the key is `formdesign.agentDock`.** `formdesign.dock` is the panel layout's key (`ui/dock.ts`) and `features/workspaces.ts` reads it to tell a first run. The old height lived under `formdesign.dock.height` as a bare number, which the module's JSON reader would have dropped, so `oldHeight` reads it and the module moves it once (with `seen`, since a person who resized the old dock does not need the first-time guide; Show me around is in the dock's menu).
+
+**Layout.** The dock was the last child of `.cv-stage-col`. It is now a child of `.cv-main` with two grid areas: `termb`, a third row under the canvas column (the same box as before: 304, 592, 846 by 280 at 1440 by 900 with default panels), and `term`, a seventh column at the far right from the options bar down to the status bar. Both tracks are `--ft-dock-h` and `--ft-dock-w`, 0px unless `data-ft-dock="open"` on that side, so a closed dock takes no room and the two `is-panels-hidden` rules (both `!important`) had to learn the new tracks or the implicit ones would size to content. The right side is offered from 1200 px of window width and is at most 0.3 of it: a share of the window, not of the canvas column, because the pre-paint script has to compute the same number before any layout exists. Home is a fixed layer over the window: it stops above the dock at the bottom (`bottom: status + --ft-dock-h`) and left of it at the right (`right: --ft-dock-w`); the ResizeObserver that fed `--fd-home-dock` is gone. Full-screen mode sets both tracks to 0 and hides the dock.
+
+**Pre-paint.** The second function in the head script reads the stored state (or the old height), clamps as `placement.ts` does (140 to 0.7 of the height; 320 to 0.3 of the width; right only from 1200 px) and sets `data-ft-dock`, `data-ft-dock-side`, `data-ft-dock-h`, `data-ft-dock-w`, `--ft-dock-size`, `--ft-dock-wsize`. Seen under 4x CPU, 40 ms latency, 200 kB/s, cache off, every animation frame sampled: remembered at the bottom (300), 2,122 frames, the canvas box `304,114,846,458` in every frame it exists; at the right (400), 2,121 frames, `304,114,446,758` in every frame. A side switch with a shell running: two layouts, the same `.ft-term` element, its output kept. AMOLED Black and back: one layout, dock `rgb(17, 17, 17)` to `rgb(0, 0, 0)` and back, terminal text `rgb(247, 247, 247)` to `rgb(237, 237, 237)` and back, same element.
+
+**The chord stays the command's.** `ui.terminal.toggle` owns Mod+J, can be rebound and is a native menu accelerator, so the module must not listen for a fixed key everywhere. `isDockChord` is true only for an event from inside `.ft-dock` whose key is the one `commands.forEvent` maps to `ui.terminal.toggle` now; outside the dock the registry (or the native menu) calls `dock.toggle()`. `passKey` lets nothing else out, as the old dock did (`root.addEventListener('keydown', e => e.stopPropagation())`): Shift+Mod+J and Alt+Mod+J typed inside the dock still go to the terminal. On macOS Mod is Cmd, so Ctrl+J still reaches the shell. The Hide button's tooltip is filled once from the binding at start (the module has no relabel).
+
+**The terminal stream.** `channel(id)` takes a one-time ticket per connection and opens `/api/term/{id}/ws?ticket=...&notices=1`: output arrives as bytes and goes to xterm as bytes, the end of a program is the typed `exit` notice (no more matching on the printed "Restart runs it again" line), input is sent as bytes and resize as `{"resize":[cols,rows]}`. Frames sent before the socket opens wait in a short list. Equal titles are numbered when a tab is first seen ("Terminal", "Terminal 2") and not renumbered when one closes.
+
+**Chat stays FormDesign's pane** (`chat: { pane, ask: 'line' }`): Markdown, the meter, pictures, From Claude Code and the chips are not in the module's Chat. The module's line is Chat's input on the Chat tab and asks Claude Code on every other tab; the adapter adds the document, page and selection in both. `ClaudePanel.send` answers whether it sent, so the line keeps the text when Claude Code is missing or the request fails. A chip fills the line through `.ft-dock-ask input`.
+
+**The question.** The engine's `approval` event becomes the module's request (`offers` from `answers`, `always: 'agent'`, `expires` from `expiresAt`, the arguments as a second note), `approvals` with `withdrawn` removes it, and the waiting list is read again from `GET /api/agents` on every engine connection, so a reload shows a waiting question again. The title is worded for one step ("to run this step in FormDesign") and a note says that only steps like it are asked about, because FormDesign does not ask before ordinary edits. Agent Connect's toast for a waiting question is removed (the dialog says it); the panel still opens on its Waiting for you card and still answers. The stored choice maps to the master switch: off is Blocked, on is Ask; there is no app-wide Allowed here and the module never sets one.
+
+**Sentences.** `t` returns the English and the page translator translates it in place, so a language change still finds the English. The old dock's sentences are kept word for word where they exist in the tables (`empty`, `chatPlaceholder`, `consentChanged`); the module's new sentences show in English until the 25 tables get them as whole sentences. `keys.json` was not regenerated, so no table is half filled. `.ft-notranslate`, `.ft-consent-what` and `.ft-consent-notes` are on the translator's skip list.
+
+**Known differences from the old dock.** The dock remembers being open, so a window that was closed with it open starts a shell at load if no session is running. Tabs that end are struck through by the module's `is-ended`. "Send to Claude" on the Chat tab's send button now reads "Send to Claude Code" on every tab. A missing Claude Code is a note in the dock with the install line and a Copy button, not a toast. New Terminal with the dock closed and sessions running opens the dock without adding a tab. Pixels at 1440 by 900 against the old dock: closed 0; on a shell 8,343 (8,336 inside the dock box: four new head buttons and a strip about 10 px high along the bottom of the terminal area that the old dock left the colour of the page behind it; 7 elsewhere, not explained); on Chat 873, all inside the dock box (the new head buttons).
+
+**Removed code, quoted.** The whole of `src/features/terminal.ts` (448 lines; `git show df6ecd0:frontend/src/features/terminal.ts`) and `src/styles/dock.css` (34 lines). Its parts that had no other record:
+
+```ts
+const HEIGHT_KEY = 'formdesign.dock.height';
+const isToggle = (e: KeyboardEvent): boolean => (isMac ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyJ';
+root.addEventListener('keydown', (e) => { e.stopPropagation(); if (isToggle(e)) { e.preventDefault(); this.hide(); } });
+setClass(this.ws.root, 'is-dock-open', open);
+const ws = new WebSocket(`${proto}://${location.host}/api/term/${encodeURIComponent(tab.id)}/ws?ticket=${encodeURIComponent(ticket)}`);
+ws.onmessage = (e) => { const data = new Uint8Array(e.data as ArrayBuffer); tab.term.write(data); if (!tab.exited && /Restart runs it again\]/.test(new TextDecoder().decode(data.slice(-120)))) { tab.exited = true; this.paintTabs(); } };
+setText(q(t.node, '.fd-dock-tab-title'), same.length > 1 ? `${t.title} ${same.indexOf(t) + 1}` : t.title);
+if (p && !p.available) { toast(`Claude Code is not installed. Install it with: ${p.install ?? 'npm install -g @anthropic-ai/claude-code'}`, 'error'); return; }
+{ id: 'ui.terminal.new', label: 'New Terminal', run: async () => { const made = await d.show(); if (!made) await d.open(); } },
+```
+
+```css
+.fd-dock { position: relative; flex: none; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; height: var(--fd-dock-h, 280px); min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
+.fd-dock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); }
+.fd-term { position: absolute; inset: 6px 4px 0 10px; }
+.cv-app.is-screen-full .fd-dock { display: none; }
+.fd-app.is-dock-open .cv-home { bottom: calc(var(--cv-status-h) + var(--fd-home-dock, 280px)); }
+```
+
+From `ui/home.ts`: `new ResizeObserver(() => setStyleVar(this.root, '--fd-home-dock', `${dock.offsetHeight}px`)).observe(dock);`. From `features/connect.ts`: `if (e.what === 'approval' && e.client !== 'assistant') toast(`${e.client} asks to run ${e.tool}: it ${e.reason}. Approve or decline in Agent Connect.`);`.
+
+## v0.88.0 · AMOLED Black, a true-black theme for OLED screens (2026-11-19)
+
+- refers-to: src/ui/themes.ts :: ThemeProfile, THEMES['amoled'], applyTheme; index.html (critical style, OLED table, PROFILES['amoled'], pre-paint script); src/styles/tokens.css (:root[data-oled])
+- kind: feat
+- logged: v0.88.0 · 2026-11-19
+
+A theme with id `amoled`, label "AMOLED Black", for screens where a `#000000` pixel is off. Surfaces (`--bg-primary`, `--bg-secondary`, `--bg-node`, `--canvas-bg`) are `#000000` and panels are told apart by borders alone (`#262626`, `#3a3a3a`); `--bg-tertiary` stays `#141414` because inputs, menus and selected rows use it as their only fill. Text is `#ededed`, `#a6a6a6` and `#858585` (17.9, 8.6 and 5.7 to 1 on black). The pasteboard dot grid is `#262626`. The accent is the person's own and is not touched. The profile has no `--node-shadow`, like the family's other additions of this kind.
+
+The profile is in both tables, `THEMES` and the pre-paint `PROFILES` in `index.html`, because a theme present in one and not the other paints Studio Dark first and then switches. `ThemeProfile` gains `oled?: boolean`; `applyTheme` sets `data-oled` on `html` for an oled profile and removes it for every other, touching the attribute only when it changes, and the pre-paint script sets it beside the theme before first paint (an `OLED` table next to `LIGHT`). The critical inline style gives `body` `#000000` while `data-oled` is set, so the frame before `tokens.css` arrives is black too. The picker lists it with the others: the Preferences swatch grid and theme list are built from `THEMES`.
+
+`tokens.css` hangs the true-black exceptions on `:root[data-oled]`, never on the theme id, so a later OLED profile only needs the flag: `--bg-hover` and `--border-soft` become 10% and 12% white (the usual 6% and 8% are too close to black to read), `--surface-1` (the mix that tints the title bar, rail, tabs and Home boxes) becomes `--bg-primary`, and `--line-0` (black on black) becomes `--border-color`. This app's tokens are the formvis ones, so the names are formvis's; the rail's accent glow rule that FormVis needed was not added here because it was not measured.
+
+Checked in headless Chrome at 1440 by 900 against the Vite dev server and the engine, with 4x CPU throttling, 150 ms latency, 200 KB/s and the cache off: cold load with `amoled` saved, 26 frames from the first commit to the app being ready, every frame `#000000` at the four corners and at the title bar, sidebar (top, middle, foot) and main area of the Home view (the demo posters are document content and keep their colours). NOT checked: a hard reload as a second run, a live switch with node identity and bounding boxes compared, and every surface of the editor view (canvas surround, layers and inspector panels, rulers, review pages), because no document opens here (the layout core is not built). Those surfaces may still mix a tint or a hard-coded near-black and need a measurement with a document open.
+
+## v0.88.0 · Agent Connect says once, in its own line, that the saved agent permission was reset to Ask (2026-11-19)
+
+- refers-to: src/features/connect.ts :: ConnectPanel (the `.fc-seal` line, render); src/styles/connect.css (.fc-seal); src/ui/i18n/keys.json; src/ui/i18n/tables/*.json
+- kind: feat
+- logged: v0.88.0 · 2026-11-19
+
+When the engine reports `sealBroken` (the stored agent choice was changed outside the app and has been reset to Ask), the first section of Agent Connect shows "The saved agent permission was changed outside FormDesign, so it is back to Ask." This replaces the toast the earlier 0.88.0 change raised from the same flag. The sentence is always in the panel's markup, so its line is reserved: it is hidden with `visibility` and shown by toggling one class (`is-on`) only when the flag differs, so no node is added, removed or rebuilt and nothing moves. The engine clears the flag at the next window write that confirms the choice, and the line empties then. The string is in `keys.json` (collected by `setup/i18n_keys.py keys`) and in all 23 complete language tables; the two regional variants fall back to their parent.
+
+Checked: the engine side was run earlier (hand edit caught, `sealBroken` reported, a window write clears it); `setup/i18n_keys.py check` reports every complete table at 1833 of 1833. NOT checked in a page: Agent Connect only renders with a document open, and no document opens here because the layout core is not built, so the line was not seen on screen. A test plan is in /home/claude/form/out/test_plan/formdesign.md.
+
+## v0.88.0 · a reload in development tries the kept key before asking the engine again (2026-11-19)
+
+- refers-to: src/engine/window-key.ts :: loadWindowKey
+- kind: fix
+- logged: v0.88.0 · 2026-11-19
+
+When the desktop shell has not set the key, `loadWindowKey` now tries the key kept in `sessionStorage` first, by asking for a socket ticket with it, and asks `POST /api/window/key` only when that fails. The engine hands out its development key once, so with the old order every reload asked again, was refused with 409 and the engine logged a second claim that never happened. The kept key is dropped (and the bootstrap asked) only when the ticket request is refused or cannot be made; after a refused bootstrap the kept value is still the last resort, as before.
+
+Checked in headless Chrome against the Vite dev server and the engine on a fresh data folder: load, reload, reload. The engine saw one `POST /api/window/key` (200) and none after; each load then sent `POST /api/window/ticket` with the key header and was answered 200, and the terminal's `POST /api/term` from the page was answered 200.
+
+## v0.88.0 · the window takes the engine's key once and sends it on every write (2026-11-19)
+
+- refers-to: src/engine/window-key.ts; src/engine/client.ts :: api, EngineClient.connect; src/main.ts; src/features/terminal.ts :: connect, attachSocket; src/features/assistant.ts :: submit; src/features/assignments.ts :: form; src/features/connect.ts :: render
+- kind: feat
+- logged: v0.88.0 · 2026-11-19
+
+`loadWindowKey` runs first in `main.ts`: it reads `window.__FORMDESIGN_WINDOW_KEY` (set before the page by the desktop shell, only for the engine's own origin), deletes the global and keeps the key in a module variable; from source it asks `POST /api/window/key` once and keeps the answer in `sessionStorage` so a reload of the tab still works. `api()` adds `X-Formdesign-Window-Key` to every request, and the two raw writes (the assistant stream and the assignment package upload) add it too. The two sockets ask `POST /api/window/ticket` first and open with `?ticket=`; the terminal no longer reads a token from `GET /api/term`. The other raw `fetch` calls are plain reads of pictures and files and need nothing. Nothing on screen changes; Agent Connect shows one notice, once, when the engine reports that the stored agent access was changed outside the app (or is protected for the first time).
+
+Checked in headless Chrome against the Vite dev server and the engine: the page booted, took the key through the development bootstrap (the global was already gone and the key was in `sessionStorage`), opened the live socket and a terminal socket each with a ticket, `POST /api/term` from the page answered 200 with the key and the shell printed its prompt in the dock, and no write left the page without the header. The only failing request was `GET /api/workflow` (422), because the layout core was not built in that environment.
 
 ## Org-navi-map
 

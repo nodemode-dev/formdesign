@@ -1694,6 +1694,7 @@
 "The engine is not answering": "Công cụ xử lý không phản hồi",
 "The full text did not load; edit not saved": "Không tải được toàn bộ văn bản; chỉnh sửa chưa được lưu",
 "The picture in the selected frame is extended, with the model filling the empty area, until it fits the frame’s shape. The result is saved in the links folder and replaces the picture in the frame.": "Hình ảnh trong khung đang chọn được mở rộng, với mô hình lấp vùng trống, cho đến khi vừa với hình dạng khung. Kết quả được lưu trong thư mục links và thay thế hình ảnh trong khung.",
+"The saved agent permission was changed outside FormDesign, so it is back to Ask.": "Quyền đã lưu của tác nhân bị thay đổi bên ngoài FormDesign nên đã trở về Hỏi.",
 "The selected picture's clipping path settings, its embedded path names, PSD alpha channels and whether it has transparency.": "Cài đặt đường dẫn cắt của hình ảnh đang chọn, tên đường dẫn nhúng, kênh alpha của PSD và việc nó có độ trong suốt hay không.",
 "The structure is valid against the DTD.": "Cấu trúc hợp lệ theo DTD.",
 "The tagged content in reading order, for databases and other publishing systems.": "Nội dung đã gắn thẻ theo thứ tự đọc, dành cho cơ sở dữ liệu và các hệ thống xuất bản khác.",

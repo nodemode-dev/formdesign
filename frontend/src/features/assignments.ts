@@ -3,6 +3,7 @@ import '../styles/interactive.css';
 import '../styles/motion.css';
 import { editor } from '../editor/editor';
 import { api, engine } from '../engine/client';
+import { keyHeaders } from '../engine/window-key';
 import { confirmAction } from '../ui/dialogs';
 import { enhanceSelect } from '../ui/dropdown';
 import { el, patchList, q, setChecked, setClass, setDisabled, setHidden, setStyleVar, setText, setTitle, setValue } from '../ui/dom';
@@ -123,7 +124,7 @@ export class AssignmentsPanel extends LivePanel {
     const fd = new FormData();
     fd.append('file', file);
     for (const [k, v] of Object.entries(extra)) fd.append(k, v);
-    const r = await fetch(`/api${path}`, { method: 'POST', body: fd });
+    const r = await fetch(`/api${path}`, { method: 'POST', headers: keyHeaders(), body: fd });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : 'The engine refused the package.');
     return j;
