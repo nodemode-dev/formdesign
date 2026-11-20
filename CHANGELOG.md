@@ -2,6 +2,15 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.90.0 · 2026-11-19
+
+- The desktop app's engine stops by itself within about two seconds when the app that started it has gone, so no engine is left running after FormDesign is quit or ended.
+- An engine that was left running without its app is ended by the next start, which then takes over. A second FormDesign on the same data folder is told that FormDesign is already running there.
+- When FormDesign cannot start, it says so before it closes: that another copy of its engine holds its data folder, or the code its engine stopped with, and where the engine's log is. Before, the app could close without a word.
+- The desktop app's engine keeps a log, `Logs/formdesign-engine.log` in the FormDesign data folder (the folder `FormDesign` in your home folder unless you chose another). An error that stops the engine is written there.
+- Opening the engine program by itself opens FormDesign instead of starting an engine that nothing uses.
+- For people who build on the engine: the desktop engine takes `engine.lock` in the data folder and exits with code 2 when another engine holds it, with code 4 when it was started alone and found no app, and with code 5 when it cannot use its data folder. Ended with SIGTERM it exits with code 0. An engine started from source with uvicorn is unchanged.
+
 ## 0.89.0 · 2026-11-19
 
 - Google's Antigravity (the program `agy`) is a fourth agent program beside Claude Code, Codex and Cursor. It has a tab of its own in the terminal panel, a button in Agent Connect's set-up row, and `./formdesign agents install antigravity` adds FormDesign to the file Antigravity reads its servers from, keeping everything else in that file.
