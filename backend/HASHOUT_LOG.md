@@ -7,6 +7,36 @@ Last updated: 2026-11-19 · the family's finder 1.0.1 for the four agent program
 
 ---
 
+## v0.90.0 · the desktop engine keeps a log, holds a lock on its data folder, leaves when its app has gone, and serves nothing when started alone (2026-11-19)
+
+- refers-to: app/core/startup.py; app/core/runtime.py; formdesign_engine.py :: watch_shell, serve, main; tests/test_startup.py
+- kind: feat
+- logged: v0.90.0 · 2026-11-19
+
+The family's pattern for starting and stopping cleanly on Windows, as FormTools 0.10.0 has it. It lives in the entry the desktop app freezes, `formdesign_engine.py`; an engine started with `uvicorn app.main:app` (boot scripts, `./formdesign mcp`, the tests' own engines) is untouched and takes no lock.
+
+**startup.py** is FormTools's file, copied with `git show origin/main:backend/app/core/startup.py` and changed only in the names at its top: `APP`, `NAMES`, `SHELL_ENV` (`FORMDESIGN_SHELL_PID`), `ALONE_ENV` (`FORMDESIGN_NO_SHELL`), `ERRORS_NAME`. `PLACES` is unchanged: the frozen engine is a sidecar beside the app's program in all three install layouts, which is the entry `.`. Keep the file the same as the family's; a change belongs in every app.
+
+**runtime.py** is FormDesign's own and small: `start_logging` opens `Logs/formdesign-engine.log` under the data folder (rotating, one megabyte, three kept) on the loggers `formdesign`, `uvicorn` and `uvicorn.access`; `uvicorn.error` reaches the file through `uvicorn`, so it is not listed, or every line would be written twice. A second call for the same file only puts the handler back where it is missing. `claim` and `release` are the lock. FormDesign had no log file and no lock before this.
+
+**The order in `serve`.** The port and the three environment defaults are settled first, as before, because `app.core.config` reads them when it is imported. Then: the log (a data folder that cannot be made is one sentence and exit code 5); `keep_errors`, which sends an absent standard error to `Logs/formdesign-engine-errors.log`; the started-alone branch (a frozen engine with no `FORMDESIGN_SHELL_PID` opens the app beside it and returns 0, or says "formdesign-engine is a part of FormDesign and serves nothing on its own" and returns 4; no lock, nothing served; `FORMDESIGN_NO_SHELL=1` lets a build check serve alone); the lock (a refusal is written to the log and to standard error, exit code 2); the watch on the process in `FORMDESIGN_SHELL_PID` (nothing was watched before, so there is no fallback to the parent); the key line and the server.
+
+**Why `uvicorn.Server` and not `uvicorn.run`.** uvicorn's log setup, done when its `Config` is made, takes the handlers off the `uvicorn` loggers, so `start_logging` is called a second time after the `Config` exists. Without that the file held one line. `run` hid a Ctrl+C and answered exit code 3 for a server that never started; the entry does both itself now.
+
+**SIGTERM.** uvicorn shuts down on SIGTERM and then raises the signal again, which ended the process before the `finally` that gives the lock up (seen: exit 143 and the lock still there). The entry's own handler is what the raised signal now meets: it gives the lock up and exits 0. An engine ended with SIGTERM therefore exits 0 where it exited 143.
+
+**The lock an older engine left.** Released engines wrote no lock, so a new engine cannot know one that was left behind by 0.89.0 or older: it does not end it. If that engine still holds port 8196 the new one serves on a spare port, as it always did. The launcher's cleanup is what removes such a leftover.
+
+**A leftover that holds the port.** The port is chosen before the lock is asked for, so a new engine that ends a leftover serves on a spare port even though 8196 is free a moment later. The shell reads the address from the engine's output, so the window opens all the same.
+
+**Seen on Linux with stand-ins (`sleep` as the shell, a script as the app):** a second engine exits 2 with "formdesign is already running on [folder] (engine process N)." while the first one's shell lives, and the first keeps answering `/api/health`; the engine exits 0 within about a second of its shell ending and the lock is gone; a stopped engine whose shell had gone was ended after five seconds (its exit 137) and replaced, with the warning in the log; a holder whose shell had gone and that could hear SIGTERM exited 143 and was replaced; locks holding `not json at all`, `[1, 2]`, `{"pid": "x"}` and nothing were replaced; a lock naming an unrelated `sleep` was replaced and the `sleep` kept running; a process id with no time at all was obeyed; started alone (the entry through `python -c` with `sys.frozen` set) it opened the stand-in app in each of the four places, exit 0, no lock, and with no app near it exit 4 with the sentence; with its three streams closed it served, descriptors 0, 1 and 2 were the null device, and both log files were there; a data folder under a plain file gave the sentence and exit 5; started normally it printed what it printed before, and the log file held each line once.
+
+**Not run:** Windows and macOS (every `_windows` function in startup.py, the handle branch of `watch`, `taskkill`, the detached start of the app), a really frozen engine, the desktop shell.
+
+**Tests.** `tests/test_startup.py`, FormTools's with FormDesign's names and without the port file FormDesign does not have, plus the refusal of a second engine: 14 tests, added after each behaviour was seen.
+
+---
+
 ## after v0.88.0 · only Claude Code's sentence offers a path in Preferences (2026-11-19)
 
 - refers-to: app/services/claude_code.py :: said; app/services/agent_programs.py :: status, launch; tests/test_dock_contract.py
