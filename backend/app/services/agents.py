@@ -234,7 +234,7 @@ def short(args: dict, limit: int = 160) -> str:
     return s if len(s) <= limit else s[: limit - 1] + "…"
 
 
-async def ask(client: str, name: str, args: dict, reason: str) -> bool:
+async def ask(client: str, name: str, args: dict, reason: str, gone=None) -> bool:
     aid = secrets.token_hex(6)
     fut = asyncio.get_running_loop().create_future()
     now = time.time()
@@ -244,7 +244,17 @@ async def ask(client: str, name: str, args: dict, reason: str) -> bool:
     push("approval", id=aid, client=client, tool=name, reason=reason, at=now, **more)
     outcome = "cancelled"
     try:
-        ok = await asyncio.wait_for(asyncio.shield(fut), APPROVAL_WAIT)
+        if gone is None:
+            ok = await asyncio.wait_for(asyncio.shield(fut), APPROVAL_WAIT)
+        else:
+            end = time.monotonic() + APPROVAL_WAIT
+            while not fut.done():
+                if time.monotonic() >= end:
+                    raise asyncio.TimeoutError
+                if await gone():
+                    return False
+                await asyncio.wait([fut], timeout=min(0.5, max(0.01, end - time.monotonic())))
+            ok = fut.result()
         outcome = "approved" if ok else "declined"
         return ok
     except asyncio.TimeoutError:

@@ -767,7 +767,7 @@ async def _book(a: dict) -> dict:
         return _fail(str(exc))
 
 
-async def call_tool(name: str, args: dict, client: str = "Unknown client", session: str | None = None) -> dict:
+async def call_tool(name: str, args: dict, client: str = "Unknown client", session: str | None = None, gone=None) -> dict:
     if not agents_enabled():
         return _fail("Agent access to FormDesign is turned off. Turn it on in FormDesign under Window > Agent Connect (or Preferences > Agents).")
     pol = A.policy(client)
@@ -788,7 +788,7 @@ async def call_tool(name: str, args: dict, client: str = "Unknown client", sessi
         if not core.listeners:
             A.record(client, name, args, False, 0, f"refused: {reason}, and no window is open to ask", core.rev)
             return _fail(f"No FormDesign window is open to approve this ({reason}). Open FormDesign and retry, or set {client} to Allow in Agent Connect.")
-        if not await A.ask(client, name, args, reason):
+        if not await A.ask(client, name, args, reason, gone):
             A.record(client, name, args, False, 0, f"not approved: {reason}", core.rev)
             return _fail(f"The person did not approve this ({reason}) in FormDesign's Agent Connect panel within {int(A.APPROVAL_WAIT)} seconds, or declined it. Ask them, then retry.")
     _status["calls"] += 1
@@ -856,7 +856,7 @@ async def mcp(request: Request) -> Response:
         elif not isinstance(args, dict):
             out = _err(req_id, -32602, f"`arguments` for {name} must be an object")
         else:
-            out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id")), modern)
+            out = _ok(req_id, await call_tool(name, args, client, request.headers.get("mcp-session-id"), request.is_disconnected), modern)
     else:
         out = _err(req_id, -32601, f"Method not found: {method}")
     if new_sid:

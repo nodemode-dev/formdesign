@@ -80,3 +80,25 @@ def test_the_engine_names_its_own_tab_entry_formdesign_tab(tmp_path):
     assert agent_programs.connect("cursor", tmp_path) and agent_programs.connect("codex", tmp_path)
     assert list(json.loads((tmp_path / ".cursor" / "mcp.json").read_text(encoding="utf-8"))["mcpServers"]) == ["formdesign_tab"]
     assert (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8").startswith("[mcp_servers.formdesign_tab]\n")
+
+
+def test_a_caller_that_hangs_up_withdraws_its_question(monkeypatch):
+    import asyncio
+
+    from app.services import agents as A
+
+    said = []
+    monkeypatch.setattr(A, "push", lambda what, **more: said.append((what, more)))
+    asked = {"times": 0}
+
+    async def gone():
+        asked["times"] += 1
+        return asked["times"] > 1
+
+    async def run():
+        return await A.ask("hang-up-agent", "export_document", {"path": "x"}, "overwrites x", gone)
+
+    assert asyncio.run(run()) is False
+    assert said[0][0] == "approval"
+    assert said[-1] == ("approvals", {"id": said[0][1]["id"], "withdrawn": True, "outcome": "cancelled"})
+    assert not A.approvals and A.policy("hang-up-agent") == "ask"
