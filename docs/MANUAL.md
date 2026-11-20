@@ -74,7 +74,7 @@ Window > Workspace, or the switcher in the title bar, arranges the panels for a 
 
 Edit > Keyboard Shortcuts (Alt+Shift+Ctrl+K) changes the keys. Choose a product area or search, pick a command, click New shortcut and press the keys; the dialog says which command has them now, and Assign moves them to the picked command. Remove takes a key away. The default set cannot be changed, so your first change asks for a name and makes your own set, which you can switch, delete or reset; Show Set saves every shortcut in the set as a text file. Tools are listed too.
 
-Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex and Cursor.
+Preferences (the gear) sets the theme and accent colour, the measurement units, and shows the commands that connect Claude Code, Codex, Cursor and Antigravity.
 
 ## Pages and parents
 
@@ -186,7 +186,7 @@ Drop a PDF on the Make panel or the canvas to lay it out again in a template: Fo
 
 ## Working with an agent
 
-Claude Code, Codex and Cursor can make and finish layouts for you through FormDesign's MCP server; set them up once with `./formdesign agents install` (Preferences, Agents shows the commands). Then ask in your own words: "make a two-page magazine feature from article.md and these photos, elegant, cream paper". The agent reads your files, makes the layout, looks at the pages, replaces sample text and exports, and its changes appear live in the open window, where you can keep editing. Everything an agent changes in one turn is one step in Edit > Undo (shown as Undo Agent Turn), so a single Undo takes back what one request did; your own edits in between stay separate steps. A turn ends when you send Claude Code your next prompt, or after two minutes without a call from that agent. From a terminal, `./formdesign make files --brief "..." --out layout.pdf` does the same without an agent. Preferences > Agents has a switch for agent access: with it off, agents can see FormDesign's tools but every call is refused.
+Claude Code, Codex, Cursor and Antigravity can make and finish layouts for you through FormDesign's MCP server; set them up once with `./formdesign agents install` (Preferences, Agents shows the commands). Then ask in your own words: "make a two-page magazine feature from article.md and these photos, elegant, cream paper". The agent reads your files, makes the layout, looks at the pages, replaces sample text and exports, and its changes appear live in the open window, where you can keep editing. Everything an agent changes in one turn is one step in Edit > Undo (shown as Undo Agent Turn), so a single Undo takes back what one request did; your own edits in between stay separate steps. A turn ends when you send Claude Code your next prompt, or after two minutes without a call from that agent. From a terminal, `./formdesign make files --brief "..." --out layout.pdf` does the same without an agent. Preferences > Agents has a switch for agent access: with it off, agents can see FormDesign's tools but every call is refused.
 
 ### Agent Connect: what an agent may do
 

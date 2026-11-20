@@ -32,7 +32,7 @@ usage: ./formdesign [command] [options]
   claude [args]       Claude Code connected to FormDesign's tools (starts the engine when needed)
   build-app [flags]   compile the desktop app in one step (same as ./build_app)
   i18n keys|check     collect the interface strings, or report each language's missing translations
-  agents install|sync set up Claude Code, Codex and Cursor (install), or refresh the harness skill's tool reference (sync)
+  agents install|sync set up Claude Code, Codex, Cursor and Antigravity (install), or refresh the harness skill's tool reference (sync)
   doctor              check the toolchain, installs and ports
   counts [--check]    the README's code sizes and template count
   clean [--all]       remove build output (--all also venv, node_modules and the core build)

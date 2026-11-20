@@ -1,6 +1,6 @@
 # Agents and MCP
 
-FormDesign is built to be driven by agents as much as by hand. Claude Code, Codex and Cursor reach it through an MCP server; scripts and pipelines reach it through the CLI. Both act on the same engine documents as the window, so an agent's layout appears live in an open window and a person can finish it there.
+FormDesign is built to be driven by agents as much as by hand. Claude Code, Codex, Cursor and Antigravity reach it through an MCP server; scripts and pipelines reach it through the CLI. Both act on the same engine documents as the window, so an agent's layout appears live in an open window and a person can finish it there.
 
 ## The MCP server
 
@@ -48,7 +48,7 @@ Someone scripting FormDesign therefore uses the command line or the MCP endpoint
 
 The window has a dock under the canvas for terminals and Claude. `ui.terminal.toggle` (Window > Show Terminal, Ctrl or Cmd+J) shows or hides it; `ui.terminal.new` adds a shell tab; `ui.terminal.claude` (the title-bar Claude Code button, Ctrl or Cmd+Shift+J) opens or reuses the Claude Code tab; `ui.claude` (Chat with Claude, Ctrl or Cmd+Alt+J) opens the dock on its Chat tab, where the Ask line sends a message about the open document. The window fires `fd-dock` with `{open}` whenever the dock opens or closes.
 
-The dock is the Form family's shared panel (`frontend/src/dock`, copied whole from FormVis and checked against its `MANIFEST.json` by `./formdesign agents sync --check`; `frontend/src/dock-adapter.ts` is FormDesign's side of it). It sits under the canvas or, in a window at least 1200 px wide, at the right edge of the window; a button in its head moves it, and its place, size and whether it was open are remembered. Codex and Cursor open in tabs of their own from the dock's head or its More agents menu when they are installed. When an agent's risky step waits for an answer, the dock asks in a dialog over the window (Deny, Allow once, Always allow any agent with that name); the Waiting for you list in Agent Connect shows the same request and either place answers it. The entry the engine writes for its own tabs is named `formdesign_tab`; the entry an outside agent sets up stays `formdesign`.
+The dock is the Form family's shared panel (`frontend/src/dock`, copied whole from FormVis and checked against its `MANIFEST.json` by `./formdesign agents sync --check`; `frontend/src/dock-adapter.ts` is FormDesign's side of it). It sits under the canvas or, in a window at least 1200 px wide, at the right edge of the window; a button in its head moves it, and its place, size and whether it was open are remembered. Codex, Cursor and Antigravity open in tabs of their own from the dock's head or its More agents menu when they are installed. When an agent's risky step waits for an answer, the dock asks in a dialog over the window (Deny, Allow once, Always allow any agent with that name); the Waiting for you list in Agent Connect shows the same request and either place answers it. The entry the engine writes for its own tabs is named `formdesign_tab`; the entry an outside agent sets up stays `formdesign`.
 
 | Piece | Where |
 | --- | --- |
@@ -73,7 +73,7 @@ Claude Code starts in the agent folder: the `claudeFolder` preference (Preferenc
 
 ```bash
 ./formdesign agents install --dry-run     # what it would change
-./formdesign agents install               # Claude Code, Codex and Cursor, for this user account
+./formdesign agents install               # Claude Code, Codex, Cursor and Antigravity, for this user account
 ./formdesign agents install claude        # one of them
 ```
 

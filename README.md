@@ -99,7 +99,7 @@ The window, the CLI and the MCP server drive the same engine, and the MCP server
 ./formdesign templates                       # list the 71 templates
 ./formdesign tool preview '{"page": 1}'      # call any MCP tool from a shell
 ./formdesign cli list                        # the shared command catalogue; run any command by id
-./formdesign mcp                             # MCP server on stdio for Claude Code, Codex and Cursor
+./formdesign mcp                             # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ./formdesign mcpb build .                    # the same server as a Claude Desktop extension (.mcpb)
 ```
 

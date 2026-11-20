@@ -36,7 +36,7 @@ The measured parity with professional layout and PDF applications (170 scored ro
 | [[Engine-Service]] | `backend/`: documents, intake, templates, books, routes |
 | [[Make-Pass]] | How files and a brief become a filled layout |
 | [[Templates]] | The template library, brand kits, adding templates |
-| [[Agents-and-MCP]] | MCP tools, the skills, the CLI, installing for Claude Code, Codex and Cursor |
+| [[Agents-and-MCP]] | MCP tools, the skills, the CLI, installing for Claude Code, Codex, Cursor and Antigravity |
 | [[Editor]] | `frontend/`: the canvas, input, the feature modules, the zero-flash rules |
 | [[Project-Format]] | `.fdes` documents and `.fdbook` books, entry by entry |
 | [[Desktop]] | The Tauri shell, the frozen engine, building bundles |
