@@ -7,6 +7,18 @@ Last updated: 2026-11-19 · the desktop engine keeps a log, holds a lock on its 
 
 ---
 
+## v0.91.0 · a leftover engine that has ended but was not yet collected counts as gone on macOS (2026-11-20)
+
+- refers-to: app/core/startup.py :: finished, gone_by; tests/test_startup.py
+- kind: fix
+- logged: v0.91.0 · 2026-11-20
+
+FormCut's macOS job found it in the family's start-up file: ending a leftover engine waits until it is gone, `_alive_posix` asks `kill(pid, 0)`, and a process that has ended and whose parent has not collected it still answers that. It is told apart only by reading `/proc`, which macOS does not have, so the wait ran out and the start was refused with "could not stop an engine that was left running". In the app it can happen when the leftover engine's own parent is alive and slow to collect it.
+
+`finished(pid)` asks `ps -o stat= -p <pid>` where there is no `/proc` (never on Windows, never on Linux) and answers true for a state that starts with `Z`. `gone_by` stops waiting when the process is not alive or is finished. `alive` itself is unchanged, so the two second watch on the app starts no program. Carried by hand from FormCut's fix; keep the two files the same here.
+
+Seen on Linux with `PROC` pointed at a folder that does not exist: before the change `claim` on a lock whose engine is a child of the caller and whose shell had gone was refused with that sentence after 10.1 seconds; after it the claim succeeded at once. The test does the same. Not run on macOS.
+
 ## v0.90.0 · the desktop engine keeps a log, holds a lock on its data folder, leaves when its app has gone, and serves nothing when started alone (2026-11-19)
 
 - refers-to: app/core/startup.py; app/core/runtime.py; formdesign_engine.py :: watch_shell, serve, main; tests/test_startup.py
