@@ -2,6 +2,12 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.93.0 · 2026-11-20
+
+- FormDesign's colour and layout settings carry every name used across the Form family's apps, so panels shared with the other apps find all of them. Nothing on screen changes.
+- The README says FormDesign is released, built for macOS, Windows and Linux and tested on all three.
+- The three browser demos are rebuilt with this version.
+
 ## 0.92.0 · 2026-11-20
 
 - Preferences > Agents has a field for where Codex, Cursor and Antigravity are, beside the one for Claude Code. FormDesign looks there first when it starts the program, and the path is kept with the agent choices, which only the app window can change. A path changed by hand outside the app is not used.
