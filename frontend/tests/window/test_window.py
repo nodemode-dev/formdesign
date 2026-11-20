@@ -50,7 +50,7 @@ def free_port():
         return s.getsockname()[1]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def engine():
     assert (DIST / "index.html").is_file(), f"build the window first: {DIST} has no index.html (npm run build)"
     port = free_port()
