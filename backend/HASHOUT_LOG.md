@@ -7,6 +7,16 @@ Last updated: 2026-11-19 · only the app window can change what agents may do, o
 
 ---
 
+## after v0.88.0 · only Claude Code's sentence offers a path in Preferences (2026-11-19)
+
+- refers-to: app/services/claude_code.py :: said; app/services/agent_programs.py :: status, launch; tests/test_dock_contract.py
+- kind: fix
+- logged: after v0.88.0, no version yet · 2026-11-19
+
+The finder's sentence for a program that was not found can end with what else the person can do. Preferences has a path field for Claude Code only, so "or give its path in Preferences" is now said for Claude Code only; for Codex, Cursor and Antigravity the sentence ends with the install command. The first finder commit on this branch said it for all four. Seen in the suite: the status of a program that was not found and a refused Codex tab.
+
+---
+
 ## after v0.88.0 · Antigravity has a tab of its own and a place in agents install (2026-11-19)
 
 - refers-to: app/services/pty.py :: PRESETS, Terminals.create; app/services/agent_programs.py :: TAB_ENTRY, tab_folder, _servers, _replace, write_tab_entry, remove_tab_entry, launch; app/services/agents.py :: OWN_TABS, install; ../setup/agents.py :: DOCK, _ours, install_antigravity, main; ../agents/manifest.json (written by agents sync); tests/test_dock_manifest.py

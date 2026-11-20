@@ -175,8 +175,9 @@ def test_agent_status_gives_the_install_line_for_a_missing_program(client, monke
     found = client.get("/api/agents/programs").json()
     for kind in ("codex", "cursor", "antigravity"):
         assert found[kind]["installed"] is False and found[kind]["path"] is None and found[kind]["version"] is None
-        assert found[kind]["finding"] == "missing" and found[kind]["said"].endswith(f"Install it with: {found[kind]['install']}, or give its path in Preferences.")
+        assert found[kind]["finding"] == "missing" and found[kind]["said"].endswith(f"Install it with: {found[kind]['install']}.")
         assert found[kind]["install"] and " is " not in found[kind]["install"]
+    assert found["claude"]["said"].endswith("or give its path in Preferences.")
 
 
 @pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")
@@ -246,7 +247,7 @@ def test_a_missing_program_tab_is_refused_with_its_install_line(client, monkeypa
 
     monkeypatch.setattr(agent_lookup, "find", lambda program, **more: agent_lookup.Found(program, agent_lookup.PROGRAMS[program]["title"], looked=["nowhere"]))
     res = client.post("/api/term", json={"preset": "codex"})
-    assert res.status_code == 400 and res.json()["detail"] == "Codex was not found. Looked in: nowhere. Install it with: npm install -g @openai/codex, or give its path in Preferences."
+    assert res.status_code == 400 and res.json()["detail"] == "Codex was not found. Looked in: nowhere. Install it with: npm install -g @openai/codex."
 
 
 def test_a_tab_that_ends_tells_a_typed_listener_and_prints_for_a_plain_one():

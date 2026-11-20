@@ -42,7 +42,7 @@ def status(fresh: bool = False) -> dict:
         return _cache["value"]
     out = {}
     for kind, spec in REPORTED.items():
-        found = claude_code.info(fresh) if kind == "claude" else agent_lookup.answer(claude_code.located(kind, fresh), spec["install"], claude_code.OTHERWISE)
+        found = claude_code.info(fresh) if kind == "claude" else agent_lookup.answer(claude_code.located(kind, fresh), spec["install"])
         out[kind] = found | {"signedIn": _claude_signed_in(found["path"]) if kind == "claude" and found["installed"] else None,
                              "install": spec["install"], "label": spec["label"], "title": spec["label"]}
     _cache["value"], _cache["at"] = out, time.time()
@@ -132,7 +132,7 @@ def launch(kind: str) -> tuple[list[str], dict[str, str], str, str]:
     spec = PROGRAMS[kind]
     found = claude_code.usable(kind)
     if found.state != "runs":
-        raise ProgramError(agent_lookup.sentence(found, spec["install"], claude_code.OTHERWISE))
+        raise ProgramError(agent_lookup.sentence(found, spec["install"]))
     exe = found.path
     if kind == "antigravity":
         token = claude_code.issue_for(kind)

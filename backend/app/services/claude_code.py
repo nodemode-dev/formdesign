@@ -102,7 +102,7 @@ def usable(kind: str) -> agent_lookup.Found:
 
 
 def said(found: agent_lookup.Found) -> str:
-    return agent_lookup.sentence(found, agent_lookup.install(found.program), OTHERWISE)
+    return agent_lookup.sentence(found, agent_lookup.install(found.program), OTHERWISE if found.program == "claude" else "")
 
 
 def engine_url() -> str:
