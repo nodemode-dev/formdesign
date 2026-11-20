@@ -1,9 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod engine_start;
 mod native;
 mod reveal;
 mod text_edit;
 mod traffic_lights;
+#[cfg(windows)]
+mod win_job;
 
 use std::sync::Mutex;
 
@@ -15,6 +18,8 @@ use tauri_plugin_updater::UpdaterExt;
 
 struct Backend(Mutex<Option<CommandChild>>);
 
+type EngineStep = Result<CommandEvent, Option<engine_start::Wait>>;
+
 const FALLBACK_LOGICAL: (f64, f64) = (1440.0, 900.0);
 const MIN_LOGICAL: (f64, f64) = (1100.0, 700.0);
 const SCREEN_FRACTION: f64 = 0.9;
@@ -22,9 +27,33 @@ const SCREEN_FRACTION: f64 = 0.9;
 fn kill_backend(handle: &tauri::AppHandle) {
     if let Ok(mut guard) = handle.state::<Backend>().0.lock() {
         if let Some(child) = guard.take() {
+            #[cfg(windows)]
+            win_job::end();
             let _ = child.kill();
         }
     }
+}
+
+fn start_limit(late: &tauri::async_runtime::Sender<EngineStep>, limit: std::time::Duration, wait: Option<engine_start::Wait>) {
+    let late = late.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(limit);
+        let _ = late.blocking_send(Err(wait));
+    });
+}
+
+fn engine_failed(handle: &tauri::AppHandle, failure: engine_start::Failure, tail: &engine_start::Tail) {
+    let text = engine_start::message(&failure, &tail.lines(), engine_start::engine_log().as_deref());
+    eprintln!("formdesign: {text}");
+    let _ = handle
+        .dialog()
+        .message(text)
+        .title(engine_start::APP)
+        .kind(tauri_plugin_dialog::MessageDialogKind::Error)
+        .blocking_show();
+    close_splash(handle);
+    kill_backend(handle);
+    std::process::exit(1);
 }
 
 fn close_splash(handle: &tauri::AppHandle) {
@@ -130,55 +159,88 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
             reveal::round_splash(&handle);
-            let mut cmd = app.shell().sidecar("formdesign-engine")?.env("FORMDESIGN_PORT", "8196").env("FORMDESIGN_WINDOW_KEY_STDOUT", "1").env("FORMDESIGN_SHELL_PID", std::process::id().to_string());
-            if let Some(core) = core_path() {
-                cmd = cmd.env("FORMDESIGN_CORE", core);
-            }
-            let (mut rx, child) = cmd.spawn()?;
+            let started = app.shell().sidecar("formdesign-engine").map_err(|_| engine_start::Failure::Missing).and_then(|engine| {
+                let mut cmd = engine
+                    .env("FORMDESIGN_PORT", "8196")
+                    .env("FORMDESIGN_WINDOW_KEY_STDOUT", "1")
+                    .env(engine_start::SHELL_ENV, std::process::id().to_string());
+                if let Some(core) = core_path() {
+                    cmd = cmd.env("FORMDESIGN_CORE", core);
+                }
+                cmd.spawn().map_err(|err| engine_start::Failure::NotStarted(err.to_string()))
+            });
+            let (mut rx, child) = match started {
+                Ok(pair) => pair,
+                Err(failure) => {
+                    std::thread::spawn(move || engine_failed(&handle, failure, &engine_start::Tail::default()));
+                    return Ok(());
+                }
+            };
+            #[cfg(windows)]
+            win_job::hold_pid(child.pid());
             if let Ok(mut guard) = app.state::<Backend>().0.lock() {
                 guard.replace(child);
             }
             tauri::async_runtime::spawn(async move {
                 let pattern = regex::Regex::new(r"http://127\.0\.0\.1:(\d+)").ok();
                 let key_pattern = regex::Regex::new(r"formdesign-window-key: ([A-Za-z0-9_-]{32,})").ok();
+                let (tx, mut events) = tauri::async_runtime::channel::<EngineStep>(64);
+                let late = tx.clone();
+                tauri::async_runtime::spawn(async move {
+                    while let Some(event) = rx.recv().await {
+                        if tx.send(Ok(event)).await.is_err() {
+                            break;
+                        }
+                    }
+                    let _ = tx.send(Err(None)).await;
+                });
+                start_limit(&late, engine_start::Wait::Address.limit(), Some(engine_start::Wait::Address));
                 let mut port: Option<u16> = None;
                 let mut key: Option<String> = None;
-                let mut stopped: Option<i32> = None;
-                while let Some(event) = rx.recv().await {
-                    let line = match event {
-                        CommandEvent::Stdout(bytes) => {
+                let mut waiting = false;
+                let mut stopped = false;
+                let mut tail = engine_start::Tail::default();
+                let mut failure = engine_start::Failure::Stopped(None);
+                while let Some(step) = events.recv().await {
+                    let text = match step {
+                        Ok(CommandEvent::Stdout(bytes)) => {
                             let text = String::from_utf8_lossy(&bytes).into_owned();
                             if key.is_none() {
                                 key = key_pattern.as_ref().and_then(|p| p.captures(&text)).map(|found| found[1].to_string());
                             }
                             text
                         }
-                        CommandEvent::Stderr(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
-                        CommandEvent::Terminated(payload) => {
-                            stopped = payload.code;
+                        Ok(CommandEvent::Stderr(bytes)) => String::from_utf8_lossy(&bytes).into_owned(),
+                        Ok(CommandEvent::Terminated(ended)) => {
+                            failure = engine_start::Failure::Stopped(ended.code);
+                            stopped = true;
+                            start_limit(&late, engine_start::EXIT_WAIT, None);
+                            continue;
+                        }
+                        Ok(_) => continue,
+                        Err(None) => break,
+                        Err(Some(_)) if stopped => break,
+                        Err(Some(engine_start::Wait::Address)) if port.is_some() => continue,
+                        Err(Some(wait)) => {
+                            failure = engine_start::Failure::TimedOut(wait);
                             break;
                         }
-                        _ => continue,
                     };
-                    if let Some(captures) = pattern.as_ref().and_then(|p| p.captures(&line)) {
-                        port = captures[1].parse().ok();
-                        if port.is_some() {
-                            break;
-                        }
+                    for line in text.lines() {
+                        tail.push(line);
+                    }
+                    if port.is_none() {
+                        port = pattern.as_ref().and_then(|p| p.captures(&text)).and_then(|found| found[1].parse::<u16>().ok());
+                    }
+                    if port.is_some() && key.is_some() {
+                        break;
+                    }
+                    if port.is_some() && !waiting {
+                        waiting = true;
+                        start_limit(&late, engine_start::Wait::Key.limit(), Some(engine_start::Wait::Key));
                     }
                 }
-                let grace = std::time::Instant::now() + std::time::Duration::from_secs(10);
-                while port.is_some() && key.is_none() && std::time::Instant::now() < grace {
-                    match rx.try_recv() {
-                        Ok(CommandEvent::Stdout(bytes)) => {
-                            key = key_pattern.as_ref().and_then(|p| p.captures(&String::from_utf8_lossy(&bytes))).map(|found| found[1].to_string());
-                        }
-                        Ok(_) => {}
-                        Err(_) => {
-                            let _ = tauri::async_runtime::spawn_blocking(|| std::thread::sleep(std::time::Duration::from_millis(20))).await;
-                        }
-                    }
-                }
+                drop(late);
                 let origin = port.map(|found| format!("http://127.0.0.1:{found}")).unwrap_or_default();
                 let key_script = match &key {
                     Some(value) => format!("if (window.location.origin === {origin:?}) {{ window.__FORMDESIGN_WINDOW_KEY = {value:?}; }}"),
@@ -226,24 +288,12 @@ fn main() {
                             reveal::conceal(&window);
                             traffic_lights::place(&window.as_ref().window());
                         } else {
-                            handle.dialog().message("FormDesign could not open its window. Please relaunch the app.").blocking_show();
-                            close_splash(&handle);
-                            kill_backend(&handle);
-                            std::process::exit(1);
+                            engine_failed(&handle, engine_start::Failure::Window, &engine_start::Tail::default());
+                            return;
                         }
                         check_for_updates(handle.clone());
                     }
-                    None => {
-                        let text = match stopped {
-                            Some(2) => "FormDesign could not start: another copy of its engine holds its data folder. Close the other FormDesign and open it again.".to_string(),
-                            Some(code) => format!("FormDesign could not start: its engine stopped with code {code} before the window could open. Its log is formdesign-engine.log, in the Logs folder of the FormDesign data folder."),
-                            None => "The FormDesign engine failed to start. Please relaunch the app. Its log is formdesign-engine.log, in the Logs folder of the FormDesign data folder.".to_string(),
-                        };
-                        handle.dialog().message(text).blocking_show();
-                        close_splash(&handle);
-                        kill_backend(&handle);
-                        std::process::exit(1);
-                    }
+                    None => engine_failed(&handle, failure, &tail),
                 }
             });
             Ok(())

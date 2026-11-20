@@ -21,6 +21,9 @@ serde = { version = "1", features = ["derive"] }
 # The native canvas (opt-in, View > Renderer > Native): wgpu composition of the page tiles, started by native_canvas_start.
 formdesign-gpu = { path = "../native/formdesign-gpu" }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSWindow", "NSButton", "NSControl", "NSView", "NSResponder", "objc2-core-foundation", "NSColor"] }
