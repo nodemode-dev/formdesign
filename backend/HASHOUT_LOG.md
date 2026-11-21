@@ -7,6 +7,18 @@ Last updated: 2026-11-20 · no engine change in 0.93.0 (the version string only)
 
 ---
 
+## v0.93.1 · the Windows freeze stops when a sidecar cannot be copied into src-tauri\binaries (2026-11-20)
+
+- refers-to: setup/freeze_backend.bat (the two `copy /y` lines)
+- kind: fix
+- logged: v0.93.1 · 2026-11-20
+
+Found by reading the PyInstaller command line of `setup/freeze_backend.bat` token by token against `setup/freeze_backend`: with `!WINDOW!` and `!DATA!` expanded (and the fonts folder present), both give PyInstaller the same 42 arguments in the same order, every `--add-data` pair separate, no glued token, no double space or tab, every line CRLF. The difference was after it: the Unix script runs under `set -e`, so a failed `cp` of the engine or the core ends it, but the `.bat` copied both with `copy /y ... >nul` and went on. A copy onto a sidecar that a running FormDesign still holds fails on Windows; the script then ran `--selfcheck` on the old engine left in `src-tauri\binaries`, passed, and said the sidecars were ready. Both copies now end with `|| exit /b 1`, as the Unix twin stops. Read again token by token after the edit; not run (no Windows here).
+
+Other differences between the twins, left as they are: the `.bat` takes the target triple only from `rustc -vV` (the Unix script also takes `FORMDESIGN_TARGET`), looks for the core only at `native\target\release\formdesign-core.exe` (the Unix script also takes `FORMDESIGN_CORE` and `native/bin`), and says nothing when the font install fails (the Unix script says the bundle falls back to the core's fonts); in each case the Windows build does what the default Unix build does.
+
+---
+
 ## v0.91.0 · the Windows engine is frozen with no console window unless FORMDESIGN_ENGINE_WINDOWED=0 (2026-11-20)
 
 - refers-to: setup/freeze_backend (`window`); setup/freeze_backend.bat (`WINDOW`)

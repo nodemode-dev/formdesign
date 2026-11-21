@@ -18,7 +18,7 @@ if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine
 pyinstaller --noconfirm --clean --onefile --name formdesign-engine !WINDOW! --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller !DATA! --collect-submodules app --collect-submodules uvicorn --collect-submodules keyring --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all ezdxf --hidden-import docx --hidden-import openpyxl --hidden-import striprtf "%ROOT%\backend\formdesign_engine.py" || exit /b 1
 if not exist "%ROOT%\src-tauri\binaries" mkdir "%ROOT%\src-tauri\binaries"
-copy /y "dist-engine\formdesign-engine.exe" "%ROOT%\src-tauri\binaries\formdesign-engine-%TRIPLE%.exe" >nul
-copy /y "%ROOT%\native\target\release\formdesign-core.exe" "%ROOT%\src-tauri\binaries\formdesign-core-%TRIPLE%.exe" >nul
+copy /y "dist-engine\formdesign-engine.exe" "%ROOT%\src-tauri\binaries\formdesign-engine-%TRIPLE%.exe" >nul || exit /b 1
+copy /y "%ROOT%\native\target\release\formdesign-core.exe" "%ROOT%\src-tauri\binaries\formdesign-core-%TRIPLE%.exe" >nul || exit /b 1
 "%ROOT%\src-tauri\binaries\formdesign-engine-%TRIPLE%.exe" --selfcheck || exit /b 1
 echo [formdesign] sidecars ready in src-tauri\binaries
