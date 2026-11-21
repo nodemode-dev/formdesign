@@ -4,6 +4,34 @@ Living log for the desktop shell. Source files stay comment-free where this log 
 
 ---
 
+## v0.93.1 · the shell's sources carry no comments; what they said is here (2026-11-20)
+
+- refers-to: src/native.rs (module, `Native`, `FrameIn`, `FrameOut`, the five `native_canvas_*` commands); src/text_edit.rs (module); src/main.rs :: setup (the main window's builder); build.rs
+- kind: docs
+- logged: v0.93.1 · 2026-11-20
+
+Thirty-seven comment lines and two blank lines were taken out of four files; no code token changed (the diff is deletions only, each a `//`, `///` or `//!` line or the blank line after a module comment). What they said, by place:
+
+**`src/native.rs`, the module.** The opt-in native canvas of the desktop app: the shell hosts formdesign-gpu (wgpu: Metal, Vulkan, Direct3D 12) beside the web view, the way FormVis hosts formvis-render. Nothing is created until the page calls `native_canvas_start` (View > Renderer > Native), so the app is unchanged otherwise. The wgpu surface is the main window's own; the web view sits above it and is transparent (the window and web view are built transparent in `main.rs`, and the page makes its canvas rectangle transparent once the first frame has been shown). The surface covers the whole window and the frame is drawn at the canvas rectangle's offset, so the pasteboard, pages and tiles land exactly under the page's hole; whatever the surface shows elsewhere is hidden by the opaque interface above it. Not yet verified on macOS or Windows: on macOS the Metal layer must sit beneath the web view, and the transparent window needs the private API (`tauri.macos.conf.json`); on Windows the swap chain of a window that also hosts WebView2 may need a composition visual. Only the owner's machines can confirm them.
+
+**`src/native.rs`, the fields of `Native`.** `rect` is the canvas rectangle in CSS pixels (x, y, w, h) within the web view, and `dpr` the device pixel ratio. `size` is the window size the surface was last configured for. `evicted` holds the tiles the atlas evicted since the last frame reply, so the page forgets it uploaded them.
+
+**`src/native.rs`, `FrameIn`.** The frame as the page sends it: the view as [scale, tx, ty] (CSS pixels, relative to the canvas rectangle), the pages that may be visible, and the pasteboard colour as straight RGBA from 0 to 1.
+
+**`src/native.rs`, `FrameOut`.** `presented` is true when the frame was drawn and shown (false: skipped, send it again). `missing` lists the visible tiles that are not on the GPU (drawn as white paper), for the page to send. `evicted` lists the tiles the atlas dropped to stay inside its budget since the last reply.
+
+**`src/native.rs`, the commands.** `native_canvas_start` starts the native canvas in this window and answers false when no graphics adapter can draw into it. `native_canvas_resize` is called when the canvas rectangle or the pixel ratio changed; the surface follows the window's size at the next frame. `native_canvas_tile` takes one tile's pixels as the raw request body (straight RGBA8, w by h); the header `x-key` is "page|level|tx|ty" and `x-w` and `x-h` give the size, so tiles are not expanded into JSON. `native_canvas_frame` draws the frame and reports what is missing; it is async so the wait for the display's vertical blank is not on the thread that runs the web view. Inside it, the view adds the canvas rectangle's offset inside the window, so the canvas is drawn under its hole. `native_canvas_stop` drops the native canvas: the surface and every tile on the GPU.
+
+**`src/text_edit.rs`, the module.** macOS: the menu bar's Edit items are FormDesign commands with Cmd+Z, Cmd+X, Cmd+C, Cmd+V and Cmd+A, so the menu takes those keys before a focused text field can. While a field has focus the page calls `text_edit` instead of the command, and the standard edit action goes to the first responder, the web view, which edits the field exactly as the context menu does, with no clipboard prompt.
+
+**`src/main.rs`, the main window's builder.** `FORMDESIGN_RENDERER=native` starts the page on the native canvas (a test and support aid; the normal way is View > Renderer, which the page remembers). The window and its web view are transparent so the native canvas shows through the page's hole; the page paints every pixel itself unless that mode is on.
+
+**`build.rs`.** The page is served by the local engine (a remote origin to Tauri), so its calls to the app's own commands need permissions: the build generates `allow-native-canvas-*` (and the others named in the list) for each command, granted in `capabilities/default.json`.
+
+Checked here: the diff has no added line; `rustfmt --emit stdout` parses `build.rs` and `src/main.rs` with its modules. Not compiled (the system WebKit libraries are missing).
+
+---
+
 ## v0.91.0 · the engine is held in a job object on Windows, the wait for its address has a limit, and a failed start names the engine's last lines and its log (2026-11-20)
 
 - refers-to: src/win_job.rs; src/engine_start.rs; src/main.rs :: kill_backend, start_limit, engine_failed, setup; Cargo.toml and Cargo.lock (`windows-sys`, Windows only)

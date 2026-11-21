@@ -1,8 +1,3 @@
-//! macOS: the menu bar's Edit items are FormDesign commands with Cmd+Z, Cmd+X, Cmd+C, Cmd+V and Cmd+A, so the menu takes
-//! those keys before a focused text field can. While a field has focus the page calls this instead of the command, and
-//! the standard edit action goes to the first responder, the web view, which edits the field exactly as the context
-//! menu does, with no clipboard prompt.
-
 #[tauri::command]
 pub fn text_edit<R: tauri::Runtime>(window: tauri::Window<R>, action: String) -> Result<(), String> {
     let selector = match action.as_str() {

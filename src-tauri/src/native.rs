@@ -1,15 +1,3 @@
-//! The opt-in native canvas of the desktop app: the shell hosts formdesign-gpu (wgpu: Metal, Vulkan, Direct3D 12) beside the
-//! web view, the way formvis hosts formvis-render. Nothing is created until the page calls native_canvas_start (View >
-//! Renderer > Native), so the app is unchanged otherwise.
-//!
-//! The wgpu surface is the main window's own; the web view sits above it and is transparent (the window and web view are
-//! built transparent in main.rs, and the page makes its canvas rectangle transparent once the first frame has been shown).
-//! The surface covers the whole window and the frame is drawn at the canvas rectangle's offset, so the pasteboard,
-//! pages and tiles land exactly under the page's hole; whatever the surface shows elsewhere is hidden by the opaque
-//! interface above it. Not yet verified on macOS or Windows: on macOS the Metal layer must sit beneath the web view, and
-//! the transparent window needs the private API (tauri.macos.conf.json); on Windows the swap chain of a window that also
-//! hosts WebView2 may need a composition visual. Only the owner's machines can confirm them.
-
 use formdesign_gpu::composite::{Frame, PageRect};
 use formdesign_gpu::display::{Display, Presented};
 use formdesign_gpu::{Gpu, TileAtlas, TileKey, TILE};
@@ -20,12 +8,9 @@ pub struct Native {
     gpu: Gpu,
     display: Display,
     atlas: TileAtlas,
-    /// The canvas rectangle in CSS pixels (x, y, w, h) within the web view, and the device pixel ratio.
     rect: [f64; 4],
     dpr: f32,
-    /// The window size the surface was last configured for.
     size: (u32, u32),
-    /// Tiles the atlas evicted since the last frame reply, so the page forgets it uploaded them.
     evicted: Vec<TileKey>,
 }
 
@@ -44,8 +29,6 @@ pub struct PageIn {
     h: f32,
 }
 
-/// The frame as the page sends it: the view as [scale, tx, ty] (CSS pixels, relative to the canvas rectangle), the pages
-/// that may be visible, and the pasteboard colour as straight RGBA from 0 to 1.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FrameIn {
@@ -70,11 +53,8 @@ impl From<TileKey> for KeyOut {
 
 #[derive(Serialize)]
 pub struct FrameOut {
-    /// True when the frame was drawn and shown (false: skipped, send it again).
     presented: bool,
-    /// Visible tiles that are not on the GPU (drawn as white paper), for the page to send.
     missing: Vec<KeyOut>,
-    /// Tiles the atlas dropped to stay inside its budget since the last reply.
     evicted: Vec<KeyOut>,
 }
 
@@ -87,7 +67,6 @@ fn rect_of(rect: Vec<f64>) -> Result<[f64; 4], String> {
     <[f64; 4]>::try_from(rect).map_err(|_| "a rectangle is x, y, width, height".to_string())
 }
 
-/// Starts the native canvas in this window; false when no graphics adapter can draw into it.
 #[tauri::command]
 pub fn native_canvas_start(rect: Vec<f64>, dpr: f64, window: tauri::WebviewWindow, state: tauri::State<NativeState>) -> Result<bool, String> {
     let rect = rect_of(rect)?;
@@ -107,7 +86,6 @@ pub fn native_canvas_start(rect: Vec<f64>, dpr: f64, window: tauri::WebviewWindo
     Ok(true)
 }
 
-/// The canvas rectangle or the pixel ratio changed; the surface follows the window's size at the next frame.
 #[tauri::command]
 pub fn native_canvas_resize(rect: Vec<f64>, dpr: f64, window: tauri::WebviewWindow, state: tauri::State<NativeState>) -> Result<(), String> {
     let rect = rect_of(rect)?;
@@ -123,8 +101,6 @@ pub fn native_canvas_resize(rect: Vec<f64>, dpr: f64, window: tauri::WebviewWind
     Ok(())
 }
 
-/// One tile's pixels as the raw request body (straight RGBA8, w by h); the header x-key is "page|level|tx|ty" and x-w and
-/// x-h give the size, so tiles are not expanded into JSON.
 #[tauri::command]
 pub fn native_canvas_tile(request: tauri::ipc::Request, state: tauri::State<NativeState>) -> Result<(), String> {
     let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else { return Err("native_canvas_tile takes raw bytes".into()) };
@@ -150,8 +126,6 @@ pub fn native_canvas_tile(request: tauri::ipc::Request, state: tauri::State<Nati
     Ok(())
 }
 
-/// Draws the frame and reports what is missing. Async so the wait for the display's vertical blank is not on the thread
-/// that runs the web view.
 #[tauri::command]
 pub async fn native_canvas_frame(frame: FrameIn, window: tauri::WebviewWindow, state: tauri::State<'_, NativeState>) -> Result<FrameOut, String> {
     let size = size_of(&window)?;
@@ -167,7 +141,6 @@ pub async fn native_canvas_frame(frame: FrameIn, window: tauri::WebviewWindow, s
         height: size.1,
         dpr: n.dpr,
         pasteboard: frame.pasteboard,
-        // The canvas rectangle's offset inside the window, so the canvas is drawn under its hole.
         view: [scale, tx + n.rect[0] as f32, ty + n.rect[1] as f32],
         pages: frame.pages.iter().map(|p| PageRect { index: p.index, x: p.x, y: p.y, w: p.w, h: p.h }).collect(),
     };
@@ -179,7 +152,6 @@ pub async fn native_canvas_frame(frame: FrameIn, window: tauri::WebviewWindow, s
     })
 }
 
-/// Drops the native canvas: the surface and every tile on the GPU.
 #[tauri::command]
 pub fn native_canvas_stop(state: tauri::State<NativeState>) {
     if let Ok(mut s) = state.0.lock() {
