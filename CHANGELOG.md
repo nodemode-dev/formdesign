@@ -2,6 +2,12 @@
 
 Every release of FormDesign, newest first. Versions follow semver; tags read `v*.*.*`.
 
+## 0.93.1 · 2026-11-20
+
+- Building the desktop app on Windows now stops with an error when the engine or the layout core cannot be copied into place (for example while FormDesign is still open), instead of finishing with the copies left from an earlier build.
+- The desktop app's own source files carry no comments; what they explained is kept in the desktop shell's log. Nothing in the app changes.
+- The three browser demos are rebuilt with this version.
+
 ## 0.93.0 · 2026-11-20
 
 - FormDesign's colour and layout settings carry every name used across the Form family's apps, so panels shared with the other apps find all of them. Nothing on screen changes.

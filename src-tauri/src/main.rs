@@ -259,14 +259,10 @@ fn main() {
                                 ((size.width as f64 / scale) * SCREEN_FRACTION, (size.height as f64 / scale) * SCREEN_FRACTION)
                             })
                             .unwrap_or(FALLBACK_LOGICAL);
-                        // FORMDESIGN_RENDERER=native starts the page on the native canvas (a test and support aid; the
-                        // normal way is View > Renderer, which the page remembers).
                         let preset = match std::env::var("FORMDESIGN_RENDERER").as_deref() {
                             Ok("native") => "window.__FORMDESIGN_RENDERER__ = 'native';",
                             _ => "",
                         };
-                        // The window and its web view are transparent so the native canvas shows through the page's hole;
-                        // the page paints every pixel itself unless that mode is on.
                         let builder = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
                             .transparent(true)
                             .visible(reveal::BUILD_VISIBLE)
